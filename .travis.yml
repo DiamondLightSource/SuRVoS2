@@ -1,36 +1,25 @@
 language: python
+
 python:
-  #- "3.2"
-  #- "3.3"
-  #- "3.4"
-  #- "3.5"
+  - "3.4"
+  - "3.5"
   - "3.6"
+
+os:
+  - linux
   
-addons:
-  apt:
-    packages:
-      - libhdf5-serial-dev
-
-sudo: required
-
+sudo: false
+  
 before_install:
-  - if [[ 1 ]]; then
-      export CUDA_VERSION="7.5-18";
-      wget "http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_${CUDA_VERSION}_amd64.deb";
-      sudo dpkg -i cuda-repo-ubuntu1404_${CUDA_VERSION}_amd64.deb;
-      sudo apt-get update -qq;
-      export CUDA_APT=${CUDA_VERSION%-*};
-      export CUDA_APT=${CUDA_APT/./-};
-      sudo apt-get install -y cuda-drivers cuda-core-${CUDA_APT} cuda-cudart-dev-${CUDA_APT} cuda-cufft-dev-${CUDA_APT};
-      sudo apt-get clean;
-      export CUDA_HOME=/usr/local/cuda-${CUDA_VERSION%%-*};
-      export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH};
-      export PATH=${CUDA_HOME}/bin:${PATH};
-      sudo apt-get install -y libgl1-mesa-dev;
-    fi
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update conda
+  - conda install --yes --file requirements.txt
     
 install:
-  - pip install -r requirements.txt
+  - echo "SUCCESS" #- python setup.py build_ext --inplace
   
 script:
   - pytest
