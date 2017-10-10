@@ -11,13 +11,15 @@ addons:
       - libhdf5-serial-dev
 before_install:
   - if [[ 1 ]]; then
-      wget "https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda-repo-ubuntu1604-9-0-local_9.0.176-1_amd64-deb";
-      sudo dpkg -i cuda-repo-ubuntu1604-9-0-local_9.0.176-1_amd64.deb;
+      export CUDA_VERSION="7.5-18"
+      wget "http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64/cuda-repo-ubuntu1404_${CUDA_VERSION}_amd64.deb";
+      sudo dpkg -i cuda-repo-ubuntu1404_${CUDA_VERSION}_amd64.deb;
       sudo apt-get update -qq;
-      export CUDA_APT=9.0;
+      export CUDA_APT=${CUDA_VERSION%-*};
+      export CUDA_APT=${CUDA_APT/./-};
       sudo apt-get install -y cuda-drivers cuda-core-${CUDA_APT} cuda-cudart-dev-${CUDA_APT} cuda-cufft-dev-${CUDA_APT};
       sudo apt-get clean;
-      export CUDA_HOME=/usr/local/cuda-9.0;
+      export CUDA_HOME=/usr/local/cuda-${CUDA_VERSION%%-*};
       export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH};
       export PATH=${CUDA_HOME}/bin:${PATH};
       sudo apt-get install -y libgl1-mesa-dev;
