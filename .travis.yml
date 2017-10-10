@@ -9,9 +9,20 @@ addons:
   apt:
     packages:
       - libhdf5-serial-dev
-# command to install dependencies
+before_install:
+  - if [[ 1 ]]; then
+      wget "https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda-repo-ubuntu1604-9-0-local_9.0.176-1_amd64-deb";
+      sudo dpkg -i cuda-repo-ubuntu1604-9-0-local_9.0.176-1_amd64.deb;
+      sudo apt-get update -qq;
+      export CUDA_APT=9.0;
+      sudo apt-get install -y cuda-drivers cuda-core-${CUDA_APT} cuda-cudart-dev-${CUDA_APT} cuda-cufft-dev-${CUDA_APT};
+      sudo apt-get clean;
+      export CUDA_HOME=/usr/local/cuda-9.0;
+      export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH};
+      export PATH=${CUDA_HOME}/bin:${PATH};
+      sudo apt-get install -y libgl1-mesa-dev;
+  fi
 install:
   - pip install -r requirements.txt
-# command to run tests
 script:
-  - pytest # or py.test for Python versions 3.5 and below
+  - pytest
