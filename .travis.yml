@@ -20,6 +20,7 @@ before_install:
 install:
   - cat requirements.txt | grep -v pycuda | xargs pip install
   - conda install -c lukepfister pycuda
+  - conda install pytest
   
 script:
   - pytest tests/
