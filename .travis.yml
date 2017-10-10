@@ -22,4 +22,4 @@ install:
   - conda install -c lukepfister pycuda
   
 script:
-  - pytest
+  - pytest tests/
