@@ -16,10 +16,10 @@ before_install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - conda config --set always_yes yes --set changeps1 no
   - conda update conda
-  - conda install --yes --file requirements.txt
     
 install:
-  - echo "SUCCESS" #- python setup.py build_ext --inplace
+  - cat requirements.txt | grep -v pycuda | xargs pip install
+  - conda install -c lukepfister pycuda
   
 script:
   - pytest
