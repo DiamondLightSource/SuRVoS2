@@ -24,6 +24,7 @@ install:
 
 before_script:
   - export PYTHONPATH=$PYTHONPATH:$(pwd)
+  - export SURVOS_ENV=test
   
 script:
   - pytest tests/
