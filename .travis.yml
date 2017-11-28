@@ -21,6 +21,9 @@ install:
   - cat requirements.txt | grep -v pycuda | xargs pip install
   - conda install -c lukepfister pycuda
   - conda install pytest
+
+before_script:
+  - export PYTHONPATH=$PYTHONPATH:$(pwd)
   
 script:
   - pytest tests/
