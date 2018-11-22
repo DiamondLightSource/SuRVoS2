@@ -29,3 +29,5 @@ bin/server run [plugin].[command] [param1=value1] [param2=value2]
 ```bash
 bin/server run [plugin].[command] --server [host:port] [param1=value1] [param2=value2]
 ```
+
+[![](https://codescene.io/projects/3732/status.svg) Get more details at **codescene.io**.](https://codescene.io/projects/3732/jobs/latest-successful/results)
