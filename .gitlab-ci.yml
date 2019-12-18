@@ -1,0 +1,7 @@
+run-test:
+  tags:
+    - linux
+  script:
+    - python --version
+    - conda activate /dls/science/users/vvw07985/venvs/survos2
+    - python --version
