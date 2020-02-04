@@ -44,7 +44,7 @@ def asnparray(data, dtype=None, contiguous=True):
 
     if isinstance(data, da.Array):
         newdata = data.compute()
-    elif hasattr(data, 'get'): # is a pycuda.gpuarray.GPUArray
+    elif hasattr(data, 'get'):  # is a pycuda.gpuarray.GPUArray
         newdata = data.get()
     elif isinstance(data, np.ndarray):
         newdata = data
@@ -52,15 +52,15 @@ def asnparray(data, dtype=None, contiguous=True):
     if newdata is not None:
         if newdata.dtype != dtype:
             logger.warn('Transforming data type from {} to {}:'
-                         .format(np.dtype(newdata.dtype).name, np.dtype(dtype).name))
+                        .format(np.dtype(newdata.dtype).name, np.dtype(dtype).name))
             newdata = newdata.astype(dtype, copy=False)
         elif newdata.flags.c_contiguous == False and contiguous:
             newdata = newdata.copy()
         return newdata
     else:
         logger.warn('Transforming unkown data to a numpy array. '
-                     'Expected pycuda.gpuarray.GPUArray, dask.array.Array '
-                     'or numpy.ndarray.')
+                    'Expected pycuda.gpuarray.GPUArray, dask.array.Array '
+                    'or numpy.ndarray.')
         return np.asarray(data[...], dtype=dtype)
 
 
@@ -113,7 +113,8 @@ def optimal_chunksize(source, max_size, item_size=4, delta=0.1, axis_weight=None
         chunks = np.ceil(shape / nchunks).astype(int)
         chunk_size = np.prod(chunks) * item_size
         chunk_size_err = (sizeMB - chunk_size) / (2**20)
-        chunk_axis_err = np.abs(chunks / float(chunks.min()) - axis_weight).sum()
+        chunk_axis_err = np.abs(
+            chunks / float(chunks.min()) - axis_weight).sum()
         chunk_err = chunk_size_err + chunk_axis_err
         if chunk_size < sizeMB and chunk_err < best_chunk_err:
             best_chunk = chunks
@@ -154,9 +155,9 @@ def dask_relabel_chunks(A):
         Dask array of the same shape, with chunks relabelled.
     """
     inds = tuple(range(A.ndim))
-    max_per_block = da.atop(np.max, inds, A, inds, axis=inds,
+    max_per_block = da.blockwise(np.max, inds, A, inds, axis=inds,
                             keepdims=True, dtype=A.dtype,
-                            adjust_chunks={i:1 for i in inds})
+                            adjust_chunks={i: 1 for i in inds})
     block_index_global = da.cumsum(max_per_block.ravel() + 1)
 
     def relabel(a, block_id=None):
@@ -165,7 +166,7 @@ def dask_relabel_chunks(A):
             return a
         return a + block_index_global[bid-1]
 
-    return A.map_blocks(relabel)
+    return A.map_blocks(relabel, dtype=np.float64)
 
 
 def _chunk_datasets(datasets, chunk=CHUNK, chunk_size=CHUNK_SIZE, stack=False):
@@ -200,7 +201,7 @@ def _chunk_datasets(datasets, chunk=CHUNK, chunk_size=CHUNK_SIZE, stack=False):
     """
     newds = []
     if chunk:
-        if isinstance(datasets[0], da.Array): # override chunk size
+        if isinstance(datasets[0], da.Array):  # override chunk size
             chunk_size = tuple(a[0] for a in datasets[0].chunks)
         elif hasattr(datasets[0], 'chunk_size'):
             chunk_size = datasets[0].chunk_size
@@ -306,7 +307,8 @@ def _apply(func, datasets, chunk=CHUNK, pad=None, relabel=False,
     """
     if stack and len(datasets) > 1:
         dataset = da.stack(datasets, axis=0)
-        dataset = da.rechunk(dataset, chunks=(dataset.shape[0],) + dataset.chunks[1:])
+        dataset = da.rechunk(dataset, chunks=(
+            dataset.shape[0],) + dataset.chunks[1:])
         datasets = [dataset]
 
     if chunk == True:
@@ -319,14 +321,16 @@ def _apply(func, datasets, chunk=CHUNK, pad=None, relabel=False,
                 pad = [pad] * datasets[0].ndim
 
             if stack:
-                pad[0] = 0 # don't pad feature channel
-                depth = {i:d for i, d in enumerate(pad)}
-                trim = {i:d for i, d in enumerate(pad[1:])}
+                pad[0] = 0  # don't pad feature channel
+                depth = {i: d for i, d in enumerate(pad)}
+                trim = {i: d for i, d in enumerate(pad[1:])}
             else:
-                depth = trim = {i:d for i, d in enumerate(pad)}
-
-            g = da.overlap.overlap(datasets[0], depth=depth, boundary='reflect')
+                depth = trim = {i: d for i, d in enumerate(pad)}
+            g = da.overlap.overlap(
+                datasets[0], depth=depth, boundary='reflect')
+            #g = da.ghost.ghost(datasets[0], depth=depth, boundary='reflect')
             r = g.map_blocks(func, **kwargs)
+            #result = da.ghost.trim_internal(r, trim)
             result = da.overlap.trim_internal(r, trim)
         else:
             raise ValueError('`pad` only works with single')
@@ -343,10 +347,12 @@ def _apply(func, datasets, chunk=CHUNK, pad=None, relabel=False,
 
         if relabel:
             if out is not None:
-                result = dask_relabel_chunks(da.from_array(out, chunks=rchunks))
+                result = dask_relabel_chunks(
+                    da.from_array(out, chunks=rchunks))
                 result.store(out, compute=True)
             else:
-                result = dask_relabel_chunks(da.from_array(result, chunks=rchunks))
+                result = dask_relabel_chunks(
+                    da.from_array(result, chunks=rchunks))
                 if compute:
                     result = result.compute()
     else:
@@ -415,13 +421,14 @@ def map_blocks(func, *args, chunk=CHUNK, chunk_size=CHUNK_SIZE, pad=CHUNK_PAD,
         other keyword arguments for the specific function being mapped.
     """
     uses_gpu = uses_gpu or getattr(func, '__uses_gpu__', False)
-    out_dtype = out_dtype or getattr(func, '__out_dtype__', None)
+    out_dtype = out_dtype or getattr(func, '__out_dtype__', np.float64)
     out_fillvalue = out_fillvalue or getattr(func, '__out_fillvalue__', 0) or 0
     relabel = relabel or getattr(func, '__requires_relabel__', False)
 
     params = dict()
     params['params'] = parse_params(kwargs)
-    params['blocks'] = parse_params(dict(chunk=chunk, chunk_size=chunk_size, pad=pad))
+    params['blocks'] = parse_params(
+        dict(chunk=chunk, chunk_size=chunk_size, pad=pad))
     params['preprocess'] = dict(scale=scale, stretch=stretch)
     params['postprocess'] = dict(relabel=relabel, compute=compute)
     params['misc'] = dict(uses_gpu=uses_gpu, timeit=timeit)
@@ -439,13 +446,14 @@ def map_blocks(func, *args, chunk=CHUNK, chunk_size=CHUNK_SIZE, pad=CHUNK_PAD,
         t0 = time.time()
 
     with DatasetManager(*args, out=out, dtype=out_dtype, fillvalue=out_fillvalue) as DM:
+
         datasets = _chunk_datasets(DM.sources, chunk=chunk,
                                    chunk_size=chunk_size, stack=stack)
         datasets = _preprocess_datasets(datasets, chunk=chunk, scale=scale,
                                         stretch=stretch)
         result = _apply(func, datasets, chunk=chunk, pad=pad, relabel=relabel,
                         stack=stack, compute=compute, out=DM.out,
-                        normalize=normalize, **kwargs)
+                        normalize=normalize, **kwargs, dtype=out_dtype)
 
     if timeit:
         t1 = time.time()
@@ -461,6 +469,7 @@ class DatasetManager(object):
     functions to receive input and output datasets from strings. Implements
     a context manager that closes and opens datasets automatically.
     """
+
     def __init__(self, *args, out=None, dtype=None, fillvalue=0, src_mode='r'):
         from ..io import dataset_from_uri, is_dataset_uri
 
@@ -550,7 +559,8 @@ def survosify(func=None, dtype=None, fillvalue=0, uses_gpu=False, relabel=False)
 
     @wraps(func)
     def wrapper(*args, out=None, src_mode='r', **kwargs):
-        dm_params = dict(out=out, dtype=dtype, fillvalue=fillvalue, src_mode=src_mode)
+        dm_params = dict(out=out, dtype=dtype,
+                         fillvalue=fillvalue, src_mode=src_mode)
         with DatasetManager(*args, **dm_params) as DM:
             result = func(*DM.sources, **kwargs)
             if out is not None:
@@ -636,4 +646,3 @@ def map_pipeline(source, pipeline=None, **kwargs):
 
     func = survosify(wrapper, **wparams)
     return map_blocks(func, source, pipeline=pipeline, **kwargs)
-
