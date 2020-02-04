@@ -283,7 +283,7 @@ def _apply(func, datasets, chunk=CHUNK, pad=None, relabel=False,
         the function will be mapped across arrays blocks.
     pad: None, int or iterable
         The padding to apply (only if `chunk = True`). If `pad != None` then
-        `dask.array.ghost.map_overlap` will be used to map the function across
+        `dask.array.overlap.map_overlap` will be used to map the function across
         overlapping blocks, otherwise `dask.array.map_blocks` will be used.
     relabel: boolean
         Some of the labelling functions will yield local labelling if `chunk=True`.
@@ -325,9 +325,9 @@ def _apply(func, datasets, chunk=CHUNK, pad=None, relabel=False,
             else:
                 depth = trim = {i:d for i, d in enumerate(pad)}
 
-            g = da.ghost.ghost(datasets[0], depth=depth, boundary='reflect')
+            g = da.overlap.overlap(datasets[0], depth=depth, boundary='reflect')
             r = g.map_blocks(func, **kwargs)
-            result = da.ghost.trim_internal(r, trim)
+            result = da.overlap.trim_internal(r, trim)
         else:
             raise ValueError('`pad` only works with single')
 
