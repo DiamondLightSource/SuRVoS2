@@ -4,7 +4,7 @@ stages:
   - clean
 
 variables: &global-variables
-  CONDA_PATH: /scratch/olly/gitlab_wd/test_env
+  CONDA_PATH: /scratch/SuRVoS2/gitlab_working_dir/test_env
 
 linux-build:
   stage: build
