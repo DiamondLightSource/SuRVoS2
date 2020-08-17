@@ -5,15 +5,21 @@ import sys
 import os.path as op
 import yaml
 import json
+import base64
 
 import numpy as np
-import base64
 
 import time
 import logging
 
+from loguru import logger
+#logger.remove()
 __loggers__ = {}
 
+#log_format = " {level: <8} | {file} | {name: ^15} | {function: ^15} | {line: >3} | {message}| {exception}"
+
+#logger.add(sys.stderr, format=log_format, level="INFO", colorize=True) #{time}
+logger.opt(colors=True)
 
 def encode_numpy(ndarray):
     dtype = np.dtype(ndarray.dtype).name

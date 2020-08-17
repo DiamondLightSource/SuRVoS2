@@ -17,6 +17,8 @@ from .model import Workspace, Dataset, DatasetWrapper
 from .improc.utils import asnparray, optimal_chunksize
 
 
+from loguru import logger
+
 ##############################################################################
 # DTYPE and SHAPE utils
 ##############################################################################
@@ -38,13 +40,7 @@ def dtype2size(dtype):
     return np.dtype(dtype).itemsize
 
 
-##############################################################################
-# Retrieve datasets from URI
-##############################################################################
 
-MRC_REGEXP = r'^(mrc://)?(?P<fpath>.+(.rec|.mrc))$'
-HDF5_REGEXP = r'^((hdf5|h5)://)?(?P<wspath>.+(.h5|.hdf5))(:(?P<dspath>[^:]+))?$'
-SURVOS_REGEXP = r'^(survos://)?(((?P<session>[^:@]+)@)?(?P<workspace>[^:@]+):)?(?P<dataset>[^:@.]+)$'
 
 
 def is_dataset_uri(uri):
@@ -91,7 +87,7 @@ def dataset_from_uri(uri, mode='a', shape=None, dtype='float32', fill=0):
     if loader is not None:
         return loader(uri, mode=mode, shape=shape, dtype=dtype, fill=fill)
     else:
-        raise ValueError('Worng URI. Only hdf5:// and survos:// uris are supported.')
+        raise ValueError('Wrong URI. Only hdf5:// and survos:// uris are supported.')
 
 
 def hdf5_from_uri(uri, mode='a', shape=None, dtype='float32', fill=0):
@@ -175,14 +171,18 @@ def survos_from_uri(uri, mode='a', shape=None, dtype='float32', fill=0):
     fill: int or float
         Value used to fill the array. Default: 0.
     """
+    logger.info("running survos_from_uri on survos:// uri")
+    
     match = re.match(SURVOS_REGEXP, uri)
     if not match:
         raise ValueError('Invalid survos:// uri: {}'.format(uri))
+    
     dataset = match.group('dataset')
     workspace = match.group('workspace')
     session = match.group('session') or 'default'
 
     if workspace:
+        logger.debug(f"Calling Workspace() Init with workspace name: {workspace}")
         ws = Workspace(workspace)
         if dataset == Workspace.__dsname__:
             if mode != 'r':
@@ -259,6 +259,23 @@ def mrc_from_uri(uri, mode='a', shape=None, dtype='float32', fill=0):
 
 
 
+##############################################################################
+# Retrieve datasets from URI
+##############################################################################
+
+MRC_REGEXP = r'^(mrc://)?(?P<fpath>.+(.rec|.mrc))$'
+HDF5_REGEXP = r'^((hdf5|h5)://)?(?P<wspath>.+(.h5|.hdf5))(:(?P<dspath>[^:]+))?$'
+SURVOS_REGEXP = r'^(survos://)?(((?P<session>[^:@]+)@)?(?P<workspace>[^:@]+):)?(?P<dataset>[^:@.]+)$'
+
+__dataset_loaders__ = dict(
+    mrc=(MRC_REGEXP, mrc_from_uri),
+    hdf5=(HDF5_REGEXP, hdf5_from_uri),
+    survos=(SURVOS_REGEXP, survos_from_uri)
+)
+
+
+
+
 class HDF5DatasetWrapper(DatasetWrapper):
 
     def __init__(self, fileobj, dataset, strlength=300):
@@ -272,6 +289,8 @@ class HDF5DatasetWrapper(DatasetWrapper):
         return key in self.dataset.attrs
 
     def get_attr(self, key, default=None):
+        logger.debug(f"HDF5DatasetWrapper get_attr {key} ")
+        
         if self.has_attr(key):
             return self.attrs[key]
         elif default is not None:
@@ -279,16 +298,12 @@ class HDF5DatasetWrapper(DatasetWrapper):
         raise KeyError('Dataset has no `{}` metadata.'.format(key))
 
     def set_attr(self, key, value):
+        logger.debug(f"HDF5DatasetWrapper set_attr {key} {value} of type {type(value)} ")
         if type(value) == str:
             value = np.asarray(value, dtype=self.strdtype)
+
         self.dataset.attrs[key] = value
 
     def metadata(self):
         return copy.deepcopy(dict(self.dataset.attrs))
 
-
-__dataset_loaders__ = dict(
-    mrc=(MRC_REGEXP, mrc_from_uri),
-    hdf5=(HDF5_REGEXP, hdf5_from_uri),
-    survos=(SURVOS_REGEXP, survos_from_uri)
-)

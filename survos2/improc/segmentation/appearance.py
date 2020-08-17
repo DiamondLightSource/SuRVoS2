@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from sklearn.decomposition import PCA, RandomizedPCA
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.random_projection import SparseRandomProjection
 from sklearn.kernel_approximation import RBFSampler
@@ -20,8 +20,8 @@ def train(X_train, y_train, project=False, rnd=42, **kwargs):
             proj = StandardScaler()
         elif project == 'pca':
             proj = PCA(n_components='mle', whiten=True, random_state=rnd)
-        elif project == 'rpca':
-            proj = RandomizedPCA(whiten=True, random_state=rnd)
+        #elif project == 'rpca':
+        #    proj = RandomizedPCA(whiten=True, random_state=rnd)
         elif project == 'rbf':
             proj = RBFSampler(n_components=max(X_train.shape[1], 50), random_state=rnd)
         else:

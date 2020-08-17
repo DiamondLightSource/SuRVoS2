@@ -10,7 +10,7 @@ class DataModel(object):
         self.server_uri = None
         self.current_session = 'default'
         self.current_workspace = 'test_survos_large'
-        self.current_workspace_shape = (90, 946, 946)
+        self.current_workspace_shape = (99, 256, 256) #(90, 946, 946)
 
     def dataset_uri(self, dataset, group=None):
         session = self.current_session

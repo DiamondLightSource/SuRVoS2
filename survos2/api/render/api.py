@@ -67,6 +67,7 @@ def _transparent_cmap(color):
 
 
 def _label_cmap(all_labels, labels):
+    print("_label_cmap")
     colors = [(0,0,0,0)] * 16
     for label in labels:
         colors[label] = all_labels[label]['color']
@@ -82,6 +83,7 @@ KNOWN_LAYERS = [
 
 @hug.get()
 def cmaps():
+    logger.info("cmaps")
     return {k: v.keys() for k, v in _Cmaps.items()}
 
 
@@ -93,6 +95,8 @@ def render_workspace(request,
                      **layers):
     """
     """
+
+    logger.info("render_workspace")
     database = request.context['session']
     if 'workspace_renderer' in database:
         renderer = database['workspace_renderer']
@@ -122,6 +126,9 @@ def render_workspace(request,
                 clim = clim_tr
             else:
                 clim = clim_tr(data, clim)
+
+        if cmap==None:
+            cmap='gray'
         renderer.update_layer(layer, dsname, data, cmap=cmap,
                               clim=clim, visible=visible,
                               alpha=alpha, interp='nearest',

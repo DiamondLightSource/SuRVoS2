@@ -14,16 +14,14 @@ from ..utils import asnparray, gpuregion
 from ..cuda import asgpuarray, grid_kernel_config, flat_kernel_config
 from ..features import gaussian
 
+from survos2.utils import logger
 
 __dirname__ = op.dirname(__file__)
 
 
 @gpuregion
 def slic3d(data, nsp=None, sp_shape=None, compactness=30, sigma=None,
-           spacing=(1,1,1), max_iter=5, postprocess=True):
-    """
-
-    """
+           spacing=(1,1,1), max_iter=3, postprocess=False):
     assert data.ndim == 3 or data.ndim == 4
     dshape = np.asarray(data.shape[-3:], int)
 
@@ -78,13 +76,34 @@ def slic3d(data, nsp=None, sp_shape=None, compactness=30, sigma=None,
 
     r = ccl3d(labels_gpu, remap=True)
 
-    labels = labels_gpu.get()
-    binlab = np.bincount(labels.ravel())
+    #labels = labels_gpu.get()
+    
+    #binlab = np.bincount(labels.ravel())
+    
     binlab = np.bincount(r.ravel())
 
     if postprocess:
         min_size = int(np.prod(_sp_shape) / 10.)
+        logger.debug(f"Postprocessing Superregions with min_size {min_size}")
+        
         r = merge_small(asnparray(data), r, min_size)
         binlab = np.bincount(r.ravel())
+
+    return r
+
+
+def postprocess(data,r, sp_shape, min_size):
+    dshape = np.asarray(data.shape[-3:], int)
+    if sp_shape is not None:
+        _sp_shape = list(sp_shape)
+        if len(_sp_shape) == 3:
+            _sp_grid = (dshape + _sp_shape - 1) // _sp_shape
+        else:
+            raise ValueError('Incorrect `sp_shape`: {}'.format(sp_shape))
+
+    logger.debug(f"Postprocessing Superregions with min_size {min_size}")
+    min_size = int(np.prod(_sp_shape) / 10.)
+    r = merge_small(asnparray(data), r, min_size)
+    binlab = np.bincount(r.ravel())
 
     return r

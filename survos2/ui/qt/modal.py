@@ -88,7 +88,6 @@ class YesNoModal(_Modal):
 
 @Singleton
 class ModalManager(QtWidgets.QDialog, SWidget):
-
     def __init__(self, parent):
         QtWidgets.QDialog.__init__(self, parent=parent)
         SWidget.__init__(self, self.__class__.__name__, parent=parent)

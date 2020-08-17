@@ -38,7 +38,9 @@ class Launcher(QtCore.QObject):
         self.title = '{}::{}'.format(plugin.capitalize(),
                                      command.capitalize())
         self.setup(self.title)
+
         workspace = kwargs.pop('workspace', None)
+        
         if workspace == True:
             if DataModel.g.current_workspace:
                 kwargs['workspace'] = DataModel.g.current_workspace
@@ -48,8 +50,8 @@ class Launcher(QtCore.QObject):
             kwargs['workspace'] = workspace
 
         func = self._run_background if modal else self._run_command
-
         success = False
+
         while not success:
             try:
                 if kwargs.pop('timeit', False):
@@ -61,6 +63,7 @@ class Launcher(QtCore.QObject):
                 self.connected = False
                 logger.info('ConnectionError - delayed')
                 ModalManager.g.connection_lost()
+
                 if self.terminated:
                     return False
             else:
@@ -95,6 +98,7 @@ class Launcher(QtCore.QObject):
         return queue.get()
 
     def _run_command(self, plugin, command, out=None, **kwargs):
+        logger.info(f"_run_command {plugin} {command}")
         response = self.client.get('{}/{}'.format(plugin, command), **kwargs)
         result = parse_response(plugin, command, response, log=False)
         if out is not None:

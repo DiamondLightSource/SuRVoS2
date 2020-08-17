@@ -11,20 +11,20 @@ class _Config(type):
         'title': 'SuRVoS',
         'api': {
             'host': 'localhost',
-            'port': 8000,
+            'port': 8123,
             'plugins': [],
-            'renderer': 'vispy'
+            'renderer': 'mpl'
         },
         'computing': {
             'chunks': True,
             'chunk_size': 100,
-            'chunk_padding': 5,
+            'chunk_padding': 0,
             'chunk_size_sparse': 10,
             'scale': False,
             'stretch': False
         },
         'model': {
-            'chroot': False,
+            'chroot': 'C:\\work\\s2a\\s2a2\\s2a\\data',      # currently needs full path, can be 'tmp' which is placed in users dir
             'dbtype': 'yaml'
         },
         'logging': {
@@ -117,3 +117,21 @@ for k1, v in _Config.__data__.items():
                 except ValueError:
                     raise ValueError('Error updating config {}.{} to {}.'
                                      .format(k1, k2, os.environ[env_name]))
+
+
+
+#from dask import compute, delayed
+#import pandas as pd
+#from sklearn.metrics import mean_squared_error as mse
+
+#def compute_mse(file_name):
+#    df = pd.read_csv(file_name)
+#    prediction = df['Close'][:-1]
+#    observed = df['Close'][1:]
+#    return mse(observed, prediction)
+
+
+#if __name__ == '__main__':
+#    filenames = [...]
+#    delayed_results = [delayed(compute_mse)(file_name) for file_name in filenames]
+#    mean_squared_errors = compute(*delayed_results, scheduler="processes")

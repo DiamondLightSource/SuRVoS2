@@ -32,6 +32,8 @@ class CmapComboBox(LazyComboBox):
                     self.addItem(cmap)
 
 
+
+
 class Layer(QCSWidget):
 
     updated = QtCore.pyqtSignal()
@@ -194,6 +196,7 @@ class SliceViewer(QCSWidget):
 
         self.tools = []
         self.viz_params = None
+        print("Adding layer manager")
         self.layer_manager = self.add_tool('Layer', 'fa.adjust', layer_manager)
         self.layer_manager.paramsUpdated.connect(self.params_updated)
         self.slider.valueChanged.connect(self.show_slice)

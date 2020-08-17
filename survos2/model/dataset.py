@@ -1,4 +1,7 @@
+"""
+Hdf5 datasets, with metadata and custom chunking
 
+"""
 
 import os
 import os.path as op
@@ -112,9 +115,11 @@ class Dataset(BaseDataset):
         return self._id
 
     def _load(self, path):
+        logger.info(f"Loading dataset on {path}")
         self._id = op.basename(path)
         self._path = path
         dbpath = op.join(path, self.__dbname__)
+        
         if op.isfile(dbpath + '.yaml'):
             self._db = db = AttributeDB(dbpath, dbtype='yaml')
         elif op.isfile(dbpath + '.json'):
@@ -130,6 +135,7 @@ class Dataset(BaseDataset):
             self._fillvalue = db[self.__dsname__]['fillvalue']
         except:
             raise DatasetException('Unable to load dataset attributes: \'%s\'' % path)
+        
         self._total_chunks = np.prod(self._chunk_grid)
         self._ndim = len(self._shape)
 
@@ -230,6 +236,8 @@ class Dataset(BaseDataset):
 
     @staticmethod
     def create(path, shape=None, dtype=None, data=None, fillvalue=0, chunks=CHUNKS, **kwargs):
+        logger.info(f"Creating dataset on {path} {shape} {dtype} {data} {chunks}")
+        
         database = kwargs.pop('database', 'yaml')
         readonly = kwargs.pop('readonly', False)
 
@@ -303,6 +311,7 @@ class Dataset(BaseDataset):
         return os.path.join(self._path, 'chunk_%s.h5' % 'x'.join(map(str, idx)))
 
     def create_chunk(self, idx, data=None, cslices=None):
+        logger.info(f"Creating chunk {idx} {data} {cslices}")
         if self.readonly:
             raise DatasetException('Dataset is in readonly mode. Cannot create chunk.')
         if self.has_chunk(idx):
@@ -363,7 +372,8 @@ class Dataset(BaseDataset):
             output[gslice] = self.get_chunk_data(idx, slices=cslice)
 
         if len(squeeze_axis) > 0:
-            output = np.squeeze(output, axis=squeeze_axis)
+            print(f"Squeeze axis {squeeze_axis}")
+            output = np.squeeze(output, axis=squeeze_axis[0]) # np.squeeze now wants an integer, rather than a list containing an int
         return output
 
     def set_data(self, values, slices=None):
@@ -415,6 +425,7 @@ class Dataset(BaseDataset):
         return tuple(map(int, np.ravel_multi_index(idx, self.chunk_grid)))
 
     def _process_slices(self, slices, squeeze=False):
+        logger.info(f"_process_slices {slices}")
         if type(slices) in [slice, int]:
             slices = [slices]
         elif slices is Ellipsis:
@@ -441,6 +452,7 @@ class Dataset(BaseDataset):
         final_slices = []
         shape = self.shape
         squeeze_axis = []
+        
         for i, s in enumerate(slices):
             if type(s) == int:
                 final_slices.append(slice(s, s + 1))
@@ -525,7 +537,6 @@ class Dataset(BaseDataset):
 
 
 class DataChunk(object):
-
     def __init__(self, idx, path, shape, dtype, fillvalue):
         if not op.isfile(path):
             raise Exception('Wrong initialization of a DataChunk({}): {}'.format(idx, path))

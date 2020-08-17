@@ -1,11 +1,9 @@
 
 
 from survos2.utils import get_logger
-
 from survos2.ui.qt.qtcompat import QtWidgets, QtCore
 from survos2.ui.qt.components import *
 from survos2.ui.qt.control import Launcher, DataModel
-
 from survos2.ui.qt.plugins.base import register_plugin, Plugin
 
 
@@ -190,10 +188,13 @@ class FeatureCard(Card):
 
     def compute_feature(self):
         src_grp = None if self.cmb_source.currentIndex() == 0 else 'features'
+        
         src = DataModel.g.dataset_uri(self.cmb_source.value(), group=src_grp)
         dst = DataModel.g.dataset_uri(self.feature_id, group='features')
-        all_params = dict(src=src, dst=dst, modal=True)
+        
+        all_params = dict(src=src, dst=dst, modal=False)
         all_params.update({k: v.value() for k, v in self.widgets.items()})
+        
         Launcher.g.run('features', self.feature_type, **all_params)
 
     def card_title_edited(self, newtitle):

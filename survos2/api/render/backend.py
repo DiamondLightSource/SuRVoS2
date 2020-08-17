@@ -1,6 +1,6 @@
-
-
 from collections import OrderedDict
+
+from loguru import logger
 
 
 class Layer(object):
@@ -56,6 +56,8 @@ class Renderer(object):
 
     def __init__(self, size=(512, 512), save_png=False, compression=0,
                  layer_cls=Layer, **kwargs):
+
+        #import pdb; pdb.set_trace()
         self._save_png = save_png
         self._compression = compression
 
@@ -114,6 +116,7 @@ class Renderer(object):
         return _make_png(self.image, self._compression)
 
     def render_workspace(self, layers=None, max_size=None, binning=None):
+        logger.debug("render_workspace")
         if binning is not None:
             if binning < 0:
                 if max_size is not None and len(max_size) == 2:

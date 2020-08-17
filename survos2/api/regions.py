@@ -1,5 +1,4 @@
 
-
 import hug
 import logging
 import os.path as op
@@ -15,6 +14,7 @@ from survos2.api.types import DataURI, Float, SmartBoolean, \
     FloatOrVector, IntList, String, Int, FloatList, DataURIList
 from survos2.api import workspace as ws
 
+from loguru import logger
 
 __region_fill__ = 0
 __region_dtype__ = 'uint32'
@@ -28,20 +28,20 @@ def get_slice(src:DataURI, slice_idx:Int):
     data = ds[slice_idx]
     return encode_numpy(data)
 
-@hug.get()
-@save_metadata
+@hug.get()#@save_metadata
 def supervoxels(src:DataURIList, dst:DataURI, shape:IntList=[10,10,10],
                 compactness:Float=30, spacing:FloatList=[1,1,1]):
     """
     API wrapper for `survos2.improc.regions.slic3d`.
     """
     from ..improc.regions.slic import slic3d
+    logger.info(f"Calling slic3d with src: {src} dst: {dst}\n Shape {shape} Compactness {compactness} Spacing {spacing}")
+    #import pdb; pdb.set_trace()
     map_blocks(slic3d, *src, out=dst, sp_shape=shape, spacing=spacing,
-               compactness=compactness, stack=True)
+               compactness=compactness, stack=True, timeit=True, uses_gpu=True)
+    
 
-
-@hug.get()
-@save_metadata
+@hug.get() #@save_metadata
 def connected_components(src:DataURI, dst:DataURI, remap:SmartBoolean):
     """
     API wrapper for `survos2.improc.regions.ccl3d`.
@@ -50,8 +50,7 @@ def connected_components(src:DataURI, dst:DataURI, remap:SmartBoolean):
     map_blocks(ccl3d, src, out=dst, remap=remap)
 
 
-@hug.get()
-@save_metadata
+@hug.get() #@save_metadata
 def merge_regions(src:DataURI, labels:DataURI, dst:DataURI, min_size:Float):
     """
     API wrapper for `survos2.improc.regions.merge_small`.
@@ -78,7 +77,6 @@ def existing(workspace:String, full:SmartBoolean=False, order:Int=1):
         return {'{}/{}'.format(__region_group__, k): dataset_repr(v)
                 for k, v in datasets.items()}
     return {k: dataset_repr(v) for k, v in datasets.items()}
-
 
 @hug.get()
 def remove(workspace:String, region_id:String):

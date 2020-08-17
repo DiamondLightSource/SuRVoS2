@@ -39,19 +39,24 @@ def get(workspace:String):
     raise APIException('Workspace \'%s\' does not exist.' % workspace)
 
 ### Data
-
 @hug.get()
-def add_data(workspace:String, dataset:String):
+def add_data(workspace:String, data_fname:String):
     import dask.array as da
     from survos2.improc.utils import optimal_chunksize
+
     ws = get(workspace)
-    with dataset_from_uri(dataset, mode='r') as data:
+    logger.info("Adding data to workspace {ws}")
+    
+    with dataset_from_uri(data_fname, mode='r') as data:
         chunk_size = optimal_chunksize(data, Config['computing.chunk_size'])
         data = da.from_array(data, chunks=chunk_size)
         data -= da.min(data)
         data /= da.max(data)
+
         ds = ws.add_data(data)
+    
     logger.info(type(ds))
+    
     return ds
 
 
@@ -92,13 +97,13 @@ def list_datasets(workspace:String):
 
 
 @hug.get()
-def add_dataset(workspace:String, dataset:String, dtype:String,
+def add_dataset(workspace:String, dataset_name:String, dtype:String,
                 fillvalue:Int=0, group:String=None,
                 chunks:IntOrNone=None):
     workspace, session = parse_workspace(workspace)
     if group:
         dataset = '{}/{}'.format(group, dataset)
-    return get(workspace).add_dataset(dataset, dtype, session=session,
+    return get(workspace).add_dataset(dataset_name, dtype, session=session,
                                       fillvalue=fillvalue, chunks=chunks)
 
 
@@ -134,6 +139,7 @@ def metadata(workspace:String, dataset:String=None):
 
 ### Local utils for plugins
 
+#@hug.get()
 @hug.local()
 def existing_datasets(workspace:String, group:String=None, filter:String=None):
     ws, session = parse_workspace(workspace)

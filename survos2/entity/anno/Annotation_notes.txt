@@ -1,0 +1,17 @@
+
+
+crowd.py
+
+Zooniverse data import utilities.
+
+geom.py
+
+3d point geometry utils.
+
+masks.py
+
+Vector to raster utilities, e.g. list of points to a mask of ellipses centered at each point.
+
+point_cloud.py
+
+Point cloud clustering utilities.

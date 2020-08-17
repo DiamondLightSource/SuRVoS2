@@ -297,7 +297,7 @@ class AnnotationTool(Tool):
             result = Launcher.g.run('annotations', 'annotate_voxels', **params)
         else:
             region = DataModel.g.dataset_uri(self.selection['region'])
-            params.update(region=region, r=list(map(int, points)), modal=True)
+            params.update(region=region, r=list(map(int, points)), modal=False)
             result = Launcher.g.run('annotations', 'annotate_regions', **params)
         if result:
             self.viewer.update()

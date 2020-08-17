@@ -5,7 +5,7 @@ import numpy as np
 from ._mappings import _rmeans, _rstats, _rlabels
 
 
-def normalize(X, norm='l1'):
+def normalize(X, norm='unit'):
     if norm in ['l1', 'hellinger']:
         X /= np.abs(X).sum(axis=1)[:, None]
     elif norm == 'l2':
@@ -13,8 +13,8 @@ def normalize(X, norm='l1'):
     elif norm == 'linf':
         X /= np.abs(X).max(axis=1)[:, None]
     elif norm == 'unit':
-        X -= X.min(0)
-        X /= X.max(0)
+        X -= np.min(X)
+        X = X / np.max(X)
     if norm == 'hellinger':
         np.sqrt(X, X) # inplace
     return X

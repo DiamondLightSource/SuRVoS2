@@ -11,6 +11,7 @@ import pycuda.gpuarray as gpuarray
 
 from .utils import asnparray
 
+from loguru import logger
 
 __cuda_started__ = False
 
@@ -46,12 +47,14 @@ def gpu_context_wrapper(func):
     The wrapped will generate its own context to be runned in the GPU,
     allowing chunking operations to run simultaneously in the GPU.
     """
+    logger.debug("In gpu_context_wrapper")
     @wraps(func)
     def wrapper(*args, **kwargs):
         gpucontext = create_context(kwargs.pop('gpu_id', 0))
         r = func(*args, **kwargs)
         if kwargs.get('keep_gpu', False):
             atexit.register(gpucontext.detach)
+            gpucontext.pop()
         else:
             gpucontext.detach()
         return r

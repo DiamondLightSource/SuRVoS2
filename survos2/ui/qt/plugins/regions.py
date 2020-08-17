@@ -131,7 +131,7 @@ class SupervoxelCard(Card):
         all_params = dict(
             src=src, dst=dst, compactness=self.svcompactness.value(),
             shape=self.svshape.value(), spacing=self.svspacing.value(),
-            modal=True
+            modal=False
         )
         Launcher.g.run('regions', 'supervoxels', **all_params)
 

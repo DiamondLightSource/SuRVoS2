@@ -13,6 +13,7 @@ from survos2.api.render.backend import Renderer, Layer
 
 BACKEND_NAME = 'Matplotlib'
 
+from loguru import logger
 
 _cmaps = [
     ('Default',
@@ -60,12 +61,14 @@ class MplLayer(Layer):
                  interp='nearest', alpha=100, order=1):
         super().__init__(renderer, data, cmap=cmap, clim=clim,
                          interp=interp, alpha=alpha, order=order)
-        self.image = renderer.axes.imshow(self._data, cmap=self._cmap,
+        self.image = renderer.axes.imshow(self._data, cmap='gray',
                                           alpha=self._alpha / 100.,
                                           vmin=self._clim[0], vmax=self._clim[1],
                                           interpolation=self._interp,
                                           zorder=self._order)
+        
         self._rescale()
+        print("Mpllayer")
 
     def _convert_cmap(self, cmap):
         if type(cmap) == list:
@@ -109,6 +112,7 @@ class MplRenderer(Renderer):
         super().__init__(size=size, save_image=save_image,
                          save_png=save_png, compression=compression,
                          layer_cls=layer_cls)
+        logger.debug("MplRenderer")
         self.fig, self.axes = plt.subplots(ncols=1, dpi=100, nrows=1, frameon=False)
         self.fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
         self.axes.set_yticks([])

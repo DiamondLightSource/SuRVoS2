@@ -48,6 +48,7 @@ class VispyLayer(Layer):
         self.alphaFilter = Alpha(self._alpha / 100.)
         self.visual.attach(self.alphaFilter)
         self._rescale()
+        print("Vispy")
 
     def set_order(self, order):
         super().set_order(order)
