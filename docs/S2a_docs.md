@@ -46,8 +46,9 @@ python .\bin\survos.py run_server [COMMAND] server=localhost:8123 [PARAMS]
 
 ## New viewer
 
+```
 python .\bin\survos.py new_gui
-
+```
 ## Classic viewer
 
 python .\bin\survos.py classic_gui
@@ -65,7 +66,7 @@ They implement a particular folder structure and access protocol for data.
 
 After creation, add_data to a workspace, then create a dataset.
 
-
+```
 workspace.get_dataset server=0:0 workspace=test_s9 dataset=bob
 
 workspace.list_datasets workspace=test_s19
@@ -77,6 +78,7 @@ workspace.add_data workspace=test_s9 data_fname=D:/datasets/survos_brain/ws3/dat
 run_server workspace.add_dataset workspace=test_s3 dataset_name=D:/datasets/survos_brain/ws3/data.h5  dtype=float32
 
 run_server workspace.add_data server=0:0 workspace=test_s11 data_fname=D:/datasets/survos_brain/ws3/data.h5 session='default'
+```
 
 ### Groups
 
