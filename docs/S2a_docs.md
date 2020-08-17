@@ -211,15 +211,15 @@ a (R,R) -> R operation. A detection task takes an image and produce a set of poi
 ## List of ops
 (V: Vector, R: Raster)
 
-V->V
-    Spatial clustering
-    Cropping and transformation
-V->R
-    Mask generation
-R->V
-    Detection
-R->R
-    Segmentation
+* V->V
+    - Spatial clustering
+    - Cropping and transformation
+* V->R
+    - Mask generation
+* R->V
+    - Detection
+* R->R
+    - Segmentation
 
 # ROI
 
@@ -227,8 +227,9 @@ Pipeline roi: a pipeline ROI allows for a small region to be run through a pipel
 
 
 TODO: Integration of Viewer roi<->workspace roi so
-    1) viewer can view a smaller ROI of the workspace
-    2) processing (e.g. on server) can be tested on smaller ROI
+
+* viewer can view a smaller ROI of the workspace
+*  processing (e.g. on server) can be tested on smaller ROI
 
 
 TODO: An example of the client having a Thumbnail or slice result
