@@ -24,7 +24,7 @@ class _Config(type):
             'stretch': False
         },
         'model': {
-            'chroot': 'C:\\work\\s2a\\s2a2\\s2a\\data',      # currently needs full path, can be 'tmp' which is placed in users dir
+            'chroot': 'tmp',      # currently needs full path, can be 'tmp' which is placed in users dir
             'dbtype': 'yaml'
         },
         'logging': {

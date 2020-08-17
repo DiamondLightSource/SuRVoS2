@@ -11,7 +11,7 @@ from typing import List
 from matplotlib import pyplot as plt
 import torch
 import numpy as np
-from UtilityCluster import show_images
+from survos2.frontend.nb_utils import show_images
 
 from typing import Collection
 from matplotlib import patches, patheffects

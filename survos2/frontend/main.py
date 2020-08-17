@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import List, Dict
 from pprint import pprint
 from pathlib import Path
-from UtilityCluster import show_images
+from survos2.frontend.nb_utils import show_images
 from attrdict import AttrDict
 import h5py
 import skimage

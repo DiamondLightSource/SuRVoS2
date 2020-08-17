@@ -79,7 +79,7 @@ from numpy.lib.stride_tricks import as_strided as ast
 from numpy.random import permutation
 from numpy import linalg
 
-from UtilityCluster import summary_stats
+from survos2.frontend.nb_utils import summary_stats
 from numpy.linalg import LinAlgError
 
 #warnings.filterwarnings("ignore")

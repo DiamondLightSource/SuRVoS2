@@ -40,7 +40,7 @@ from survos2.frontend.datawidgets import (TableWidget, TreeControl,
 
 from survos2.frontend.model import SegSubject
 from survos2.frontend.controlpanel import ButtonPanelWidget, PluginPanelWidget
-from survos2.frontend.cluster import ClusterWidget
+#from survos2.frontend.cluster import ClusterWidget
 from survos2.frontend.pipeline import sv_gui, features_gui, roi_gui, prediction_gui, pipeline_gui, workspace_gui
 
 from survos2.model import Workspace, Dataset

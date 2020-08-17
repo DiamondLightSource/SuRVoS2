@@ -56,9 +56,9 @@ from survos2.helpers import AttrDict
 from survos2.entity.anno import geom
 from survos2.utils import logger
 from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-from survos2.entity.detect.backbone import convblock, ResNetUNet, convblock2
-from survos2.entity.detect.trainer import  (loss_dice, loss_calc, log_metrics,  
-                                            train_model_cbs, TrainerCallback)
+#from survos2.entity.detect.backbone import convblock, ResNetUNet, convblock2
+#from survos2.entity.detect.trainer import  (loss_dice, loss_calc, log_metrics,  
+#                                            train_model_cbs, TrainerCallback)
 from survos2.entity.saliency import filter_proposal_mask
 from survos2.entity.saliency import measure_big_blobs
 from survos2.entity.sampler import centroid_to_bvol, viz_bvols
