@@ -1,0 +1,27 @@
+{
+    "datasets_dir": "D:/datasets/survos_brain/ws3",
+    "PATCH_DIM": 32,
+    "class_names": [
+        "soul", 
+        "nonsoul",
+        "sense_of_humour"
+    ],
+    "flipxy" : false,
+    "project_dir" : "projects/brain/",
+    "workspace" : "test_s17",
+    "dataset_name" : "data",
+    "entities_relpath": "entities_brain.csv",
+    "patch_size": [
+        30,
+        300,
+        300
+    ],
+    "precrop_roi" : [
+        0,
+        64,
+        100,
+        228,
+        100,
+        228
+    ]
+}   
