@@ -27,7 +27,8 @@ linux-test:
     - module load cuda/10.1
     - conda activate $CONDA_PATH
     - bash make_script.sh
-    - "python -m pytest tests/"
+    - "coverage run -m pytest tests/"
+    - coverage report
 
 linux-clean:
   stage: clean
