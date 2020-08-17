@@ -38,25 +38,27 @@ survos.api.workspace
 
 Currently setting server=0:0 uses the hug Local server. See survos2.survos.run_command
 
+```
 python .\bin\survos.py run_server [COMMAND] server=0:0 [PARAMS]
+```
 
 ## Remote Server 
-
+```
 python .\bin\survos.py run_server [COMMAND] server=localhost:8123 [PARAMS]
-
+```
 ## New viewer
 
 ```
 python .\bin\survos.py new_gui
 ```
 ## Classic viewer
-
+```
 python .\bin\survos.py classic_gui
- 
+```
 ## Other commands
-
+```
 python survos.py view_data D:\\datasets\\survos_brain\\ws3\\data.h5
-
+```
 
 # Workspace commands
 
@@ -87,9 +89,10 @@ run_server workspace.add_data server=0:0 workspace=test_s11 data_fname=D:/datase
 
 The URIs, src and dst can be either a full path to the data or a name within the current workspace.
 
-__data__ is the default name for the block of data required to be added to a workspace at initialisation with add_data
+```__data__```
+ is the default name for the block of data required to be added to a workspace at initialisation with add_data
 
-
+```
 features.spatial_gradient_3d server=0:0 src=__data__  dst=001_spatial_gradient_3d
 
 features.gaussian_center server=0:0 src=D:/datasets/survos_brain/ws3/data.h5  dst=D:/datasets/survos_brain/out7.h5
@@ -100,15 +103,17 @@ features.gaussian_blur server=0:0 src=D:/datasets/survos_brain/ws3/data.h5  dst=
 
 features.rename workspace=test_s9 feature_id=001_image, new_name=bob
 
+```
 ## Region commands
 
+```
 regions.supervoxels server=0:0 src=D:/datasets/survos_brain/ws3/data.h5  dst=D:/datasets/survos_brain/out1.h5
 
 regions.create workspace=test_s9
 
 regions.get_slice server=localhost:8123 src=D:/datasets/survos_brain/ws3/data.h5 slice_idx=12
 
-
+```
 # Support for Client-Server operation
 
 python survos.py start_server
@@ -117,11 +122,12 @@ Default is to run on port 8123
 ## URI
 URI's for data have the form:
 
+```
 hdf5|h5://
 survos://
 mrc://
 
-
+```
 # SuRVoS2 Data model
 
 survos.io
@@ -135,8 +141,13 @@ calling the singleton instance with .g()
 
 Dataset URI looks like:
 
+```
 'survos://default@test_s11:D:\\datasets\\survos_brain\\ws3\\data.h5'
-​
+```
+
+Example output showing source and dst
+
+```
 Setting dst to 002_gaussian_blur
 
 2020-08-14 09:12:47.534 | INFO     | survos2.frontend.plugins.features:compute_feature:203 - 
@@ -145,7 +156,10 @@ Computing features gaussian_blur
 
 {'src': 'survos://default@test_s11:__data__', 
 'dst': 'survos://default@test_s11:features/002_gaussian_blur', 
-'modal': True, 'sigma': (1.0, 1.0, 1.0)}
+'modal': False, 'sigma': (1.0, 1.0, 1.0)}
+```
+
+modal refers to the use of multiprocessing for background processing (TODO: windows issues with multiprocessing)
 
 # Segmentation
 
@@ -162,17 +176,19 @@ Dataframe has 'z','x','y','class_code'
 # Frontend Notes
 
 Napari widget
-    Not yet (TODO) updated when local workspace updated. 'View' buttons transfer workspace to viewer.
+    
+* Not yet (TODO) updated when local workspace updated. 'View' buttons transfer workspace to viewer.
 
 Feature Plugin
-    Modify sets of filters
-    Run calculation, which updates the workspace 
-    Use the GUI to load the result into the viewer
+
+* Modify sets of filters
+* Run calculation, which updates the workspace 
+* Use the GUI to load the result into the viewer
 
 Supervoxel Calculation
-    Modify supervoxel parameters, choose feature to use
-    Run calculation, which updates the workspace 
-    Use the GUI to load the result into the viewer
+* Modify supervoxel parameters, choose feature to use
+* Run calculation, which updates the workspace 
+* Use the GUI to load the result into the viewer
     
 
 The client and the server are completely separate and communicate via the hug api.
@@ -193,6 +209,7 @@ A common prediction task involves taking an annotation volume and an image volum
 a (R,R) -> R operation. A detection task takes an image and produce a set of points or other geometry (R->V)
 
 ## List of ops
+(V: Vector, R: Raster)
 
 V->V
     Spatial clustering
