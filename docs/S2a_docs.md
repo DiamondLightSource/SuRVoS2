@@ -1,12 +1,35 @@
 
+# Basic startup instructions
+
+Clone environment (or unzip a zipped repo)
+
+Build the extensions: in survos2/improc, run python setup.py build_ext --inplace
+
+Set CHROOT in survos2/config.py or leave as 'tmp'
+
+Create a workspace (requires a new name than existing
+workspaces in CHROOT)
+
+survos.py run_server workspace.create workspace=test_s1
+
+Add data to the workspace:
+
+workspace.add_data workspace=test_s9 data_fname=D:/datasets/survos_brain/ws3/data.h5 
+
+(replace the data_fname with an h5 file that has the image data stored as 'data'.)
+
+
+
+
+
 # SuRVoS2 API
 
 survos.api.workspace
           .regions
           .features
-          .pipeline
           .annotations
           .render
+          .pipeline
 
 
 # SuRVoS2 Commands
@@ -37,7 +60,9 @@ python survos.py view_data D:\\datasets\\survos_brain\\ws3\\data.h5
 # Workspace commands
 
 Workspaces are stored in CHROOT
+
 They implement a particular folder structure and access protocol for data.
+
 After creation, add_data to a workspace, then create a dataset.
 
 
@@ -47,7 +72,7 @@ workspace.list_datasets workspace=test_s19
 
 workspace.add_dataset workspace=test_s9 dataset_name=bob  dtype=float32
 
-workspace.add_data workspace=test_s9 data_fname=D:/datasets/survos_brain/ws3/data.h5  dtype=float32
+workspace.add_data workspace=test_s9 data_fname=D:/datasets/survos_brain/ws3/data.h5 
 
 run_server workspace.add_dataset workspace=test_s3 dataset_name=D:/datasets/survos_brain/ws3/data.h5  dtype=float32
 
@@ -139,13 +164,14 @@ Napari widget
 
 Feature Plugin
     Modify sets of filters
-    Run server-side calculation
-    Update local workspace 
+    Run calculation, which updates the workspace 
+    Use the GUI to load the result into the viewer
 
 Supervoxel Calculation
     Modify supervoxel parameters, choose feature to use
-    Run server-side calculation
-    Update local workspace
+    Run calculation, which updates the workspace 
+    Use the GUI to load the result into the viewer
+    
 
 The client and the server are completely separate and communicate via the hug api.
 
