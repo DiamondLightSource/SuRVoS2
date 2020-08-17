@@ -123,27 +123,6 @@ def classic_gui(workspace:'Workspace path (full or chrooted) to load',
     sys.exit(app.exec_())
 
 
-#old
-@begin.subcommand
-def qt_gui2(workspace:'Workspace path (full or chrooted) to load',
-       server:'URI to the remote SuRVoS API Server'=default_uri):
-    """
-    Show a QT user interface
-    """
-    from survos2.ui.qt import QtWidgets
-    from survos2.ui.qt import MainWindow
-    from survos2.ui.qt.control import Launcher, DataModel
-
-    DataModel.g.current_workspace = workspace
-    Launcher.g.set_remote(server)
-
-    app = QtWidgets.QApplication([])
-    window = MainWindow(maximize=bool(Config['qtui.maximized']))
-
-    import signal
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-    sys.exit(app.exec_())
 
 
 # old
