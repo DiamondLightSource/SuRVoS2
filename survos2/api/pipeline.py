@@ -1,4 +1,3 @@
-
 import hug
 import logging
 import os.path as op
@@ -15,17 +14,6 @@ from survos2.api.types import DataURI, Float, SmartBoolean, \
 from survos2.api import workspace as ws
 
 from loguru import logger
-
-
-@hug.get() #@save_metadata
-def prepare_payload(src:DataURI, dst:DataURI, lamda:Float=10,
-                    max_iter:Int=100) -> 'Denoising':
-    """
-    API wrapper around `survos2.improc.features.tv.tvdenoising3d`.
-    """
-    from ..improc.features.tv import tvdenoising3d
-    map_blocks(tvdenoising3d, src, out=dst, lamda=lamda, max_iter=max_iter,
-               normalize=True)
 
 
 @hug.get()
