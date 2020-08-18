@@ -22,12 +22,27 @@ global __api_started
 __api_started= False
 
 
+#def _parse_uri(uri):
+#    if type(uri) == str:
+ #       pattern = r'@?(?P<host>\w+):(?P<port>[0-9]+)'
+     #   result = re.search(pattern, uri)
+  #      if result is not None:
+    #        return result['host'], result['port']
+   # elif len(uri) == 2:
+   #     return uri[0], uri[1]
+   # raise ValueError('Not a valid [host:port] URI.')
+
+
 def _parse_uri(uri):
     if type(uri) == str:
+
         pattern = r'@?(?P<host>\w+):(?P<port>[0-9]+)'
         result = re.search(pattern, uri)
+        
+        ip = re.findall( r'[0-9]+(?:\.[0-9]+){3}', uri )
+        
         if result is not None:
-            return result['host'], result['port']
+            return ip[0], result['port']
     elif len(uri) == 2:
         return uri[0], uri[1]
     raise ValueError('Not a valid [host:port] URI.')
