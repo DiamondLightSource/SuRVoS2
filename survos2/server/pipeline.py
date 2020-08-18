@@ -73,11 +73,11 @@ from survos2.frontend.nb_utils import show_images
 class PipelinePayload():
     main_volume : np.ndarray  # one channel volume, Z,X,Y
     layers : List[np.ndarray] # masks and other non-feature layers
-    entities : np.ndarray
+    entities : Optional[np.ndarray]
     features : Optional[Features]
     superregions : Optional[Superregions]
     prediction : Optional[SRPrediction]
-    models : dict
+    models : Optional[dict]
     params : dict
 
 
@@ -208,7 +208,6 @@ def predict_sr(p : PipelinePayload, anno_name):
 
 
 def setup_cnn_model():
-    #cb = TrainerCallback()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     num_class = 1
     model = ResNetUNet(num_class, convblock2).to(device)
@@ -306,6 +305,11 @@ def mask_pipeline(p : PipelinePayload):
     
     return p
 
+
+def survos_pipeline(p: PipelinePayload):
+    p = predict_sr(p, anno_name='total_mask')
+    
+    return p
 
 def superregion_pipeline(p : PipelinePayload):
     p = make_masks(p)
