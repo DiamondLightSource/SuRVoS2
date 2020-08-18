@@ -49,20 +49,6 @@ from survos2.frontend.control import DataModel
 from survos2.improc.utils import DatasetManager
 
 
-def clientData_to_workspace(clientData):
-    """
-    Make a new workspace 
-    add a dataset with the default session
-    add data to the dataset
-
-    cleanup and close workspace
-    """
-
-    pass
-
-
-    
-
 def setup_clientData2(workspace):
     img_vol = img_as_float(workspace.get_data()[...])  
     vol_anno = workspace.get_dataset('annotations/level1')[...]
@@ -379,7 +365,7 @@ def init_proj(wparams, precrop=False):
     #data = h5py.File(os.path.join(wparams.datasets_dir,"data.h5"), 'r')#this is image slices file
     #img_volume = data[wparams['dataset_name']]#[32:96,64:128,64:128]#this is orginal data
 
-    survos.init_api()
+    #survos.init_api()
     src = DataModel.g.dataset_uri('__data__')
     with DatasetManager(src, out=None, dtype='float32', fillvalue=0) as DM:
         print(DM.sources[0].shape)
