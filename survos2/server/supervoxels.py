@@ -119,11 +119,11 @@ def superregion_factory(supervoxel_vol : np.ndarray, features_stack:np.ndarray) 
         [Superregions]: superregions dataclass object 
     """
 
-    supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32, copy=False)
-    supervoxel_vol = supervoxel_vol[...]
-    supervoxel_vol = np.asarray(supervoxel_vol)#.astype(np.uint32, copy=True)
-    supervoxel_vol = np.nan_to_num(supervoxel_vol)
+    supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32, copy=True)
+    #supervoxel_vol = supervoxel_vol[...]
+    #supervoxel_vol = np.nan_to_num(supervoxel_vol)
     supervoxel_features = rmeans(features_stack, supervoxel_vol)
+
     logger.info(f"Finished rmeans with supervoxel_features of shape {supervoxel_features.shape}")
     
     supervoxel_rag = create_rag(np.array(supervoxel_vol), connectivity=6)
