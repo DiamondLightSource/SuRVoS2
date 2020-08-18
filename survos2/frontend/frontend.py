@@ -72,7 +72,8 @@ from survos2.frontend.model import ClientData
 from survos2.server.pipeline import setup_cnn_model
 from survos2.frontend.control import DataModel
 from survos2.improc.utils import DatasetManager
-            
+
+from survos2.config import Config 
 
 scfg = appState.scfg
 #sns.set_style('darkgrid')
@@ -83,35 +84,14 @@ sns.set_context("notebook", font_scale=1.5,
 
 fmt = "{time} - {name} - {level} - {message}"
 logger.remove() # remove default logger
-logger.add(sys.stderr, level="INFO")
+logger.add(sys.stderr, level="DEBUG")
 #logger.add(sys.stderr, level="ERROR", format=fmt)  #minimal stderr logger
-logger.add("logs/main.log", level="DEBUG", format=fmt) #compression='zip')
+#logger.add("logs/main.log", level="DEBUG", format=fmt) #compression='zip')
 
 
 
 
 
-def make_shapes_test():    
-    bsize = 20
-    polygons = [[[c[1],c[2]], [c[1],c[2]+bsize], 
-                [c[1]+10,c[2]+bsize], [c[1]+bsize,c[2]] ] 
-            for c in centers ]
-    
-    print(polygons[0:2])
-
-    layer1 = viewer.add_shapes(
-        polygons,
-        shape_type='polygon',
-        edge_width=1,
-        edge_color='coral',
-        face_color='royalblue',
-        name='shapes',
-    )
-
-    #layer1.selected_data = set(range(layer1.nshapes))
-    layer1.current_edge_width = 5
-    layer1.current_opacity = 0.75
-    #layer1.selected_data = set()
 
 def setup_entity_table(viewer, cData):
     # Setup Entity Table    
@@ -154,39 +134,13 @@ def setup_entity_table(viewer, cData):
     return entity_layer, tabledata
 
 
-def filter(viewer):
-    ## RASTERIZATION (V->R)
-    #payload = make_masks(payload)
-
-    cropped_vol = viewer.layers['Original Image'].data
-
-    payload = PipelinePayload(cropped_vol,
-                        {'in_array': cropped_vol},
-                        np.array([0,0,0,0]),
-                        None,
-                        None,
-                        None,
-                        appState.scfg)
-
-    feature_params = [ [gaussian, appState.scfg.filter1['gauss_params']]]
-
-     #   [gaussian, scfg.filter2['gauss_params'] ],
-     #   [simple_laplacian, scfg.filter4['laplacian_params'] ],
-     #   [tvdenoising3d, scfg.filter3['tvdenoising3d_params'] ]]
-    # feature_params = [ 
-    # [gaussian, scfg.filter2['gauss_params'] ]]
-    # FEATURES (R -> List[R])
-
-    payload = make_features(payload, feature_params)
-    logger.info(f"Filtered layer to produce {payload.features.filtered_layers}")
-    
-    return payload.features.features_stack[0]
-
         
 def frontend(cData):
-    #l = Launcher.instance()
     logger.info(f"Connected to launcher {Launcher.g.connected}")
-    #print(l.set_remote('localhost:8123'))
+    
+    default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
+
+    Launcher.g.set_remote(default_uri)
     
     with napari.gui_qt():
         viewer = napari.Viewer()
@@ -232,7 +186,7 @@ def frontend(cData):
         entity_layer, tabledata = setup_entity_table(viewer, cData)
 
         pipeline_gui_widget = pipeline_gui.Gui()
-        viewer.window.add_dock_widget(pipeline_gui_widget, area='right')
+        viewer.window.add_dock_widget(pipeline_gui_widget, area='left')
         viewer.layers.events.changed.connect(lambda x: pipeline_gui_widget.refresh_choices())
         pipeline_gui_widget.refresh_choices()
 
@@ -257,19 +211,12 @@ def frontend(cData):
             #
             # todo: move into api and call via launcher
             #
-
-            if x['data']=='predict':
-                predicted = np.zeros_like(cData.vol_stack[0])
-                viewer.add_image(predicted, name='Prediction')
-                #scfg.segSubject.notify() 
-                #segment(viewer)
- 
             # crop the vol, apply the pipeline, display the result in the roi viewer and add
             # an image that is blank except for the roi region back to the viewer
             # when the pipeline is ready to be applied to the whole image, set the 
             # roi to the size of the image and reapply
 
-            elif x['data']=='pipeline':                 
+            if x['data']=='pipeline':                 
                 minVal, maxVal = 0, 10
                 with ProgressDialog("Processing..", minVal, maxVal) as dlg:                    
                     dlg.setValue(1)         
@@ -356,43 +303,9 @@ def frontend(cData):
                     viewer.add_image(result, name='Pipeline Result')
                     
                     dlg.setValue(10)         
-            
-            elif x['data']=='calc_supervoxels':
-                logger.debug(f"calc_supervoxels clicked {x['compactness']}")
-                appState.scfg.slic_params['compactness'] = x['compactness']
-                minVal, maxVal = 0, 10
-                with ProgressDialog("Processing..", minVal, maxVal) as dlg:                    
-
-                    superregions = generate_supervoxels(np.array(cData.features.dataset_feats), 
-                                                        cData.features.features_stack, 
-                                                        appState.scfg.feats_idx, appState.scfg.slic_params)
-
-                    for i in range(maxVal):
-                        time.sleep(0.1)
-                        dlg.setValue(i)         
-                    if dlg.wasCanceled():
-                        raise Exception("Processing canceled")
-            
-                viewer.layers['Superregions'].data = superregions.supervoxel_vol.astype(np.uint16)
-                logger.info("Calculated superregions: {superregions")
-
-            elif x['data']=='calc_features':
-                logger.debug(f"Calc features with params {x['sigma']}")
-                logger.debug(f"predict clicked {x['count']} times")
-                
-                result = filter(viewer)
-                logger.info(f"Processed image with result {result.shape}")
-                viewer.add_image(result, name='Filtered Image')
-                #features = generate_features(cData.vol_supervoxels, feature_params, scfg.roi_crop, scfg.resample_amt)
-           
-            #elif x['data'] == 'predict_saliency':
-            #   logger.debug(f"detect clicked {x['count']} times")
-
+                    
             elif x['data'] == 'view_feature':
                 logger.debug(f"view_feature {x['feature_id']}")
-
-                #Launcher.g.run('workspace','get_dataset', workspace="test_s12", dataset='biovol')
-                #Launcher.g.run('workspace','list_datasets', workspace=DataModel.g.current_workspace)
 
                 # use DatasetManager to load feature from workspace as array and then add it to viewer
                 src = DataModel.g.dataset_uri(x['feature_id'], group='features')
@@ -404,9 +317,6 @@ def frontend(cData):
                     
             elif x['data'] == 'view_supervoxels':
                 logger.debug(f"view_feature {x['region_id']}")
-
-                #Launcher.g.run('workspace','get_dataset', workspace="test_s12", dataset='biovol')
-                #Launcher.g.run('workspace','list_datasets', workspace=DataModel.g.current_workspace)
 
                 #DataModel.g.current_workspace = test_workspace_name
                 src = DataModel.g.dataset_uri(x['region_id'], group='regions')
@@ -532,9 +442,6 @@ def frontend(cData):
         viewer.window.add_dock_widget(prediction_gui_widget, area='right')
         viewer.layers.events.changed.connect(lambda x: prediction_gui_widget.refresh_choices())
         prediction_gui_widget.refresh_choices()
-
-        #layout = QGridLayout()
-        #self.setLayout(layout)
         
         from qtpy.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QPushButton, QWidget
         tabwidget = QTabWidget()
@@ -582,7 +489,25 @@ def frontend(cData):
             msg = f'Displaying vol of shape {vol1.shape}'
             print(msg)
             
-            #layer.status = msg
-            #else:
-            #    msg = f'clicked on background at {coords}'
-            #    print(msg)
+
+def make_shapes_test():    
+    bsize = 20
+    polygons = [[[c[1],c[2]], [c[1],c[2]+bsize], 
+                [c[1]+10,c[2]+bsize], [c[1]+bsize,c[2]] ] 
+            for c in centers ]
+    
+    print(polygons[0:2])
+
+    layer1 = viewer.add_shapes(
+        polygons,
+        shape_type='polygon',
+        edge_width=1,
+        edge_color='coral',
+        face_color='royalblue',
+        name='shapes',
+    )
+
+    #layer1.selected_data = set(range(layer1.nshapes))
+    layer1.current_edge_width = 5
+    layer1.current_opacity = 0.75
+    #layer1.selected_data = set()
