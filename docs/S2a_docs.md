@@ -23,14 +23,14 @@ workspace.add_data workspace=test_s9 data_fname=D:/datasets/survos_brain/ws3/dat
 
 
 # SuRVoS2 API
-
+```
 survos.api.workspace
           .regions
           .features
           .annotations
           .render
           .pipeline
-
+```
 
 # SuRVoS2 Commands
 
@@ -129,14 +129,14 @@ mrc://
 
 ```
 # SuRVoS2 Data model
-
+```
 survos.io
 survos.model.dataset
             .workspace
 survos.frontend.control.launcher
                        .model
                        .singleton
-
+```
 calling the singleton instance with .g()
 
 Dataset URI looks like:
