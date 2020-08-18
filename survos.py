@@ -90,8 +90,13 @@ def nu_gui(workspace:'Workspace path (full or chrooted) to load',
 
     from survos2.frontend.control import Launcher, DataModel
     DataModel.g.current_workspace = workspace
+    
+    logger.info(f"Connecting to server: {server}")
+    resp = Launcher.g.set_remote(server)
 
-    main.startup(project_file=project_file)
+    logger.info(f"Response from server: {resp}")
+    if Launcher.g.connected:
+        main.startup(name='brain', project_file=project_file)
 
 
 @begin.subcommand
@@ -112,8 +117,8 @@ def classic_gui(workspace:'Workspace path (full or chrooted) to load',
 
     logger.info(f"Connecting to server: {server}")
     resp = Launcher.g.set_remote(server)
-
     logger.info(f"Response from server: {resp}")
+    
     app = QtWidgets.QApplication([])
     window = MainWindow(maximize=bool(Config['qtui.maximized']))
 
