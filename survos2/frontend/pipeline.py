@@ -13,18 +13,17 @@ from survos2.server.model import Superregions, Features
 from survos2.server.filtering import feature_factory
 from survos2.server.supervoxels import superregion_factory
 from survos2.server.prediction import make_prediction, calc_feats
-from scipy import ndimage
-from loguru import logger
-import enum 
 
+import enum
 from skimage import img_as_ubyte
-from survos2.server.pipeline import PipelinePayload, mask_pipeline, saliency_pipeline, prediction_pipeline
+from survos2.server.pipeline import PipelinePayload, mask_pipeline, saliency_pipeline, prediction_pipeline, survos_pipeline
 
 
 class PipelineOp(enum.Enum):
     saliency_pipeline = saliency_pipeline
     mask_pipeline = mask_pipeline
     superprediction_pipeline = prediction_pipeline
+    survos_pipeline = survos_pipeline
 
 class FilterOption(enum.Enum):
     gaussian = [gaussian, appState.scfg.filter1['gauss_params'] ]
@@ -37,10 +36,13 @@ class Operation(enum.Enum):
     mask_pipeline = 'mask_pipeline'
     saliency_pipeline = 'saliency_pipeline'
     superprediction_pipeline = 'prediction_pipeline'
+    survos_pipeline = 'survos_pipeline'
+
 
 @magicgui(auto_call=True) # call_button="Set Pipeline")
 def pipeline_gui(pipeline_option : Operation):
     appState.scfg['pipeline_option'] = pipeline_option.value
+
 
 @magicgui(call_button="Assign ROI", layout='horizontal', 
           x_st={"maximum": 2000}, y_st={"maximum": 2000}, z_st={"maximum": 2000},
@@ -88,16 +90,17 @@ def sv_gui(base_image: layers.Image) -> layers.Labels:     #initial_labels: laye
     return superregions.supervoxel_vol #np.squeeze(data)
 
 @magicgui(call_button="Predict", layout='vertical')
-def prediction_gui(base_image: layers.Image, supervoxel_image: layers.Image, anno_image: layers.Image) -> layers.Image:   
+def prediction_gui(feature_1: layers.Image, feature_2: layers.Image, supervoxel_image: layers.Image, anno_image: layers.Image) -> layers.Image:   
     #dataset_feats, filtered_stack = prepare_prediction_features([np.array(base_image.data),])
     #superregions = generate_supervoxels(dataset_feats,  filtered_stack, 
     #                                    appState.scfg.feats_idx, appState.scfg.slic_params)
 
     #svol = ((supervoxel_image.data > 0.4) * 1).astype(np.uint32, copy= True)
-    feats = feature_factory([base_image.data, ])
+    feats = feature_factory([feature_1.data, feature_2.data ])
     logger.info(feats.features_stack[0].shape)
     logger.info(len(feats.features_stack))
     sr = superregion_factory(supervoxel_image.data.astype(np.uint32), feats.features_stack)
+
 
     #p = PipelinePayload(base_image,
     #                    {'in_array': base_image.data},
@@ -112,12 +115,17 @@ def prediction_gui(base_image: layers.Image, supervoxel_image: layers.Image, ann
 
     #print(feats.features_stack)
 
-    srprediction = make_prediction(feats.features_stack,
-                                    anno_image.data.astype(np.uint16),
-                                    sr,
-                                    appState.scfg.predict_params)
+    #srprediction = make_prediction(feats.features_stack,
+    #                                anno_image.data.astype(np.uint16),
+    #                                sr,
+    #                                appState.scfg.predict_params)
     
-    predicted = srprediction.prob_map.copy()
+    from survos2.server.prediction import process_anno_and_predict
+
+    prob_map, probs, pred_map, conf_map, P = process_anno_and_predict(feats.filtered_layers, anno_image.data.astype(np.uint16), supervoxel_image.data.astype(np.uint32),appState.scfg.predict_params)
+
+    predicted = prob_map.copy()
+    #predicted = srprediction.prob_map.copy()
     #predicted -= np.min(srprediction.prob_map)
     #predicted += 1
     #predicted = img_as_ubyte(predicted / np.max(predicted))
@@ -180,3 +188,32 @@ def segment(p : PipelinePayload):
 
     except Exception as err:
         logger.debug(f"Exception at segmentation prediction: {err}")
+
+
+def filter(viewer):
+    ## RASTERIZATION (V->R)
+    #payload = make_masks(payload)
+
+    cropped_vol = viewer.layers['Original Image'].data
+
+    payload = PipelinePayload(cropped_vol,
+                        {'in_array': cropped_vol},
+                        np.array([0,0,0,0]),
+                        None,
+                        None,
+                        None,
+                        appState.scfg)
+
+    feature_params = [ [gaussian, appState.scfg.filter1['gauss_params']]]
+
+     #   [gaussian, scfg.filter2['gauss_params'] ],
+     #   [simple_laplacian, scfg.filter4['laplacian_params'] ],
+     #   [tvdenoising3d, scfg.filter3['tvdenoising3d_params'] ]]
+    # feature_params = [ 
+    # [gaussian, scfg.filter2['gauss_params'] ]]
+    # FEATURES (R -> List[R])
+
+    payload = make_features(payload, feature_params)
+    logger.info(f"Filtered layer to produce {payload.features.filtered_layers}")
+    
+    return payload.features.features_stack[0]
