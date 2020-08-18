@@ -177,6 +177,7 @@ def make_prediction(features_stack, annotation_volume, sr : Superregions, predic
     logger.debug(f"Using annotation volume of shape {annotation_volume.shape}")
     Yr = rlabels(annotation_volume.astype(np.uint16), sr.supervoxel_vol.astype(np.uint32))  # unsigned char and unsigned int required
 
+    logger.debug(f"Unique labels in anno: {np.unique(annotation_volume)}")
     #except Exception as err:    
     #    logger.info(f"Supervoxel rag and feature generation exception {err}")
 
@@ -187,41 +188,47 @@ def make_prediction(features_stack, annotation_volume, sr : Superregions, predic
     logger.debug(f"i_train {i_train}")
     logger.debug(f"supervoxel_features: {sr.supervoxel_features}")
     X_train = sr.supervoxel_features[i_train]
-    
-    proj = PCA(n_components='mle', whiten=True, random_state=42)
-    proj = StandardScaler()
+
+
+    #
+    # Projection
+    #
+
+    #proj = PCA(n_components='mle', whiten=True, random_state=42)
+    #proj = StandardScaler()
     
     #proj = SparseRandomProjection(n_components=X_train.shape[1], random_state=42)
     #rnd = 42
     #proj = RBFSampler(n_components=max(X_train.shape[1], 50), random_state=rnd)
+    #X_train = proj.fit_transform(X_train)
 
-    X_train = proj.fit_transform(X_train)
-    
     #print(X_train)
+    
     Y_train = Yr[i_train]
+    
+    
+    #clf = train(X_train, Y_train, 
+    #            n_estimators=15 ,
+    #            project=predict_params['proj'])
 
-    clf = train(X_train, Y_train, 
-                n_estimators=15 ,
-                project=predict_params['proj'])
+    clf = train(X_train, Y_train, n_estimators=predict_params['n_estimators']) #, project=predict_params['proj'])
 
     logger.debug(f"Predicting with clf: {clf}")
     
-    
-    P = predict(X_train, clf, label=True, probs=True )#, proj=predict_params['proj'])
+    P = predict(sr.supervoxel_features, clf, label=True, probs=True )#, proj=predict_params['proj'])
+
     
     probs = P['probs']
-    
     print(probs)
 
     prob_map = invrmap(P['class'], sr.supervoxel_vol)
     num_supervox = sr.supervoxel_vol.max() + 1
-    class_labels = P['class'] #- 1
-    
+    #class_labels = P['class'] #- 1
+
     pred_map = np.empty(num_supervox, dtype=P['class'].dtype)
-    
-    
-    conf_map = np.empty(num_supervox, dtype=P['probs'].dtype)
+    #conf_map = np.empty(num_supervox, dtype=P['probs'].dtype)
     conf_map = invrmap(P['probs'], sr.supervoxel_vol)
+    
     #full_svmask = np.zeros(num_supervox, np.bool)
     #full_svmask[supervoxel_vol.ravel()] = True 
     
@@ -235,6 +242,8 @@ def make_prediction(features_stack, annotation_volume, sr : Superregions, predic
     #    #return 0
         
     return srprediction
+
+
 
 
 
