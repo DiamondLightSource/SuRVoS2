@@ -90,9 +90,6 @@ logger.add(sys.stderr, level="DEBUG")
 
 
 
-
-
-
 def setup_entity_table(viewer, cData):
     # Setup Entity Table    
     tabledata = []

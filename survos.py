@@ -14,12 +14,9 @@ from survos2.utils import format_yaml, get_logger
 from survos2.survos import init_api, run_command
 
 import numpy  as np
-from napari import gui_qt
-import napari
 
-from survos2.frontend import main
-
-logger = get_logger(level=logging.INFO)
+#
+logger = get_logger(level=logging.DEBUG)
 default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
 
 
@@ -85,6 +82,10 @@ def run_server(command:'Command to execute in `plugin.action` format.',
 def nu_gui(workspace:'Workspace path (full or chrooted) to load',
         project_file:'JSON project file',
        server:'URI to the remote SuRVoS API Server'=default_uri):
+
+    from survos2.frontend import main
+    from napari import gui_qt
+    import napari
 
     logger.debug(f"Starting nu_gui frontend with workspace {workspace}")
 
