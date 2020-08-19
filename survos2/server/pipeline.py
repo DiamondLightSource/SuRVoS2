@@ -51,7 +51,7 @@ from survos2.server.config import appState
 from survos2.server.filtering import feature_factory
 from survos2.server.filtering import generate_features, simple_laplacian
 from survos2.server.model import Superregions, SRPrediction, Features
-from survos2.entity.sampler import crop_vol_and_pts
+from survos2.entity.sampler import crop_vol_and_pts_centered
 from survos2.helpers import AttrDict
 from survos2.entity.anno import geom
 from survos2.utils import logger
@@ -450,7 +450,7 @@ def tio_pipeline(input_array, entity_pts, scfg, patch_size=(64,64,64), patch_ove
             print(f"Location: {loc}")
             
             # PREP_REGION DATA(IMG (R, Raster) AND GEOMETRY (V, Vector))
-            cropped_vol, cropped_pts = crop_vol_and_pts(input_array,
+            cropped_vol, cropped_pts = crop_vol_and_pts_centered(input_array,
                                                         entity_pts,
                                                         location=loc,
                                                         patch_size=patch_size,
