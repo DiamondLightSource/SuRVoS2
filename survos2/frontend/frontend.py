@@ -490,24 +490,3 @@ def frontend(cData):
             print(msg)
             
 
-def make_shapes_test():    
-    bsize = 20
-    polygons = [[[c[1],c[2]], [c[1],c[2]+bsize], 
-                [c[1]+10,c[2]+bsize], [c[1]+bsize,c[2]] ] 
-            for c in centers ]
-    
-    print(polygons[0:2])
-
-    layer1 = viewer.add_shapes(
-        polygons,
-        shape_type='polygon',
-        edge_width=1,
-        edge_color='coral',
-        face_color='royalblue',
-        name='shapes',
-    )
-
-    #layer1.selected_data = set(range(layer1.nshapes))
-    layer1.current_edge_width = 5
-    layer1.current_opacity = 0.75
-    #layer1.selected_data = set()
