@@ -24,7 +24,7 @@ class _Config(type):
             'stretch': False
         },
         'model': {
-            'chroot': 'tmp',      # currently needs full path, can be 'tmp' which is placed in users dir
+            'chroot': '/dls/science/users/xsy37748/data',      # currently needs full path, can be 'tmp' which is placed in users dir
             'dbtype': 'yaml'
         },
         'logging': {

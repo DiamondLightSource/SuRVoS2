@@ -1,4 +1,4 @@
-name: s2a_clean
+name: s2a_gcloud
 channels:
   - pytorch
   - fastai
