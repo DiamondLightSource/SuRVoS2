@@ -63,7 +63,7 @@ from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
 from survos2.improc.regions.slic import postprocess
 from survos2.entity.entities import make_entity_df
 from survos2.entity.anno import geom
-from survos2.entity.sampler import sample_roi, sample_bvol, crop_vol_in_bbox,  crop_vol_and_pts
+from survos2.entity.sampler import sample_roi, sample_bvol, crop_vol_in_bbox,  crop_vol_and_pts_centered
 
 from survos2.frontend.control.model import DataModel
 from survos2.frontend.control.launcher import Launcher
@@ -236,7 +236,7 @@ def frontend(cData):
                     #overall_offset=(st_z,st_x,st_y)
                     logger.info("Applying pipeline to cropped vol at loc {crop_coord} and size {precropped_vol_size}")
                     
-                    cropped_vol, precropped_pts = crop_vol_and_pts(cData.vol_stack[0],entity_pts,
+                    cropped_vol, precropped_pts = crop_vol_and_pts_centered(cData.vol_stack[0],entity_pts,
                             location=crop_coord,
                             patch_size=precropped_vol_size,
                             debug_verbose=True,
