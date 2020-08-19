@@ -48,6 +48,7 @@ def get_vol_in_cent_box(img_volume, z_st, z_end, x,y,w,h):
     return img_volume[z_st:z_end, x-w:x+w, y-h:y+h]
 
 def sample_roi(img_vol, tabledata, i=0, vol_size=(32,32,32)):    
+    # Sampling ROI from an entity table
     print(f"Sampling from vol of shape {img_vol.shape}")
     pad_slice, pad_x, pad_y = np.array(vol_size) // 2 
     
@@ -100,9 +101,10 @@ class MarkedPatches:
     vols_locs : np.ndarray # (N, Z, X, Y, C) centroid location of patch and class code
     vols_bbs : np.ndarray  # (N, Z_start, Z_fin, X_start, X_fin, Y_start, Y_fin)bounding box for patch
 
+
 # todo: list of patch sizes
 #todo: pad 
-def sample_marked_patches(img_volume, locs, pts, patch_size=(32,32,32), full_vol=True, debug_verbose=False):
+def sample_marked_patches(img_volume, locs, pts, patch_size=(32,32,32),  debug_verbose=False):
     """Samples a large image volume into a MarkedPatches object.
     Uses bounding volumes, and crops the image volume and associated geometry 
     into a list of cropped volumes and cropped geometry.
@@ -117,10 +119,6 @@ def sample_marked_patches(img_volume, locs, pts, patch_size=(32,32,32), full_vol
          point cloud of size P (the first 3 columns are used as the z,x,y coords)
     patch_size : {tuple, int x 3)
         -- Size of patch to sample (default: {(32,32,32)}), optional
-    SLICES_MAX : int, optional
-        max num of slices, by default 165
-    full_vol : bool, optional
-        [description], by default True
     debug_verbose : bool, optional
         [description], by default False
 
@@ -191,8 +189,40 @@ def sample_marked_patches(img_volume, locs, pts, patch_size=(32,32,32), full_vol
 
     return marked_patches
 
+
+
+def crop_vol_and_pts_bb(img_volume,pts, bounding_box,
+                      debug_verbose=False, offset=False):      
+
+    # TODO: clip bbox to img_volume
+    z_st, z_end, x_st, x_end, y_st,y_end = bvol
+
+    out_of_bounds_w = np.hstack((
+                        np.where(pts[:,0] <= z_st)[0],
+                        np.where(pts[:,0] >= z_end)[0],
+                        np.where(pts[:,1] >= x_st)[0],  
+                        np.where(pts[:,1] <= x_end)[0],
+                        np.where(pts[:,2] >= z_st)[0],
+                        np.where(pts[:,2] <= z_end)[0]))      
+
+    cropped_pts = np.array(np.delete(pts, out_of_bounds_w, axis=0))
+
+    if offset:
+        cropped_pts[:,0] = cropped_pts[:,0]-location[0]
+        cropped_pts[:,1] = cropped_pts[:,1]-location[1]
+        cropped_pts[:,2] = cropped_pts[:,2]-location[2]
+  
+    if debug_verbose:
+        print("\n z x y w h: {}".format((location[0], location[1],location[2],patch_size[1],patch_size[2])))
+        print("Slice start, slice end {} {}".format(slice_start, slice_end))
+        print("Cropped points array shape: {}".format(cropped_pts.shape))
+      
+    img = sample_bvol(img_volume, bounding_box)
+
+    return img, cropped_pts
+
 #old
-def crop_vol_and_pts(img_data,pts, location=(60, 700, 700), patch_size=(40,300,300),
+def crop_vol_and_pts_centered(img_volume,pts, location=(60, 700, 700), patch_size=(40,300,300),
                       debug_verbose=False, offset=False):      
     patch_size=np.array(patch_size).astype(np.uint32)
     location = np.array(location).astype(np.uint32)
@@ -200,7 +230,7 @@ def crop_vol_and_pts(img_data,pts, location=(60, 700, 700), patch_size=(40,300,3
     #z, x_bl, x_ur, y_bl, y_ur = location[0], location[1], location[1]+patch_size[1], location[2], location[2]+patch_size[2]
     
     slice_start = np.max([0,location[0]])
-    slice_end = np.min([location[0] + patch_size[0], img_data.shape[0]])
+    slice_end = np.min([location[0] + patch_size[0], img_volume.shape[0]])
     
     out_of_bounds_w = np.hstack((np.where(pts[:,2] >= location[2]+patch_size[2])[0],
                            np.where(pts[:,2] <= location[2])[0], 
@@ -222,7 +252,7 @@ def crop_vol_and_pts(img_data,pts, location=(60, 700, 700), patch_size=(40,300,3
         print("Slice start, slice end {} {}".format(slice_start, slice_end))
         print("Cropped points array shape: {}".format(cropped_pts.shape))
       
-    img = crop_vol_in_bbox(img_data, slice_start, slice_end, location[2],location[1],patch_size[2],patch_size[1])
+    img = crop_vol_in_bbox(img_volume, slice_start, slice_end, location[2],location[1],patch_size[2],patch_size[1])
 
     return img, cropped_pts
 
@@ -259,83 +289,4 @@ def sample_patch2d(img_volume, pts, patch_size=(40,40)):
         img_titles.append(str(int(x)) + "_" + str(int(y)) + "_" + str(sliceno))
 
     return img_shortlist, img_titles
-
-
-# todo: list of patch sizes
-def sample_patch_locs(img_volume, locs, pts, patch_size=(32,32,32), SLICES_MAX = 165, full_vol=True, debug_verbose=False):
-    """
-    Takes a volume, a set of sampling locations, a point cloud
-    and a patch_size
-    Returns a set of patch volumes of patch size, sampled at the
-    locations as well as corresponding points within that patch volume
-    (sampled from the point cloud)
-
-    Arguments:
-        img_volume {np.array} -- image volume
-        locs {np.array of N x 3} -- N point locations 
-        pts {np.array of P x 3} -- point cloud of size P
-
-    Keyword Arguments:
-        patch_size {tuple, int x 3 -- Size of patch to sample (default: {(32,32,32)})
-        SLICES_MAX {int} 
-        full_vol {bool} --  (default: {True})
-        debug_verbose {bool} --  (default: {False})
-
-    Returns:
-        np.array(img_shortlist), np.array(vol_locs), np.array(patches_pts)
-    """
-    vols = []
-    img_titles = []
-    vols_pts = []
-    vol_locs = []
-    
-    print(f"Generating {len(locs)} patch volumes from image of shape {img_volume.shape}")
-    
-    for j in range(len(locs)):
-        if locs[j].shape[0] == 4:
-            sliceno,x,y,c = locs[j]
-        else:
-            sliceno,x,y = locs[j]
-        d,w,h = patch_size
-        
-        w = w//2
-        h = h//2
-        x = int(np.ceil(x)) #why take np.ceil???
-        y = int(np.ceil(y))
-        
-        sliceno = int(sliceno)
-
-        slice_start = np.max([0,sliceno - np.int(patch_size[0]/2.0)])
-        
-        slice_end = np.min([sliceno + np.int(patch_size[0]/2.0) , SLICES_MAX])
-
-        out_of_bounds = np.unique(np.hstack((np.where(pts[:,1] <= x-w)[0],
-                    np.where(pts[:,1] >= x+w)[0], 
-                    np.where(pts[:,2] <= y-h)[0],  
-                    np.where(pts[:,2] >= y+h)[0],
-                    np.where(pts[:,0] <= slice_start)[0],  
-                    np.where(pts[:,0] >= slice_end)[0])))
-        
-        pts_c = pts.copy()
-        vol_pts = np.delete(pts_c, out_of_bounds, axis=0)
-        
-        if debug_verbose:
-            print("Shape of original pt data {}".format(pts.shape))
-            print("Number of out of bounds pts: {}".format(out_of_bounds.shape))
-    
-        img = get_centered_vol_in_bbox(img_volume, slice_start, slice_end, 
-                                y,x,h,w) 
-        #todo: pad 
-        if img.shape == patch_size:
-            #img = np.zeros((patch_size))
-
-            vols.append(img)
-            vol_locs.append((slice_start, slice_end, x-w,x+w, y-h,y+h ))
-            vols_pts.append(vol_pts)
-    
-    print(f"Generated {len(locs)} patch volumes from image of shape {len(vols)}")
-    
-    return np.array(vols), np.array(vol_locs), np.array(vols_pts) 
-    
-
 
