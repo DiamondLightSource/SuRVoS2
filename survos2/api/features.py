@@ -40,8 +40,8 @@ def spatial_gradient_3d(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Gra
 
 @hug.get() #@save_metadata
 def gaussian_blur(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Gradient':
-    from ..server.filtering import gaussian_blur3d
-    map_blocks(gaussian_blur3d, src, out=dst, sigma=sigma, normalize=True)
+    from ..server.filtering import gaussian_blur
+    map_blocks(gaussian_blur, src, out=dst, sigma=sigma, normalize=True)
 
 
 @hug.get() #@save_metadata
