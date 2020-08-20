@@ -13,7 +13,7 @@ class _Config(type):
             'host': '172.23.167.2',
             'port': 8123,
             'plugins': [],
-            'renderer': 'mpl'
+            'renderer': 'vispy'
         },
         'computing': {
             'chunks': True,
@@ -24,7 +24,7 @@ class _Config(type):
             'stretch': False
         },
         'model': {
-            'chroot': '/dls/science/groups/das/SuRVoS/s2/',      # currently needs full path, can be 'tmp' which is placed in users dir
+            'chroot': 'C:/work/diam/data/',      # currently needs full path, can be 'tmp' which is placed in users dir
             'dbtype': 'yaml'
         },
         'logging': {

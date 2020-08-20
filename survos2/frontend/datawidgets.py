@@ -226,7 +226,7 @@ class TableWidget(QtWidgets.QGraphicsObject):
     def __init__(self):
         super().__init__()
         self.w = pg.TableWidget()
-        self.w.events = Subject()
+
         self.w.show()
         self.w.resize(500, 500)
         self.w.setWindowTitle('Entity table')
