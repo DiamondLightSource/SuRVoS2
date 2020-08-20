@@ -3,9 +3,8 @@ import pandas as pd
 from numba import jit
 import scipy
 import yaml
-from vispy import scene
-from vispy.color import Colormap
-from immerframe import Proxy
+from loguru import logger
+
 
 from scipy import ndimage
 from skimage import img_as_ubyte, img_as_float
@@ -17,9 +16,9 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize, Signal
 
-
 from vispy import scene
 from vispy.color import Colormap
+
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui
@@ -34,8 +33,6 @@ import pyqtgraph.flowchart.library as fclib
 from pyqtgraph.flowchart.library.common import CtrlNode
 import pyqtgraph.opengl as gl
 
-import rx
-from rx.subject import Subject
 
 from survos2.server.config import scfg
 from survos2.helpers import prepare_3channel, simple_norm, norm1
@@ -45,7 +42,6 @@ from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.regions import *
 from survos2.frontend.plugins.features import *
 from survos2.frontend.plugins.annotations import *
-from loguru import logger
 
 ##################################################################
 # Main panel of widgets 

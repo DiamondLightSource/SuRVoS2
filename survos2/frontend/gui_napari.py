@@ -32,7 +32,6 @@ from napari import Viewer as NapariViewer
 
 from functools import partial
 
-from immerframe import Proxy
 from typing import Union, Any, List, Optional, cast
 from typing import Callable, Iterator, Union, Optional, List
 from typing import List, Set, Dict, Tuple, Optional
@@ -91,7 +90,7 @@ class NapariWidget(NapariViewer):
         self.bind_key('Shift-M', self.median)
         self.bind_key('Shift-D', self.dilate)
 
-    
+    # example of purely client-side image processing
     def dilate(self, viewer):
         logger.debug("Erode")
         str_3D = ndimage.morphology.generate_binary_structure(3, 1)

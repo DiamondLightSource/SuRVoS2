@@ -24,7 +24,7 @@ class _Config(type):
             'stretch': False
         },
         'model': {
-            'chroot': 'tmp',      # currently needs full path, can be 'tmp' which is placed in users dir
+            'chroot': '/dls/science/groups/das/SuRVoS/s2/',      # currently needs full path, can be 'tmp' which is placed in users dir
             'dbtype': 'yaml'
         },
         'logging': {

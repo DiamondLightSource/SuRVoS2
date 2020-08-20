@@ -5,7 +5,7 @@ import scipy
 import yaml
 from vispy import scene
 from vispy.color import Colormap
-from immerframe import Proxy
+
 from loguru import logger
 from scipy import ndimage
 from skimage import img_as_ubyte, img_as_float
@@ -33,11 +33,7 @@ from pyqtgraph.flowchart.library.common import CtrlNode
 import pyqtgraph.opengl as gl
 import pyqtgraph as pg
 from survos2.server.config import appState
-scfg = appState.scfg
 
-
-import rx
-from rx.subject import Subject
 
 
 import matplotlib.cm as cm
@@ -51,6 +47,9 @@ sns.set_style('darkgrid')
 sns.set_palette('muted')
 sns.set_context("notebook", font_scale=1.5,
                 rc={"lines.linewidth": 2.5})
+
+
+scfg = appState.scfg
 
 
 ####################################################################################

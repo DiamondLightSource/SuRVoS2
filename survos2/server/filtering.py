@@ -56,7 +56,7 @@ from skimage.filters import gaussian
 
 from scipy import ndimage
 import scipy
-import SimpleITK as sitk
+#import SimpleITK as sitk
 
 import torch
 from torch import nn

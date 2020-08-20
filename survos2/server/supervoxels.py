@@ -20,7 +20,6 @@ from typing import List
 #import io
 import numpy as np
 import pandas as pd
-import uvicorn
 import joblib
 import pandas as pd
 import glob

@@ -5,7 +5,7 @@ from enum import Enum
 from typing import List
 import numpy as np
 import pandas as pd
-import uvicorn
+
 import joblib
 import pandas as pd
 import glob
@@ -20,7 +20,6 @@ from collections import namedtuple
 #from immerframe import Proxy
 #from starlette.requests import Request
 from functools import partial
-import h5py as h5
 import numpy as np
 import logging as log
 import ast
