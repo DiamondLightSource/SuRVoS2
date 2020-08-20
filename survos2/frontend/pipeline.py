@@ -6,7 +6,7 @@ from survos2.server.supervoxels import generate_supervoxels
 from survos2.server.filtering import prepare_prediction_features, generate_features
 from survos2.server.config import appState
 from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-from survos2.server.filtering import simple_laplacian, spatial_gradient_3d, gaussian_blur3d
+from survos2.server.filtering import simple_laplacian, spatial_gradient_3d, gaussian_blur
 from survos2.server.model import Superregions, Features
 from survos2.server.filtering import feature_factory
 from survos2.server.supervoxels import superregion_factory
@@ -30,7 +30,7 @@ class FilterOption(enum.Enum):
     laplacian = [simple_laplacian, appState.scfg.filter4['laplacian_params'] ]
     tv = [tvdenoising3d, appState.scfg.filter3['tvdenoising3d_params'] ]
     gradient = [spatial_gradient_3d, appState.scfg.filter5['gradient_params']]
-    gblur = [gaussian_blur3d, appState.scfg.filter5['gradient_params']]
+    gblur = [gaussian_blur, appState.scfg.filter5['gradient_params']]
 
 class Operation(enum.Enum):
     mask_pipeline = 'mask_pipeline'

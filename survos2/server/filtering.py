@@ -68,8 +68,7 @@ from survos2.improc.segmentation.mappings import normalize
 from survos2.utils import logger
 
 from survos2.server.model import Features
-from survos2.frontend.nb_utils import show_images
-    
+   
 
 def prepare_prediction_features(filtered_layers):
     # reshaping for survos
@@ -318,7 +317,7 @@ class GaussianSmoothing(nn.Module):
         """
         return self.conv(input, weight=self.weight, groups=self.groups)
         
-def gaussian_blur3d(img_gray : np.ndarray, sigma: float =1.0):
+def gaussian_blur(img_gray : np.ndarray, sigma: float =1.0):
     t_gray = kornia.utils.image_to_tensor(np.array(img_gray)).float().unsqueeze(0).unsqueeze(0)
     logger.debug(f"Pytorch gblur returns {t_gray.shape}")    
     smoothing = GaussianSmoothing(1, 5, sigma, dim=3)
