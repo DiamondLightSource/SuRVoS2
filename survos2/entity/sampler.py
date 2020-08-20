@@ -9,7 +9,6 @@ from typing import NamedTuple, Tuple, Union, List
 import itertools
 from survos2.frontend.nb_utils import summary_stats
 from survos2.entity.anno.geom import centroid_3d, rescale_3d
-#from survos2.entity.entities import get_centered_vol_in_bbox
 
 from loguru import logger
 

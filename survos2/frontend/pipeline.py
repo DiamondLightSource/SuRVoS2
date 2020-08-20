@@ -2,8 +2,6 @@
 import numpy as np
 from magicgui import magicgui
 from napari import layers
-#from .semantic import fit, predict
-#from .util import Featurizers, norm_entropy
 from survos2.server.supervoxels import generate_supervoxels
 from survos2.server.filtering import prepare_prediction_features, generate_features
 from survos2.server.config import appState
@@ -17,6 +15,8 @@ from survos2.server.prediction import make_prediction, calc_feats
 import enum
 from skimage import img_as_ubyte
 from survos2.server.pipeline import PipelinePayload, mask_pipeline, saliency_pipeline, prediction_pipeline, survos_pipeline
+
+from loguru import logger
 
 
 class PipelineOp(enum.Enum):
@@ -48,7 +48,6 @@ def pipeline_gui(pipeline_option : Operation):
           x_st={"maximum": 2000}, y_st={"maximum": 2000}, z_st={"maximum": 2000},
           x_end={"maximum": 2000}, y_end={"maximum": 2000}, z_end={"maximum": 2000})
 def roi_gui(z_st : int, z_end: int,  x_st:int, x_end:int, y_st:int, y_end: int):  
-    print(z_st, z_end, x_st, x_end, y_st, y_end)
     appState.scfg['roi_crop'] = (z_st, z_end, x_st, x_end, y_st, y_end)
     
 
@@ -85,7 +84,6 @@ def sv_gui(base_image: layers.Image) -> layers.Labels:     #initial_labels: laye
     superregions = generate_supervoxels(dataset_feats,  filtered_stack, 
                                         appState.scfg.feats_idx, appState.scfg.slic_params)
 
-    print(f"Calculated superergions  {superregions.supervoxel_vol.shape}")  
 
     return superregions.supervoxel_vol #np.squeeze(data)
 
@@ -133,8 +131,7 @@ def prediction_gui(feature_1: layers.Image, feature_2: layers.Image, supervoxel_
     #predicted = predicted / np.max(predicted) 
   
     logger.debug(f"Predicted a volume of shape: {predicted.shape}")  #, Predicted features {P_dict}")
-    print("Predicted superregions")  
-
+    
     return predicted #np.squeeze(data)
 
     

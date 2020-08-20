@@ -52,7 +52,7 @@ from survos2.model import Workspace, Dataset
 from survos2.utils import decode_numpy, encode_numpy
 from survos2.api.utils import save_metadata, dataset_repr
 from survos2.helpers import AttrDict
-import survos2.server.workspace as ws
+import survos2.api.workspace as ws
 
 from survos2.server.filtering import *
 from survos2.server.supervoxels import *
@@ -83,7 +83,6 @@ def generate_supervoxels(dataset_feats, filtered_stack, dataset_feats_idx, slic_
     block_z, block_x, block_y = dataset_feats[0].shape
 
     # map_blocks through Dask
-    
     supervoxel_vol = map_blocks(slic3d, dataset_feats[dataset_feats_idx].astype(np.float32), **slic_params, timeit=False)
     supervoxel_vol = supervoxel_vol.astype(np.uint32, copy= True)#
     logger.info(f"Finished slic with supervoxel vol of shape {supervoxel_vol.shape}")
@@ -154,14 +153,10 @@ def prepare_supervoxels(supervoxels : List[str], filtered_stack:np.ndarray, roi_
     
     supervoxel_vol = dataset_from_uri(supervoxels[0], mode='r')
     
-    #supervoxel_vol = np.zeros((roi_crop[1]-roi_crop[0], 
-    #                        roi_crop[3]-roi_crop[2], 
-    #                        roi_crop[5]-roi_crop[4]))
     
     supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32, copy=False)
     supervoxel_vol = np.nan_to_num(supervoxel_vol)
        
-    # supervoxel_vol = data[...].astype(np.uint32, copy=False)
     supervoxel_proc = supervoxel_vol[roi_crop[0]:roi_crop[1], 
                             roi_crop[2]:roi_crop[3], 
                             roi_crop[4]:roi_crop[5]].astype(np.uint32,copy=False)

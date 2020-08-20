@@ -179,7 +179,7 @@ def setup_ws(project_file=None):
 
     return clientData
 
-def startup(name, project_file):
+def startup(project_file):
     clientData = setup_ws(project_file)
     viewer = frontend(clientData)
 

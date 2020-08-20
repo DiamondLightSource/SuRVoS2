@@ -17,8 +17,6 @@ import yaml
 from numba import jit
 from collections import namedtuple
 
-#from immerframe import Proxy
-#from starlette.requests import Request
 from functools import partial
 import numpy as np
 import logging as log
@@ -118,12 +116,6 @@ from survos2.utils import decode_numpy, encode_numpy
 from survos2.api.utils import save_metadata, dataset_repr
 from survos2.helpers import AttrDict
 
-import survos2.server.workspace as ws
-from survos2.server.filtering import crop_and_resample, prepare_features, generate_features
-from survos2.server.supervoxels import prepare_supervoxels, generate_supervoxels
-from survos2.utils import logger
-
-
 from survos2.improc import map_blocks
 from survos2.improc.features import gaussian, tvdenoising3d
 from survos2.improc.regions.rag import create_rag
@@ -138,7 +130,7 @@ from survos2.utils import decode_numpy, encode_numpy
 from survos2.api.utils import save_metadata, dataset_repr
 from survos2.helpers import AttrDict
 
-import survos2.server.workspace as ws
+import survos2.api.workspace as ws
 from survos2.server.filtering import crop_and_resample, prepare_features, generate_features
 from survos2.server.supervoxels import prepare_supervoxels, generate_supervoxels
 from survos2.utils import logger
@@ -218,8 +210,7 @@ def make_prediction(features_stack, annotation_volume, sr : Superregions, predic
 
     
     probs = P['probs']
-    print(probs)
-
+    
     prob_map = invrmap(P['class'], sr.supervoxel_vol)
     num_supervox = sr.supervoxel_vol.max() + 1
     #class_labels = P['class'] #- 1
@@ -234,8 +225,7 @@ def make_prediction(features_stack, annotation_volume, sr : Superregions, predic
     from survos2.server.model import SRPrediction
 
     srprediction = SRPrediction(prob_map, conf_map, probs)
-    print("Finished prediction.")
-
+    
     #except Exception as err:
     #    logger.error(f"Prediction exception: {err}")
     #    #return 0
@@ -383,15 +373,12 @@ def rlabels(y : np.uint16, R : np.uint32, nr : int =None, ny : int=None, norm:bo
 
 
 def calc_feats(cropped_vol):
-
     scfg = appState.scfg
-
     img_vol =cropped_vol
     roi_crop = scfg.roi_crop
 
     roi_crop = [0,cropped_vol.shape[0],0,cropped_vol.shape[1], 0,cropped_vol.shape[2]]
-    print(roi_crop)
-
+    
     feature_params = [ [gaussian, scfg.filter1['gauss_params']],
     [gaussian, scfg.filter2['gauss_params'] ],
     [simple_laplacian, scfg.filter4['laplacian_params'] ],
@@ -475,8 +462,6 @@ def _train_classifier(clf, X_train, y_train, rnd=42, project=None):
         elif project == 'pca':
             proj = PCA(n_components='mle', whiten=True, random_state=rnd)
         else:
-            print(project)
-            print(type(project))
             log.error('Projection {} not available'.format(project))
             return
 
@@ -627,8 +612,7 @@ def make_prediction2(features_stack, annotation_volume, supervoxel_vol, predict_
                 n_estimators=55 ,
                 project=predict_params['proj'])
 
-    print(f"clf: {clf}")
-    #logger.debug(f"clf: {clf}")
+    logger.debug(f"clf: {clf}")
 
     
     try:
@@ -645,7 +629,7 @@ def make_prediction2(features_stack, annotation_volume, supervoxel_vol, predict_
 
         #full_svmask = np.zeros(num_supervox, np.bool)
         #full_svmask[supervoxel_vol.ravel()] = True 
-        print("Finished prediction.")
+        logger.debug("Finished prediction.")
 
         from survos2.server.model import SRPrediction
 

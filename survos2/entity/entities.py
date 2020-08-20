@@ -4,37 +4,6 @@ An entity is Labeled geometric/vector data is stored in a dataframe
 The most basic Entity Dataframe has 'z','x','y','class_code'
 
 
-An Entity 
-    Has a ROI
-    Has Label(s)
-    Has Optional Features
-    Has Optional Measurements
-        Simple measurement: Single "grade" for ROI
-        Set of measurements:
-    
-Entity Collection
-    (scene or complex object)
-    DataFrame of Entities or MeasuredEntities
-    Minimal: location and class (implied ROI based on class)
-    Normal: location, roi, class
-
-want to support running the clusterer
-then making assignments
-then using this as the new 'entities' in the gui
-
-sampler.py contains functions that generate a table of entities from, e.g., a list of points
-
-also
-running the detector
-using the detections as a new set of entities
-
-anno.mask
-supports converting entities into label volumes
-
-anno.crowd
-supports importing of data from zooniverse
-
-
 """
 
 import itertools

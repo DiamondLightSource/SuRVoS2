@@ -96,8 +96,9 @@ def nu_gui(workspace:'Workspace path (full or chrooted) to load',
     resp = Launcher.g.set_remote(server)
 
     logger.info(f"Response from server: {resp}")
+
     if Launcher.g.connected:
-        main.startup(name='brain', project_file=project_file)
+        main.startup(project_file=project_file)
 
 
 @begin.subcommand

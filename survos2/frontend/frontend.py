@@ -44,7 +44,7 @@ from survos2.frontend.controlpanel import ButtonPanelWidget, PluginPanelWidget
 from survos2.frontend.pipeline import sv_gui, features_gui, roi_gui, prediction_gui, pipeline_gui, workspace_gui
 
 from survos2.model import Workspace, Dataset
-import survos2.server.workspace as ws
+import survos2.api.workspace as ws
 import survos2.server.segmentation as sseg
 #import survos2.server.test as stest
 #from survos2.server.test import SegData
@@ -307,7 +307,6 @@ def frontend(cData):
                 # use DatasetManager to load feature from workspace as array and then add it to viewer
                 src = DataModel.g.dataset_uri(x['feature_id'], group='features')
                 with DatasetManager(src, out=None, dtype='float32', fillvalue=0) as DM:
-                    print(DM.sources[0].shape)
                     src_dataset = DM.sources[0]
                     src_arr = src_dataset[:]
                     viewer.add_image(src_arr, name=x['feature_id'])
@@ -319,7 +318,6 @@ def frontend(cData):
                 src = DataModel.g.dataset_uri(x['region_id'], group='regions')
 
                 with DatasetManager(src, out=None, dtype='float32', fillvalue=0) as DM:
-                    print(DM.sources[0].shape)
                     src_dataset = DM.sources[0]
                     src_arr = src_dataset[:]
                     viewer.add_image(src_arr, name=x['region_id'])
@@ -372,9 +370,6 @@ def frontend(cData):
                 selected_roi_idx = viewer.dw.table_control.w.selected_row 
                 logger.info(f"Showing ROI {x['selected_roi']}")
                 vol1 = sample_roi(cData.vol_stack[0], cData.tabledata, selected_roi_idx, vol_size=(32,32,32))
-                #vol1 = sample_region_at_pt(cData.vol_stack[0], [64,64,64], (32,32,32))
-                print(f'Sampled vol: {vol1.shape}')
-
                 #viewer.dw.smallvol_control.set_vol(np.transpose(vol1, (0,2,1)))                        
                 viewer.dw.smallvol_control.set_vol(vol1)
                 logger.info(f"Sampled ROI vol of shape: {vol1.shape}")
@@ -468,22 +463,18 @@ def frontend(cData):
         tab4.setLayout(tab4.layout)
         tab4.layout.addWidget(viewer.dw.smallvol_control.imv)
 
-        #layout.addWidget(tabwidget, 0, 0)
         viewer.window.add_dock_widget(tabwidget, area='right')
-      
-         
+            
         from survos2.entity.sampler import sample_region_at_pt
         sample_region_at_pt(cData.vol_stack[0], [50,50,50], (32,32,32))
         @entity_layer.mouse_drag_callbacks.append
         def get_connected_component_shape(layer, event):            
-            print(f"Clicked: {layer}, {event}")
+            logger.debug(f"Clicked: {layer}, {event}")
             coords = np.round(layer.coordinates).astype(int)
-            #if 'Alt' in event.modifiers:
-            print(f"Sampling region at {coords}")
+            logger.debug(f"Sampling region at ")
             vol1 = sample_region_at_pt(cData.vol_stack[0], coords, (32,32,32))
-            print(f'Sampled vol {vol1.shape}')
+            logger.debug(f'Sampled from {coords} a vol of shape {vol1.shape}')
             viewer.dw.smallvol_control.set_vol(np.transpose(vol1, (0,2,1)))            
-            msg = f'Displaying vol of shape {vol1.shape}'
-            print(msg)
+            #msg = f'Displaying vol of shape {vol1.shape}'
             
 

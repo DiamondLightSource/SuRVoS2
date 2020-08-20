@@ -11,7 +11,6 @@ Uses external libraries:
 """
 import os
 import sys
-
 import math
 import numbers
 import tqdm
@@ -56,7 +55,7 @@ from skimage.filters import gaussian
 
 from scipy import ndimage
 import scipy
-#import SimpleITK as sitk
+import SimpleITK as sitk
 
 import torch
 from torch import nn
@@ -327,9 +326,6 @@ def gaussian_blur3d(img_gray : np.ndarray, sigma: float =1.0):
     input_t = F.pad(t_gray, (2, 2, 2, 2,2,2))
     output = smoothing(input_t)
 
-    #smoothing = GaussianBlur(3, 3, sigma)
-    #t_gray = F.pad(t_gray, (2, 2, 2, 2), mode='reflect')
-    #output = smoothing(t_gray)
     logger.debug(f"Pytorch gblur returns {output.shape}")
     output: np.ndarray = kornia.tensor_to_image(output.squeeze(0).squeeze(0).float())
     return output
