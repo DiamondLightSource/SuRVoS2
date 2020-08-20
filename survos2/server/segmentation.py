@@ -34,11 +34,7 @@ from numba import jit
 from collections import namedtuple
 from skimage import img_as_ubyte, img_as_float
 from skimage import io
-
 from scipy import ndimage
-
-#from immerframe import Proxy
-#from starlette.requests import Request
 
 #
 # SuRVoS 2 imports
@@ -51,7 +47,6 @@ from survos2.improc.features import gaussian, tvdenoising3d
 from survos2.improc.regions.rag import create_rag
 from survos2.improc.regions.slic import slic3d
 from survos2.improc.segmentation import _qpbo as qpbo
-#from survos2.improc.segmentation.appearance import refine
 from survos2.improc.segmentation.appearance import train, predict, refine, invrmap
 from survos2.improc.segmentation.mappings import rmeans, normalize
 from survos2.io import dataset_from_uri
@@ -60,7 +55,7 @@ from survos2.utils import decode_numpy, encode_numpy
 from survos2.api.utils import save_metadata, dataset_repr
 from survos2.helpers import AttrDict
 
-import survos2.server.workspace as ws
+import survos2.api.workspace as ws
 from survos2.server.filtering import crop_and_resample, prepare_features, generate_features
 from survos2.server.supervoxels import prepare_supervoxels, generate_supervoxels
 from survos2.utils import logger

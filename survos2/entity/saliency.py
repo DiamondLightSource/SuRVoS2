@@ -17,7 +17,6 @@ from typing import Collection
 from matplotlib import patches, patheffects
 from matplotlib.patches import Rectangle, Patch
 
-#from survos2.entity.Various import draw_rect
 
 def filter_proposal_mask(proposal_mask, thresh=0.5, num_erosions=3, num_dilations=3, num_medians=1):
     holdout = (proposal_mask >= thresh) * 1.0
@@ -33,6 +32,8 @@ def filter_proposal_mask(proposal_mask, thresh=0.5, num_erosions=3, num_dilation
         holdout= ndimage.median_filter(holdout, 4).astype(holdout.dtype)
     
     return holdout
+
+
 def measure_regions(labeled_images, properties = ['label', 'area', 'centroid', 'bbox']):
     tables = [skimage.measure.regionprops_table(image, properties=properties)
               for image in labeled_images]

@@ -17,7 +17,6 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize, Signal
 
-
 from vispy import scene
 from vispy.color import Colormap
 
@@ -34,8 +33,6 @@ import pyqtgraph.opengl as gl
 import pyqtgraph as pg
 from survos2.server.config import appState
 
-
-
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 import matplotlib.patches as mpatches
@@ -47,7 +44,6 @@ sns.set_style('darkgrid')
 sns.set_palette('muted')
 sns.set_context("notebook", font_scale=1.5,
                 rc={"lines.linewidth": 2.5})
-
 
 scfg = appState.scfg
 
@@ -108,13 +104,6 @@ class DataTreeControl:
 class SmallVolWidget:
     def __init__(self, smallvol):
 
-        # w = QtGui.QWidget()
-        #layout = QtGui.QGridLayout()
-        #w.setLayout(layout)
-        #layout.addWidget(t, 1, 0, 1, 1)
-        #w.show()
-        #w.resize(400, 400)
-
         self.imv = pg.ImageView()
         self.imv.setImage(smallvol, xvals=np.linspace(1., 3., smallvol.shape[0]))
 
@@ -133,22 +122,14 @@ class Cluster2dWidget:
     def __init__(self, pts,colors, labels_str):
         num_classes = len(np.unique(colors))
 
-
         cmap = cm.jet
-        #norm = Normalize(vmin=0, vmax=8)
-
-        #palette = np.array(sns.color_palette("hls", num_classes))
-        #print(colors)
-
-
-       
-
+        
         w = MatplotlibWidget()
         subplot = w.getFigure().add_subplot(111)
         colormap_name = 'plasma'
         
         cm.jet.get_cmap(colormap_name)
-        #cm = subplot.get_cmap(colormap_name)
+
         palette = cm(np.linspace(0,1,num_classes))
 
         scat = subplot.scatter(pts[:,1], pts[:,0], lw=0, 
@@ -159,16 +140,10 @@ class Cluster2dWidget:
         subplot.legend(  [mpatches.Patch(color=palette[i], label='a') for i,p in enumerate(np.unique(colors))],
          labels_str, loc = 'lower left', labelspacing=0. )
 
-        #subplot.legend(*scat.legend_elements(), loc="lower left", title="Classes")
-        #subplot.legend()
-        
-#        scat = a.scatter(points[:,0], points[:,1], 
- #                        c=cluster_classes, cmap="jet_r")
-        #subplot.legend(handles=scat.legend_elements()[0], labels=labels)
         subplot.invert_yaxis()
         w.draw()
         w.show()
-        #w.resize(500, 500)
+
         self.w = w
 
 
@@ -233,8 +208,6 @@ class TableWidget(QtWidgets.QGraphicsObject):
     
         self.w.cellClicked.connect(self.cell_clicked)
         self.w.doubleClicked.connect(self.double_clicked)
-    
-
         self.w.selected_row = 0
 
     def set_data(self, data):

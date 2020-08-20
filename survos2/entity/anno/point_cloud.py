@@ -131,9 +131,6 @@ def chip_cluster(orig_pts, chip, offset_x, offset_y, MIN_CLUSTER_SIZE=5,
         threshold = pd.Series(clusterer.outlier_scores_).quantile(0.65)
         outliers = np.where(clusterer.outlier_scores_ > threshold)[0]
 
-        #X_rescaled_cl = np.delete(X_rescaled,  outliers,axis=0)
-        #label_code_cl = np.delete(label_code,  outliers,axis=0)
-        #cluster_probs_cl = np.delete(clusterer.probabilities_, outliers, axis=0)
         X_rescaled_cl = X_rescaled
         label_code_cl = label_code
         cluster_probs_cl = clusterer.probabilities_
@@ -263,7 +260,6 @@ def chip_cluster2(orig_pts, chip, offset_x, offset_y, MIN_CLUSTER_SIZE=5,
         if debug_verbose:
             print("Scaling by {} {} {}".format(scale_x,scale_y,scale_z))
 
-        #X_rescaled = rescale_3d(orig_pts, scale_x, scale_y, scale_z)
         x_scale = xend-xstart
         y_scale = yend-ystart
         slicestart=0
@@ -282,15 +278,6 @@ def chip_cluster2(orig_pts, chip, offset_x, offset_y, MIN_CLUSTER_SIZE=5,
         ylim = (0,chip.shape[2])
         zlim = (0,chip.shape[0])
         
-    #print(np.max(X_rescaled[:,0]), np.max(X_rescaled[:,1]), np.max(X_rescaled[:,2]))
-    #print(np.min(X_rescaled[:,0]), np.min(X_rescaled[:,1]), np.min(X_rescaled[:,2]))
-    
-    #print(np.max(X_rescaled[:,0]), np.max(X_rescaled[:,1]), np.max(X_rescaled[:,2]))
-    #print(np.min(X_rescaled[:,0]), np.min(X_rescaled[:,1]), np.min(X_rescaled[:,2]))
-
-    #print(np.max(X_rescaled[:,0]), np.max(X_rescaled[:,1]), np.max(X_rescaled[:,2]))
-    #print(np.min(X_rescaled[:,0]), np.min(X_rescaled[:,1]), np.min(X_rescaled[:,2]))
-
     #
     # Point cloud cluster
     #
@@ -304,9 +291,6 @@ def chip_cluster2(orig_pts, chip, offset_x, offset_y, MIN_CLUSTER_SIZE=5,
         threshold = pd.Series(clusterer.outlier_scores_).quantile(0.65)
         outliers = np.where(clusterer.outlier_scores_ > threshold)[0]
 
-        #X_rescaled_cl = np.delete(X_rescaled,  outliers,axis=0)
-        #label_code_cl = np.delete(label_code,  outliers,axis=0)
-        #cluster_probs_cl = np.delete(clusterer.probabilities_, outliers, axis=0)
         X_rescaled_cl = X_rescaled
         label_code_cl = label_code
         cluster_probs_cl = clusterer.probabilities_
@@ -354,13 +338,9 @@ def chip_cluster2(orig_pts, chip, offset_x, offset_y, MIN_CLUSTER_SIZE=5,
     cluster_centroids = np.array([centroid_3d(cluster_coord) 
                                   for cluster_coord in cluster_coords])
 
-    cluster_centroids = np.array(cluster_centroids)
-    
-    #sns.distplot(cluster_centroids[np.isfinite(cluster_centroids)], rug=True)
-    
+    cluster_centroids = np.array(cluster_centroids)    
     cluster_sizes = np.array(cluster_sizes)
     
-    #sns.distplot(cluster_sizes[np.isfinite(cluster_sizes)], rug=True)
 
     title_str = "Number of original clicks: {0} Number of final centroids: {1} Av clicks cluster {2}".format(X_rescaled.shape[0], cluster_sizes.shape[0], X_rescaled.shape[0]/ cluster_sizes.shape[0])
     
@@ -391,8 +371,6 @@ def chip_cluster2(orig_pts, chip, offset_x, offset_y, MIN_CLUSTER_SIZE=5,
         print(f"Cluster classes {cc}")
         print(f"Len cluster classes {len(cc)}")
     
-    #if plot_all:
-    #    show_images_and_points([img_sample,], centroid_coords_woffset, cc, figsize=(12,12))
-    
+   
     return cluster_centroids, cc
  

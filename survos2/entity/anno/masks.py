@@ -54,9 +54,6 @@ from survos2.frontend.nb_utils import summary_stats, show_images
 
 from numpy.linalg import LinAlgError
 
-#warnings.filterwarnings("ignore")
-#warnings.filterwarnings(action='once')
-
 from survos2.entity.anno.geom import centroid_3d, rescale_3d
 
 from survos2.entity.anno.point_cloud import chip_cluster
@@ -64,11 +61,6 @@ from skimage.segmentation import mark_boundaries
 
 
 
-
-#@numba.jit(nopython=False)
-#from numba import jit, int32
-#import numba
-#@numba.jit
 def create_ellipsoidal_mask(d : int, w:int, h:int,  a : float=1.0, b :float=1.0, c: float=1.0, 
                     center : Tuple[float, float, float]=(0.0,0.0,0.0), radius : int =8, 
                     debug_verbose : bool =False) -> np.ndarray:
@@ -166,7 +158,6 @@ def paint_ellipsoids():
 
 
 
-# ellipse_mask
 def ellipse_mask(w,h, a=1.0, b=1.0, center=None, 
                             radius=4.0):
     """Generate 2d ellipse masks
@@ -186,16 +177,13 @@ def ellipse_mask(w,h, a=1.0, b=1.0, center=None,
         center = [np.int(w/2.0), np.int(h/2.0)]
 
     X,Y = np.ogrid[:int(w), :int(h)]
- 
-    #print("At center: {}".format(center))
-    
+
     dist_from_center = np.sqrt( (((X - center[0])**2)/a + 
                                  ((Y - center[1])**2)/b))
                                 
     mask = dist_from_center <= np.float(radius)
     
-    #print("Area of mask: {}".format(np.sum(mask)))
-    
+
     mask = (mask * 1.0).astype(np.float32)
     
     return mask 
@@ -227,14 +215,11 @@ def bw_to_points(bwimg, sample_prop):
 
 
 def point_in_vol(input_array, pt,sz):
-    #print(pt, input_array.shape)
     
     test_z = (pt[0]-sz[0] >= 0) and (pt[0]+sz[0] < input_array.shape[0])
     test_x = (pt[1]-sz[1] >= 0) and (pt[1]+sz[1] < input_array.shape[1])
     test_y = (pt[2]-sz[2] >= 0) and (pt[2]+sz[2] < input_array.shape[2])
-    #print(test_z, test_x, test_y)
     return test_z & test_x & test_y
-#classwise_pts = offset_pts[offset_pts[:,3] == 0 | (offset_pts[:,3] == 1)]
 
 
 
@@ -266,33 +251,20 @@ def generate_sphere_masks_fast(input_array : np.ndarray, classwise_pts : np.ndar
     
     count = 0
     
-    #print(f"Rendering {len(classwise_pts)} masks")
     classwise_pts = classwise_pts.astype(np.uint32)
     
     
     init_ls = calc_sphere((radius,radius,radius), 
                           (radius//2,radius//2,radius//2), radius=radius//2)
-    #print(f"Sphere template {init_ls.shape}")
-    
+
     for pt in classwise_pts:
         st = np.array((pt[0]-radius//2, pt[2]-radius//2,pt[1]-radius//2))
         st = st.astype(np.uint32)
         if st[0] < input_array.shape[0] and st[1] < input_array.shape[1] and st[2] < input_array.shape[2]:
-            #print(f"Rendering pt: {st}")
-            #print(f"{st[0]+sz[0]}")
+
             if point_in_vol(input_array, pt, sz):
-                #print(st[0],st[0]+sz[0], st[1],st[1]+sz[1], st[2],st[2]+sz[2])
                 total_mask[st[0]:st[0]+sz[0], st[1]:st[1]+sz[1], st[2]:st[2]+sz[2]] = init_ls
     
-        
-    #for i in range(len(classwise_pts)):
-   # 
-   #     ss, yy,xx = classwise_pts[i,0], classwise_pts[i,1], classwise_pts[i,2]
-   #     ss= int(ss)
-   #     init_ls = calc_sphere(I_out.shape, (ss, xx,yy), radius=radius)
-   #     print(init_ls.shape)
-   #     total_mask += init_ls
-
     return total_mask
 
 

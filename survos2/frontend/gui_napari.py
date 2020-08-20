@@ -58,7 +58,7 @@ from survos2.helpers import AttrDict, simple_norm
 from survos2.server.config import appState
 scfg = appState.scfg
 
-import survos2.server.workspace as ws
+import survos2.api.workspace as ws
 import survos2.server.segmentation as sseg
 
 #from survos2.frontend.model import SegSubject

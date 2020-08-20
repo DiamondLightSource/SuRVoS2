@@ -10,13 +10,6 @@ Allow caching of intermediate pipeline state.
 
 """
 
-#class SegData:
-#    def __init__(self,  img_vol_proc, feats, dataset_anno_proc, superregions):
-#        self.img_vol_proc = img_vol_proc
-#        self.dataset_anno_proc = dataset_anno_proc
-#        self.feats = feats
-#        self.superregions = superregions
-
 
 @dataclass
 class Features:
@@ -27,7 +20,6 @@ class Features:
     filtered_layers : List[np.ndarray]
     dataset_feats : np.ndarray
     features_stack : np.ndarray
-
 
 
 @dataclass 
