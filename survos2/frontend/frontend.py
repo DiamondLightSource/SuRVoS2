@@ -45,7 +45,7 @@ from survos2.frontend.pipeline import sv_gui, features_gui, roi_gui, prediction_
 
 from survos2.model import Workspace, Dataset
 import survos2.api.workspace as ws
-import survos2.server.segmentation as sseg
+
 #import survos2.server.test as stest
 #from survos2.server.test import SegData
 
