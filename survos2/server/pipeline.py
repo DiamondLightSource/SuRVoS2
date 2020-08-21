@@ -43,7 +43,7 @@ from torchio.data.inference import GridSampler, GridAggregator
 from loguru import logger
 
 from survos2.entity.entities import make_entity_df
-from survos2.server.prediction import make_prediction, calc_feats
+from survos2.server.superregions import make_prediction, calc_feats
 from survos2.entity.anno.masks import generate_sphere_masks_fast
 from survos2.server.supervoxels import generate_supervoxels
 from survos2.server.filtering import generate_features
@@ -320,6 +320,17 @@ def superregion_pipeline(p : PipelinePayload):
     
     return p
 
+
+def run_pipeline(p: PipelinePayload):
+    pipeline = [make_masks, make_features, make_sr, predict_sr]
+    #pipeline = [make_masks, make_features, make_sr, acwe, predict_sr]
+    
+    for op in pipeline:
+        p = op(p)
+
+    p.layers['result'] = p.layers['prediction']
+    return p
+
 def prediction_pipeline(p : PipelinePayload):
     # RASTERIZATION (V->R)
     p = make_masks(p)
@@ -328,10 +339,10 @@ def prediction_pipeline(p : PipelinePayload):
     p = make_features(p, appState.scfg.feature_params['vf2'])
         
     # SUPERREGIONS (R->R)
-    p = make_sr(p, p.params.slic_params)
+    p = make_sr(p)
     
     # ACTIVE CONTOUR (List[R] -> R)
-    #p = acwe(p)
+    # p = acwe(p)
 
     # SR_PREDICTION 
     p = predict_sr(p, anno_name='total_mask')
