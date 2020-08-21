@@ -16,7 +16,7 @@ import enum
 from skimage import img_as_ubyte
 from survos2.server.pipeline import PipelinePayload, mask_pipeline, saliency_pipeline, prediction_pipeline, survos_pipeline
 
-from loguru import logger
+from loguru import logger   
 
 
 class PipelineOp(enum.Enum):
@@ -30,7 +30,7 @@ class FilterOption(enum.Enum):
     laplacian = [simple_laplacian, appState.scfg.filter4['laplacian_params'] ]
     tv = [tvdenoising3d, appState.scfg.filter3['tvdenoising3d_params'] ]
     gradient = [spatial_gradient_3d, appState.scfg.filter5['gradient_params']]
-    gblur = [gaussian_blur, appState.scfg.filter5['gradient_params']]
+    gblur = [gaussian_blur3d, appState.scfg.filter5['gradient_params']]
 
 class Operation(enum.Enum):
     mask_pipeline = 'mask_pipeline'
