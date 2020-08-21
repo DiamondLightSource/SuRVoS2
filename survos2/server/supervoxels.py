@@ -104,28 +104,13 @@ def generate_supervoxels(dataset_feats, filtered_stack, dataset_feats_idx, slic_
 
 
 def superregion_factory(supervoxel_vol : np.ndarray, features_stack:np.ndarray) -> Superregions:
-    """Load supervoxels from file, then generate supervoxel features from a features stack and the supervoxel rag,
-    then bundle as Superregions and return.
-
-    Args:
-        supervoxels (List[str]): list of supervoxels
-        filtered_stack (np.ndarray): stack of filters
-        roi_crop (np.ndarray): roi to crop to
-        resample_amt (float): zoom level
-
-    Returns:
-        [Superregions]: superregions dataclass object 
-    """
 
     supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32, copy=True)
-    #supervoxel_vol = supervoxel_vol[...]
-    #supervoxel_vol = np.nan_to_num(supervoxel_vol)
     supervoxel_features = rmeans(features_stack, supervoxel_vol)
 
     logger.info(f"Finished rmeans with supervoxel_features of shape {supervoxel_features.shape}")
     
     supervoxel_rag = create_rag(np.array(supervoxel_vol), connectivity=6)
-
     logger.info("MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol)))
 
     superregions = Superregions(supervoxel_vol, supervoxel_features, supervoxel_rag)
