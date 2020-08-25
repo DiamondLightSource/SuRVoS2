@@ -10,7 +10,7 @@ class _Config(type):
     __data__ = { # Defaults
         'title': 'SuRVoS',
         'api': {
-            'host': '127.0.0.1',
+            'host': '172.23.167.1',
             'port': 8123,
             'plugins': [],
             'renderer': 'mpl'
@@ -24,15 +24,7 @@ class _Config(type):
             'stretch': False
         },
         'model': {
-<<<<<<< HEAD
-<<<<<<< HEAD
-            'chroot':  '/dls/science/groups/das/SuRVoS/s2/data/',   #,      # currently needs full path, can be 'tmp' which is placed in users dir
-=======
-            'chroot':  'C:/work/diam/data', #'/dls/science/groups/das/SuRVoS/s2/data/',   #,      # currently needs full path, can be 'tmp' which is placed in users dir
->>>>>>> 7249f04382f48b4a724995c2ab85b3621d5d174e
-=======
-            'chroot':  '/dls/science/groups/das/SuRVoS/s2/data/',   #,      # currently needs full path, can be 'tmp' which is placed in users dir
->>>>>>> c841a9e5d18b04f50bf5471b9d01456f1ae7e6d0
+            'chroot':  '/dls/science/groups/das/SuRVoS/s2/data/',  # currently needs full path, can be 'tmp' which is placed in users dir
             'dbtype': 'yaml'
         },
         'logging': {

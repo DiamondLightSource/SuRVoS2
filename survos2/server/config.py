@@ -4,8 +4,8 @@ import pprint
 from survos2.helpers import AttrDict
 from dataclasses import dataclass
 from collections import namedtuple
-from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-from survos2.server.filtering import simple_laplacian
+#from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
+#from survos2.server.filtering import simple_laplacian
 
 # Config yamls, get combined into a master app state dict AppState
 
@@ -116,6 +116,7 @@ scfg.p = None
 
 
 #move
+"""
 scfg.feature_params = {}
 scfg.feature_params['simple_gaussian'] = [ 
       [gaussian, scfg.filter2['gauss_params'] ]]
@@ -129,5 +130,4 @@ scfg.feature_params['vf2'] = [
 #      [tvdenoising3d, scfg.filter3['tvdenoising3d_params'] ]]
 
 
-
-
+"""
