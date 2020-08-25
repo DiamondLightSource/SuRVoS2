@@ -31,7 +31,7 @@ from scipy import ndimage
 from functools import partial
 
 from survos2.improc import map_blocks
-from survos2.improc.features import gaussian, tvdenoising3d
+#from survos2.improc.features import gaussian, tvdenoising3d
 from survos2.improc.regions.rag import create_rag
 from survos2.improc.regions.slic import slic3d
 from survos2.improc.segmentation import _qpbo as qpbo
