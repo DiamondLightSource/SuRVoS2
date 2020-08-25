@@ -1,4 +1,3 @@
-
 # Basic startup instructions
 
 Clone environment (or unzip a zipped repo)
@@ -14,10 +13,26 @@ survos.py run_server workspace.create workspace=test_s1
 
 Add data to the workspace:
 
-workspace.add_data workspace=test_s9 data_fname=D:/datasets/survos_brain/ws3/data.h5 
+workspace.add_data workspace=test_s1  data_fname=D:/datasets/survos_brain/ws3/data.h5 
 
 (replace the data_fname with an h5 file that has the image data stored as 'data'.)
 
+
+# Config
+
+Inital setup:
+
+server/config.py
+    server, port
+    chroot
+
+Per session setup:
+     /projects/[project name]/project.json
+
+
+start server with a workspace (can be changed)
+run_server [command] with workspace param
+start gui with a workspace
 
 
 
@@ -197,6 +212,15 @@ Within the client, PyQT Signals and Slots.
 
 The application state is in scfg ("survos config).
 
+
+# Plugins
+
+Features
+
+Regions 
+
+Annotations
+
 # Pipeline
 
 A pipeline is to provide a simple, unified interface to several different types of operations.
@@ -233,3 +257,13 @@ TODO: Integration of Viewer roi<->workspace roi so
 
 
 TODO: An example of the client having a Thumbnail or slice result
+
+
+# Launcher and DataModel
+
+
+
+
+# Datasets
+
+# 

@@ -12,9 +12,6 @@ import time
 
 
 
-
-
-
 def resource(*args):
     rdir = os.path.dirname(__file__)
     return os.path.normpath(os.path.join(rdir, 'resources', *args))

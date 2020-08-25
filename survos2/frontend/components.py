@@ -9,8 +9,6 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize
 
-
-
 from pyqtgraph.Qt import QtCore, QtGui
 
 import re

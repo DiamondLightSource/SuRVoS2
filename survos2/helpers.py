@@ -53,7 +53,7 @@ from skimage.segmentation import felzenszwalb
 from skimage.segmentation import mark_boundaries
 from skimage.util import img_as_ubyte
 
-from addict import Dict
+
 from collections import OrderedDict
 from math import pi, sin, cos, atan2
 from sklearn import mixture
@@ -66,6 +66,9 @@ import scipy.signal as signal
 from pathlib import Path
 
 import napari
+
+
+
 
 
 
@@ -96,12 +99,8 @@ def view_volume(imgvol, points=[], name=""):
     return viewer
 
 
-# points = np.array(click_data_arr) #
-# points = np.array([[100, 10,10], [120, 100,10], [13, 11,10]])
-# view_volume(dataset_feats[0])
 
 def view_volume2(imgvol, name=""):
-    translate_limits = (28, 100)
     with napari.gui_qt():
         viewer = napari.Viewer()
         viewer.add_image(imgvol, name=name)
@@ -172,85 +171,6 @@ def prepare_3channel(selected_images, patch_size=(28,28)):
             print(e)
         
     return selected_3channel
-
-
-# from S.O.
-# For generating diagrams of path hierarchies
-class DisplayablePath(object):
-    display_filename_prefix_middle = '├──'
-    display_filename_prefix_last = '└──'
-    display_parent_prefix_middle = '    '
-    display_parent_prefix_last = '│   '
-
-    def __init__(self, path, parent_path, is_last):
-        self.path = Path(str(path))
-        self.parent = parent_path
-        self.is_last = is_last
-        if self.parent:
-            self.depth = self.parent.depth + 1
-        else:
-            self.depth = 0
-
-    @property
-    def displayname(self):
-        if self.path.is_dir():
-            return self.path.name + '/'
-        return self.path.name
-
-    @classmethod
-    def make_tree(cls, root, parent=None, is_last=False, criteria=None):
-        root = Path(str(root))
-        criteria = criteria or cls._default_criteria
-
-        displayable_root = cls(root, parent, is_last)
-        yield displayable_root
-
-        children = sorted(list(path
-                               for path in root.iterdir()
-                               if criteria(path)),
-                          key=lambda s: str(s).lower())
-        count = 1
-        for path in children:
-            is_last = count == len(children)
-            if path.is_dir():
-                yield from cls.make_tree(path,
-                                         parent=displayable_root,
-                                         is_last=is_last,
-                                         criteria=criteria)
-            else:
-                yield cls(path, displayable_root, is_last)
-            count += 1
-
-    @classmethod
-    def _default_criteria(cls, path):
-        return True
-
-    @property
-    def displayname(self):
-        if self.path.is_dir():
-            return self.path.name + '/'
-        return self.path.name
-
-    def displayable(self):
-        if self.parent is None:
-            return self.displayname
-
-        _filename_prefix = (self.display_filename_prefix_last
-                            if self.is_last
-                            else self.display_filename_prefix_middle)
-
-        parts = ['{!s} {!s}'.format(_filename_prefix,
-                                    self.displayname)]
-
-        parent = self.parent
-
-        while parent and parent.parent is not None:
-            parts.append(self.display_parent_prefix_middle
-                         if parent.is_last
-                         else self.display_parent_prefix_last)
-            parent = parent.parent
-
-        return ''.join(reversed(parts))
 
 
 def docstring_parameter(*sub):
@@ -425,7 +345,7 @@ def parse_tuple(string):
     try:
         s = ast.literal_eval(str(string))
         if type(s) == tuple:
-            return s
+            return p
         return
 
     except:

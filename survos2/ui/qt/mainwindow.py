@@ -14,12 +14,13 @@ from survos2.config import Config
 import time
 from multiprocessing import Process
 from vispy.color import Colormap
-import imageio
+
 import numpy as np
 import numba
 import math
 from scipy import stats
 
+import napari
 
 logger = get_logger()
 
@@ -237,6 +238,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.iconContainer.plugin_selected.connect(self.show_plugin)
         self.pluginContainer.view_requested.connect(self.show_view)
         self.plugin2views = dict()
+
+        with napari.gui_qt():
+            viewer = napari.Viewer()
+            viewer.add_image(np.random.random((100,100,100)), name="marlene")
+            hbox.addWidget(viewer)
+            
 
     def _load_plugins(self, plugins=None):
         all_plugins = list_plugins() if plugins is None else plugins

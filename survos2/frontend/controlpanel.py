@@ -118,7 +118,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         hbox_layout4.addWidget(button8)
         hbox_layout4.addWidget(button10)
 
-        
         vbox = VBox(self, margin=(1, 0, 0, 0), spacing=5)
         
         vbox.addLayout(hbox_layout)
@@ -126,8 +125,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         #vbox.addLayout(hbox_layout3)
         vbox.addLayout(hbox_layout4)
         vbox.addLayout(hbox_layout5)
-
-
 
         label_flip = QtWidgets.QLabel('Flip coords:')
         #label_flip.setText('Label Example')

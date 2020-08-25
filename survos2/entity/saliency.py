@@ -17,6 +17,7 @@ from typing import Collection
 from matplotlib import patches, patheffects
 from matplotlib.patches import Rectangle, Patch
 
+from loguru import logger
 
 def filter_proposal_mask(proposal_mask, thresh=0.5, num_erosions=3, num_dilations=3, num_medians=1):
     holdout = (proposal_mask >= thresh) * 1.0
@@ -99,11 +100,11 @@ def generate_click_plot_data1(img_data, click_coords):
     for j in range(len(click_coords)):
 
         if j % 5000 == 0:
-            print("Generating click plot data: {}".format(j))
+            logger.debug("Generating click plot data: {}".format(j))
 
         sliceno, y, x = click_coords[j]
         w, h = (100, 100)
-        print(x, y, w, h, sliceno)
+        logger.debug(x, y, w, h, sliceno)
 
         img = get_img_in_bbox(img_data, 75, int(np.ceil(x)), int(np.ceil(y)), w, h)
         img_shortlist.append(img)

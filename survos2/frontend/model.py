@@ -1,22 +1,29 @@
 
 from dataclasses import dataclass
-
 import numpy as np
-from survos2.server.model import Features
+from survos2.server.model import SRFeatures
 from typing import List
 import pandas as pd
 
 @dataclass
 class ClientData:
     vol_stack : np.ndarray
-    vol_anno : np.ndarray
-    vol_supervoxels : np.ndarray
-    features: Features
     layer_names : List[str]
     opacities : List[int]
     entities : pd.DataFrame
     classnames : np.ndarray
 
+
+# @dataclass
+# class ClientData:
+#     vol_stack : np.ndarray
+#     vol_anno : np.ndarray
+#     vol_supervoxels : np.ndarray
+#     features: SRFeatures
+#     layer_names : List[str]
+#     opacities : List[int]
+#     entities : pd.DataFrame
+#     classnames : np.ndarray
 
 
 class SegSubject:
