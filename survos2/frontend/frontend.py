@@ -107,10 +107,7 @@ def frontend(cData):
     default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
     Launcher.g.set_remote(default_uri)
     Launcher.g.reconnect()  
-
-
-    import pdb; pdb.set_trace()
-        
+    
 
     with napari.gui_qt():
         viewer = napari.Viewer()
