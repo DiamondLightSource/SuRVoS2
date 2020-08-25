@@ -37,16 +37,6 @@ from survos2.entity.sampler import sample_roi, sample_bvol, crop_vol_in_bbox, cr
 from survos2.helpers import AttrDict
 from .views import list_views, get_view
 
-#from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-#from survos2.improc.regions.slic import postprocess
-
-
-#from survos2.server.supervoxels import generate_supervoxels
-#from survos2.server.features import generate_features, prepare_prediction_features
-
-#from survos2.server.cnn_models import setup_cnn_model
-#from survos2.server.pipeline import Patch
-
 
 from survos2.improc.utils import DatasetManager
 
@@ -116,7 +106,12 @@ def frontend(cData):
     logger.info(f"Connected to launcher {Launcher.g.connected}")    
     default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
     Launcher.g.set_remote(default_uri)
-    
+    Launcher.g.reconnect()  
+
+
+    import pdb; pdb.set_trace()
+        
+
     with napari.gui_qt():
         viewer = napari.Viewer()
         viewer.appState = appState
@@ -160,7 +155,10 @@ def frontend(cData):
 
         viewer.dw = AttrDict()
         viewer.dw.bpw = ButtonPanelWidget()
+        
+        
         viewer.dw.ppw = PluginPanelWidget()
+
 
         viewer.dw.table_control = TableWidget()        
         viewer.dw.table_control.set_data(tabledata)
