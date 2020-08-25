@@ -57,7 +57,7 @@ def init_api(return_plugins=False):
 
     # Init app
     api = hug.API(__name__)
-    print(f"API: {api}\n")
+    logger.debug(f"API: {api}\n")
     
     # Set exception handlers
     hug.exception(api=api)(handle_exceptions)
@@ -95,7 +95,7 @@ def init_api(return_plugins=False):
 def remote_client(uri):
     host, port = _parse_uri(uri)
     endpoint = 'http://{}:{}/'.format(host, port)
-    print(f"Contacting endpoint {endpoint}")
+    logger.info(f"Contacting endpoint {endpoint}")
     return HTTP(endpoint)
 
 
@@ -126,7 +126,7 @@ def run_command(plugin, command, uri=None, **kwargs):
         client = remote_client(uri)
         logger.info(f"Connecting to remote client {client}")
         response = client.get('{}/{}'.format(plugin, command), **kwargs)
-        print(f"Received response {response}")
+        logger.info(f"Received response {response}")
 
     return parse_response(plugin, command, response)
 

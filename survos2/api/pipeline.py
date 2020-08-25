@@ -19,3 +19,12 @@ from loguru import logger
 @hug.get()
 def run_pipeline(workspace:String, ):
     logger.debug("Run pipeline")
+
+
+@hug.get()
+def add_pipeline(workspace:String, ):
+    logger.debug("Add pipeline")
+
+@hug.get()
+def list_pipelines(workspace:String, ):
+    logger.debug("List pipeline")

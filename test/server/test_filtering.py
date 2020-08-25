@@ -57,8 +57,7 @@ def datamodel():
         logger.debug("workspace deleted")
         survos.run_command("workspace", "create", uri=None, workspace=tmp_ws_name) 
         logger.debug("workspace recreated")
-
-        
+ 
     # add data to workspace
     survos.run_command('workspace', 'add_data', uri=None, workspace=tmp_ws_name,
                     data_fname=map_fullpath,

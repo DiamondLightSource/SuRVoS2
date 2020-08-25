@@ -1,5 +1,4 @@
 """"
-
 Supervoxel generation 
 
 
@@ -15,20 +14,11 @@ TODO
 """
 import os
 import sys
-from enum import Enum
 from typing import List
-#import io
 import numpy as np
 import pandas as pd
-import joblib
-import pandas as pd
-import glob
-import h5py
-import ntpath
 import scipy
-import yaml
 
-from numba import jit
 from collections import namedtuple
 from skimage import img_as_ubyte, img_as_float
 from skimage import io
@@ -51,18 +41,14 @@ from survos2.io import dataset_from_uri
 from survos2.model import Workspace, Dataset
 from survos2.utils import decode_numpy, encode_numpy
 from survos2.api.utils import save_metadata, dataset_repr
-from survos2.helpers import AttrDict
+
 import survos2.api.workspace as ws
 
-from survos2.server.filtering import *
-from survos2.server.supervoxels import *
-from survos2.utils import logger
-from numba import njit, jit, int32, float32, int8
 
-from dataclasses import dataclass
-from typing import List
+from survos2.server.model import SRData
 
-from survos2.server.model import Superregions
+from loguru import logger
+
 
 
 def generate_supervoxels(dataset_feats, filtered_stack, dataset_feats_idx, slic_params):
@@ -77,7 +63,7 @@ def generate_supervoxels(dataset_feats, filtered_stack, dataset_feats_idx, slic_
     Returns: dataclass with all the information required for prediction
     """
     logger.info(f"Using feature idx {dataset_feats_idx} for supervoxels.")
-    logger.info(f"Features for supervoxels have shape {dataset_feats[dataset_feats_idx].shape}")
+    logger.info(f"SRFeatures for supervoxels have shape {dataset_feats[dataset_feats_idx].shape}")
     logger.info(f"Generating supervoxels with params: {slic_params}")
 
     block_z, block_x, block_y = dataset_feats[0].shape
@@ -98,29 +84,27 @@ def generate_supervoxels(dataset_feats, filtered_stack, dataset_feats_idx, slic_
 
     logger.info("MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol)))
 
-    superregions = Superregions(supervoxel_vol, supervoxel_features, supervoxel_rag)
+    superregions = SRData(supervoxel_vol, supervoxel_features, supervoxel_rag)
     
     return superregions
 
 
-def superregion_factory(supervoxel_vol : np.ndarray, features_stack:np.ndarray) -> Superregions:
-
+def superregion_factory(supervoxel_vol : np.ndarray, features_stack:np.ndarray) -> SRData:
     supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32, copy=True)
     supervoxel_features = rmeans(features_stack, supervoxel_vol)
-
     logger.info(f"Finished rmeans with supervoxel_features of shape {supervoxel_features.shape}")
     
     supervoxel_rag = create_rag(np.array(supervoxel_vol), connectivity=6)
     logger.info("MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol)))
 
-    superregions = Superregions(supervoxel_vol, supervoxel_features, supervoxel_rag)
+    superregions = SRData(supervoxel_vol, supervoxel_features, supervoxel_rag)
      
     return superregions
 
 
-def prepare_supervoxels(supervoxels : List[str], filtered_stack:np.ndarray, roi_crop : np.ndarray, resample_amt : float) -> Superregions:
+def prepare_supervoxels(supervoxels : List[str], filtered_stack:np.ndarray, roi_crop : np.ndarray, resample_amt : float) -> SRData:
     """Load supervoxels from file, then generate supervoxel features from a features stack and the supervoxel rag,
-    then bundle as Superregions and return.
+    then bundle as SRData and return.
 
     Args:
         supervoxels (List[str]): list of supervoxels
@@ -129,7 +113,7 @@ def prepare_supervoxels(supervoxels : List[str], filtered_stack:np.ndarray, roi_
         resample_amt (float): zoom level
 
     Returns:
-        [Superregions]: superregions dataclass object 
+        [SRData]: superregions dataclass object 
     """
 
     
@@ -137,8 +121,6 @@ def prepare_supervoxels(supervoxels : List[str], filtered_stack:np.ndarray, roi_
     logger.debug(f"Roi crop {roi_crop}")
     
     supervoxel_vol = dataset_from_uri(supervoxels[0], mode='r')
-    
-    
     supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32, copy=False)
     supervoxel_vol = np.nan_to_num(supervoxel_vol)
        
@@ -155,6 +137,7 @@ def prepare_supervoxels(supervoxels : List[str], filtered_stack:np.ndarray, roi_
     
     supervoxel_features = []
     supervoxel_rag = []
-    superregions = Superregions(supervoxel_proc, supervoxel_features, supervoxel_rag)
+
+    superregions = SRData(supervoxel_proc, supervoxel_features, supervoxel_rag)
     
     return superregions

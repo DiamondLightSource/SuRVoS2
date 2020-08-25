@@ -1,13 +1,6 @@
 """
 Filtering and survos feature generation
 
-Uses external libraries:
-    dask
-    dask_image
-    skimage, scipy.ndimage
-    kornia
-    pyradiomics
-    geodesic
 """
 import os
 import sys
@@ -35,12 +28,6 @@ import sklearn.utils.extmath
 import dask_image
 from dask_image import ndfilters
 
-import dask.array as da
-import dask.delayed
-import dask.dataframe as dd
-from dask.array.utils import assert_eq
-from dask.distributed import Client
-
 from sklearn.cluster import KMeans as SKKMeans
 from sklearn.utils.estimator_checks import check_estimator
 
@@ -62,130 +49,9 @@ from torch import nn
 from torch.nn import functional as F
 import kornia
 
-from survos2.io import dataset_from_uri
-from survos2.improc import map_blocks
 from survos2.improc.segmentation.mappings import normalize
 from survos2.utils import logger
 
-from survos2.server.model import Features
-   
-
-def prepare_prediction_features(filtered_layers):
-    # reshaping for survos
-    dataset_feats_reshaped = [f.reshape(1, filtered_layers[0].shape[0],
-                                           filtered_layers[0].shape[1],
-                                           filtered_layers[0].shape[2]) for f in filtered_layers]
-
-    dataset_feats = np.vstack(dataset_feats_reshaped).astype(np.float32)
-
-    features_stack = []
-
-    for i, feature in enumerate(dataset_feats):
-        features_stack.append(feature[...].ravel())
-
-    features_stack = np.stack(features_stack, axis=1).astype(np.float32)
-
-    return dataset_feats, features_stack
-
-
-def prepare_features(features, roi_crop, resample_amt):
-    """Calculate filters on image volume to generate features for survos segmentation
-    
-    Arguments:
-        features {list of string} -- list of feature uri
-        roi_crop {tuple of int} -- tuple defining a bounding box for cropping the image volume
-        resample_amt {float} -- amount to scale the input volume
-    
-    Returns:
-        features -- dataclass containing the processed image layers, and a stack made from them 
-    """
-    #features_stack = []
-    filtered_layers = []
-
-    for i, feature in enumerate(features):
-
-        logger.info(f"Loading feature number {i}: {os.path.basename(feature)}")
-
-        data = dataset_from_uri(feature, mode='r')
-        data = data[roi_crop[0]:roi_crop[1], roi_crop[2]:roi_crop[3], roi_crop[4]:roi_crop[5]]
-        data = scipy.ndimage.zoom(data, resample_amt, order=1)
-
-        logger.info(f"Cropped and resampled feature shape: {data.shape}")
-        filtered_layers.append(data)
-
-        #features_stack.append(data[...].ravel())
-
-    #features_stack = np.stack(features_stack, axis=1)
-
-    dataset_feats, features_stack = prepare_prediction_features(filtered_layers)
-    features = Features(filtered_layers, dataset_feats, features_stack)
-
-    return features
-
-def feature_factory(filtered_layers):
-    dataset_feats, features_stack = prepare_prediction_features(filtered_layers)
-    features = Features(filtered_layers, dataset_feats, features_stack)
-
-    return features
-
-
-def generate_features(img_vol, feature_params, roi_crop, resample_amt):
-    def proc_layer(layer):
-        layer_crop = layer[roi_crop[0]: roi_crop[1], 
-                           roi_crop[2]: roi_crop[3], 
-                           roi_crop[4]: roi_crop[5]].astype(np.float32, copy=False)
-        layer_proc = (scipy.ndimage.zoom(layer_crop, resample_amt, order=1))
-        layer_proc = normalize(layer_proc, norm='unit')
-        return layer_proc
-
-    logger.info(f"From img vol of shape: {img_vol.shape}")
-    logger.info(f"Generating features with params: {feature_params}")
-
-    # map_blocks through Dask
-    filtered_layers = ([proc_layer(map_blocks(filter_fn, img_vol, **params_dict))
-                        for filter_fn, params_dict in feature_params])
-
-
-    filtered_layers = np.array(filtered_layers).astype(np.float32)
-
-    dataset_feats, features_stack = prepare_prediction_features(filtered_layers)
-    logger.info(f"Shape of feature data: {dataset_feats.shape}")
-
-    features = Features(filtered_layers, dataset_feats, features_stack)
-
-    return features
-
-
-# todo replace with two calls to one function
-def crop_and_resample(dataset_in, layers, roi_crop, resample_amt):
-
-    dataset_proc = dataset_in[roi_crop[0]:roi_crop[1], roi_crop[2]:roi_crop[3],
-                   roi_crop[4]:roi_crop[5]].copy()
-
-    logger.info(f"Prepared region: {dataset_in.shape}")
-    dataset_proc = scipy.ndimage.zoom(dataset_proc, resample_amt, order=1)
-    logger.info(f"Cropped and resized volume shape: {dataset_proc.shape}")
-
-    layers_proc = []
-
-    for layer in layers:
-        # Annotation
-        layer_proc = layer[roi_crop[0]:roi_crop[1], roi_crop[2]:roi_crop[3], roi_crop[4]:roi_crop[5]]
-        layer_proc = scipy.ndimage.zoom(layer_proc, resample_amt, order=1)
-        logger.info(f"Cropped and resized layer with shape: {layer_proc.shape}")
-        layers_proc.append(layer_proc)
-
-    return dataset_proc, layers_proc
-
-def select_region(imvol : np.ndarray) -> Tuple[float, float, float, float, float, float]:
-    vol_shape_z = imvol.shape[0]
-    vol_shape_x = imvol.shape[1]
-    vol_shape_y = imvol.shape[2]
-
-    zstart, zend = 0, vol_shape_z
-    xstart, xend = 0, vol_shape_x
-    ystart, yend = 0, vol_shape_y
-    return (zstart, zend, xstart, xend, ystart, yend)
 
 
 def simple_invert(data, sigma=5.0):
@@ -313,8 +179,6 @@ class GaussianSmoothing(nn.Module):
             )
 
     def forward(self, input):
-        """
-        """
         return self.conv(input, weight=self.weight, groups=self.groups)
         
 def gaussian_blur(img_gray : np.ndarray, sigma: float =1.0):

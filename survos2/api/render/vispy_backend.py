@@ -39,11 +39,11 @@ for cmap_name in ['viridis', 'inferno', 'magma', 'plasma']:
 
 class VispyLayer(Layer):
 
-    def __init__(self, renderer, data, cmap='viridis', clim=(0, 1),
+    def __init__(self, renderer, data, cmap='gray', clim=(0, 1),
                  interp='nearest', alpha=100, order=1):
         super().__init__(renderer, data, cmap=cmap, clim=clim, interp=interp,
                          alpha=alpha, order=order)
-        self.visual = ImageVisual(self._data, clim=self._clim, cmap=self._cmap,
+        self.visual = ImageVisual(self._data, clim=self._clim, cmap=cmap,
                                   interpolation=self._interp)
         self.alphaFilter = Alpha(self._alpha / 100.)
         self.visual.attach(self.alphaFilter)

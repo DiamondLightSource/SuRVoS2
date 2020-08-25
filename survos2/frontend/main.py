@@ -30,21 +30,21 @@ from attrdict import AttrDict
 import skimage
 from skimage import img_as_float, img_as_ubyte
 
-from survos2.frontend.frontend import ClientData
+from napari import layers
+
 from survos2.frontend.frontend import frontend
-from survos2.server.model import Features, SegData
-from survos2.server.filtering import prepare_prediction_features
+from survos2.server.model import SRFeatures   #,  SegData
+from survos2.server.features import prepare_prediction_features
 from survos2.server.config import appState
 
 from survos2.entity.entities import make_entity_df
 from survos2 import survos
-from napari import layers
 import survos2.frontend.control
 from survos2.frontend.control import Launcher
 from survos2.frontend.control import DataModel
 from survos2.improc.utils import DatasetManager
-
-
+from survos2.frontend.model import ClientData
+from survos2.entity.sampler import crop_vol_and_pts_centered
 
 
 def preprocess(img_volume):
@@ -57,6 +57,7 @@ def preprocess(img_volume):
 
 def init_ws(project_file, ws_name):
     logger.info(f"Initialising workspace {ws_name} with image volume specified in project file {project_file}")
+    
     
     with open(project_file) as project_file:    
             wparams = json.load(project_file)
@@ -85,13 +86,14 @@ def init_ws(project_file, ws_name):
                 data_fname=tmpvol_fullpath,
                 dtype='float32')
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
-    
-    #survos.run_command("workspace", "add_dataset", uri=None, workspace=ws_name, dataset_name='mainvol', dtype='float32')
+    survos.run_command("workspace", "add_dataset", uri=None, workspace=ws_name, 
+        dataset_name=dataset_name, dtype='float32')
 
 
-def init_proj(wparams, precrop=False):
-    
+def init_proj(wparams, precrop=False):    
+
     DataModel.g.current_workspace = wparams.workspace
+    logger.debug(f"Set current workspace to {DataModel.g.current_workspace}")
 
     entities_df = pd.read_csv(os.path.join(wparams.project_dir, wparams.entities_relpath))
     entities_df.drop(entities_df.columns[entities_df.columns.str.contains('unnamed',case = False)],axis = 1, inplace = True)
@@ -99,23 +101,18 @@ def init_proj(wparams, precrop=False):
 
     logger.debug(f"Loaded entities {entities_df.shape}")
 
-    #data = h5py.File(os.path.join(wparams.datasets_dir,"data.h5"), 'r')#this is image slices file
-    #img_volume = data[wparams['dataset_name']]#[32:96,64:128,64:128]#this is orginal data
-
     survos.init_api()
+
     src = DataModel.g.dataset_uri('__data__')
     with DatasetManager(src, out=None, dtype='float32', fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
     
     logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")
-    vol_shape_x = img_volume[0].shape[0]
-    vol_shape_y = img_volume[0].shape[1]
-    vol_shape_z = len(img_volume)
-        
-    if precrop:
-        from survos2.entity.sampler import crop_vol_and_pts_centered
-        
+
+
+    # view a ROI from a big volume by creating a temp dataset from a crop.
+    if precrop:    
         precrop_coord = wparams.precrop_coord
         precrop_vol_size = wparams.precrop_vol_size
         logger.info(f"Preprocess cropping at {precrop_coord} to {precrop_vol_size}")
@@ -152,19 +149,23 @@ def init_proj(wparams, precrop=False):
                     dtype='float32')
         DataModel.g.current_workspace = tmp_ws_name    
     
-    # Prepare clientData
+    # Prepare clientData (what gets loaded into napari)
+    # TODO: replacing all this with a pure workspace-and-api approach
+
     filtered_layers = [np.array(img_volume).astype(np.float32)]
-    vol_anno = np.ones_like(filtered_layers[0])
-    dataset_feats, features_stack = prepare_prediction_features(filtered_layers)
-    feats = Features(filtered_layers, dataset_feats, features_stack)
-    vol_supervoxels = np.ones_like(filtered_layers[0]) #superregions.supervoxel_vol.astype(np.uint32)
-    segdata = SegData(filtered_layers, feats, vol_anno, vol_supervoxels)
-    layer_names = ['One',]
+    
+    #vol_anno = np.ones_like(filtered_layers[0])
+    #dataset_feats, features_stack = prepare_prediction_features(filtered_layers)
+    #feats = SRFeatures(filtered_layers, dataset_feats, features_stack)
+    #vol_supervoxels = np.ones_like(filtered_layers[0]) #superregions.supervoxel_vol.astype(np.uint32)    
+    
+    layer_names = ['Main',]
+
     opacities = [1.0,]
 
-    clientData = ClientData(filtered_layers, vol_anno, vol_supervoxels, 
-                            segdata.feats, layer_names, opacities, 
+    clientData = ClientData(filtered_layers, layer_names, opacities, 
                             entities_df, wparams['class_names'])
+    
     clientData.wparams = wparams
 
 

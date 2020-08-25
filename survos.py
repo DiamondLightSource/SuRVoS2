@@ -6,36 +6,32 @@ List of commands
 """
 import sys
 import os
-import logging
 import begin
+from loguru import logger
 
 from survos2.config import Config
-from survos2.utils import format_yaml, get_logger
+from survos2.utils import format_yaml
 from survos2.survos import init_api, run_command
 
-import numpy  as np
-
-#
-logger = get_logger(level=logging.DEBUG)
 default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
 
 
-######################################################################
-# COMMANDS MANAGEMENT
-######################################################################
-
 
 @begin.subcommand
-def start_server(port:'port like URI to start the server at'=Config['api.port']):
+def start_server(workspace:'Workspace path (full or chrooted) to load',
+            port:'port like URI to start the server at'=Config['api.port']):
     """
     Start a SuRVoS API Server listeting for requests.
     """
     from hug.store import InMemoryStore
     from hug.middleware import SessionMiddleware, CORSMiddleware
 
+    from survos2.frontend.control import DataModel
+    DataModel.g.current_workspace = workspace
+
+    logger.debug(f"Started server on port {port} with workspace {workspace}")
+
     api, __plugins = init_api(return_plugins=True)
-    logging.info(f"Initializing api: {api}")
-    logging.info(f"Loaded plugins: {__plugins}")
     
     
     session_store = InMemoryStore()
@@ -79,9 +75,9 @@ def run_server(command:'Command to execute in `plugin.action` format.',
 
 
 @begin.subcommand
-def nu_gui(workspace:'Workspace path (full or chrooted) to load',
-        project_file:'JSON project file',
-       server:'URI to the remote SuRVoS API Server'=default_uri):
+def nu_gui(workspace: 'Workspace path (full or chrooted) to load',
+        project_file: 'JSON project file',
+        server: 'URI to the remote SuRVoS API Server'=default_uri):
 
     from survos2.frontend import main
     from napari import gui_qt
@@ -102,16 +98,12 @@ def nu_gui(workspace:'Workspace path (full or chrooted) to load',
 
 
 @begin.subcommand
-def classic_gui(workspace:'Workspace path (full or chrooted) to load',
-       server:'URI to the remote SuRVoS API Server'=default_uri):
+def classic_gui(workspace: 'Workspace path (full or chrooted) to load',
+       server: 'URI to the remote SuRVoS API Server' = default_uri):
     """
     Show Classic SuRVoS QT user interface
     """
-    #from survos2.ui.qt import QtWidgets
     from qtpy import QtWidgets
-    #from survos2.frontend.mainwindow2 import MainWindow
-    #from survos2.frontend.control import Launcher, DataModel
-    #from survos2.ui.qt import QtWidgets
     from survos2.ui.qt import MainWindow
     from survos2.ui.qt.control import Launcher, DataModel
 
@@ -129,6 +121,62 @@ def classic_gui(workspace:'Workspace path (full or chrooted) to load',
 
     sys.exit(app.exec_())
 
+
+@begin.subcommand
+def list_plugins():
+    """
+    List available plugins in SuRVoS.
+    """
+    logger.info("Available plugins:")
+    plugins = init_api(return_plugins=True)[1]
+    for plugin in plugins:
+        logger.info(' - ' + plugins[plugin]['name'])
+
+
+@begin.subcommand
+def load_metadata(source:'Dataset URI to load in HDF5, MRC or SuRVoS format'):
+    from survos2.io import dataset_from_uri, supports_metadata
+    if supports_metadata(source):
+        source = dataset_from_uri(source)
+        logger.info(format_yaml(source.metadata()))
+        source.close()
+    else:
+        logger.info('Dataset `{}` has no metadata.'.format(source))
+
+
+@begin.subcommand
+def view_data(source: 'Dataset URI to load in HDF5, MRC or SuRVoS format',
+         boundaries: 'Boundaries to show on top of the `source`' = None,
+         overlay: 'Overlay dataset to show on top of the `source`' = None,
+         bcolor: 'Color of the overlaid boundaries' = '#000099',
+         balpha: 'Alpha of the overlaid boundaries' = 0.7,
+         oalpha: 'Overlay alpha.' = 0.5):
+    """
+    Visualizes a 3D volume with sliders.
+    Allows to overlay a segmentation / other image and to overlay
+    boundaries, from either supervoxels or other boundary extraction
+    method.
+    """
+    from survos2.io import dataset_from_uri
+    from survos2.volume_utils import view
+
+    logger.info(f'Loading source volume {source}')
+    source = dataset_from_uri(source)
+    if boundaries:
+        logger.info('Loading boundaries')
+        boundaries = dataset_from_uri(boundaries)
+    if overlay:
+        logger.info('Loading overlay')
+        overlay = dataset_from_uri(overlay)
+
+    view(source, boundaries=boundaries, overlay=overlay,
+         bcolor=bcolor, balpha=balpha, oalpha=oalpha)
+
+    source.close()
+    if boundaries:
+        boundaries.close()
+    if overlay:
+        overlay.close()
 
 
 
@@ -161,119 +209,6 @@ def process(pfile:'Process file with the plugin+command instructions',
         run_command(plugin, command, workflow, remote=args.remote)
 
 
-
-@begin.subcommand
-def list_plugins():
-    """
-    List available plugins in SuRVoS.
-    """
-    logger.info("Available plugins:")
-    plugins = init_api(return_plugins=True)[1]
-    for plugin in plugins:
-        logger.info(' - ' + plugins[plugin]['name'])
-
-
-@begin.subcommand
-def load_metadata(source:'Dataset URI to load in HDF5, MRC or SuRVoS format'):
-    from survos2.io import dataset_from_uri, supports_metadata
-    if supports_metadata(source):
-        source = dataset_from_uri(source)
-        logger.info(format_yaml(source.metadata()))
-        source.close()
-    else:
-        logger.info('Dataset `{}` has no metadata.'.format(source))
-
-
-@begin.subcommand
-def view_data(source:'Dataset URI to load in HDF5, MRC or SuRVoS format',
-         boundaries:'Boundaries to show on top of the `source`'=None,
-         overlay:'Overlay dataset to show on top of the `source`'=None,
-         bcolor:'Color of the overlaid boundaries'='#000099',
-         balpha:'Alpha of the overlaid boundaries'=0.7,
-         oalpha:'Overlay alpha.'=0.5):
-    """
-    Visualizes a 3D volume with sliders.
-    Allows to overlay a segmentation / other image and to overlay
-    boundaries, from either supervoxels or other boundary extraction
-    method.
-    """
-    from survos2.io import dataset_from_uri
-    from survos2.volume_utils import view
-
-    logger.info(f'Loading source volume {source}')
-    source = dataset_from_uri(source)
-    if boundaries:
-        logger.info('Loading boundaries')
-        boundaries = dataset_from_uri(boundaries)
-    if overlay:
-        logger.info('Loading overlay')
-        overlay = dataset_from_uri(overlay)
-
-    view(source, boundaries=boundaries, overlay=overlay,
-         bcolor=bcolor, balpha=balpha, oalpha=oalpha)
-
-    source.close()
-    if boundaries:
-        boundaries.close()
-    if overlay:
-        overlay.close()
-
-
-
-
-@begin.subcommand
-def test_feats():
-    from survos2.model import Workspace
-    from survos2.data import mrbrain, embrain
-    from survos2.io import dataset_from_uri
-    from survos2.api.regions import get_slice
-
-    if Workspace.exists('test_survos'):
-        ws = Workspace('test_survos')
-        print("Found workspace")
-        #logger.info('Removing existing test workspace')
-        #Workspace.remove('test_survos')
-        #print(Workspace.has_dataset())
-    else:
-        logger.info('Creating test workspace')
-        ws = Workspace.create('test_survos')
-    
-    
-    with dataset_from_uri(mrbrain()) as data:
-        ws.add_data(data)
-
-    print(ws.tojson())
-
-    #if not (ws.has_dataset('features/gauss')):
-    #    ws.add_dataset('features/gauss', np.float32)
-    #ds = ws.get_dataset('features/gauss')
-    
-    with dataset_from_uri(mrbrain()) as data:
-        ds.set_data(data)
-        ds[...] = data
-        ds.load(data)
-
-    print(ws.path())
-    print(ws.tojson())
-
-
-@begin.subcommand
-def test_workspace():
-    
-    from survos2.model import Workspace
-    from survos2.data import mrbrain, embrain
-    from survos2.io import dataset_from_uri
-
-    if Workspace.exists('test_survos'):
-        logger.info('Removing existing test workspace')
-        Workspace.remove('test_survos')
-    logger.info('Creating test workspace')
-    ws = Workspace.create('test_survos')
-    
-    with dataset_from_uri(mrbrain()) as data:
-        ws.add_data(data)
-
-
 @begin.start(auto_convert=True, cmd_delim='--')
-def run(name='Gawain', quest='Holy Grail', colour='greenblue'):
+def run(name='Gawain', quest='Holy Grail', colour='green'):
     "We are the k.ni.ghts of the round table..."

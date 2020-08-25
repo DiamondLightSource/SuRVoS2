@@ -77,7 +77,7 @@ def refine(X, U, E, W=None, mode='appearance', lamda=1, gamma=None):
     Parameters:
     -----------
     X : (N, D) numpy array
-        Features (voxel, or regional)
+        SRFeatures (voxel, or regional)
     U : (N, L) numpy array
         Unary potentials, aka labelling cost for each sample. It has
         to be shape `n_samples x n_labels` (`N x L`).

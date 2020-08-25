@@ -24,12 +24,7 @@ from loguru import logger
 
 from survos2.utils import decode_numpy
 
-#from survos2.ui.qt.plugins.regions import RegionComboBox
-#from survos2.ui.qt.plugins.base import register_plugin, Plugin, Tool, ViewerExtension
-
-#from survos2.ui.qt.components import *
-#from survos2.ui.qt.qtcompat import QtWidgets, QtCore, QtGui
-#from survos2.ui.qt.control import Launcher, DataModel
+from survos2.server.config import appState
 
 
 
@@ -385,6 +380,7 @@ class AnnotationPlugin(Plugin):
             if level['id'] not in self.levels:
                 self._add_level_widget(level)
 
+    
 
 class AnnotationLevel(Card):
 
@@ -398,6 +394,7 @@ class AnnotationLevel(Card):
         self.le_title.setProperty('header', True)
         self.labels = {}
         self._populate_labels()
+        self._add_view_btn()
 
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
@@ -416,6 +413,12 @@ class AnnotationLevel(Card):
         if result:
             self.removed.emit(self.level_id)
             _AnnotationNotifier.notify()
+
+    def view_level(self):
+        logger.debug(f"View feature_id {self.level_id}")
+        appState.scfg.ppw.clientEvent.emit({'source': 'annotations', 
+                                            'data':'view_annotations', 
+                                            'level_id': self.level_id})
 
     def remove_label(self, idx):
         if idx in self.labels:
@@ -436,6 +439,11 @@ class AnnotationLevel(Card):
             for k, label in result.items():
                 if k not in self.labels:
                     self._add_label_widget(label)
+
+    def _add_view_btn(self):
+        btn_view = PushButton('View', accent=True)
+        btn_view.clicked.connect(self.view_level)
+        self.add_row(HWidgets(None, btn_view, Spacing(35)))
 
 
 class AnnotationLabel(QCSWidget):

@@ -1,21 +1,3 @@
-"""
-Core segmentation functions for SuRVoS Super-region segmentation
-
-BUGS
-slic can fail (PyCuda stack pop error) if the input feature is not sensible 
-    all zeros is easily done (FIX)
-    
-    many crashes are occuring due to memory issues in pycuda as a result of too many superregions being created due to:
-        overly complex/not smoothed input
-        too large input
-        too small supervoxels
- 
-    too large supervoxels also crashes
-
-TODO
-    better validate supervoxel generation params
-
-"""
 
 import os
 import sys
@@ -162,11 +144,9 @@ scfg = appState.scfg
 
 
 
-from survos2.server.model import Superregions
+from survos2.server.model import SRData
 
-
-
-def make_prediction(features_stack, annotation_volume, sr : Superregions, predict_params):
+def make_prediction(features_stack, annotation_volume, sr : SRData, predict_params):
     """Prepare superregions and predict
     
     Arguments:
@@ -253,37 +233,6 @@ def make_prediction(features_stack, annotation_volume, sr : Superregions, predic
     return srprediction
 
 
-
-
-
-
-def rlabels2(y : np.uint16, R : np.uint32, nr : int =None, ny : int=None, norm:bool=None, min_ratio:int=0):
-    
-    #WARNING: silently fails if types are not exactly correct
-    y = np.array(y)
-    R = np.array(R)
-    
-    nr = nr or R.max() + 1
-    ny = ny or y.max() + 1
-
-    logger.info("running rlabels")
-
-    logger.debug(str(type(y)))
-    logger.debug(str(type(R)))
-    logger.debug((y.shape, R.shape))
-
-    try:
-        features = simple_rlabels(y.ravel(), R.ravel(), ny, nr, min_ratio)
-
-    except Exception as err:
-        logger.error(f"simple_rlabels exception: {err}")
-
-    # features = mappings._rlabels(y.ravel(), R.ravel(), ny, nr, min_ratio)
-
-    logger.debug(f"Features {features}")
-
-    return features
-    #return normalize(features).astype(np.uint16, norm=norm)
 
 
 
@@ -690,69 +639,4 @@ def make_prediction2(features_stack, annotation_volume, supervoxel_vol, predict_
         logger.error(f"Prediction exception: {err}")
         return 0
     return srpredicton
-
-
-
-
-#
-# Predict
-#
-
-
-    
-def process_anno_and_predict(features_stack, annotation_volume, supervoxel_vol, predict_params):
-    """Main superregion 
-    
-    Arguments:
-        features_stack {stacked image volumes} -- Stack of filtered volumes to use for features
-        annotation_volume {image volume} -- Annotation volume (label image)
-        supervoxel_vol {image volume} -- Labeled image defining superregions.
-    
-    Returns:
-        (volume, volume, volume) -- tuple of raw prediction, prediction mapped to labels and confidence map
-    """
-
-    logger.debug(f"Feature stack: {features_stack.shape}")
-    
-    try:
-        supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32)
-        supervoxel_features = rmeans(features_stack.astype(np.float32), supervoxel_vol)
-        supervoxel_rag = create_rag(np.array(supervoxel_vol).astype(np.uint32), connectivity=6)
-
-        Yr = rlabels(annotation_volume.astype(np.uint16), supervoxel_vol.astype(np.uint32))  # unsigned char and unsigned int required
-
-    except Exception as err:
-        
-        logger.info(f"Supervoxel rag and feature generation exception {err}")
-
-    logger.debug(f"Supervoxels: {supervoxel_vol.shape}")
-
-    i_train = Yr > -1
-    X_train = supervoxel_features[i_train]
-    Y_train = Yr[i_train]
-
-    clf = train(X_train, Y_train, n_estimators=predict_params['n_estimators']) #, project=predict_params['proj'])
-
-    logger.debug(f"clf: {clf}")
-
-    try:
-        P = predict(supervoxel_features, clf, label=True, probs=True) # proj=predict_params['proj'])
-        
-        probs = P['probs']
-        prob_map = invrmap(P['class'], supervoxel_vol)
-        num_supervox = supervoxel_vol.max() + 1
-        class_labels = P['class'] #- 1
-        
-        pred_map = np.empty(num_supervox, dtype=P['class'].dtype)
-        conf_map = np.empty(num_supervox, dtype=P['probs'].dtype)
-
-        conf_map = invrmap(P['probs'], supervoxel_vol)
-
-        full_svmask = np.zeros(num_supervox, np.bool)
-        full_svmask[supervoxel_vol.ravel()] = True 
-
-    except Exception as err:
-        logger.error(f"Prediction exception: {err}")
-
-    return prob_map, probs, pred_map, conf_map, P
 

@@ -62,10 +62,6 @@ class RegionsPlugin(Plugin):
         params = dict(order=1, workspace=True)
         result = Launcher.g.run('regions', 'create', **params)
         
-        #result = {}
-        #result['id'] = 0
-        #result['name'] = 'bob'
-
         if result:
             svid = result['id']
             svname = result['name']
