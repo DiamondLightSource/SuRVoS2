@@ -20,7 +20,7 @@ import numba
 import math
 from scipy import stats
 
-import napari
+#import napari
 
 logger = get_logger()
 
@@ -239,10 +239,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pluginContainer.view_requested.connect(self.show_view)
         self.plugin2views = dict()
 
-        with napari.gui_qt():
-            viewer = napari.Viewer()
-            viewer.add_image(np.random.random((100,100,100)), name="marlene")
-            hbox.addWidget(viewer)
+        #with napari.gui_qt():
+        #    viewer = napari.Viewer()
+        #    viewer.add_image(np.random.random((100,100,100)), name="marlene")
+        #    hbox.addWidget(viewer)
             
 
     def _load_plugins(self, plugins=None):
