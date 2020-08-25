@@ -1,14 +1,13 @@
 {
-    "datasets_dir": "D:/datasets/survos_brain/ws3",
-    "PATCH_DIM": 32,
+   "PATCH_DIM": 32,
     "class_names": [
-        "soul", 
-        "nonsoul",
-        "sense_of_humour"
+        "brain",
+        "eye",
+        "background"
     ],
     "flipxy" : false,
     "project_dir" : "projects/brain/",
-    "workspace" : "test_s1",
+    "workspace" : "test_s2",
     "dataset_name" : "data",
     "entities_relpath": "entities_brain.csv",
     "patch_size": [

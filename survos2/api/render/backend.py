@@ -5,7 +5,7 @@ from loguru import logger
 
 class Layer(object):
 
-    def __init__(self, renderer, data, cmap='viridis', clim=(0, 1),
+    def __init__(self, renderer, data, cmap='gray', clim=(0, 1),
                  interp='nearest', alpha=100, order=1):
         self._renderer = renderer
         self._data = data

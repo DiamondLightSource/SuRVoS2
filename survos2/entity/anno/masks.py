@@ -3,11 +3,13 @@ Mask generation functions
 
 """
 
-#from __future__ import division
-from numba import cuda, float32
 import numpy as np
 import math
-
+from numpy.linalg import LinAlgError
+from numpy.lib.stride_tricks import as_strided as ast
+from numpy.random import permutation
+from numpy import linalg
+from numba import cuda, float32
 from numba import jit
 import random
 
@@ -46,20 +48,16 @@ from skimage.measure import label, regionprops
 from skimage.morphology import closing, square
 from skimage.color import label2rgb
 
-from numpy.lib.stride_tricks import as_strided as ast
-from numpy.random import permutation
-from numpy import linalg
 
 from survos2.frontend.nb_utils import summary_stats, show_images
 
-from numpy.linalg import LinAlgError
 
 from survos2.entity.anno.geom import centroid_3d, rescale_3d
 
 from survos2.entity.anno.point_cloud import chip_cluster
 from skimage.segmentation import mark_boundaries
 
-
+from loguru import logger
 
 def create_ellipsoidal_mask(d : int, w:int, h:int,  a : float=1.0, b :float=1.0, c: float=1.0, 
                     center : Tuple[float, float, float]=(0.0,0.0,0.0), radius : int =8, 
@@ -89,12 +87,9 @@ def create_ellipsoidal_mask(d : int, w:int, h:int,  a : float=1.0, b :float=1.0,
         radius = np.min(center[0], center[1], center[2], w-center[0], h-center[1], d-center[2])
 
     if debug_verbose:
-        print("Making sphere of radius: {}".format(radius))
+        logger.debug(f"Making ellipse of radius: {radius} at center {center}")
     Z, X, Y = np.ogrid[:int(d), :int(w), :int(h)]
-    
-    if debug_verbose:
-        print("At center: {}".format(center))
-    
+        
     dist_from_center = np.sqrt( (((X - center[1])**2)/a + 
                                  ((Y - center[2])**2)/b + 
                                  ((Z - center[0])**2)/c))
@@ -102,7 +97,7 @@ def create_ellipsoidal_mask(d : int, w:int, h:int,  a : float=1.0, b :float=1.0,
     mask = dist_from_center <= np.float(radius)
     
     if debug_verbose:
-        print("Area of mask: {}".format(np.sum(mask)))
+        logger.debug(f"Area of mask: {np.sum(mask)}")
     
     mask = (mask * 1.0).astype(np.float32)
     
@@ -118,9 +113,8 @@ def create_rect_mask(mask_dim : Tuple[int,int,int]=(100,100,100),
     if center is None: # use the middle of the image
         center = [np.int(w/2.0), np.int(h/2.0), np.int(d/2.0)]
        
-    
-    
-    print("At center: {}".format(center))
+        
+    logger.debug("At center: {}".format(center))
     
     mask = np.zeros((d,w,h))
 
@@ -128,7 +122,7 @@ def create_rect_mask(mask_dim : Tuple[int,int,int]=(100,100,100),
         center[1]-box_dim[1]//2:center[1]+box_dim[1]//2,
         cener[2]-box_dim[2]//2:center[2]+box_dim[2]//2] == 1
 
-    print("Area of mask: {}".format(np.sum(mask)))
+    logger.debug("Area of mask: {}".format(np.sum(mask)))
     
     mask = (mask * 1.0).astype(np.float32)
     
@@ -138,6 +132,7 @@ def create_rect_mask(mask_dim : Tuple[int,int,int]=(100,100,100),
 
 
 def paint_ellipsoids():
+    
     cluster_centroids_df = pd.DataFrame(cluster_centroids)
     cluster_centroids_offset = cluster_centroids.copy() * 1000
     cluster_centroids_offset = cluster_centroids_offset.astype(np.uint32)
@@ -236,8 +231,6 @@ def calc_sphere(image_shape: Tuple[int, int, int] = (100,100,100),
     return res
 
 
-
-
 def generate_sphere_masks_fast(input_array : np.ndarray, classwise_pts : np.ndarray, radius : int =10):
     """Copies a small sphere mask to locations centered on classwise_pts
 
@@ -275,14 +268,14 @@ def generate_sphere_masks(I_out, classwise_pts, radius=10):
     count = 0
     
     classwise_pts = classwise_pts.astype(np.uint32)
-    print(f"Rendering {len(classwise_pts)} masks")
+    logger.debugf"Rendering {len(classwise_pts)} masks")
     
     for i in range(len(classwise_pts)):
     
         ss, yy,xx = classwise_pts[i,0], classwise_pts[i,1], classwise_pts[i,2]
         ss= int(ss)
         init_ls = calc_sphere(I_out.shape, (ss, xx,yy), radius=radius)
-        print(init_ls.shape)
+        logger.debuginit_ls.shape)
         total_mask += init_ls
 
     return total_mask

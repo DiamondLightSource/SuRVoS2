@@ -102,13 +102,7 @@ class FeaturesPlugin(Plugin):
         result = Launcher.g.run('features', 'existing', **params)
 
         logger.debug(f"Feature result {result}")
-        #if not result:
-        #    params['id'] = 0
-        #    params['name'] = 'fv0'
-         #   params['kind'] = 'feature'
-          #  result = {}
-           # result[0] = params
-
+        
         if result:
             # Remove features that no longer exist in the server
             for feature in list(self.existing_features.keys()):

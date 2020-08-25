@@ -9,20 +9,23 @@ from .components import *
 from .modal import ModalManager
 from .control import Launcher
 
+
+from multiprocessing import Process
+from vispy.color import Colormap
+
 from survos2.utils import get_logger
 from survos2.config import Config
 import time
-from multiprocessing import Process
-from vispy.color import Colormap
-import imageio
+
+
 import numpy as np
 import numba
 import math
 from scipy import stats
 
+import napari
 
 logger = get_logger()
-
 
 class IconContainer(QCSWidget):
 
@@ -202,8 +205,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._loaded_views = {}
         self._loaded_plugins = {}
         self._setup_layout()
-
         self.setMinimumSize(1024, 768)
+        
         if maximize:
             self.showMaximized()
         else:
@@ -238,6 +241,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pluginContainer.view_requested.connect(self.show_view)
         self.plugin2views = dict()
 
+          
     def _load_plugins(self, plugins=None):
         all_plugins = list_plugins() if plugins is None else plugins
         for pname in all_plugins:

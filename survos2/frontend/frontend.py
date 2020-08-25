@@ -2,85 +2,59 @@ import os
 import sys
 import numpy as np
 import napari
-import pandas as pd
 import time
 from typing import List
-from dataclasses import dataclass
-import seaborn as sns
-from scipy import ndimage as ndi
 
+import seaborn as sns
 import skimage
-from skimage import img_as_float
-from skimage import data
-from skimage.morphology import binary_dilation, binary_erosion
 
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 
 import pyqtgraph
 from pyqtgraph.widgets.ProgressDialog import ProgressDialog
-#from pyqtgraph.Qt import QtCore, QtGui
-from pyqtgraph.parametertree import Parameter, ParameterTree
-import pyqtgraph.parametertree.parameterTypes as pTypes
 
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import QSize, Signal
 
-from vispy import scene
-from vispy.color import Colormap
-#import qdarkstyle
+
 from loguru import logger
 
 import survos2
-from survos2.frontend.gui_napari import NapariWidget
-from survos2.frontend.datawidgets import (TableWidget, TreeControl, 
-                                          Cluster2dWidget, #ImageGridWidget,
-                                            ParameterTreeWidget, DataTreeControl, SmallVolWidget,
-                                            generate_test_data, parameter_tree_change,) 
-
-from survos2.frontend.model import SegSubject
-from survos2.frontend.controlpanel import ButtonPanelWidget, PluginPanelWidget
-#from survos2.frontend.cluster import ClusterWidget
-from survos2.frontend.pipeline import sv_gui, features_gui, roi_gui, prediction_gui, pipeline_gui, workspace_gui
-
 from survos2.model import Workspace, Dataset
 import survos2.api.workspace as ws
-
-#import survos2.server.test as stest
-#from survos2.server.test import SegData
-
-from survos2.server.config import appState
-from survos2.server.model import Features
-from survos2.server.supervoxels import generate_supervoxels
-from survos2.server.filtering import generate_features, prepare_prediction_features
-from survos2.server.config import appState
-from survos2.server.pipeline import PipelinePayload
-from survos2.server.pipeline import make_features
-from survos2.server.pipeline import prediction_pipeline, mask_pipeline, saliency_pipeline
-from survos2.helpers import AttrDict
-#from survos2.utils import logger
-from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-from survos2.improc.regions.slic import postprocess
-from survos2.entity.entities import make_entity_df
-from survos2.entity.anno import geom
-from survos2.entity.sampler import sample_roi, sample_bvol, crop_vol_in_bbox,  crop_vol_and_pts_centered
-
-from survos2.frontend.control.model import DataModel
+from survos2.frontend.gui_napari import NapariWidget
+from survos2.frontend.datawidgets import TableWidget, SmallVolWidget 
+from survos2.frontend.controlpanel import ButtonPanelWidget, PluginPanelWidget
+from survos2.frontend.control import DataModel
 from survos2.frontend.control.launcher import Launcher
 from survos2.frontend.modal import ModalManager
-from survos2.frontend.model import ClientData
-from survos2.server.pipeline import setup_cnn_model
-from survos2.frontend.control import DataModel
+from survos2.frontend.classic_views import ViewContainer
+from survos2.frontend.pipeline import sv_gui, features_gui, roi_gui, prediction_gui, pipeline_gui, workspace_gui
+from survos2.entity.entities import make_entity_df
+from survos2.entity.anno import geom
+from survos2.entity.sampler import sample_roi, sample_bvol, crop_vol_in_bbox, crop_vol_and_pts_centered
+from survos2.helpers import AttrDict
+from .views import list_views, get_view
+
+#from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
+#from survos2.improc.regions.slic import postprocess
+
+
+#from survos2.server.supervoxels import generate_supervoxels
+#from survos2.server.features import generate_features, prepare_prediction_features
+
+#from survos2.server.cnn_models import setup_cnn_model
+#from survos2.server.pipeline import Patch
+
+
 from survos2.improc.utils import DatasetManager
 
+
 from survos2.config import Config 
-
+from survos2.server.config import appState
 scfg = appState.scfg
-#sns.set_style('darkgrid')
 
-sns.set_palette('muted')
-sns.set_context("notebook", font_scale=1.5,
-                rc={"lines.linewidth": 2.5})
 
 fmt = "{time} - {name} - {level} - {message}"
 logger.remove() # remove default logger
@@ -89,10 +63,15 @@ logger.add(sys.stderr, level="DEBUG")
 #logger.add("logs/main.log", level="DEBUG", format=fmt) #compression='zip')
 
 
+def update_ui():
+    logger.info('Updating UI')
+    QtCore.QCoreApplication.processEvents()
+    time.sleep(0.1)
+
 
 def setup_entity_table(viewer, cData):
-    # Setup Entity Table    
     tabledata = []
+    
     for i in range(len(cData.entities)):
         entry = (i, 
             cData.entities.iloc[i]['z'],
@@ -121,22 +100,21 @@ def setup_entity_table(viewer, cData):
     palette = np.array(sns.color_palette("hls", num_classes) )# num_classes))
     norm = Normalize(vmin=0, vmax=num_classes)
 
-    #class_codes = [ entities['class_zode'].iloc[i] for i in range(sel_start, sel_end)]
     face_color_list = [palette[class_code] for class_code in cData.entities["class_code"]]
     
     entity_layer = viewer.add_points(centers, size=[10] * len(centers), opacity=0.5, 
-        face_color=face_color_list, n_dimensional=True)
+    face_color=face_color_list, n_dimensional=True)
 
     cData.tabledata = tabledata
+    
     return entity_layer, tabledata
 
 
         
 def frontend(cData):
-    logger.info(f"Connected to launcher {Launcher.g.connected}")
-    
-    default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
 
+    logger.info(f"Connected to launcher {Launcher.g.connected}")    
+    default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
     Launcher.g.set_remote(default_uri)
     
     with napari.gui_qt():
@@ -144,37 +122,30 @@ def frontend(cData):
         viewer.appState = appState
         viewer.theme = 'light'
 
-        try:
-            if len(cData.opacities) != len(cData.vol_stack):
-                cData.opacities = [1] * len(cData.layer_names)
+        #try:
+        #    if len(cData.opacities) != len(cData.vol_stack):
+         #       cData.opacities = [1] * len(cData.layer_names)
 
-            if len(cData.layer_names) != len(cData.vol_stack):
-                cData.layer_names = [str(t) for t in list(range(len(cData.vol_stack)))]
+            #if len(cData.layer_names) != len(cData.vol_stack):
+            #    cData.layer_names = [str(t) for t in list(range(len(cData.vol_stack)))]
 
-            #for vl, layer_name, opacity in zip(cData.vol_stack, cData.layer_names, cData.opacities):
-            #    logger.debug(f"Adding layer: {layer_name} of shape {vl.shape}")
-
-#                image_layer = viewer.add_image(vl, name=layer_name, opacity=opacity, colormap='inferno')
- #               image_layer.visible = True
-
-        except Exception as err:
-            logger.error(f"Exception at Napari layer setup {err}")
+        #except Exception as err:
+        #    logger.error(f"Exception at Napari layer setup {err}")
         
         #
         # Load data into viewer
         #
-        viewer.add_image(cData.vol_stack[0], name='Original Image')
-        viewer.add_labels(cData.vol_anno, name='Active Annotation')
-        viewer.add_labels(cData.vol_supervoxels, name='Superregions')
+        viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])
+        #viewer.add_labels(cData.vol_anno, name='Active Annotation')
+        #viewer.add_labels(cData.vol_supervoxels, name='Superregions')
         
-        for ii,f in enumerate(cData.features.filtered_layers):
-            viewer.add_image(f, name=str(ii))
+        #for ii,f in enumerate(cData.features.filtered_layers):
+        #    viewer.add_image(f, name=str(ii))
 
-        viewer.layers['Active Annotation'].opacity = 0.9
+        #viewer.layers['Active Annotation'].opacity = 0.9
    
-        #labels_from_pts = layer1.to_labels([viewer.img.shape[1], viewer.img.shape[2]])
-        labels_from_pts = viewer.add_labels(cData.vol_anno, name='labels')
-        labels_from_pts.visible = False
+        #labels_from_pts = viewer.add_labels(cData.vol_anno, name='labels')
+        #labels_from_pts.visible = False
 
         #
         # Entities
@@ -182,15 +153,15 @@ def frontend(cData):
         logger.debug("Creating entities.")    
         entity_layer, tabledata = setup_entity_table(viewer, cData)
 
-        pipeline_gui_widget = pipeline_gui.Gui()
-        viewer.window.add_dock_widget(pipeline_gui_widget, area='left')
-        viewer.layers.events.changed.connect(lambda x: pipeline_gui_widget.refresh_choices())
-        pipeline_gui_widget.refresh_choices()
+        #pipeline_gui_widget = pipeline_gui.Gui()
+        #viewer.window.add_dock_widget(pipeline_gui_widget, area='left')
+        #viewer.layers.events.changed.connect(lambda x: pipeline_gui_widget.refresh_choices())
+        #pipeline_gui_widget.refresh_choices()
 
         viewer.dw = AttrDict()
         viewer.dw.bpw = ButtonPanelWidget()
         viewer.dw.ppw = PluginPanelWidget()
-        #viewer.dw.datatree_control = DataTreeControl(appState.scfg)
+
         viewer.dw.table_control = TableWidget()        
         viewer.dw.table_control.set_data(tabledata)
         
@@ -200,94 +171,95 @@ def frontend(cData):
         viewer.dw.smallvol_control = SmallVolWidget(vol1)
         appState.scfg.object_table = viewer.dw.table_control
         
-        #cluster_control = ClusterWidget(scfg)
-        #cluster2d_control = Cluster2dWidget(pts, colors, cData.classnames)
+        def setup_pipeline():
+            pipeline_ops = ['make_masks', 'make_features', 'make_sr', 'make_seg_sr', 'make_seg_cnn']
+
+        def process_pipeline(pipeline):
+            minVal, maxVal = 0, len(pipeline.pipeline_ops)    
+            with ProgressDialog(f"Processing pipeline {appState.scfg['pipeline_option']}", minVal, maxVal) as dlg:                    
+            
+                if dlg.wasCanceled():
+                    raise Exception("Processing canceled")
+
+                for step_idx, step in enumerate(pipeline):
+                    logger.debug(step)
+                    dlg.setValue(step_idx)  
+
+        def get_patch():
+            entity_pts = np.array(make_entity_df(np.array(cData.entities)))
+            z_st, z_end, x_st, x_end, y_st, y_end = appState.scfg['roi_crop']
+            crop_coord = [z_st, x_st, y_st]
+            precropped_vol_size = z_end-z_st,x_end-x_st,y_end-y_st
+
+            logger.info("Applying pipeline to cropped vol at loc {crop_coord} and size {precropped_vol_size}")
+            
+            cropped_vol, precropped_pts = crop_vol_and_pts_centered(cData.vol_stack[0],entity_pts,
+                    location=crop_coord,
+                    patch_size=precropped_vol_size,
+                    debug_verbose=True,
+                    offset=True)
+
+            patch = Patch(
+                        {'in_array': cropped_vol},
+                        precropped_pts)
+                
+            return patch
+
 
         def processEvents(x):
             logger.info(f"Received event {x}")
-            #
-            # todo: move into api and call via launcher
-            #
+            
+
             # crop the vol, apply the pipeline, display the result in the roi viewer and add
             # an image that is blank except for the roi region back to the viewer
             # when the pipeline is ready to be applied to the whole image, set the 
             # roi to the size of the image and reapply
+            if x['data']=='pipeline':
+                logger.info(f"Pipeline: {appState.scfg['pipeline_option']}")
+        
+                pipeline = Pipeline(scfg.pipeline_ops)
+                pipeline.init_payload(p)
+                process_pipeline(pipeline)
+                result = pipeline.get_result()
 
-            if x['data']=='pipeline':                 
-                minVal, maxVal = 0, 10
-                with ProgressDialog("Processing..", minVal, maxVal) as dlg:                    
-                    dlg.setValue(1)         
-                
-                    if dlg.wasCanceled():
-                        raise Exception("Processing canceled")
-            
-                    entity_pts = np.array(make_entity_df(np.array(cData.entities))) #np.array(entities_df)
-                    crop_coords = [(0,0,0), (16,450,450),(32,700,700),(32,850,550),(32,500,500),(32,1450,1450),]
-                    z_st, z_end, x_st, x_end, y_st, y_end = appState.scfg['roi_crop']
+                viewer.add_labels(result.layers['total_mask'], name='Masks')
+                viewer.add_labels(result.superregions.supervoxel_vol, name='SR')
 
-                    crop_coord = crop_coords[0]
-                    crop_coord = [z_st, x_st, y_st]
-                    #st_z, st_x, st_y = crop_coord
-                    #precropped_vol_size = 128, 1450,1450
-                    precropped_vol_size=z_end-z_st,x_end-x_st,y_end-y_st
-                    #overall_offset=(st_z,st_x,st_y)
-                    logger.info("Applying pipeline to cropped vol at loc {crop_coord} and size {precropped_vol_size}")
-                    
-                    cropped_vol, precropped_pts = crop_vol_and_pts_centered(cData.vol_stack[0],entity_pts,
-                            location=crop_coord,
-                            patch_size=precropped_vol_size,
-                            debug_verbose=True,
-                            offset=True)
-
-                    dlg.setValue(3)         
-
+            if x['data']=='oldpipeline':                 
                     if appState.scfg['pipeline_option']=='saliency_pipeline':
                         logger.info("Saliency pipeline")
                         models = {}
                         models['saliency_model'] = setup_cnn_model()
 
-                        payload = PipelinePayload(cropped_vol,
-                                {'in_array': cropped_vol},
+                        patch = Patch({'in_array': cropped_vol},
                                 precropped_pts,
-                                None,
-                                None,
-                                None,
-                                models,
-                                appState.scfg)
+                                None)
 
-                        payload = saliency_pipeline(payload)
                         viewer.add_image(payload.layers['saliency_bb'], name='BB', colormap='cyan')
                                                 
                     elif appState.scfg['pipeline_option']=='prediction_pipeline':
-                        logger.info("Prediction pipeline")
-                        payload = PipelinePayload(cropped_vol,
+                        logger.info(f"Pipeline: {appState.scfg['pipeline_option']}")
+                        patch = Patch(
                                 {'in_array': cropped_vol},
-                                precropped_pts,
-                                None,
-                                None,
-                                None,
-                                None,
-                                appState.scfg)
-                        payload = prediction_pipeline(payload)
-                        viewer.add_labels(payload.layers['total_mask'], name='Masks')
-                        viewer.add_labels(payload.superregions.supervoxel_vol, name='SR')
+                                precropped_pts)
+                        
+                        pipeline_ops = ['make_masks', 'make_features', 'make_sr', 'make_seg_sr', 'make_seg_cnn']
+                        pipeline = Pipeline(scfg.pipeline.pipeline_ops)
+                        pipeline.init_payload(p)
+                        process_pipeline(pipeline)
+                        result = pipeline.get_result()
 
+                        viewer.add_labels(result.layers['total_mask'], name='Masks')
+                        viewer.add_labels(result.superregions.supervoxel_vol, name='SR')
 
                     elif appState.scfg['pipeline_option']=='mask_pipeline':
                         logger.info("Mask pipeline")
-                        payload = PipelinePayload(cropped_vol,
-                                {'in_array': cropped_vol},
-                                precropped_pts,
-                                None,
-                                None,
-                                None,
-                                None,
-                                appState.scfg)
-                        payload = mask_pipeline(payload)
-                        viewer.add_labels(payload.layers['core_mask'], name='Masks')
-
-                    dlg.setValue(9)         
-   
+                        payload = Patch({'in_array': cropped_vol}, 
+                                        precropped_pts)
+                        pipeline_ops = ['make_masks',]
+                        result = process_pipeline(pipeline)
+                        viewer.add_labels(result.layers['core_mask'], name='Masks')
+                    
                     result = payload.layers['result']
                     logger.info(f"Produced pipeline result: {result.shape}")                
                     viewer.dw.smallvol_control.set_vol(result)
@@ -300,7 +272,17 @@ def frontend(cData):
                     viewer.add_image(result, name='Pipeline Result')
                     
                     dlg.setValue(10)         
+
+            elif x['data'] == 'view_annotations':
+                logger.debug(f"view_annotation {x['level_id']}")
+
+                src = DataModel.g.dataset_uri(x['level_id'], group='annotations')
+                with DatasetManager(src, out=None, dtype='uint32', fillvalue=0) as DM:
+                    src_dataset = DM.sources[0]
+                    src_arr = src_dataset[:]
+                    viewer.add_labels(src_arr, name=x['level_id'])
                     
+
             elif x['data'] == 'view_feature':
                 logger.debug(f"view_feature {x['feature_id']}")
 
@@ -322,7 +304,6 @@ def frontend(cData):
                     src_arr = src_dataset[:]
                     viewer.add_image(src_arr, name=x['region_id'])
                     
-
             elif x['data']=='flip_coords':
                 logger.debug(f"flip coords {x['axis']}")
                 layers_selected = [viewer.layers[i].selected for i in range(len(viewer.layers))]
@@ -342,7 +323,6 @@ def frontend(cData):
                 selected_layer_idx = int(np.where(layers_selected)[0][0])
                 selected_layer = viewer.layers[selected_layer_idx]
                 if viewer.layers[selected_layer_idx]._type_string == 'points':
-                
                     pts = viewer.layers[selected_layer_idx].data
                                     
                     entities_pts = np.zeros((pts.shape[0],4))
@@ -360,8 +340,6 @@ def frontend(cData):
                     pts = np.array(refined_entities)
                     logger.info(f"Clustered with result of {refined_entities.shape} {refined_entities}")
                     
-                    #pts = pts[:,[0,2,1]]
-                    #entity_layer = viewer.add_points(pts, size=[10] * len(pts),  n_dimensional=True)
                     cData.entities = make_entity_df(pts, flipxy=False)
                     entity_layer, tabledata = setup_entity_table(viewer, cData)
                     
@@ -377,10 +355,7 @@ def frontend(cData):
         #
         # Add widgets to viewer
         #
-        bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')                
-        #ppw_control_widget = viewer.window.add_dock_widget(viewer.dw.ppw, area='right')                
-        
-        #viewer.dw.bpw.events.subscribe(lambda x: processEvents(x)  )
+        #bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')                
         viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x)  )  
         viewer.dw.ppw.clientEvent.connect(lambda x: processEvents(x)  )  
         
@@ -389,41 +364,20 @@ def frontend(cData):
         
         #viewer.dw.table_control.w.events.subscribe(lambda x: processEvents(x)  ) 
         viewer.dw.table_control.clientEvent.connect(lambda x: processEvents(x)  ) 
-        #table_control_widget = viewer.window.add_dock_widget(viewer.dw.table_control.w, area='bottom')        
-        #datatree_control_widget = viewer.window.add_dock_widget(viewer.dw.datatree_control.w, area='right')
-        #smallvol_control_widget = viewer.window.add_dock_widget(viewer.dw.smallvol_control.imv, area='left')
 
-        #cluster_control_widget = viewer.window.add_dock_widget(cluster_control.w, area='right')                
-        #cluster2d_control_widget = viewer.window.add_dock_widget(cluster2d_control.w, area='right')
-        #tree_control_widget = viewer.window.add_dock_widget(tree_control.w, area='left')
-        #parametertree_control_widget = viewer.window.add_dock_widget(viewer.dw.parametertree_control.w, area='right')
-                
-        #masks = layer1.to_masks([512, 512])
-        #masks_layer = viewer.add_image(masks.astype(float), name='masks')
-        #masks_layer.opacity = 0.7
-        #masks_layer.colormap = Colormap(
-        #    [[0.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 1.0]]
-        #)
-
-   
         #
         # magicgui
         #
-        roi_gui_widget = roi_gui.Gui()
-        viewer.window.add_dock_widget(roi_gui_widget, area='top')
+        #roi_gui_widget = roi_gui.Gui()
+        #viewer.window.add_dock_widget(roi_gui_widget, area='top')
         # sync dropdowns with layer model
-        viewer.layers.events.changed.connect(lambda x: roi_gui_widget.refresh_choices())
-        roi_gui_widget.refresh_choices()
- 
-        #feats_gui_widget = features_gui.Gui()
-        #viewer.window.add_dock_widget(feats_gui_widget, area='left')
-        #viewer.layers.events.changed.connect(lambda x: feats_gui_widget.refresh_choices())
-        #feats_gui_widget.refresh_choices()
- 
-        workspace_gui_widget = workspace_gui.Gui()
-        viewer.window.add_dock_widget(workspace_gui_widget, area='left')
-        viewer.layers.events.changed.connect(lambda x: workspace_gui_widget.refresh_choices())
-        workspace_gui_widget.refresh_choices()
+        #viewer.layers.events.changed.connect(lambda x: roi_gui_widget.refresh_choices())
+        #roi_gui_widget.refresh_choices()
+
+        #workspace_gui_widget = workspace_gui.Gui()
+        #viewer.window.add_dock_widget(workspace_gui_widget, area='left')
+        #viewer.layers.events.changed.connect(lambda x: workspace_gui_widget.refresh_choices())
+        #workspace_gui_widget.refresh_choices()
  
         #sv_gui_widget = sv_gui.Gui()
         #viewer.window.add_dock_widget(sv_gui_widget, area='right')
@@ -431,37 +385,41 @@ def frontend(cData):
         #sv_gui_widget.refresh_choices()
  
         prediction_gui_widget = prediction_gui.Gui()
-        viewer.window.add_dock_widget(prediction_gui_widget, area='right')
+        #viewer.window.add_dock_widget(prediction_gui_widget, area='right')
         viewer.layers.events.changed.connect(lambda x: prediction_gui_widget.refresh_choices())
         prediction_gui_widget.refresh_choices()
-        
+
+
+        #
+        # Tabs
+        #
+
         from qtpy.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QPushButton, QWidget
         tabwidget = QTabWidget()
         tab1 = QWidget()
         tab2 = QWidget()
         tab3 = QWidget()
         tab4 = QWidget()
-        
-        tabwidget.addTab(tab1, "SV")
-        #tabwidget.addTab(tab2, "Commit")
+        tab5 = QWidget()
+
+        tabwidget.addTab(tab1, "Workspace")
+        tabwidget.addTab(tab2, "Predict")
         tabwidget.addTab(tab3, "Entities")
-        tabwidget.addTab(tab4, "Entity Viewer")
-       
+        #tabwidget.addTab(tab4, "Close up")
+
         tab1.layout = QVBoxLayout()
         tab1.setLayout(tab1.layout)
         tab1.layout.addWidget(viewer.dw.ppw)
         
-        #tab2.layout = QVBoxLayout()
-        #tab2.setLayout(tab2.layout)
-        #tab2.layout.addWidget(workspace_gui_widget)
+        tab2.layout = QVBoxLayout()
+        tab2.setLayout(tab2.layout)
+        tab2.layout.addWidget(prediction_gui_widget)
 
         tab3.layout = QVBoxLayout()
         tab3.setLayout(tab3.layout)
         tab3.layout.addWidget(viewer.dw.table_control.w)
+        tab3.layout.addWidget(viewer.dw.smallvol_control.imv)
 
-        tab4.layout = QVBoxLayout()
-        tab4.setLayout(tab4.layout)
-        tab4.layout.addWidget(viewer.dw.smallvol_control.imv)
 
         viewer.window.add_dock_widget(tabwidget, area='right')
             

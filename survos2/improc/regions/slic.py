@@ -84,7 +84,7 @@ def slic3d(data, nsp=None, sp_shape=None, compactness=30, sigma=None,
 
     if postprocess:
         min_size = int(np.prod(_sp_shape) / 10.)
-        logger.debug(f"Postprocessing Superregions with min_size {min_size}")
+        logger.debug(f"Postprocessing SRData with min_size {min_size}")
         
         r = merge_small(asnparray(data), r, min_size)
         binlab = np.bincount(r.ravel())
@@ -101,7 +101,7 @@ def postprocess(data,r, sp_shape, min_size):
         else:
             raise ValueError('Incorrect `sp_shape`: {}'.format(sp_shape))
 
-    logger.debug(f"Postprocessing Superregions with min_size {min_size}")
+    logger.debug(f"Postprocessing SRData with min_size {min_size}")
     min_size = int(np.prod(_sp_shape) / 10.)
     r = merge_small(asnparray(data), r, min_size)
     binlab = np.bincount(r.ravel())

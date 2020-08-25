@@ -1,7 +1,4 @@
-
-
 import time
-import logging
 
 from math import ceil
 from itertools import product
@@ -15,7 +12,6 @@ from dask.array.core import slices_from_chunks
 from ..config import Config
 from ..utils import format_yaml, parse_params, get_logger
 
-
 CHUNK = Config['computing.chunks']
 CHUNK_SIZE = Config['computing.chunk_size']
 CHUNK_PAD = Config['computing.chunk_padding']
@@ -23,9 +19,6 @@ SCALE = Config['computing.scale']
 STRETCH = Config['computing.stretch']
 
 from loguru import logger
-
-
-#logger = get_logger()
 
 
 def asnparray(data, dtype=None, contiguous=True):
