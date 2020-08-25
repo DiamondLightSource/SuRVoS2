@@ -25,10 +25,14 @@ class _Config(type):
         },
         'model': {
 <<<<<<< HEAD
+<<<<<<< HEAD
             'chroot':  '/dls/science/groups/das/SuRVoS/s2/data/',   #,      # currently needs full path, can be 'tmp' which is placed in users dir
 =======
             'chroot':  'C:/work/diam/data', #'/dls/science/groups/das/SuRVoS/s2/data/',   #,      # currently needs full path, can be 'tmp' which is placed in users dir
 >>>>>>> 7249f04382f48b4a724995c2ab85b3621d5d174e
+=======
+            'chroot':  '/dls/science/groups/das/SuRVoS/s2/data/',   #,      # currently needs full path, can be 'tmp' which is placed in users dir
+>>>>>>> c841a9e5d18b04f50bf5471b9d01456f1ae7e6d0
             'dbtype': 'yaml'
         },
         'logging': {
