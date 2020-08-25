@@ -84,16 +84,16 @@ class Launcher(QtCore.QObject):
         return result
 
     def _run_command(self, plugin, command, uri=None, out=None, **kwargs):
-        if uri is None:
-            return run_command(plugin, command, uri=None, **kwargs)    
-        else:
+        #if uri is None:
+        #    return run_command(plugin, command, uri=None, **kwargs)    
+        #else:
             # remote client, send (plugin, command)
-            response = self.client.get('{}/{}'.format(plugin, command), **kwargs)        
-            result = parse_response(plugin, command, response, log=False)        
-            if out is not None:
-                out.put(result)
-            else:
-                return result
+        response = self.client.get('{}/{}'.format(plugin, command), **kwargs)        
+        result = parse_response(plugin, command, response, log=False)        
+        if out is not None:
+            out.put(result)
+        else:
+            return result
 
     def _run_background(self, plugin, command, **kwargs):
         queue = multiprocessing.Queue()
