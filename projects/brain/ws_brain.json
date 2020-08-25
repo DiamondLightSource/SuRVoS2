@@ -7,7 +7,7 @@
     ],
     "flipxy" : false,
     "project_dir" : "projects/brain/",
-    "workspace" : "test_s2",
+    "workspace" : "test_s1",
     "dataset_name" : "data",
     "entities_relpath": "entities_brain.csv",
     "patch_size": [
