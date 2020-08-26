@@ -53,12 +53,12 @@ def preprocess(img_volume):
 
     img_volume = img_volume - np.min(img_volume)
     img_volume = img_volume / np.max(img_volume)
+
     return img_volume
 
 def init_ws(project_file, ws_name):
     logger.info(f"Initialising workspace {ws_name} with image volume specified in project file {project_file}")
-    
-    
+        
     with open(project_file) as project_file:    
             wparams = json.load(project_file)
             wparams = AttrDict(wparams)
@@ -79,14 +79,14 @@ def init_ws(project_file, ws_name):
     with h5py.File(tmpvol_fullpath,  'w') as hf:
         hf.create_dataset("data",  data=img_volume)
     
-    survos.run_command("workspace", "create", uri=None, workspace=ws_name)    
+    survos.run_command("workspace", "create", workspace=ws_name)    
     logger.info(f"Created workspace {ws_name}")
     
-    survos.run_command('workspace', 'add_data', uri=None, workspace=ws_name,
+    survos.run_command('workspace', 'add_data', workspace=ws_name,
                 data_fname=tmpvol_fullpath,
                 dtype='float32')
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
-    survos.run_command("workspace", "add_dataset", uri=None, workspace=ws_name, 
+    survos.run_command("workspace", "add_dataset", workspace=ws_name, 
         dataset_name=dataset_name, dtype='float32')
 
 
@@ -96,7 +96,7 @@ def init_proj(wparams, precrop=False):
     logger.debug(f"Set current workspace to {DataModel.g.current_workspace}")
 
     entities_df = pd.read_csv(os.path.join(wparams.project_dir, wparams.entities_relpath))
-    entities_df.drop(entities_df.columns[entities_df.columns.str.contains('unnamed',case = False)],axis = 1, inplace = True)
+    entities_df.drop(entities_df.columns[entities_df.columns.str.contains('unnamed', case = False)],axis = 1, inplace = True)
     entities_df = make_entity_df(np.array(entities_df), flipxy=wparams.flipxy)
 
     logger.debug(f"Loaded entities {entities_df.shape}")
@@ -109,7 +109,6 @@ def init_proj(wparams, precrop=False):
         img_volume = src_dataset[:]
     
     logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")
-
 
     # view a ROI from a big volume by creating a temp dataset from a crop.
     if precrop:    
@@ -127,16 +126,16 @@ def init_proj(wparams, precrop=False):
 
         tmp_ws_name = DataModel.g.current_workspace + "_tmp" 
         
-        result = survos.run_command("workspace", "get", uri=None, workspace=tmp_ws_name)
+        result = survos.run_command("workspace", "get",  workspace=tmp_ws_name)
 
         if not type(result[0]) == dict:
             logger.debug("Creating temp workspace")
-            survos.run_command("workspace", "create", uri=None, workspace=tmp_ws_name) 
+            survos.run_command("workspace", "create", workspace=tmp_ws_name) 
         else:
             logger.debug("tmp exists, deleting and recreating")
-            survos.run_command("workspace", "delete", uri=None, workspace=tmp_ws_name) 
+            survos.run_command("workspace", "delete",  workspace=tmp_ws_name) 
             logger.debug("workspace deleted")
-            survos.run_command("workspace", "create", uri=None, workspace=tmp_ws_name) 
+            survos.run_command("workspace", "create", workspace=tmp_ws_name) 
             logger.debug("workspace recreated")
 
         import h5py
@@ -144,7 +143,7 @@ def init_proj(wparams, precrop=False):
         with h5py.File(tmpvol_fullpath,  'w') as hf:
             hf.create_dataset("data",  data=img_volume)
 
-        survos.run_command('workspace', 'add_data', uri=None, workspace=tmp_ws_name,
+        survos.run_command('workspace', 'add_data', workspace=tmp_ws_name,
                     data_fname=tmpvol_fullpath,
                     dtype='float32')
         DataModel.g.current_workspace = tmp_ws_name    
@@ -160,14 +159,12 @@ def init_proj(wparams, precrop=False):
     #vol_supervoxels = np.ones_like(filtered_layers[0]) #superregions.supervoxel_vol.astype(np.uint32)    
     
     layer_names = ['Main',]
-
     opacities = [1.0,]
 
     clientData = ClientData(filtered_layers, layer_names, opacities, 
                             entities_df, wparams['class_names'])
     
     clientData.wparams = wparams
-
 
     return clientData
 

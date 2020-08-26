@@ -14,18 +14,6 @@ class ClientData:
     classnames : np.ndarray
 
 
-# @dataclass
-# class ClientData:
-#     vol_stack : np.ndarray
-#     vol_anno : np.ndarray
-#     vol_supervoxels : np.ndarray
-#     features: SRFeatures
-#     layer_names : List[str]
-#     opacities : List[int]
-#     entities : pd.DataFrame
-#     classnames : np.ndarray
-
-
 class SegSubject:
     def __init__(self):
         self.listeners = []

@@ -1,7 +1,5 @@
 import hug
 import logging
-import os.path as op
-
 import numpy as np
 import dask.array as da
 
