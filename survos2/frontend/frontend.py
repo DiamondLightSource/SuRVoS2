@@ -4,20 +4,15 @@ import numpy as np
 import napari
 import time
 from typing import List
-
 import seaborn as sns
 import skimage
-
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 
 import pyqtgraph
 from pyqtgraph.widgets.ProgressDialog import ProgressDialog
-
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import QSize, Signal
-
-
 from loguru import logger
 
 import survos2
@@ -36,13 +31,10 @@ from survos2.entity.anno import geom
 from survos2.entity.sampler import sample_roi, sample_bvol, crop_vol_in_bbox, crop_vol_and_pts_centered
 from survos2.helpers import AttrDict
 from .views import list_views, get_view
-
-
 from survos2.improc.utils import DatasetManager
-
-
 from survos2.config import Config 
 from survos2.server.config import appState
+
 scfg = appState.scfg
 
 
@@ -106,42 +98,23 @@ def frontend(cData):
     logger.info(f"Connected to launcher {Launcher.g.connected}")    
     default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
     Launcher.g.set_remote(default_uri)
-    Launcher.g.reconnect()  
+    #Launcher.g.reconnect()  
     
-
     with napari.gui_qt():
         viewer = napari.Viewer()
         viewer.appState = appState
         viewer.theme = 'light'
 
-        #try:
-        #    if len(cData.opacities) != len(cData.vol_stack):
-         #       cData.opacities = [1] * len(cData.layer_names)
-
-            #if len(cData.layer_names) != len(cData.vol_stack):
-            #    cData.layer_names = [str(t) for t in list(range(len(cData.vol_stack)))]
-
-        #except Exception as err:
-        #    logger.error(f"Exception at Napari layer setup {err}")
-        
-        #
         # Load data into viewer
-        #
-        viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])
-        #viewer.add_labels(cData.vol_anno, name='Active Annotation')
-        #viewer.add_labels(cData.vol_supervoxels, name='Superregions')
-        
-        #for ii,f in enumerate(cData.features.filtered_layers):
-        #    viewer.add_image(f, name=str(ii))
 
-        #viewer.layers['Active Annotation'].opacity = 0.9
-   
+        viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])   
         #labels_from_pts = viewer.add_labels(cData.vol_anno, name='labels')
         #labels_from_pts.visible = False
 
         #
         # Entities
         #
+
         logger.debug("Creating entities.")    
         entity_layer, tabledata = setup_entity_table(viewer, cData)
 
@@ -151,11 +124,8 @@ def frontend(cData):
         #pipeline_gui_widget.refresh_choices()
 
         viewer.dw = AttrDict()
-        viewer.dw.bpw = ButtonPanelWidget()
-        
-        
+        viewer.dw.bpw = ButtonPanelWidget()        
         viewer.dw.ppw = PluginPanelWidget()
-
 
         viewer.dw.table_control = TableWidget()        
         viewer.dw.table_control.set_data(tabledata)
@@ -200,7 +170,6 @@ def frontend(cData):
                 
             return patch
 
-
         def processEvents(x):
             logger.info(f"Received event {x}")
             
@@ -209,6 +178,7 @@ def frontend(cData):
             # an image that is blank except for the roi region back to the viewer
             # when the pipeline is ready to be applied to the whole image, set the 
             # roi to the size of the image and reapply
+
             if x['data']=='pipeline':
                 logger.info(f"Pipeline: {appState.scfg['pipeline_option']}")
         
@@ -277,7 +247,6 @@ def frontend(cData):
                     src_arr = src_dataset[:]
                     viewer.add_labels(src_arr, name=x['level_id'])
                     
-
             elif x['data'] == 'view_feature':
                 logger.debug(f"view_feature {x['feature_id']}")
 
@@ -350,6 +319,7 @@ def frontend(cData):
         #
         # Add widgets to viewer
         #
+
         #bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')                
         viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x)  )  
         viewer.dw.ppw.clientEvent.connect(lambda x: processEvents(x)  )  
@@ -363,6 +333,7 @@ def frontend(cData):
         #
         # magicgui
         #
+
         #roi_gui_widget = roi_gui.Gui()
         #viewer.window.add_dock_widget(roi_gui_widget, area='top')
         # sync dropdowns with layer model
@@ -414,7 +385,6 @@ def frontend(cData):
         tab3.setLayout(tab3.layout)
         tab3.layout.addWidget(viewer.dw.table_control.w)
         tab3.layout.addWidget(viewer.dw.smallvol_control.imv)
-
 
         viewer.window.add_dock_widget(tabwidget, area='right')
             
