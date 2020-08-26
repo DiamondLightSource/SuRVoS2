@@ -42,12 +42,12 @@ from typing import Mapping, MutableMapping, Sequence, Iterable, List, Set
 #
 
 from survos2.improc import map_blocks
-from survos2.improc.features import gaussian, tvdenoising3d
-from survos2.improc.regions.rag import create_rag
-from survos2.improc.regions.slic import slic3d
-from survos2.improc.segmentation import _qpbo as qpbo
-from survos2.improc.segmentation.appearance import train, predict, refine, invrmap
-from survos2.improc.segmentation.mappings import rmeans
+#from survos2.improc.features import gaussian, tvdenoising3d
+#from survos2.improc.regions.rag import create_rag
+#from survos2.improc.regions.slic import slic3d
+#from survos2.improc.segmentation import _qpbo as qpbo
+#from survos2.improc.segmentation.appearance import train, predict, refine, invrmap
+#from survos2.improc.segmentation.mappings import rmeans
 from survos2.io import dataset_from_uri
 from survos2.model import Workspace, Dataset
 from survos2.utils import decode_numpy, encode_numpy

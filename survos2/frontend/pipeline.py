@@ -8,20 +8,20 @@ from loguru import logger
 
 from survos2.server.features import prepare_prediction_features, generate_features, feature_factory
 from survos2.server.config import appState
-from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-from survos2.server.filtering import simple_laplacian, spatial_gradient_3d, gaussian_blur
+#from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
+#from survos2.server.filtering import simple_laplacian, spatial_gradient_3d, gaussian_blur
 from survos2.server.model import SRData, SRFeatures
-from survos2.server.superseg import sr_prediction
-from survos2.server.supervoxels import superregion_factory,  generate_supervoxels
+#from survos2.server.superseg import sr_prediction
+#from survos2.server.supervoxels import superregion_factory,  generate_supervoxels
 
 
 
-class FilterOption(enum.Enum):
-    gaussian = [gaussian, appState.scfg.filter1['gauss_params'] ]
-    laplacian = [simple_laplacian, appState.scfg.filter4['laplacian_params'] ]
-    tv = [tvdenoising3d, appState.scfg.filter3['tvdenoising3d_params'] ]
-    gradient = [spatial_gradient_3d, appState.scfg.filter5['gradient_params']]
-    gblur = [gaussian_blur, appState.scfg.filter5['gradient_params']]
+#class FilterOption(enum.Enum):
+#    gaussian = [gaussian, appState.scfg.filter1['gauss_params'] ]
+#    laplacian = [simple_laplacian, appState.scfg.filter4['laplacian_params'] ]
+#    tv = [tvdenoising3d, appState.scfg.filter3['tvdenoising3d_params'] ]
+#    gradient = [spatial_gradient_3d, appState.scfg.filter5['gradient_params']]
+#    gblur = [gaussian_blur, appState.scfg.filter5['gradient_params']]
 
 class Operation(enum.Enum):
     mask_pipeline = 'mask_pipeline'
@@ -45,28 +45,6 @@ def workspace_gui(base_image: layers.Image, filter_option : str):
     logger.debug(f"Selected layer name: {base_image.name} and shape: {img_vol.shape} ") 
     logger.debug(f"filter_option: {filter_option}")
     
-@magicgui(call_button="Calc SRFeatures", layout='vertical')
-def features_gui(base_image: layers.Image, filter_option : FilterOption) -> layers.Image:    
-    cropped_vol = base_image.data   
-    feature_params = [ filter_option.value]
-               
-    logger.debug(f"Selected layer name: {base_image.name}") 
-    logger.debug(f"Feature params: {feature_params}")
-    
-    roi_crop = [0,cropped_vol.shape[0],0,cropped_vol.shape[1], 0,cropped_vol.shape[2]]
-    feats = generate_features(cropped_vol, feature_params, roi_crop, 1.0)
-    logger.info(f"Generated {len(feats.filtered_layers)} features.")
-    
-    return feats.filtered_layers[0]
-
-
-@magicgui(call_button="Calculate SR", layout='vertical')
-def sv_gui(base_image: layers.Image) -> layers.Labels:     
-    dataset_feats, filtered_stack = prepare_prediction_features([np.array(base_image.data),])
-    superregions = generate_supervoxels(dataset_feats,  filtered_stack, 
-                                        appState.scfg.feats_idx, appState.scfg.slic_params)
-
-    return superregions.supervoxel_vol
 
 @magicgui(call_button="Predict", layout='vertical')
 def prediction_gui(feature_1: layers.Image, feature_2: layers.Image, 
