@@ -25,7 +25,7 @@ from survos2.frontend.control import DataModel
 from survos2.frontend.control.launcher import Launcher
 from survos2.frontend.modal import ModalManager
 from survos2.frontend.classic_views import ViewContainer
-from survos2.frontend.pipeline import sv_gui, features_gui, roi_gui, prediction_gui, pipeline_gui, workspace_gui
+from survos2.frontend.pipeline import roi_gui, prediction_gui, pipeline_gui, workspace_gui
 from survos2.entity.entities import make_entity_df
 from survos2.entity.anno import geom
 from survos2.entity.sampler import sample_roi, sample_bvol, crop_vol_in_bbox, crop_vol_and_pts_centered
