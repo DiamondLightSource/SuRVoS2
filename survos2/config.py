@@ -10,7 +10,7 @@ class _Config(type):
     __data__ = { # Defaults
         'title': 'SuRVoS',
         'api': {
-            'host': '172.23.167.1',
+            'host': '172.23.5.231',
             'port': 8123,
             'plugins': [],
             'renderer': 'mpl'
