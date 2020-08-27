@@ -1,9 +1,8 @@
-
 from dataclasses import dataclass
 import numpy as np
-from survos2.server.model import SRFeatures
 from typing import List
 import pandas as pd
+from survos2.helpers import AttrDict
 
 @dataclass
 class ClientData:
@@ -12,17 +11,7 @@ class ClientData:
     opacities : List[int]
     entities : pd.DataFrame
     classnames : np.ndarray
+    scfg: AttrDict
 
 
-class SegSubject:
-    def __init__(self):
-        self.listeners = []
-
-    def __iadd__(self, listener):
-        self.listeners.append(listener)
-        return self
-
-    def notify(self, *args, **kwargs):
-        for listener in self.listeners:
-            listener(*args, **kwargs)
 

@@ -20,7 +20,7 @@ from tensorly import tensor, to_numpy
 from tensorly.decomposition import non_negative_parafac
 sys.stderr = sys.__stderr__
 
-from ..types import int3
+from ..improc_types import int3
 from ..utils import gpufeature
 from ..cuda import asgpuarray, to_tex3d, grid_kernel_config
 

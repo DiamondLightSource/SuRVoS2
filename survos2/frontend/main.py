@@ -35,7 +35,7 @@ from napari import layers
 from survos2.frontend.frontend import frontend
 from survos2.server.model import SRFeatures   #,  SegData
 from survos2.server.features import prepare_prediction_features
-from survos2.server.config import appState
+from survos2.frontend.model import ClientData
 
 from survos2.entity.entities import make_entity_df
 from survos2 import survos
@@ -161,8 +161,10 @@ def init_proj(wparams, precrop=False):
     layer_names = ['Main',]
     opacities = [1.0,]
 
+
+    from survos2.server.config import scfg
     clientData = ClientData(filtered_layers, layer_names, opacities, 
-                            entities_df, wparams['class_names'])
+                            entities_df, wparams['class_names'], scfg)
     
     clientData.wparams = wparams
 

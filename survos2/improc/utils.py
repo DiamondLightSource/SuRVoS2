@@ -502,13 +502,13 @@ class DatasetManager(object):
             self._out = out
 
     def __enter__(self):
-        logger.info(f"Entered DatasetManager context, sources: {len(self._sources)} Out: {self._out}")
+        #logger.info(f"Entered DatasetManager context, sources: {len(self._sources)} Out: {self._out}")
         if self._closed:
             raise RuntimeError('DatasetManager has already been closed.')
         return self
 
     def __exit__(self, *args):
-        logger.info("Leaving DatasetManager context")
+        #logger.info("Leaving DatasetManager context")
         for f in self._sources + [self._out]:
             if f is not None and hasattr(f, 'close'):
                 f.close()

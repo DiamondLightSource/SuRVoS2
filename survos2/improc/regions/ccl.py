@@ -11,7 +11,7 @@ import pycuda.gpuarray as gpuarray
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
 
-from ..types import int3
+from ..improc_types import int3
 from ..utils import gpuregion, cpuregion
 from ..cuda import asgpuarray, grid_kernel_config
 

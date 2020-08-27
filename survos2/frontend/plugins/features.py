@@ -11,7 +11,7 @@ from survos2.frontend.control import DataModel
 from loguru import logger
 
 #logger = get_logger()
-from survos2.server.config import appState
+from survos2.frontend.model import ClientData
 
 _FeatureNotifier = PluginNotifier()
 
@@ -191,7 +191,7 @@ class FeatureCard(Card):
 
     def view_feature(self):
         logger.debug(f"View feature_id {self.feature_id}")
-        appState.scfg.ppw.clientEvent.emit({'source': 'features', 'data':'view_feature', 'feature_id': self.feature_id})
+        scfg.ppw.clientEvent.emit({'source': 'features', 'data':'view_feature', 'feature_id': self.feature_id})
 
 
     def compute_feature(self):

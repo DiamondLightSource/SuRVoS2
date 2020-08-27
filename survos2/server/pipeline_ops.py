@@ -2,12 +2,12 @@ from survos2.entity.entities import make_entity_df
 from survos2.server.superseg import make_prediction, calc_feats
 from survos2.entity.anno.masks import generate_sphere_masks_fast
 from survos2.server.supervoxels import generate_supervoxels
-from survos2.server.features import feature_factory, generate_features, simple_laplacian
+from survos2.server.features import features_factory, generate_features, simple_laplacian
 from survos2.server.model import SRData, SRPrediction, SRFeatures
 from survos2.entity.sampler import crop_vol_and_pts_centered
 from survos2.helpers import AttrDict
 from survos2.entity.anno import geom
-from survos2.server.config import appState
+from survos2.frontend.model import ClientData
 
 from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
 

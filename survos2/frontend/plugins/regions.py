@@ -12,8 +12,7 @@ from qtpy.QtCore import QSize
 from survos2.frontend.plugins.base import *
 from survos2.frontend.control.model import DataModel
 from survos2.frontend.control import Launcher
-
-from survos2.server.config import appState
+from survos2.server.config import scfg
 
 class RegionComboBox(LazyComboBox):
 
@@ -155,7 +154,7 @@ class SupervoxelCard(Card):
 
     def view_supervoxels(self):
         logger.debug(f"Transferring supervoxels {self.svid} to viewer")
-        appState.scfg.ppw.clientEvent.emit({'source': 'regions', 'data':'view_supervoxels', 'region_id': self.svid})
+        scfg.ppw.clientEvent.emit({'source': 'regions', 'data':'view_supervoxels', 'region_id': self.svid})
 
     def compute_supervoxels(self):
         src = [DataModel.g.dataset_uri(s) for s in self.svsource.value()]
