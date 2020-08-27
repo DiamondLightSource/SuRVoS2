@@ -1,23 +1,8 @@
 
-import glob
-import os
-import sys
-import h5py
-import ntpath
-import scipy
-import yaml
 from scipy import ndimage
-import matplotlib.pyplot as plt  # print(__doc__)
 import numpy as np
-import pandas as pd
 
-from numba import jit
-from collections import namedtuple
 from skimage import img_as_ubyte, img_as_float
-from skimage import io
-
-from pyqtgraph.Qt import QtCore, QtGui
-from pyqtgraph.parametertree import Parameter, ParameterTree
 
 
 #import qdarkstyle
@@ -27,40 +12,24 @@ from qtpy.QtCore import QSize
 from vispy import scene
 from vispy.color import Colormap
 
-import napari
 from napari import Viewer as NapariViewer
 
-from functools import partial
-
-from typing import Union, Any, List, Optional, cast
-from typing import Callable, Iterator, Union, Optional, List
-from typing import List, Set, Dict, Tuple, Optional
-from typing import Mapping, MutableMapping, Sequence, Iterable, List, Set
 
 #
 # SuRVoS 2 imports
 #
 
 from survos2.improc import map_blocks
-#from survos2.improc.features import gaussian, tvdenoising3d
-#from survos2.improc.regions.rag import create_rag
-#from survos2.improc.regions.slic import slic3d
-#from survos2.improc.segmentation import _qpbo as qpbo
-#from survos2.improc.segmentation.appearance import train, predict, refine, invrmap
-#from survos2.improc.segmentation.mappings import rmeans
 from survos2.io import dataset_from_uri
 from survos2.model import Workspace, Dataset
-from survos2.utils import decode_numpy, encode_numpy
 from survos2.utils import logger
 
 from survos2.entity.anno.geom import prepare_points3d
 from survos2.helpers import AttrDict, simple_norm
-from survos2.server.config import appState
-scfg = appState.scfg
+from survos2.frontend.model import ClientData
 
 import survos2.api.workspace as ws
 
-#from survos2.frontend.model import SegSubject
 
 
 class NapariWidget(NapariViewer):
@@ -114,7 +83,6 @@ class NapariWidget(NapariViewer):
 
     
     def median(self, viewer):
-        median_size = scfg.marker_size
         logger.debug("Median, size {median_size}")
         img_proc = img_as_ubyte(ndimage.median_filter(simple_norm(self.img), size=median_size))
         self.add_image(img_proc, name='Median')

@@ -28,16 +28,13 @@ import pyqtgraph.flowchart.library as fclib
 from pyqtgraph.flowchart.library.common import CtrlNode
 import pyqtgraph.opengl as gl
 import pyqtgraph as pg
-from survos2.server.config import appState
+from survos2.frontend.model import ClientData
 
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 import matplotlib.patches as mpatches
 import matplotlib.patheffects as PathEffects
 from matplotlib import offsetbox
-
-
-scfg = appState.scfg
 
 
 ###########################################################

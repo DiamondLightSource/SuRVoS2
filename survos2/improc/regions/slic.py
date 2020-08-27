@@ -9,7 +9,7 @@ import pycuda.gpuarray as gpuarray
 from pycuda.compiler import SourceModule
 
 from .ccl import ccl3d, merge_small
-from ..types import int3, float3
+from ..improc_types import int3, float3
 from ..utils import asnparray, gpuregion
 from ..cuda import asgpuarray, grid_kernel_config, flat_kernel_config
 from ..features import gaussian

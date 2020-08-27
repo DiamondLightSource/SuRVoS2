@@ -42,9 +42,6 @@ import ast
 
 import networkx as nx
 
-
-
-# Sklearn
 import sklearn
 from sklearn import datasets
 from sklearn import metrics
@@ -156,15 +153,14 @@ import survos2.api.workspace as ws
 from survos2.server.features import prepare_features, generate_features
 from survos2.server.supervoxels import prepare_supervoxels, generate_supervoxels
 from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-from survos2.server.config import appState
+from survos2.frontend.model import ClientData
 
-from survos2.server.model import SRData
+from survos2.server.model import SRData, SRPrediction
 from survos2.server.region_labeling import rlabels
-
-scfg = appState.scfg
 
 
 def obtain_classifier(clf_p):
+    
     if clf_p['clf'] == 'ensemble':
         mode = 'ensemble'
 
@@ -222,11 +218,6 @@ def train(X_train, y_train, project=False, rnd=42, **kwargs):
     
     clf = RandomForestClassifier(**kwargs)
     
-    #clf = ExtraTreesClassifier(**kwargs)
-    #clf = GradientBoostingClassifier(**kwargs)
-    #clf = SVC(
-    #              probability=True)
-    #clf = AdaBoostClassifier(**kwargs)
     clf.fit(X_train, y_train)
 
     if project is not False:
@@ -255,7 +246,7 @@ def sr_prediction(features_stack, annotation_volume, sr : SRData, predict_params
     Arguments:
         features_stack {stacked image volumes} -- Stack of filtered volumes to use for features
         annotation_volume {image volume} -- Annotation volume (label image)
-        supervoxel_vol {image volume} -- Labeled image defining superregions.
+        sr {image volume} -- Prepared superregions SRData
     
     Returns:
         (volume, volume, volume) -- tuple of raw prediction, prediction mapped to labels and confidence map
@@ -263,20 +254,10 @@ def sr_prediction(features_stack, annotation_volume, sr : SRData, predict_params
 
     logger.debug(f"Feature stack: {features_stack.shape}")
     
-    #try:
-    #    supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32)
-    #    supervoxel_features = rmeans(features_stack.astype(np.float32), supervoxel_vol)
-    #    supervoxel_rag = create_rag(np.array(supervoxel_vol).astype(np.uint32), connectivity=18)
-
     logger.debug(f"Using annotation volume of shape {annotation_volume.shape}")
     Yr = rlabels(annotation_volume.astype(np.uint16), sr.supervoxel_vol.astype(np.uint32))  # unsigned char and unsigned int required
-
     logger.debug(f"Unique labels in anno: {np.unique(annotation_volume)}")
-    #except Exception as err:    
-    #    logger.info(f"Supervoxel rag and feature generation exception {err}")
-
-    logger.debug(f"Supervoxels: {sr.supervoxel_vol.shape}")
-
+    
     i_train = Yr > -1
 
     logger.debug(f"i_train {i_train}")
@@ -286,19 +267,13 @@ def sr_prediction(features_stack, annotation_volume, sr : SRData, predict_params
     # Projection
     #proj = PCA(n_components='mle', whiten=True, random_state=42)
     #proj = StandardScaler()
-    
     #proj = SparseRandomProjection(n_components=X_train.shape[1], random_state=42)
     #rnd = 42
     #proj = RBFSampler(n_components=max(X_train.shape[1], 50), random_state=rnd)
     #X_train = proj.fit_transform(X_train)
-
     #print(X_train)
     
     Y_train = Yr[i_train]
-    #clf = train(X_train, Y_train, 
-    #            n_estimators=15 ,
-    #            project=predict_params['proj'])
-
 
     clf = train(X_train, Y_train, n_estimators=predict_params['n_estimators']) #, project=predict_params['proj'])
 
@@ -310,13 +285,8 @@ def sr_prediction(features_stack, annotation_volume, sr : SRData, predict_params
     num_supervox = sr.supervoxel_vol.max() + 1
     conf_map = invrmap(P['probs'], sr.supervoxel_vol)
         
-    from survos2.server.model import SRPrediction
     srprediction = SRPrediction(prob_map, conf_map)
     
-    #except Exception as err:
-    #    logger.error(f"Prediction exception: {err}")
-    #    #return 0
-        
     return srprediction
 
 
