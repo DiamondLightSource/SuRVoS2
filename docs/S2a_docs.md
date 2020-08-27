@@ -210,7 +210,7 @@ The client and the server are completely separate and communicate via the hug ap
 
 Within the client, PyQT Signals and Slots. 
 
-The application state is in scfg ("survos config).
+The application state is in scfg ("survos config").
 
 
 # Plugins

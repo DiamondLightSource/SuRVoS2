@@ -7,7 +7,7 @@ import numpy as np
 import pycuda.gpuarray as gpuarray
 from pycuda.compiler import SourceModule
 
-from ..types import int3
+from ..improc_types import int3
 from ..utils import gpufeature
 from ..cuda import asgpuarray, flat_kernel_config
 

@@ -33,13 +33,13 @@ def total_variation(src:DataURI, dst:DataURI, lamda:Float=10,
                normalize=True)
 
 @hug.get() #@save_metadata
-def spatial_gradient_3d(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Gradient':
+def spatial_gradient_3d(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Edges':
     from ..server.filtering import spatial_gradient_3d
     map_blocks(spatial_gradient_3d, src, out=dst, sigma=sigma, normalize=True)
 
 
 @hug.get() #@save_metadata
-def gaussian_blur(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Gradient':
+def gaussian_blur(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Denoising':
     from ..server.filtering import gaussian_blur
     map_blocks(gaussian_blur, src, out=dst, sigma=sigma, normalize=True)
 
@@ -54,19 +54,19 @@ def gaussian(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Denoising':
 
 
 @hug.get()
-def simple_laplacian(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Laplacian':
-    from ..server.filtering import simple_laplacian
-    map_blocks(simple_laplacian, src, out=dst, sigma=sigma, normalize=True)
+def laplacian(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Edges':
+    from ..server.filtering import ndimage_laplacian
+    map_blocks(ndimage_laplacian, src, out=dst, sigma=sigma, normalize=True)
 
 
 @hug.get()
-def simple_invert(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Invert':
+def simple_invert(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Simple':
     from ..server.filtering import simple_invert
     map_blocks(simple_invert, src, out=dst, sigma=sigma, normalize=True)
 
 
 @hug.get()#@save_metadata
-def gaussian_center(src:DataURI, dst:DataURI, sigma:FloatOrVector=1):
+def gaussian_center(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Denoising':
     """
     API wrapper around `survos2.improc.features.gauss.gaussian_center`.
     """
@@ -76,7 +76,7 @@ def gaussian_center(src:DataURI, dst:DataURI, sigma:FloatOrVector=1):
 
 @hug.get()
 @save_metadata
-def gaussian_norm(src:DataURI, dst:DataURI, sigma:FloatOrVector=1):
+def gaussian_norm(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Denoising':
     """
     API wrapper around `survos2.improc.features.gauss.gaussian_norm`.
     """

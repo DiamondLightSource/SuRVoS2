@@ -2,13 +2,9 @@
 import yaml
 import pprint
 from survos2.helpers import AttrDict
-from dataclasses import dataclass
-from collections import namedtuple
-#from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-#from survos2.server.filtering import simple_laplacian
 
-# Config yamls, get combined into a master app state dict AppState
-
+# Config yamls, kept separate for modularity (e.g. may put in separate files)
+# get combined into a master app state dict AppState
 survos_config_yaml = """
 scfg:
   proj: hunt
@@ -36,45 +32,48 @@ scfg:
 
 filter_yaml = """
 filter_cfg:
-  slic_params:
-    slic_feat_idx: -1
-    compactness: 20
-    postprocess: false
-    sp_shape:
-    - 18
-    - 18
-    - 18
+  superregions1:
+    plugin: superregions
+    feature: slic
+    params:
+      slic_feat_idx: -1
+      compactness: 20
+      postprocess: false
+      sp_shape:
+      - 18
+      - 18
+      - 18
   filter1: 
     plugin: features
-    command: compute
     feature: gaussian
-    params: 3
-    gauss_params:
+    params:
         sigma: 2
   filter2: 
     plugin: features
-    command: compute
     feature: gaussian
-    params: 3
-    gauss_params:
+    params:
         sigma: 2
   filter3:
     plugin: features
-    command: compute
-    feature: tv
-    tvdenoising3d_params:
+    feature: tvdenoising3d
+    params:
         lamda: 3.7
   filter4:
-    laplacian_params:
+    plugin: features
+    feature: simple_laplacian
+    params:
         sigma: 2.1
   filter5:
-    gradient_params:
+    plugin: features
+    feature: gradient  
+    params:
         sigma: 3
 """
 
-
-predict_yaml = """
-predict_cfg:
+pipeline_yaml = """
+pipeline_cfg:
+  pipeline_params: 
+    mask_radius: 10
   predict_params:
     clf: ensemble
     type: rf 
@@ -82,52 +81,17 @@ predict_cfg:
     proj: False
     max_depth: 20
     n_jobs: 1
-"""
-
-
-pipeline_yaml = """
-pipeline_cfg:
-  pipeline_params: 
-    mask_radius: 10
 
 """
 
 scfg = AttrDict(yaml.safe_load(survos_config_yaml)['scfg'])
-filter_cfg = AttrDict(yaml.safe_load(filter_yaml)['filter_cfg'])
-predict_cfg = AttrDict(yaml.safe_load(predict_yaml)['predict_cfg'])
-pipeline_cfg = AttrDict(yaml.safe_load(pipeline_yaml)['pipeline_cfg'])
+filter_cfg = AttrDict(yaml.safe_load(filter_yaml))
+pipeline_cfg = AttrDict(yaml.safe_load(pipeline_yaml))
 
-
+# attribute access and AppState class to bundle any other application state
 # merge config dictionaries to make app state 
 scfg = {**scfg, **filter_cfg}
-scfg = {**scfg, **predict_cfg}
 scfg = {**scfg, **pipeline_cfg}
 scfg = AttrDict(scfg)
 
 
-@dataclass
-class AppState:
-    scfg:AttrDict
-appState= AppState(scfg)
-
-
-#remove
-scfg.p = None
-
-
-#move
-"""
-scfg.feature_params = {}
-scfg.feature_params['simple_gaussian'] = [ 
-      [gaussian, scfg.filter2['gauss_params'] ]]
-scfg.feature_params['vf'] = [ [gaussian, scfg.filter1['gauss_params']],
-      [gaussian, scfg.filter2['gauss_params'] ],
-      [simple_laplacian, scfg.filter4['laplacian_params'] ],
-      [tvdenoising3d, scfg.filter3['tvdenoising3d_params'] ]]
-scfg.feature_params['vf2'] = [
-      [gaussian, scfg.filter2['gauss_params'] ]]
-#      [simple_laplacian, scfg.filter4['laplacian_params'] ],
-#      [tvdenoising3d, scfg.filter3['tvdenoising3d_params'] ]]
-
-
-"""

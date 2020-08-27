@@ -8,5 +8,5 @@ def test_srprediction():
 def test_superregions():
     dataset_feats, filtered_stack = prepare_prediction_features([np.array(base_image.data),])
     superregions = generate_supervoxels(dataset_feats,  filtered_stack, 
-                                        appState.scfg.feats_idx, appState.scfg.slic_params)
+                                        scfg.feats_idx, scfg.slic_params)
 

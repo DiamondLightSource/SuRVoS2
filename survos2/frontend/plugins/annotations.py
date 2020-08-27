@@ -1,5 +1,4 @@
 
-
 import numpy as np
 from skimage.draw import line
 from skimage.morphology import disk
@@ -21,12 +20,8 @@ from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.frontend.control import DataModel
 from loguru import logger
 
-
 from survos2.utils import decode_numpy
-
-from survos2.server.config import appState
-
-
+from survos2.server.config import scfg
 
 _AnnotationNotifier = PluginNotifier()
 
@@ -416,7 +411,7 @@ class AnnotationLevel(Card):
 
     def view_level(self):
         logger.debug(f"View feature_id {self.level_id}")
-        appState.scfg.ppw.clientEvent.emit({'source': 'annotations', 
+        scfg.ppw.clientEvent.emit({'source': 'annotations', 
                                             'data':'view_annotations', 
                                             'level_id': self.level_id})
 

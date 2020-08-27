@@ -69,15 +69,18 @@ def generate_supervoxels(dataset_feats, filtered_stack, dataset_feats_idx, slic_
     block_z, block_x, block_y = dataset_feats[0].shape
 
     # map_blocks through Dask
-    supervoxel_vol = map_blocks(slic3d, dataset_feats[dataset_feats_idx].astype(np.float32), **slic_params, timeit=False)
+    supervoxel_vol = map_blocks(slic3d, dataset_feats[dataset_feats_idx].astype(np.float32),
+                         **slic_params, timeit=False)
     supervoxel_vol = supervoxel_vol.astype(np.uint32, copy= True)#
     logger.info(f"Finished slic with supervoxel vol of shape {supervoxel_vol.shape}")
 
     supervoxel_vol = supervoxel_vol[...]
     supervoxel_vol = np.asarray(supervoxel_vol)#.astype(np.uint32, copy=True)
     supervoxel_vol = np.nan_to_num(supervoxel_vol)
-    logger.info(f"Calling rmeans with filtered_stack {len(filtered_stack)} and supervoxel_vol {supervoxel_vol.shape}")
+    logger.info(f"Calling rmeans with filtered_stack { len(filtered_stack)} 
+            and supervoxel_vol {supervoxel_vol.shape}")
     supervoxel_features = rmeans(filtered_stack, supervoxel_vol)
+    
     logger.info(f"Finished rmeans with supervoxel_features of shape {supervoxel_features.shape}")
     
     supervoxel_rag = create_rag(np.array(supervoxel_vol), connectivity=6)
@@ -102,7 +105,8 @@ def superregion_factory(supervoxel_vol : np.ndarray, features_stack:np.ndarray) 
     return superregions
 
 
-def prepare_supervoxels(supervoxels : List[str], filtered_stack:np.ndarray, roi_crop : np.ndarray, resample_amt : float) -> SRData:
+def prepare_supervoxels(supervoxels : List[str], filtered_stack:np.ndarray, 
+                    roi_crop : np.ndarray, resample_amt : float) -> SRData:
     """Load supervoxels from file, then generate supervoxel features from a features stack and the supervoxel rag,
     then bundle as SRData and return.
 

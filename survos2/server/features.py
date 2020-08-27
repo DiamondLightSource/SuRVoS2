@@ -23,7 +23,7 @@ def prepare_prediction_features(filtered_layers):
 
     return dataset_feats, features_stack
 
-def feature_factory(filtered_layers):
+def features_factory(filtered_layers):
     dataset_feats, features_stack = prepare_prediction_features(filtered_layers)
     features = SRFeatures(filtered_layers, dataset_feats, features_stack)
 
