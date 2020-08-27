@@ -33,7 +33,6 @@ from survos2.helpers import AttrDict
 from .views import list_views, get_view
 from survos2.improc.utils import DatasetManager
 from survos2.config import Config 
-from survos2.frontend.model import ClientData
 
 
 
