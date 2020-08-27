@@ -4,37 +4,88 @@ stages:
   - clean
 
 variables: &global-variables
-  CONDA_PATH: /scratch/SuRVoS2/gitlab_working_dir/test_env
+  LINUX_CONDA_PATH: /scratch/SuRVoS2/gitlab_working_dir/test_env
+  WINDOWS_CONDA_PATH: C:\Gitlab-Runner\working-dir\test_env
+
+windows-build:
+  stage: build
+  tags:
+    - windows
+  before_script:
+    - C:\ProgramData\Miniconda3\shell\condabin\conda-hook.ps1
+  script:
+    - "conda env create -f survos2_clean_environment_windows.yml -p $WINDOWS_CONDA_PATH"
+    - "conda activate $WINDOWS_CONDA_PATH"
+    - python .\survos2\improc\setup.py build_ext --inplace
+    - conda deactivate
+  artifacts:
+    expire_in: 1 week
+    name: "$env:CI_JOB_STAGE-$env:CI_COMMIT_REF_NAME"
+    paths:
+      - survos2\improc\regions\*.pyd
+      - survos2\improc\segmentation\*.pyd
+
+windows-test:
+  stage: test
+  tags:
+    - windows
+  before_script:
+    - C:\ProgramData\Miniconda3\shell\condabin\conda-hook.ps1
+  needs: [windows-build]
+  dependencies:
+    - windows-build
+  script:
+    - "conda activate $WINDOWS_CONDA_PATH"
+    - "coverage run -m pytest tests"
+    - coverage report
+
+windows-clean:
+  stage: clean
+  tags:
+    - windows
+  before_script:
+    - C:\ProgramData\Miniconda3\shell\condabin\conda-hook.ps1
+  needs: [windows-test]
+  script:
+    - "conda remove -p $WINDOWS_CONDA_PATH --all"
+  when: always
 
 linux-build:
   stage: build
   tags:
     - linux
   script:
-    - "mkdir -p $CONDA_PATH"
-    - "conda env create -f environment.yml -p $CONDA_PATH"
-    - conda activate $CONDA_PATH
+    - "mkdir -p $LINUX_CONDA_PATH"
+    - "conda env create -f survos2_clean_environment_linux.yml -p $LINUX_CONDA_PATH"
+    - conda activate $LINUX_CONDA_PATH
     - "module load cuda/10.1"
-    - pip install pycuda
     - bash make_script.sh
     - conda deactivate
+  artifacts:
+    expire_in: 1 week
+    name: "$CI_JOB_STAGE-$CI_COMMIT_REF_NAME"
+    paths:
+      - survos2/improc/regions/*.so
+      - survos2/improc/segmentation/*.so
 
 linux-test:
   stage: test
   tags:
     - linux
+  needs: [linux-build]
   script:
     - module load cuda/10.1
-    - conda activate $CONDA_PATH
-    - bash make_script.sh
-    - "coverage run -m pytest tests/"
+    - conda activate $LINUX_CONDA_PATH
+    - "coverage run -m pytest tests"
     - coverage report
+  dependencies:
+    - linux-build
 
 linux-clean:
   stage: clean
   tags:
     - linux
+  needs: [linux-test]
   script:
-    - conda deactivate
-    - "conda remove -p $CONDA_PATH --all"
+    - "conda remove -p $LINUX_CONDA_PATH --all"
   when: always
