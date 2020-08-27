@@ -1,5 +1,4 @@
 
-
 import os
 from numpy.distutils.core import setup
 from numpy.distutils.misc_util import Configuration, get_numpy_include_dirs
@@ -19,7 +18,8 @@ def configuration(parent_package='', top_path=None):
     files = [os.path.join(qpbo_dir, f) for f in files]
     files = ['_qpbo.pyx'] + files
     config.add_extension('_qpbo', sources=files, language='c++',
-                         libraries=["stdc++"], library_dirs=[qpbo_dir],
+                        # libraries=["stdc++"], 
+                        library_dirs=[qpbo_dir],
                          include_dirs=[qpbo_dir, get_numpy_include_dirs()])
 
     return config
