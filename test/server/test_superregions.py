@@ -1,5 +1,5 @@
 def test_srprediction():
-    srprediction = sr_prediction(features.features_stack,
+    srprediction = _sr_prediction(features.features_stack,
                                 patch.image_layers['Annotation'],
                                 superregions,
                                 params.predict_params)

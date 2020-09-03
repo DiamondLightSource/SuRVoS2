@@ -8,12 +8,15 @@ Imanol's components
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize
+from qtpy import QtCore
+from qtpy.QtCore import QSize, Signal
+from qtpy import QtGui
 
-from pyqtgraph.Qt import QtCore, QtGui
-
+#from pyqtgraph.Qt import QtCore, QtGui
+from loguru import logger
 import re
-import os.path as op
 import numpy as np
+import os
 from collections import defaultdict
 import qtawesome as qta
 
@@ -41,7 +44,7 @@ class SWidget(QtWidgets.QWidget):
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
 
         file_path = resource('qcs', obj_name + '.qcs')
-        if op.isfile(file_path):
+        if os.path.isfile(file_path):
             with open(file_path, 'r') as f:
                 self.setStyleSheet(f.read())
 
@@ -53,7 +56,7 @@ class SWidget(QtWidgets.QWidget):
 
 class QCSWidget(SWidget):
 
-    resized = QtCore.pyqtSignal()
+    resized = Signal() # Signal
 
     def __init__(self, parent=None):
         super().__init__(self.__class__.__name__, parent=parent)
@@ -63,6 +66,7 @@ class QCSWidget(SWidget):
         self.resized.emit()
 
     def __call__(self, widget, stretch=0, connect=None):
+        logger.debug(f"QCSWidget __call__ {widget}")
         if self.layout() is not None:
             self.layout().addWidget(widget, stretch=stretch)
             if connect and hasattr(widget, connect[0]):
@@ -85,7 +89,7 @@ def clear_layout(layout):
 
 
 class PluginNotifier(QtCore.QObject):
-    updated = QtCore.pyqtSignal()
+    updated = Signal()
     def listen(self, *args, **kwargs):
         self.updated.connect(*args, **kwargs)
     def notify(self):
@@ -94,11 +98,7 @@ class PluginNotifier(QtCore.QObject):
 
 def _fill_features(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
-    #result = Launcher.g.run('features', 'existing', **params)
-    
-    params.setdefault('id',7)
-    params.setdefault('name', 'steve')
-    params.setdefault('kind', 'unknown')
+    result = Launcher.g.run('features', 'existing', **params)
     
     result = dict()
     result[0] = params
@@ -298,7 +298,7 @@ class LineEdit(QtWidgets.QLineEdit):
 
 class TabBar(QCSWidget):
 
-    tabSelected = QtCore.pyqtSignal(str)
+    tabSelected = Signal(str)
 
     def __init__(self, spacing=10, parent=None):
         super().__init__(parent=parent)
@@ -401,7 +401,7 @@ class ScrollPane(QtWidgets.QScrollArea):
 
 class ColorButton(QtWidgets.QPushButton):
 
-    colorChanged = QtCore.pyqtSignal(str)
+    colorChanged = Signal(str)
 
     def __init__(self, color='#000000', clickable=True, **kwargs):
         super().__init__(**kwargs)
@@ -756,7 +756,7 @@ class ComboBox(QtWidgets.QComboBox, AbstractLazyWrapper):
         for i, (k, v, d) in enumerate(self._items):
             if not k:
                 continue
-            kname = k.split(op.sep)
+            kname = k.split(os.path.sep)
             if k == key or (len(kname) > 1 and kname[1] == key):
                 return self.setCurrentIndex(i)
 
@@ -776,7 +776,7 @@ class LazyComboBox(ComboBox):
 
 class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
 
-    valueChanged = QtCore.pyqtSignal()
+    valueChanged = Signal()
 
     def __init__(self, header=None, lazy=False, select=None,
                  text='Select', groupby=None, parent=None):
@@ -798,9 +798,8 @@ class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
 
         self._update_text()
 
-        # TODO: improve this
         file_path = resource('qcs', 'survos.qcs')
-        if op.isfile(file_path):
+        if os.path.isfile(file_path):
             with open(file_path, 'r') as f:
                 style = f.read()
                 self.setStyleSheet(style)
@@ -871,7 +870,7 @@ class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
         for i, (k, v, d) in enumerate(self._items):
             if not k:
                 continue
-            kname = k.split(op.sep)
+            kname = k.split(os.path.sep)
             if k == key or (len(kname) > 1 and kname[1] == key):
                 if not self.itemChecked(i):
                     self.setItemChecked(i, True)
@@ -942,7 +941,7 @@ class LazyMultiComboBox(MultiComboBox):
 
 class Slider(QCSWidget):
 
-    valueChanged = QtCore.pyqtSignal(int)
+    valueChanged = Signal(int)
 
     def __init__(self, value=None, vmax=100, vmin=0, step=1, tracking=True,
                  label=True, auto_accept=True, center=False, parent=None):

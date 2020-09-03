@@ -77,8 +77,7 @@ def generate_supervoxels(dataset_feats, filtered_stack, dataset_feats_idx, slic_
     supervoxel_vol = supervoxel_vol[...]
     supervoxel_vol = np.asarray(supervoxel_vol)#.astype(np.uint32, copy=True)
     supervoxel_vol = np.nan_to_num(supervoxel_vol)
-    logger.info(f"Calling rmeans with filtered_stack { len(filtered_stack)} 
-            and supervoxel_vol {supervoxel_vol.shape}")
+    logger.info(f"Calling rmeans with filtered_stack { len(filtered_stack)} and supervoxel_vol {supervoxel_vol.shape}")
     supervoxel_features = rmeans(filtered_stack, supervoxel_vol)
     
     logger.info(f"Finished rmeans with supervoxel_features of shape {supervoxel_features.shape}")

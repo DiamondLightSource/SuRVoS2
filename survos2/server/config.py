@@ -1,20 +1,19 @@
-
 import yaml
 import pprint
 from survos2.helpers import AttrDict
 
 # Config yamls, kept separate for modularity (e.g. may put in separate files)
 # get combined into a master app state dict AppState
+# Should serve as application defaults, where a particular workspace has
+# both feature and region-level metadata as well as
+# pipelines for storing particular workspace-specific configs
+
+#App-wide
 survos_config_yaml = """
 scfg:
   proj: hunt
   preprocessing: {}
-  calculate_features: true
-  calculate_supervoxels: true
-  load_pretrained_classifier: false
-  load_annotation: false
-  nb_platform: windows
-  random_seed_main: 6868842
+  random_seed_main: 32
   marker_size: 10
   refine_lambda: 1.0
   resample_amt: 0.5
@@ -30,6 +29,7 @@ scfg:
   torch_models_fullpath:  ../experiments
 """
 
+#Filters (features and sr)
 filter_yaml = """
 filter_cfg:
   superregions1:
@@ -70,10 +70,14 @@ filter_cfg:
         sigma: 3
 """
 
+# segmentation pipeline
+# saved models
 pipeline_yaml = """
-pipeline_cfg:
-  pipeline_params: 
-    mask_radius: 10
+pipeline:
+  calculate_features: true
+  calculate_supervoxels: true
+  load_pretrained_classifier: true
+  load_annotation: false
   predict_params:
     clf: ensemble
     type: rf 
@@ -81,6 +85,8 @@ pipeline_cfg:
     proj: False
     max_depth: 20
     n_jobs: 1
+  mask_params:
+    mask_radius: 10      
 
 """
 

@@ -5,8 +5,8 @@ from requests.exceptions import ConnectTimeout, ConnectionError
 from qtpy import QtCore, QtWidgets
 from hug.use import HTTP, Local
 
-from survos2.frontend.control.model import DataModel
-from survos2.frontend.control.singleton import Singleton
+from survos2.model import DataModel
+from survos2.model.singleton import Singleton
 #from survos2.ui.qt.qtcompat import QtCore, QtWidgets
 from survos2.frontend.modal import ModalManager
 from survos2.utils import format_yaml, get_logger, Timer

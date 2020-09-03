@@ -19,7 +19,7 @@ from loguru import logger
 __region_fill__ = 0
 __region_dtype__ = 'uint32'
 __region_group__ = 'regions'
-__region_names__ = [None, 'supervoxels', 'megavoxels']
+__region_names__ = [None, 'supervoxels'] #, 'megavoxels']
 
 
 @hug.get()
@@ -28,7 +28,8 @@ def get_slice(src:DataURI, slice_idx:Int):
     data = ds[slice_idx]
     return encode_numpy(data)
 
-@hug.get()#@save_metadata
+@hug.get()
+@save_metadata
 def supervoxels(src:DataURIList, dst:DataURI, shape:IntList=[10,10,10],
                 compactness:Float=30, spacing:FloatList=[1,1,1]):
     """
@@ -41,7 +42,8 @@ def supervoxels(src:DataURIList, dst:DataURI, shape:IntList=[10,10,10],
                compactness=compactness, stack=True, timeit=True, uses_gpu=True)
     
 
-@hug.get() #@save_metadata
+@hug.get() 
+@save_metadata
 def connected_components(src:DataURI, dst:DataURI, remap:SmartBoolean):
     """
     API wrapper for `survos2.improc.regions.ccl3d`.
@@ -50,7 +52,8 @@ def connected_components(src:DataURI, dst:DataURI, remap:SmartBoolean):
     map_blocks(ccl3d, src, out=dst, remap=remap)
 
 
-@hug.get() #@save_metadata
+@hug.get() 
+@save_metadata
 def merge_regions(src:DataURI, labels:DataURI, dst:DataURI, min_size:Float):
     """
     API wrapper for `survos2.improc.regions.merge_small`.

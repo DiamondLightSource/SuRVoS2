@@ -18,9 +18,18 @@ workspace.add_data workspace=test_s1  data_fname=D:/datasets/survos_brain/ws3/da
 (replace the data_fname with an h5 file that has the image data stored as 'data'.)
 
 
-# Config
+# Configuration
 
 Inital setup:
+
+Currently, startyp config resides in the survos2/config.py, which is where 
+the ip address and port of the server are stored.
+
+survos2/settings.yaml should not need to be modified often, and contains the list of plugins that
+will be loaded by survos.
+
+The server state is in scfg ("survos config"), which is the master configuration dictionary, broken into
+global survos parameters, filter parameters and pipeline (prediction) parameters. 
 
 server/config.py
     server, port
@@ -29,12 +38,118 @@ server/config.py
 Per session setup:
      /projects/[project name]/project.json
 
-
 start server with a workspace (can be changed)
 run_server [command] with workspace param
 start gui with a workspace
 
+# Using workspaces
 
+Workspaces are stored in CHROOT
+
+They implement a particular folder structure and access protocol for data.
+
+After creation, add_data to a workspace, then create a dataset.
+
+All work in survos is organized around a workspace. Image processing, supervoxel generation and segmentation
+takes place by choosing a group and creating a new dataset in that group, e.g. 'features' and '001_gaussian_blur'
+The settings chosen in the gui are saved as metadata into the dataset.yaml within that datasets folder
+(e.g. in workspace_name/session_name/features/001_gaussian_blur/) which sits in that folder along with the data 
+in hdf5 format, with a name like chunk_0x0x0.h5)
+
+On opening the workspace on a second occassion, original parameters are loaded from the metadata and can be
+modified and the dataset recomputed.
+
+For segmentation operations a pipeline is created that outputs a dataset. Multi-stage segmentation
+pipelines with various pre and post processing steps (e.g. morphology and mask generation) can be 
+performed.
+
+
+# Segmentation
+
+In order to segment, several things need to be precomputed (supervoxels, filters)
+Segmentation requires channels and supervoxels to be calculated.
+Refinement requires a segmentation to be computed.
+
+# Entity
+
+An entity is a labeled geometric/vector data is stored in a dataframe with certain columns.
+Dataframe has 'z','x','y','class_code'
+
+
+# Frontend Notes
+
+The frontend allows interactive segmentation of an image volume by manipulating a workspace.
+
+The classic_gui has a slice viewer that can work over http.
+
+The nu_gui has a both slice and 3d viewers and tools for painting and editing vector geometry layers.
+    
+* Not yet (TODO) updated when local workspace updated. 'View' buttons transfer workspace to viewer.
+
+Feature Plugin
+
+* Modify sets of filters
+* Run calculation, which updates the workspace 
+* Use the GUI to load the result into the viewer
+
+Supervoxel Calculation
+* Modify supervoxel parameters, choose feature to use
+* Run calculation, which updates the workspace 
+* Use the GUI to load the result into the viewer
+    
+
+The client and the server are completely separate and communicate via the hug api.
+
+Within the client, PyQT Signals and Slots are used. Within the nu_gui, Napari is used for viewing 3d volumes. 
+
+
+# Plugins
+
+Features
+
+Regions 
+
+Annotations
+
+# Pipeline
+
+A pipeline is to provide a simple, unified interface to several different types of segmentation operations.
+Ops are currently fufilled by a function that takes and returns a pipeline payload.
+This is meant to reflect operations that can occur to the layer stack in the gui or to a workspace on the server.
+
+Example ops are: a layer of points is processed to generate another layer of points. This would be a vector to vector 
+operation. Or a layer of points can be processed into a raster mask, a vector-to-raster operation.
+A common prediction task involves taking an annotation volume and an image volume and producing a prediction volume,
+a (R,R) -> R operation. A detection task takes an image and produce a set of points or other geometry (R->V)
+
+## List of ops
+(V: Vector, R: Raster)
+
+* V->V
+    - Spatial clustering
+    - Cropping and transformation
+* V->R
+    - Mask generation
+* R->V
+    - Detection
+* R->R
+    - Segmentation
+
+# ROI
+
+Pipeline roi: a pipeline ROI allows for a small region to be run through a pipeline for testing
+
+WIP: Integration of Viewer roi<->workspace roi so
+
+* viewer can view a smaller ROI of the workspace
+*  processing (e.g. on server) can be tested on smaller ROI
+
+Using a temp dataset, the user can develop a segmentation pipeline on a ROI and then save it
+and apply it to the entire volume.
+
+# Launcher and DataModel
+
+# Datasets
 
 
 # SuRVoS2 API
@@ -77,11 +192,6 @@ python survos.py view_data D:\\datasets\\survos_brain\\ws3\\data.h5
 
 # Workspace commands
 
-Workspaces are stored in CHROOT
-
-They implement a particular folder structure and access protocol for data.
-
-After creation, add_data to a workspace, then create a dataset.
 
 ```
 workspace.get_dataset server=0:0 workspace=test_s9 dataset=bob
@@ -176,94 +286,3 @@ Computing features gaussian_blur
 
 modal refers to the use of multiprocessing for background processing (TODO: windows issues with multiprocessing)
 
-# Segmentation
-
-In order to segment, several things need to be precomputed (supervoxels, filters)
-Segmentation requires channels and supervoxels to be calculated.
-Refinement requires a segmentation to be computed.
-
-# Entity
-
-An entity is a labeled geometric/vector data is stored in a dataframe with certain columns.
-Dataframe has 'z','x','y','class_code'
-
-
-# Frontend Notes
-
-Napari widget
-    
-* Not yet (TODO) updated when local workspace updated. 'View' buttons transfer workspace to viewer.
-
-Feature Plugin
-
-* Modify sets of filters
-* Run calculation, which updates the workspace 
-* Use the GUI to load the result into the viewer
-
-Supervoxel Calculation
-* Modify supervoxel parameters, choose feature to use
-* Run calculation, which updates the workspace 
-* Use the GUI to load the result into the viewer
-    
-
-The client and the server are completely separate and communicate via the hug api.
-
-Within the client, PyQT Signals and Slots. 
-
-The application state is in scfg ("survos config").
-
-
-# Plugins
-
-Features
-
-Regions 
-
-Annotations
-
-# Pipeline
-
-A pipeline is to provide a simple, unified interface to several different types of operations.
-Ops are currently fufilled by a function that takes and returns a pipeline payload.
-This is meant to reflect operations that can occur to the layer stack in the gui or to a workspace on the server.
-
-Example ops are: a layer of points is processed to generate another layer of points. This would be a vector to vector 
-operation. Or a layer of points can be processed into a raster mask, a vector-to-raster operation.
-A common prediction task involves taking an annotation volume and an image volume and producing a prediction volume,
-a (R,R) -> R operation. A detection task takes an image and produce a set of points or other geometry (R->V)
-
-## List of ops
-(V: Vector, R: Raster)
-
-* V->V
-    - Spatial clustering
-    - Cropping and transformation
-* V->R
-    - Mask generation
-* R->V
-    - Detection
-* R->R
-    - Segmentation
-
-# ROI
-
-Pipeline roi: a pipeline ROI allows for a small region to be run through a pipeline for testing
-
-
-TODO: Integration of Viewer roi<->workspace roi so
-
-* viewer can view a smaller ROI of the workspace
-*  processing (e.g. on server) can be tested on smaller ROI
-
-
-TODO: An example of the client having a Thumbnail or slice result
-
-
-# Launcher and DataModel
-
-
-
-
-# Datasets
-
-# 

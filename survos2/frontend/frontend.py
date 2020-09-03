@@ -21,11 +21,11 @@ import survos2.api.workspace as ws
 from survos2.frontend.gui_napari import NapariWidget
 from survos2.frontend.datawidgets import TableWidget, SmallVolWidget 
 from survos2.frontend.controlpanel import ButtonPanelWidget, PluginPanelWidget
-from survos2.frontend.control import DataModel
+from survos2.model import DataModel
 from survos2.frontend.control.launcher import Launcher
 from survos2.frontend.modal import ModalManager
 from survos2.frontend.classic_views import ViewContainer
-from survos2.frontend.pipeline import roi_gui, pipeline_gui, workspace_gui
+from survos2.frontend.magicgui_widgets import roi_gui, pipeline_gui, workspace_gui
 from survos2.entity.entities import make_entity_df
 from survos2.entity.anno import geom
 from survos2.entity.sampler import sample_roi, sample_bvol, crop_vol_in_bbox, crop_vol_and_pts_centered
@@ -35,12 +35,6 @@ from survos2.improc.utils import DatasetManager
 from survos2.config import Config 
 
 
-
-fmt = "{time} - {name} - {level} - {message}"
-logger.remove() # remove default logger
-logger.add(sys.stderr, level="DEBUG")
-#logger.add(sys.stderr, level="ERROR", format=fmt)  #minimal stderr logger
-#logger.add("logs/main.log", level="DEBUG", format=fmt) #compression='zip')
 
 
 def update_ui():
@@ -89,20 +83,26 @@ def setup_entity_table(viewer, cData):
     return entity_layer, tabledata
 
 
-        
+def hex_string_to_rgba(hex_string):
+    hex_value = hex_string.lstrip('#')
+    rgba_array = np.append(np.array([int(hex_value[i:i+2], 16) for i in (0, 2, 4)]), 255.0) / 255.0
+    return rgba_array
+
 def frontend(cData):
 
     logger.info(f"Connected to launcher {Launcher.g.connected}")    
     default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
     Launcher.g.set_remote(default_uri)
-    #Launcher.g.reconnect()  
     
     with napari.gui_qt():
-        viewer = napari.Viewer()
-        viewer.theme = 'light'
-
+        viewer = napari.Viewer(title="SuRVoS")
+        viewer.theme = 'dark'
+        
+        # remove in order to rearrange standard Napari layer widgets
+        #viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerList)
+        #viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerControls)
+        
         # Load data into viewer
-
         viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])   
         #labels_from_pts = viewer.add_labels(cData.vol_anno, name='labels')
         #labels_from_pts.visible = False
@@ -114,14 +114,10 @@ def frontend(cData):
         logger.debug("Creating entities.")    
         entity_layer, tabledata = setup_entity_table(viewer, cData)
 
-        #pipeline_gui_widget = pipeline_gui.Gui()
-        #viewer.window.add_dock_widget(pipeline_gui_widget, area='left')
-        #viewer.layers.events.changed.connect(lambda x: pipeline_gui_widget.refresh_choices())
-        #pipeline_gui_widget.refresh_choices()
-
         viewer.dw = AttrDict()
         viewer.dw.bpw = ButtonPanelWidget()        
         viewer.dw.ppw = PluginPanelWidget()
+        viewer.dw.ppw.setMinimumSize(QSize(400, 500))
 
         viewer.dw.table_control = TableWidget()        
         viewer.dw.table_control.set_data(tabledata)
@@ -168,71 +164,15 @@ def frontend(cData):
 
         def processEvents(x):
             logger.info(f"Received event {x}")
-            
 
-            # crop the vol, apply the pipeline, display the result in the roi viewer and add
-            # an image that is blank except for the roi region back to the viewer
-            # when the pipeline is ready to be applied to the whole image, set the 
-            # roi to the size of the image and reapply
+            if x['data'] == 'view_pipeline':
+                logger.debug(f"view_annotation {x['pipeline_id']}")
 
-            if x['data']=='pipeline':
-                logger.info(f"Pipeline: {cData.scfg['pipeline_option']}")
-        
-                pipeline = Pipeline(cData.scfg.pipeline_ops)
-                pipeline.init_payload(p)
-                process_pipeline(pipeline)
-                result = pipeline.get_result()
-
-                viewer.add_labels(result.layers['total_mask'], name='Masks')
-                viewer.add_labels(result.superregions.supervoxel_vol, name='SR')
-
-            if x['data']=='oldpipeline':                 
-                    if cData.scfg['pipeline_option']=='saliency_pipeline':
-                        logger.info("Saliency pipeline")
-                        models = {}
-                        models['saliency_model'] = setup_cnn_model()
-
-                        patch = Patch({'in_array': cropped_vol},
-                                precropped_pts,
-                                None)
-
-                        viewer.add_image(payload.layers['saliency_bb'], name='BB', colormap='cyan')
-                                                
-                    elif cData.scfg['pipeline_option']=='prediction_pipeline':
-                        logger.info(f"Pipeline: {cData.scfg['pipeline_option']}")
-                        patch = Patch(
-                                {'in_array': cropped_vol},
-                                precropped_pts)
-                        
-                        pipeline_ops = ['make_masks', 'make_features', 'make_sr', 'make_seg_sr', 'make_seg_cnn']
-                        pipeline = Pipeline(cData.scfg.pipeline.pipeline_ops)
-                        pipeline.init_payload(p)
-                        process_pipeline(pipeline)
-                        result = pipeline.get_result()
-
-                        viewer.add_labels(result.layers['total_mask'], name='Masks')
-                        viewer.add_labels(result.superregions.supervoxel_vol, name='SR')
-
-                    elif cData.scfg['pipeline_option']=='mask_pipeline':
-                        logger.info("Mask pipeline")
-                        payload = Patch({'in_array': cropped_vol}, 
-                                        precropped_pts)
-                        pipeline_ops = ['make_masks',]
-                        result = process_pipeline(pipeline)
-                        viewer.add_labels(result.layers['core_mask'], name='Masks')
-                    
-                    result = payload.layers['result']
-                    logger.info(f"Produced pipeline result: {result.shape}")                
-                    viewer.dw.smallvol_control.set_vol(result)
-                    result = np.zeros_like(cData.vol_stack[0])
-                    
-                    result[crop_coord[0]:crop_coord[0]+precropped_vol_size[0],
-                    crop_coord[1]:crop_coord[1]+precropped_vol_size[1],
-                    crop_coord[2]:crop_coord[2]+precropped_vol_size[2]] = payload.layers['result']
-                    
-                    viewer.add_image(result, name='Pipeline Result')
-                    
-                    dlg.setValue(10)         
+                src = DataModel.g.dataset_uri(x['pipeline_id'], group='pipeline')
+                with DatasetManager(src, out=None, dtype='uint32', fillvalue=0) as DM:
+                    src_dataset = DM.sources[0]
+                    src_arr = src_dataset[:]
+                    viewer.add_labels(src_arr, name=x['pipeline_id'])
 
             elif x['data'] == 'view_annotations':
                 logger.debug(f"view_annotation {x['level_id']}")
@@ -241,7 +181,19 @@ def frontend(cData):
                 with DatasetManager(src, out=None, dtype='uint32', fillvalue=0) as DM:
                     src_dataset = DM.sources[0]
                     src_arr = src_dataset[:]
-                    viewer.add_labels(src_arr, name=x['level_id'])
+
+                result = Launcher.g.run('annotations', 'get_levels', workspace=DataModel.g.current_workspace)
+                logger.debug(f"Result of regions existing: {result}")
+                
+                if result:
+                    for r in result:
+                        level_name = r['name']
+                        if r['kind'] == 'level':
+                            cmapping = {}
+                            for k, v in r['labels'].items():
+                                cmapping[int(k)] = hex_string_to_rgba(v['color'])
+                    
+                    viewer.add_labels(src_arr, name=x['level_id'],  color=cmapping)
                     
             elif x['data'] == 'view_feature':
                 logger.debug(f"view_feature {x['feature_id']}")
@@ -259,10 +211,10 @@ def frontend(cData):
                 #DataModel.g.current_workspace = test_workspace_name
                 src = DataModel.g.dataset_uri(x['region_id'], group='regions')
 
-                with DatasetManager(src, out=None, dtype='float32', fillvalue=0) as DM:
+                with DatasetManager(src, out=None, dtype='uint32', fillvalue=0) as DM:
                     src_dataset = DM.sources[0]
                     src_arr = src_dataset[:]
-                    viewer.add_image(src_arr, name=x['region_id'])
+                    viewer.add_labels(src_arr, name=x['region_id'])
                     
             elif x['data']=='flip_coords':
                 logger.debug(f"flip coords {x['axis']}")
@@ -303,7 +255,6 @@ def frontend(cData):
                     cData.entities = make_entity_df(pts, flipxy=False)
                     entity_layer, tabledata = setup_entity_table(viewer, cData)
                     
-            
             elif x['data']=='show_roi':
                 selected_roi_idx = viewer.dw.table_control.w.selected_row 
                 logger.info(f"Showing ROI {x['selected_roi']}")
@@ -312,17 +263,23 @@ def frontend(cData):
                 viewer.dw.smallvol_control.set_vol(vol1)
                 logger.info(f"Sampled ROI vol of shape: {vol1.shape}")
         
+            elif x['data']=='refresh':
+                logger.debug("Refreshing plugin panel")
+                viewer.dw.ppw.setup()
         #
         # Add widgets to viewer
         #
 
-        #bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')                
-        viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x)  )  
+        # Plugin Panel widget
         viewer.dw.ppw.clientEvent.connect(lambda x: processEvents(x)  )  
         
         # todo: fix hack connection
         cData.scfg.ppw = viewer.dw.ppw
         
+        # Button panel widget 
+        #bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')                
+        viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x)  )  
+                
         #viewer.dw.table_control.w.events.subscribe(lambda x: processEvents(x)  ) 
         viewer.dw.table_control.clientEvent.connect(lambda x: processEvents(x)  ) 
 
@@ -332,26 +289,18 @@ def frontend(cData):
 
         #roi_gui_widget = roi_gui.Gui()
         #viewer.window.add_dock_widget(roi_gui_widget, area='top')
-        # sync dropdowns with layer model
         #viewer.layers.events.changed.connect(lambda x: roi_gui_widget.refresh_choices())
         #roi_gui_widget.refresh_choices()
-
-        #workspace_gui_widget = workspace_gui.Gui()
-        #viewer.window.add_dock_widget(workspace_gui_widget, area='left')
-        #viewer.layers.events.changed.connect(lambda x: workspace_gui_widget.refresh_choices())
-        #workspace_gui_widget.refresh_choices()
- 
-        #sv_gui_widget = sv_gui.Gui()
-        #viewer.window.add_dock_widget(sv_gui_widget, area='right')
-        #viewer.layers.events.changed.connect(lambda x: sv_gui_widget.refresh_choices())
-        #sv_gui_widget.refresh_choices()
- 
-        #prediction_gui_widget = prediction_gui.Gui()
-        #viewer.window.add_dock_widget(prediction_gui_widget, area='right')
-        #viewer.layers.events.changed.connect(lambda x: prediction_gui_widget.refresh_choices())
-        #prediction_gui_widget.refresh_choices()
-
-
+        #workspace_layer_controls_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer.layerButtons, area='right')
+        #workspace_layer_controls_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer.viewerButtons, area='left')
+                
+        #from survos2.frontend.views.layer_manager import WorkspaceLayerManager
+        #workspace_layer_manager_widget = WorkspaceLayerManager()
+        #viewer.window.add_dock_widget(workspace_layer_manager_widget, area='right')
+        
+        #workspace_layer_controls_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer.dockLayerControls, area='left')
+        #workspace_layer_manager_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer.dockLayerList, area='left')
+        
         #
         # Tabs
         #
@@ -361,13 +310,10 @@ def frontend(cData):
         tab1 = QWidget()
         tab2 = QWidget()
         tab3 = QWidget()
-        tab4 = QWidget()
-        tab5 = QWidget()
 
-        tabwidget.addTab(tab1, "Workspace")
-        tabwidget.addTab(tab2, "Segment")
-        tabwidget.addTab(tab3, "Entities")
-        #tabwidget.addTab(tab4, "Close up")
+        tabwidget.addTab(tab1, "Segmentation")
+        tabwidget.addTab(tab2, "Objects")
+        #tabwidget.addTab(tab2, "Analyze")
 
         tab1.layout = QVBoxLayout()
         tab1.setLayout(tab1.layout)
@@ -375,15 +321,23 @@ def frontend(cData):
         
         tab2.layout = QVBoxLayout()
         tab2.setLayout(tab2.layout)
-        #tab2.layout.addWidget(prediction_gui_widget)
-
-        tab3.layout = QVBoxLayout()
-        tab3.setLayout(tab3.layout)
-        tab3.layout.addWidget(viewer.dw.table_control.w)
-        tab3.layout.addWidget(viewer.dw.smallvol_control.imv)
+        tab2.layout.addWidget(viewer.dw.table_control.w)
+        tab2.layout.addWidget(viewer.dw.smallvol_control.imv)
 
         viewer.window.add_dock_widget(tabwidget, area='right')
-            
+
+        workspace_gui_widget = workspace_gui.Gui()
+        workspace_gui_dockwidget = viewer.window.add_dock_widget(workspace_gui_widget, area='left')
+        viewer.layers.events.changed.connect(lambda x: workspace_gui_widget.refresh_choices())
+        workspace_gui_widget.refresh_choices()
+
+        
+        def coords_in_view(coords, image_shape):
+            if coords[0] > 0 and coords[1] > 0:
+                return True
+            else:
+                return False
+        
         from survos2.entity.sampler import sample_region_at_pt
         sample_region_at_pt(cData.vol_stack[0], [50,50,50], (32,32,32))
         @entity_layer.mouse_drag_callbacks.append
@@ -391,9 +345,10 @@ def frontend(cData):
             logger.debug(f"Clicked: {layer}, {event}")
             coords = np.round(layer.coordinates).astype(int)
             logger.debug(f"Sampling region at ")
-            vol1 = sample_region_at_pt(cData.vol_stack[0], coords, (32,32,32))
-            logger.debug(f'Sampled from {coords} a vol of shape {vol1.shape}')
-            viewer.dw.smallvol_control.set_vol(np.transpose(vol1, (0,2,1)))            
+            if coords_in_view(cData.vol_stack[0].shape, coords):
+                vol1 = sample_region_at_pt(cData.vol_stack[0], coords, (32,32,32))
+                logger.debug(f'Sampled from {coords} a vol of shape {vol1.shape}')
+                viewer.dw.smallvol_control.set_vol(np.transpose(vol1, (0,2,1)))            
             #msg = f'Displaying vol of shape {vol1.shape}'
             
 

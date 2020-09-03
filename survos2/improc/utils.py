@@ -455,7 +455,6 @@ def map_blocks(func, *args, chunk=CHUNK, chunk_size=CHUNK_SIZE, pad=CHUNK_PAD,
         t0 = time.time()
 
     with DatasetManager(*args, out=out, dtype=out_dtype, fillvalue=out_fillvalue) as DM:
-
         datasets = _chunk_datasets(DM.sources, chunk=chunk,
                                    chunk_size=chunk_size, stack=stack)
         datasets = _preprocess_datasets(datasets, chunk=chunk, scale=scale,
@@ -486,8 +485,7 @@ class DatasetManager(object):
         self._closed = False
         self._sources = []
         self._out = out
-        #import pdb; pdb.set_trace()
-
+        
         for source in args:
             if is_dataset_uri(source):
                 source = dataset_from_uri(source, mode=src_mode)
@@ -502,13 +500,11 @@ class DatasetManager(object):
             self._out = out
 
     def __enter__(self):
-        #logger.info(f"Entered DatasetManager context, sources: {len(self._sources)} Out: {self._out}")
         if self._closed:
             raise RuntimeError('DatasetManager has already been closed.')
         return self
 
     def __exit__(self, *args):
-        #logger.info("Leaving DatasetManager context")
         for f in self._sources + [self._out]:
             if f is not None and hasattr(f, 'close'):
                 f.close()

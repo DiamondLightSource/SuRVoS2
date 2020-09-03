@@ -81,7 +81,6 @@ def get_centered_vol_in_bbox(image_volume, slice_start, slice_end, x,y,w,h):
 def crop_vol_in_bbox(image_volume, slice_start, slice_end, x,y,w,h):
     return image_volume[slice_start:slice_end, x:x+w, y:y+h]
 
-
 def get_centered_img_in_bbox(image_volume, sliceno, x, y, w, h):
     w = w // 2
     h = h // 2
