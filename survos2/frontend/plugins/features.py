@@ -7,15 +7,29 @@ from qtpy.QtCore import QSize, Signal
 
 from survos2.frontend.components import *
 from survos2.frontend.plugins.base import *
-from survos2.frontend.control import DataModel
+from survos2.model import DataModel
 from loguru import logger
 
 #logger = get_logger()
 from survos2.frontend.model import ClientData
 
-_FeatureNotifier = PluginNotifier()
 
 from survos2.frontend.control import Launcher
+from survos2.frontend.plugins.plugins_components import SourceComboBox
+
+_FeatureNotifier = PluginNotifier()
+
+class FeatureComboBox(LazyComboBox):
+
+    def __init__(self, full=False, parent=None):
+        self.full = full
+        super().__init__(header=(None, 'None'), parent=parent)
+        _FeatureNotifier.listen(self.update)
+
+    def fill(self):
+        
+        _fill_features(self, full=self.full)
+
 
 def _fill_features(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
@@ -24,7 +38,6 @@ def _fill_features(combo, full=False, filter=True, ignore=None):
         for fid in result:
             if fid != ignore:
                 combo.addItem(fid, result[fid]['name'])
-
 
 @register_plugin
 class FeaturesPlugin(Plugin):
@@ -65,9 +78,7 @@ class FeaturesPlugin(Plugin):
                 for f in [p for p in result if p['category'] == category]:
                     self.feature_params[f['name']] = f['params']
                     self.feature_combo.addItem(f['name'])
-
         
-
     def add_feature(self, idx):
         if idx == 0:
             return
@@ -76,12 +87,6 @@ class FeaturesPlugin(Plugin):
 
         params = dict(feature_type=feature_type, workspace=True)
         result = Launcher.g.run('features', 'create', **params)
-
-        #params['id'] = 0
-        #params['name'] = 'carl'
-        #params['kind'] = 'feature'
-        #result = {}
-        #result[0] = params
 
         if result:
             fid = result['id']
@@ -165,14 +170,14 @@ class FeatureCard(Card):
             self.add_row(HWidgets(None, name, feature, Spacing(35)))
 
     def _add_view_btn(self):
-        btn_view = PushButton('View', accent=True)
-        btn_view.clicked.connect(self.view_feature)
-        self.add_row(HWidgets(None, btn_view, Spacing(35)))
+        view_btn = PushButton('View', accent=True)
+        view_btn.clicked.connect(self.view_feature)
+        self.add_row(HWidgets(None, view_btn, Spacing(35)))
 
     def _add_compute_btn(self):
-        btn_compute = PushButton('Compute', accent=True)
-        btn_compute.clicked.connect(self.compute_feature)
-        self.add_row(HWidgets(None, btn_compute, Spacing(35)))
+        compute_btn = PushButton('Compute', accent=True)
+        compute_btn.clicked.connect(self.compute_feature)
+        self.add_row(HWidgets(None, compute_btn, Spacing(35)))
 
     def update_params(self, params):
         src = params.pop('source', None)
@@ -198,17 +203,17 @@ class FeatureCard(Card):
         src_grp = None if self.cmb_source.currentIndex() == 0 else 'features'
         
         src = DataModel.g.dataset_uri(self.cmb_source.value(), group=src_grp)
-        logger.info(f"Setting src to {self.cmb_source.value()} ") 
+        logger.info(f"Setting src: {self.cmb_source.value()} ") 
         
         dst = DataModel.g.dataset_uri(self.feature_id, group='features')
         
-        logger.info(f"Setting dst to {self.feature_id}")        
+        logger.info(f"Setting dst: {self.feature_id}")        
         logger.info(f"widgets.items() {self.widgets.items()}")
 
         all_params = dict(src=src, dst=dst, modal=False)
         all_params.update({k: v.value() for k, v in self.widgets.items()})
         
-        logger.info(f"Computing features {self.feature_type} {all_params}")
+        logger.info(f"Computing features: {self.feature_type} {all_params}")
         Launcher.g.run('features', self.feature_type, **all_params)
 
     def card_title_edited(self, newtitle):

@@ -9,15 +9,13 @@ from survos2.frontend.views.base import register_view
 from survos2.frontend.components import *
 
 from survos2.frontend.utils import resource
-#from survos2.ui.qt.qtcompat import QtCore, QtWidgets, QtGui
-
-#from qtpy import QtWidgets, QtCore, QtGui
 
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize, Signal
 
 
-from survos2.frontend.control import Launcher, DataModel
+from survos2.frontend.control import Launcher
+from survos2.model import DataModel
 
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.regions import RegionComboBox

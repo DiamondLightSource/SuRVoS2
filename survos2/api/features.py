@@ -22,9 +22,16 @@ __feature_fill__ = 0
 from loguru import logger
 
 
-@hug.get() #@save_metadata
-def total_variation(src:DataURI, dst:DataURI, lamda:Float=10,
-                    max_iter:Int=100) -> 'Denoising':
+
+@hug.get() 
+@save_metadata
+def viewer(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Viewer':
+    pass
+
+@hug.get() 
+@save_metadata
+def total_variation(src: DataURI, dst: DataURI, lamda: Float = 10,
+                    max_iter: Int = 100) -> 'Denoising':
     """
     API wrapper around `survos2.improc.features.tv.tvdenoising3d`.
     """
@@ -32,20 +39,23 @@ def total_variation(src:DataURI, dst:DataURI, lamda:Float=10,
     map_blocks(tvdenoising3d, src, out=dst, lamda=lamda, max_iter=max_iter,
                normalize=True)
 
-@hug.get() #@save_metadata
-def spatial_gradient_3d(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Edges':
+@hug.get() 
+@save_metadata
+def spatial_gradient_3d(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Edges':
     from ..server.filtering import spatial_gradient_3d
     map_blocks(spatial_gradient_3d, src, out=dst, sigma=sigma, normalize=True)
 
 
-@hug.get() #@save_metadata
-def gaussian_blur(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Denoising':
+@hug.get() 
+@save_metadata
+def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Denoising':
     from ..server.filtering import gaussian_blur
     map_blocks(gaussian_blur, src, out=dst, sigma=sigma, normalize=True)
 
 
-@hug.get() #@save_metadata
-def gaussian(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Denoising':
+@hug.get() 
+@save_metadata
+def gaussian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Denoising':
     """
     API wrapper around `survos2.improc.features.gauss.gaussian`.
     """
@@ -54,19 +64,22 @@ def gaussian(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Denoising':
 
 
 @hug.get()
-def laplacian(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Edges':
+@save_metadata
+def laplacian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Edges':
     from ..server.filtering import ndimage_laplacian
     map_blocks(ndimage_laplacian, src, out=dst, sigma=sigma, normalize=True)
 
 
 @hug.get()
-def simple_invert(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Simple':
+@save_metadata
+def simple_invert(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Simple':
     from ..server.filtering import simple_invert
     map_blocks(simple_invert, src, out=dst, sigma=sigma, normalize=True)
 
 
-@hug.get()#@save_metadata
-def gaussian_center(src:DataURI, dst:DataURI, sigma:FloatOrVector=1) -> 'Denoising':
+@hug.get()
+@save_metadata
+def gaussian_center(src: DataURI, dst: DataURI, sigma: FloatOrVector=1) -> 'Denoising':
     """
     API wrapper around `survos2.improc.features.gauss.gaussian_center`.
     """
@@ -89,6 +102,7 @@ def create(workspace:String, feature_type:String):
     ds = ws.auto_create_dataset(workspace, feature_type, __feature_group__,
                                 __feature_dtype__, fill=__feature_fill__)
     ds.set_attr('kind', feature_type)
+    logger.debug(f"Created (empty) feature of kind {feature_type}")
     return dataset_repr(ds)
 
 

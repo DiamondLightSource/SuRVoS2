@@ -27,42 +27,47 @@ def to_label(idx=0, name='Label', color='#000000', visible=True, **kwargs):
 
 
 @hug.get()
-def add_level(workspace:String):
+def add_level(workspace: String):
     ds = ws.auto_create_dataset(workspace, 'level', __group_pattern__,
                                 __level_dtype__, fill=__level_fill__,
                                 chunks=CHUNK_SIZE)
     print(ds, type(ds))
     ds.set_attr('kind', 'level')
     ds.set_attr('modified', [0] * ds.total_chunks)
+    
     return dataset_repr(ds)
 
 
 @hug.local()
-def get_level(workspace:String, level:String, full:SmartBoolean=False):
+def get_level(workspace: String, level: String, full: SmartBoolean=False):
+    
     if full == False:
         return ws.get_dataset(workspace, level, group=__group_pattern__)
+    
     return ws.get_dataset(workspace, level)
 
 
 @hug.get()
 @hug.local()
-def get_levels(workspace:String, full:SmartBoolean=False):
+def get_levels(workspace: String, full: SmartBoolean=False):
     datasets = ws.existing_datasets(workspace, group=__group_pattern__)
     datasets = [dataset_repr(v) for k, v in datasets.items()]
+    
     if full:
         for ds in datasets:
             ds['id'] = '{}/{}'.format(__group_pattern__, ds['id'])
+    
     return datasets
 
 
 @hug.get()
-def rename_level(workspace:String, level:String, name:String, full:SmartBoolean=False):
+def rename_level(workspace: String, level: String, name: String, full: SmartBoolean=False):
     ds = get_level(workspace, level, full)
     ds.set_metadata('name', name)
 
 
 @hug.get()
-def delete_level(workspace:String, level:String, full:SmartBoolean=False):
+def delete_level(workspace: String, level: String, full: SmartBoolean=False):
     if full:
         ws.delete_dataset(workspace, level)
     else:
@@ -70,7 +75,7 @@ def delete_level(workspace:String, level:String, full:SmartBoolean=False):
 
 
 @hug.get()
-def add_label(workspace:String, level:String, full:SmartBoolean=False):
+def add_label(workspace: String, level: String, full: SmartBoolean=False):
     from survos2.improc.utils import map_blocks
     from survos2.api.annotate import erase_label
 
@@ -90,8 +95,10 @@ def add_label(workspace:String, level:String, full:SmartBoolean=False):
     new_label = to_label(idx=idx)
     labels[idx] = new_label
     ds.set_metadata('labels', labels)
+    
     # Erase label from dataset
     erase_label(ds, label=idx)
+
     return new_label
 
 
@@ -118,7 +125,7 @@ def update_label(workspace:String, level:String, idx:Int, name:String=None,
 
 
 @hug.get()
-def delete_label(workspace:String, level:String, idx:Int, full:SmartBoolean=False):
+def delete_label(workspace: String, level: String, idx: Int, full: SmartBoolean=False):
     ds = get_level(workspace, level, full)
     labels = ds.get_metadata('labels', {})
     if idx in labels:
@@ -129,16 +136,16 @@ def delete_label(workspace:String, level:String, idx:Int, full:SmartBoolean=Fals
 
 
 @hug.get()
-def annotate_voxels(workspace:String, level:String, slice_idx:Int,
-                    yy:IntList, xx:IntList, label:Int, full:SmartBoolean=False):
+def annotate_voxels(workspace: String, level: String, slice_idx: Int,
+                    yy: IntList, xx: IntList, label: Int, full: SmartBoolean=False):
     from survos2.api.annotate import annotate_voxels as annotate
     ds = get_level(workspace, level, full)
     annotate(ds, slice_idx=slice_idx, yy=yy, xx=xx, label=label)
 
 
 @hug.get()
-def annotate_regions(workspace:String, level:String, region:DataURI,
-                     r:IntList, label:Int, full:SmartBoolean=False):
+def annotate_regions(workspace: String, level: String, region: DataURI,
+                     r: IntList, label: Int, full: SmartBoolean=False):
     from survos2.api.annotate import annotate_regions as annotate
     ds = get_level(workspace, level, full)
     region = dataset_from_uri(region, mode='r')
@@ -146,7 +153,7 @@ def annotate_regions(workspace:String, level:String, region:DataURI,
 
 
 @hug.get()
-def annotate_undo(workspace:String, level:String, full:SmartBoolean=False):
+def annotate_undo(workspace: String, level: String, full: SmartBoolean=False):
     from survos2.api.annotate import undo_annotation
     ds = get_level(workspace, level, full)
     undo_annotation(ds)

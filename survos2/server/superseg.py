@@ -19,144 +19,30 @@ TODO
 
 import os
 import sys
-from enum import Enum
+from functools import partial
 from typing import List
 import numpy as np
 import pandas as pd
-
-import joblib
-import pandas as pd
-import glob
-
-import h5py
-import ntpath
-import scipy
-import yaml
-from numba import jit
-from collections import namedtuple
-
-from functools import partial
-import numpy as np
-import logging as log
-import ast
-
-import networkx as nx
-
 import sklearn
-from sklearn import datasets
-from sklearn import metrics
-from sklearn import datasets
-from sklearn import svm
-from sklearn.semi_supervised import label_propagation
-from sklearn.datasets import fetch_openml
-from sklearn.model_selection import train_test_split
-from sklearn.semi_supervised import label_propagation
-import sklearn
-from sklearn import cluster, datasets, mixture
-from sklearn.cluster import SpectralClustering
-
-from sklearn.cluster import KMeans
-from sklearn.cluster import DBSCAN
-from sklearn.datasets import make_blobs
-from sklearn import datasets
-from sklearn.datasets import load_digits
-from sklearn.datasets import fetch_openml
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.neighbors import kneighbors_graph
-from sklearn import svm
-from sklearn.datasets import make_moons, make_blobs
-from sklearn.covariance import EllipticEnvelope
-from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.metrics.pairwise import pairwise_distances
-from sklearn import datasets
+from loguru import logger
+from sklearn.decomposition import PCA, IncrementalPCA
+from sklearn.ensemble import (AdaBoostClassifier, ExtraTreesClassifier,
+                              GradientBoostingClassifier, IsolationForest,
+                              RandomForestClassifier)
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import svm
-from sklearn import metrics
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import accuracy_score
-from sklearn.semi_supervised import label_propagation
-from sklearn import mixture
-
-from sklearn.decomposition import PCA, IncrementalPCA
-from sklearn.preprocessing import StandardScaler
-from sklearn.random_projection import SparseRandomProjection
-from sklearn.ensemble import ExtraTreesClassifier, \
-                             RandomForestClassifier, \
-                             AdaBoostClassifier,\
-                             GradientBoostingClassifier
 from sklearn.svm import SVC
-from sklearn.cluster import MiniBatchKMeans
-
 from sklearn.linear_model import SGDClassifier
-
-from sklearn.datasets import make_blobs
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.cluster import SpectralClustering
-from sklearn import cluster, datasets, mixture
-from sklearn.neighbors import kneighbors_graph
-
-from sklearn import svm
-from sklearn.datasets import make_moons, make_blobs
-from sklearn.covariance import EllipticEnvelope
-from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.metrics.pairwise import pairwise_distances
-
-from skimage.segmentation import relabel_sequential
-from skimage import img_as_ubyte, img_as_float
-from skimage import io
-
-from scipy import ndimage
-from scipy.stats import entropy
-
-
-
-from loguru import logger
-
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.random_projection import SparseRandomProjection
+from survos2.server.features import features_factory
+from survos2.server.model import SRData, SRPrediction
+from survos2.server.region_labeling import rlabels
+from survos2.server.supervoxels import invrmap, superregion_factory
+from survos2.server.config import scfg
 #
 # SuRVoS 2 imports
 #
-
-from functools import partial
-
-from survos2.improc import map_blocks
-from survos2.improc.features import gaussian, tvdenoising3d
-from survos2.improc.regions.rag import create_rag
-from survos2.improc.regions.slic import slic3d
-from survos2.improc.segmentation import _qpbo as qpbo
-from survos2.improc.segmentation.appearance import refine
-from survos2.improc.segmentation.appearance import train, predict, refine, invrmap
-from survos2.improc.segmentation.mappings import rmeans, normalize
-from survos2.io import dataset_from_uri
-from survos2.model import Workspace, Dataset
-from survos2.utils import decode_numpy, encode_numpy
-from survos2.api.utils import save_metadata, dataset_repr
-from survos2.helpers import AttrDict
-
-from survos2.improc import map_blocks
-from survos2.improc.features import gaussian, tvdenoising3d
-from survos2.improc.regions.rag import create_rag
-from survos2.improc.regions.slic import slic3d
-from survos2.improc.segmentation import _qpbo as qpbo
-from survos2.improc.segmentation.appearance import refine
-from survos2.improc.segmentation.appearance import train, predict, refine, invrmap
-from survos2.improc.segmentation.mappings import rmeans, normalize
-from survos2.io import dataset_from_uri
-from survos2.model import Workspace, Dataset
-from survos2.utils import decode_numpy, encode_numpy
-from survos2.api.utils import save_metadata, dataset_repr
-from survos2.helpers import AttrDict
-import survos2.api.workspace as ws
-
-from survos2.server.features import prepare_features, generate_features
-from survos2.server.supervoxels import prepare_supervoxels, generate_supervoxels
-from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-from survos2.frontend.model import ClientData
-
-from survos2.server.model import SRData, SRPrediction
-from survos2.server.region_labeling import rlabels
 
 
 def obtain_classifier(clf_p):
@@ -240,7 +126,7 @@ def predict(X, clf, proj=None, label=True, probs=False, log=False):
 
 
 
-def sr_prediction(features_stack, annotation_volume, sr : SRData, predict_params):
+def _sr_prediction(features_stack, annotation_volume, sr : SRData, predict_params):
     """Prepare superregions and predict
     
     Arguments:
@@ -291,3 +177,21 @@ def sr_prediction(features_stack, annotation_volume, sr : SRData, predict_params
 
 
 
+
+def sr_predict(supervoxel_image: np.ndarray, anno_image: np.ndarray, 
+                feature_images: List[np.ndarray]) -> np.ndarray:   
+   
+    feats = features_factory(feature_images)
+    logger.info(f"Number of features calculated: {len(feats.features_stack)}")
+    
+    sr = superregion_factory(supervoxel_image.astype(np.uint32), feats.features_stack)
+    logger.info(f"Calculated superregions {sr}")
+    
+    srprediction = _sr_prediction(feats.features_stack,
+                                anno_image.astype(np.uint16),
+                                sr,
+                                scfg.pipeline['predict_params'])
+    
+    logger.info(f"Made sr prediction {srprediction}")
+    
+    return srprediction.prob_map

@@ -15,6 +15,7 @@ String = wrap_output_type(hug.types.Text(), 'String')
 DataURI = wrap_output_type(hug.types.Text(), 'DataURI')
 DataURIList = wrap_output_type(hug.types.DelimitedList[str](','), 'DataURIList')
 
+
 SmartBoolean = wrap_output_type(hug.types.SmartBoolean(), 'SmartBoolean')
 Int = wrap_output_type(hug.types.number, 'Int')
 Float = wrap_output_type(hug.types.float_number, 'Float')

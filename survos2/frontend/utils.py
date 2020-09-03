@@ -14,7 +14,7 @@ import time
 
 def resource(*args):
     rdir = os.path.dirname(__file__)
-    return os.path.normpath(os.path.join(rdir, 'resources', *args))
+    return os.path.normpath(os.path.join(rdir, 'frontend/resources', *args))
 
 def sample_from_bw(bwimg, sample_prop):
     pp = nonzero(bwimg)

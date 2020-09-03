@@ -41,7 +41,7 @@ from survos2.entity.entities import make_entity_df
 from survos2 import survos
 import survos2.frontend.control
 from survos2.frontend.control import Launcher
-from survos2.frontend.control import DataModel
+from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
 from survos2.frontend.model import ClientData
 from survos2.entity.sampler import crop_vol_and_pts_centered
@@ -92,8 +92,8 @@ def init_ws(project_file, ws_name):
 
 def init_proj(wparams, precrop=False):    
 
-    DataModel.g.current_workspace = wparams.workspace
-    logger.debug(f"Set current workspace to {DataModel.g.current_workspace}")
+    #DataModel.g.current_workspace = wparams.workspace
+    #logger.debug(f"Set current workspace to {DataModel.g.current_workspace}")
 
     entities_df = pd.read_csv(os.path.join(wparams.project_dir, wparams.entities_relpath))
     entities_df.drop(entities_df.columns[entities_df.columns.str.contains('unnamed', case = False)],axis = 1, inplace = True)
