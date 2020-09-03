@@ -96,7 +96,7 @@ def frontend(cData):
     
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
-        viewer.theme = 'dark'
+        viewer.theme = 'light'
         
         # remove in order to rearrange standard Napari layer widgets
         #viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerList)
