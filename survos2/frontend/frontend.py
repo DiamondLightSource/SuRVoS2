@@ -193,7 +193,7 @@ def frontend(cData):
                             for k, v in r['labels'].items():
                                 cmapping[int(k)] = hex_string_to_rgba(v['color'])
                     
-                    viewer.add_labels(src_arr, name=x['level_id']), color=cmapping)
+                    viewer.add_labels(src_arr, name=x['level_id'], color=cmapping)
                     
             elif x['data'] == 'view_feature':
                 logger.debug(f"view_feature {x['feature_id']}")
