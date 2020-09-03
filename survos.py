@@ -11,8 +11,8 @@ from loguru import logger
 
 from survos2.config import Config
 from survos2.utils import format_yaml
-from survos2.survos import init_api, run_command
-
+from survos2.survos import init_api, run_command, _parse_uri
+from survos2.frontend.control.launcher import Launcher
 default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
 
 #fmt = "{time} - {name} - {level} - {message}"
@@ -28,7 +28,8 @@ logger.add(sys.stderr, level="DEBUG", format=fmt, colorize=True)  #minimal stder
 
 @begin.subcommand
 def start_server(workspace:'Workspace path (full or chrooted) to load',
-            port:'port like URI to start the server at'=Config['api.port']):
+            server: 'URI to the remote SuRVoS API Server to start'):
+            #port:'port like URI to start the server at'=Config['api.port']):
     """
     Start a SuRVoS API Server listeting for requests.
     """
@@ -38,10 +39,14 @@ def start_server(workspace:'Workspace path (full or chrooted) to load',
     from survos2.model import DataModel
     DataModel.g.current_workspace = workspace
 
+    host, port = _parse_uri(server)
+    port = int(port)
+    print(f"host, port: {host} {port}")
+    resp = Launcher.g.set_remote(server)
+
     logger.debug(f"Started server on port {port} with workspace {workspace}")
 
     api, __plugins = init_api(return_plugins=True)
-    
     
     session_store = InMemoryStore()
     middleware = SessionMiddleware(session_store,
