@@ -10,10 +10,10 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize
 from survos2.frontend.plugins.base import *
-from survos2.frontend.control.model import DataModel
+from survos2.model import DataModel
 from survos2.frontend.control import Launcher
 from survos2.server.config import scfg
-
+from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 class RegionComboBox(LazyComboBox):
 
     def __init__(self, full=False, header=(None, 'None'), parent=None):
@@ -31,11 +31,6 @@ class RegionComboBox(LazyComboBox):
             for fid in result:
                 if result[fid]['kind'] == 'supervoxels':
                     self.addItem(fid, result[fid]['name'])
-            #self.addCategory('MegaVoxels')
-            #for fid in result:
-            #    if result[fid]['kind'] == 'megavoxels':
-            #        self.addItem(fid, result[fid]['name'])
-
 
 @register_plugin
 class RegionsPlugin(Plugin):
@@ -54,8 +49,6 @@ class RegionsPlugin(Plugin):
         self.existing_supervoxels = {}
         self.supervoxel_layout = VBox(margin=0, spacing=5)
         vbox.addLayout(self.supervoxel_layout)
-
-        #self(IconButton('fa.plus', 'Add MegaVoxel', accent=True))
 
     def add_supervoxel(self):
         params = dict(order=1, workspace=True)
@@ -91,7 +84,6 @@ class RegionsPlugin(Plugin):
             
             # Populate with new region if any
             for supervoxel in sorted(result):
-                print(f"Supervoxel: {supervoxel}")
                 
                 if supervoxel in self.existing_supervoxels:
                     continue
@@ -104,7 +96,7 @@ class RegionsPlugin(Plugin):
                     widget.update_params(params)
                     self.existing_supervoxels[svid] = widget
                 else:
-                    logger.warn('+ Skipping loading supervoxel: {}, {}'
+                    logger.debug('+ Skipping loading supervoxel: {}, {}'
                                 .format(svid, svname))
 
 
@@ -125,7 +117,7 @@ class SupervoxelCard(Card):
         self.svcompactness = LineEdit(parse=float, default=30)
         self.svcompactness.setMaximumWidth(250)
         self.compute_btn = PushButton('Compute')
-        self.btn_view = PushButton('View', accent=True)
+        self.view_btn = PushButton('View', accent=True)
 
         self.add_row(HWidgets('Source:', self.svsource, stretch=1))
         self.add_row(HWidgets('Shape:', self.svshape, stretch=1))
@@ -134,10 +126,10 @@ class SupervoxelCard(Card):
         self.add_row(HWidgets(None, self.compute_btn))
 
         
-        self.add_row(HWidgets(None, self.btn_view, Spacing(35)))
+        self.add_row(HWidgets(None, self.view_btn, Spacing(35)))
 
         self.compute_btn.clicked.connect(self.compute_supervoxels)
-        self.btn_view.clicked.connect(self.view_supervoxels)
+        self.view_btn.clicked.connect(self.view_supervoxels)
     
     
     def card_deleted(self):
@@ -154,7 +146,8 @@ class SupervoxelCard(Card):
 
     def view_supervoxels(self):
         logger.debug(f"Transferring supervoxels {self.svid} to viewer")
-        scfg.ppw.clientEvent.emit({'source': 'regions', 'data':'view_supervoxels', 'region_id': self.svid})
+        scfg.ppw.clientEvent.emit({'source': 'regions', 'data':'view_supervoxels', 
+                'region_id': self.svid})
 
     def compute_supervoxels(self):
         src = [DataModel.g.dataset_uri(s) for s in self.svsource.value()]

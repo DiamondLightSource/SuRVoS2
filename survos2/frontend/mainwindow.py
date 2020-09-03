@@ -1,7 +1,7 @@
 
 import os.path as op
 
-from .utils import resource
+#from .utils import resource
 from .qtcompat import QtWidgets, QtCore, QtGui
 from .plugins import list_plugins, get_plugin
 from .views import list_views, get_view
@@ -27,9 +27,14 @@ import napari
 
 logger = get_logger()
 
+def resource(*args):
+    rdir = os.path.dirname(__file__)
+    return os.path.normpath(os.path.join(rdir, 'resources', *args))
+
+
 class IconContainer(QCSWidget):
 
-    plugin_selected = QtCore.pyqtSignal(str)
+    plugin_selected = QtCore.Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -64,7 +69,7 @@ class IconContainer(QCSWidget):
 
 class PluginContainer(QCSWidget):
 
-    view_requested = QtCore.pyqtSignal(str, dict)
+    view_requested = QtCore.Signal(str, dict)
 
     __sidebar_width__ = 350
 
@@ -181,7 +186,7 @@ def update_ui():
 
 class MainWindow(QtWidgets.QMainWindow):
 
-    resized = QtCore.pyqtSignal()
+    resized = QtCore.Signal()
 
     __title__ = "SuRVoS2: Super-Region Volume Segmentation workbench"
 
@@ -196,6 +201,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtGui.QFontDatabase.addApplicationFont(material_font)
 
         qcs_path = resource('qcs', 'survos.qcs')
+        print(qcs_path)
         if op.isfile(qcs_path):
             with open(qcs_path, 'r') as f:
                 self.setStyleSheet(f.read())

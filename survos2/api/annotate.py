@@ -66,6 +66,7 @@ def annotate_regions(dataset, region, r=None, label=0):
 
     rmax = np.max(r)
     modified = dataset.get_attr('modified')
+    
     for i in range(dataset.total_chunks):
     
         idx = dataset.unravel_chunk_index(i)

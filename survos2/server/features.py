@@ -8,6 +8,9 @@ from survos2.io import dataset_from_uri
 
 def prepare_prediction_features(filtered_layers):
     # reshaping for survos
+
+    logger.debug(f"Preparing {len(filtered_layers)} features of shape {filtered_layers[0].shape}")
+
     dataset_feats_reshaped = [f.reshape(1, filtered_layers[0].shape[0],
                                            filtered_layers[0].shape[1],
                                            filtered_layers[0].shape[2]) for f in filtered_layers]
@@ -24,6 +27,7 @@ def prepare_prediction_features(filtered_layers):
     return dataset_feats, features_stack
 
 def features_factory(filtered_layers):
+    logger.debug(f"Preparing SRFeatures with number of images {len(filtered_layers)}")
     dataset_feats, features_stack = prepare_prediction_features(filtered_layers)
     features = SRFeatures(filtered_layers, dataset_feats, features_stack)
 

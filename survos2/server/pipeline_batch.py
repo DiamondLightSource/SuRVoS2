@@ -1,13 +1,12 @@
 
+from loguru import logger
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from torchvision import datasets, models, transforms
-
-from loguru import logger
-
 
 import torchio as tio
 from torchio import IMAGE, LOCATION

@@ -2,12 +2,12 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize
 from qtpy import QtCore, QtWidgets, QtGui
-
+from qtpy.QtCore import Signal
 from survos2.frontend.components import *
 #from survos2.frontend.plugins.base import *
 
 
-from survos2.frontend.control.singleton import Singleton
+from survos2.model.singleton import Singleton
 
 #from survos2.ui.qt.components import *
 #from survos2.ui.qt.qtcompat import QtWidgets, QtCore, QtGui
@@ -53,7 +53,7 @@ class LoadingModal(QCSWidget):
 
 class AcceptModal(_Modal):
 
-    accepted = QtCore.pyqtSignal()
+    accepted = QtCore.Signal()
 
     def __init__(self, message, btn_text='Close', parent=None):
         super().__init__(message, parent=parent)
@@ -83,7 +83,7 @@ class WarnModal(AcceptModal):
 
 class YesNoModal(_Modal):
 
-    accepted = QtCore.pyqtSignal(bool)
+    accepted = QtCore.Signal(bool)
 
     def __init__(self, message, msg_yes='Accept', msg_no='Cancel', parent=None):
         super().__init__(message, parent=parent)

@@ -7,7 +7,7 @@ from survos2 import survos
 from survos2.improc.utils import DatasetManager
 import survos2.frontend.control
 from survos2.frontend.control import Launcher
-from survos2.frontend.control import DataModel
+from survos2.model import DataModel
 
 #from loguru import logger
 

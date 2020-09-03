@@ -15,6 +15,7 @@ import seaborn as sns
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize, Signal
+from qtpy.QtWidgets import QCheckBox
 
 from vispy import scene
 from vispy.color import Colormap
@@ -52,31 +53,10 @@ class ButtonPanelWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwards):
         QtWidgets.QWidget.__init__(self, *args, **kwards)
     
-        #button1 = QPushButton('Predict Superregions', self)
-        #button1.clicked.connect(self.button1_clicked)
-        #self._times_clicked_b1 = 0
-        
         button2 = QPushButton('Run Pipeline', self)
         button2.clicked.connect(self.button2_clicked)
         self._times_clicked_b2 = 0
 
-        #button3 = QPushButton('Calc Supervoxels', self)
-        #button3.clicked.connect(self.button3_clicked)
-        #self._compactness= 50
-
-        #button4 = QPushButton('Calc Features', self)
-        #button4.clicked.connect(self.button4_clicked)
-        #self._sigma= 50
-
-        #button5 = QPushButton('Predict Saliency', self)
-        #button5.clicked.connect(self.button5_clicked)
-        
-        #button6 = QPushButton('Predict Classes', self)
-        #button6.clicked.connect(self.button6_clicked)
-        
-        #button7 = QPushButton('Test launcher', self)
-        #button7.clicked.connect(self.button7_clicked)
-        
         button8 = QPushButton('Spatial cluster', self)
         button8.clicked.connect(self.button8_clicked)
         
@@ -85,9 +65,9 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self._selected_entity_idx = 0
         
 
-        check1 = QtGui.QCheckBox("Z", self)
-        check2 = QtGui.QCheckBox("X", self)
-        check3 = QtGui.QCheckBox("Y", self)
+        check1 = QCheckBox("Z", self)
+        check2 = QCheckBox("X", self)
+        check3 = QCheckBox("Y", self)
         
         check1.setText("Z")
         check2.setText("X")
@@ -106,13 +86,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         #hbox_layout.addWidget(button1)
         hbox_layout.addWidget(button2)
-        
-        #hbox_layout.addWidget(button3)
-        #hbox_layout2.addWidget(button4)
-        
-        #hbox_layout3.addWidget(button5)
-        #hbox_layout3.addWidget(button6)
-        #hbox_layout3.addWidget(button7)
         
         hbox_layout4.addWidget(button8)
         hbox_layout4.addWidget(button10)
@@ -159,14 +132,11 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.clientEvent.emit({'source': 'checkbox', 'data':'flip_coords', 'axis':'z', 'value':self._check1_checked})
     
 
-
-
 class PluginPanelWidget(QtWidgets.QWidget):
     clientEvent  = Signal(object)
     
     def __init__(self, *args, **kwards):
-        QtWidgets.QWidget.__init__(self, *args, **kwards)
-        
+        QtWidgets.QWidget.__init__(self, *args, **kwards)        
         self.pluginContainer = PluginContainer()
 
         vbox_layout = QtWidgets.QVBoxLayout()
@@ -176,18 +146,28 @@ class PluginPanelWidget(QtWidgets.QWidget):
         self.setLayout(vbox)   
 
         for plugin_name in list_plugins():
-
             plugin = get_plugin(plugin_name)
             name = plugin['name']
             title = plugin['title']
             plugin_cls = plugin['cls']  #full classname
 
-            logger.debug(f"Plugin loaded: {name}, {title}, {plugin_cls}")  # e.g. regions Regions <class 'ClientWidgets.RegionsPlugin'>
-            
+            logger.debug(f"Plugin loaded: {name}, {title}, {plugin_cls}")  
             self.pluginContainer.load_plugin(name, title, plugin_cls)
             self.pluginContainer.show_plugin(name)
-
+            
         logger.debug(f"Plugins loaded: {list_plugins()}")
+    def setup(self):
+        for plugin_name in list_plugins():
+            plugin = get_plugin(plugin_name)
+            name = plugin['name']
+            title = plugin['title']
+            plugin_cls = plugin['cls']  #full classname
+
+            logger.debug(f"Plugin loaded: {name}, {title}, {plugin_cls}")  
+            #self.pluginContainer.load_plugin(name, title, plugin_cls)
+            self.pluginContainer.show_plugin(name)
+      
+        
 
 
 

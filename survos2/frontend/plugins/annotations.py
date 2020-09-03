@@ -17,7 +17,7 @@ from survos2.frontend.components import *
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.base import register_plugin, Plugin, Tool, ViewerExtension
 from survos2.frontend.plugins.regions import RegionComboBox
-from survos2.frontend.control import DataModel
+from survos2.model import DataModel
 from loguru import logger
 
 from survos2.utils import decode_numpy
@@ -40,9 +40,29 @@ def _fill_annotations(combo, full=False):
                 data = dict(level=level['id'], idx=label['idx'], color=label['color'])
                 combo.addItem(lidx, label['name'], icon=icon, data=data)
 
+class LevelComboBox(LazyComboBox):
+
+    def __init__(self, full=False, header=(None, 'None'), parent=None):
+        self.full = full
+        super().__init__(header=header, parent=parent)
+
+    def fill(self):
+        params = dict(workspace=True, full=self.full)
+        
+        #result = [{'kind': 'supervoxels'}, ] 
+        result = Launcher.g.run('annotations', 'get_levels', **params)
+        logger.debug(f"Result of regions existing: {result}")
+        
+        if result:
+            self.addCategory('Annotations')
+            for r in result:
+                print(r)
+                level_name = r['name']
+                if r['kind'] == 'level':
+                    self.addItem(r['id'], r['name'])
+
 
 class AnnotationComboBox(LazyComboBox):
-
     def __init__(self, full=False, parent=None):
         self.full = full
         super().__init__(parent=parent, header=(None, 'Select Label'))
@@ -62,10 +82,10 @@ class MultiAnnotationComboBox(LazyMultiComboBox):
     def fill(self):
         _fill_annotations(self, full=self.full)
 
-
+# todo: adapt
 class Annotator(ViewerExtension):
 
-    annotated = QtCore.pyqtSignal(tuple)
+    annotated = QtCore.Signal(tuple)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -233,7 +253,7 @@ class Annotator(ViewerExtension):
         xx += xmin
         return yy, xx
 
-
+# todo:adapt
 class AnnotationTool(Tool):
 
     def __init__(self, parent=None):
@@ -334,7 +354,7 @@ class AnnotationPlugin(Plugin):
         self.vbox.addWidget(self.btn_addlevel)
         self.levels = {}
         self.btn_addlevel.clicked.connect(self.add_level)
-        self.annotation_tool = AnnotationTool()
+        #self.annotation_tool = AnnotationTool()
 
     def on_created(self):
         self['slice_viewer'].add_tool('Annotations', self.__icon__,
@@ -379,7 +399,7 @@ class AnnotationPlugin(Plugin):
 
 class AnnotationLevel(Card):
 
-    removed = QtCore.pyqtSignal(str)
+    removed = QtCore.Signal(str)
 
     def __init__(self, level, parent=None):
         super().__init__(level['name'], editable=True, collapsible=True,
@@ -445,7 +465,7 @@ class AnnotationLabel(QCSWidget):
 
     __height__ = 30
 
-    removed = QtCore.pyqtSignal(int)
+    removed = QtCore.Signal(int)
 
     def __init__(self, label, level_dataset, parent=None):
         super().__init__(parent=parent)

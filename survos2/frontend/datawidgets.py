@@ -37,10 +37,6 @@ import matplotlib.patheffects as PathEffects
 from matplotlib import offsetbox
 
 
-###########################################################
-# Entity widgets
-#
-
 class SmallVolWidget:
     def __init__(self, smallvol):
 
@@ -73,28 +69,12 @@ class TableWidget(QtWidgets.QGraphicsObject):
         self.w.setData(data)        
 
     def double_clicked(self):
-        #self.w.events.on_next({'source': 'button10', 'data':'show_roi', 'selected_roi':self.w.selected_row})
-        self.clientEvent.emit({'source': 'table', 'data':'show_roi', 'selected_roi':self.w.selected_row})
+        self.clientEvent.emit({'source': 'table', 'data':'show_roi', 'selected_roi': self.w.selected_row})
 
         for index in self.w.selectedIndexes():
-            print(self.w.model().data(index))
+            logger.debug(f"Retrieved item from table: {self.w.model().data(index)}")
 
     def cell_clicked(self, row, col):
-        print("Row %d and Column %d was clicked" % (row, col))
+        logger.debug("Row %d and Column %d was clicked" % (row, col))
         self.w.selected_row = row
                     
-
-    def cell_clicked2(self, row, col):
-        print("Row %d and Column %d was clicked" % (row, col))
-        item = self.w.itemAt(row, col)
-        self.ID = item.text()
-        print(item)
-        print(item.text())
-        #self.w.currentRow(), i).text()
-        #self.w.selectionModel().selectedRows().
-        
-        selindex = self.w.selectedIndexes()
-        
-        print(selindex)
-        index = selindex[0]
-        print(self.w.model().data(index))

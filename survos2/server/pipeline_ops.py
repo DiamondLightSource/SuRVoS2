@@ -8,13 +8,10 @@ from survos2.entity.sampler import crop_vol_and_pts_centered
 from survos2.helpers import AttrDict
 from survos2.entity.anno import geom
 from survos2.frontend.model import ClientData
-
 from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-
 from survos2.entity.saliency import filter_proposal_mask
 from survos2.entity.saliency import measure_big_blobs
 from survos2.entity.sampler import centroid_to_bvol, viz_bvols
-
 from survos2.server.pipeline import Patch
 
 
@@ -132,7 +129,7 @@ def predict_sr(patch: Patch, params: dict):
     """
     logger.debug("Predicting superregions")
 
-    srprediction = sr_prediction(features.features_stack,
+    srprediction = _sr_prediction(features.features_stack,
                                 patch.image_layers['Annotation'],
                                 superregions,
                                 params.predict_params)

@@ -7,7 +7,7 @@ api:
     - features
     - regions
     - render
-
+    - pipelines
 computing:
   chunks: true
   chunk_size: 1024      # 1 Gb

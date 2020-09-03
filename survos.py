@@ -15,6 +15,15 @@ from survos2.survos import init_api, run_command
 
 default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
 
+#fmt = "{time} - {name} - {level} - {message}"
+
+fmt = " <green>{name}</green> - <level>{level} - {message}</level>"
+logger.remove() # remove default logger
+#logger.add(sys.stderr, level="DEBUG")
+logger.add(sys.stderr, level="DEBUG", format=fmt, colorize=True)  #minimal stderr logger
+
+#logger.add("logs/main.log", level="DEBUG", format=fmt) #compression='zip')
+
 
 
 @begin.subcommand
@@ -26,7 +35,7 @@ def start_server(workspace:'Workspace path (full or chrooted) to load',
     from hug.store import InMemoryStore
     from hug.middleware import SessionMiddleware, CORSMiddleware
 
-    from survos2.frontend.control import DataModel
+    from survos2.model import DataModel
     DataModel.g.current_workspace = workspace
 
     logger.debug(f"Started server on port {port} with workspace {workspace}")
@@ -85,7 +94,8 @@ def nu_gui(workspace: 'Workspace path (full or chrooted) to load',
 
     logger.debug(f"Starting nu_gui frontend with workspace {workspace}")
 
-    from survos2.frontend.control import Launcher, DataModel
+    from survos2.frontend.control import Launcher
+    from survos2.model import DataModel
     DataModel.g.current_workspace = workspace
     
     logger.info(f"Connecting to server: {server}")
@@ -104,8 +114,12 @@ def classic_gui(workspace: 'Workspace path (full or chrooted) to load',
     Show Classic SuRVoS QT user interface
     """
     from qtpy import QtWidgets
-    from survos2.ui.qt import MainWindow
-    from survos2.ui.qt.control import Launcher, DataModel
+    #from survos2.ui.qt import MainWindow
+    #from survos2.ui.qt.control import Launcher
+    from survos2.model import DataModel
+    from survos2.frontend.mainwindow import MainWindow
+    from survos2.frontend.control.launcher import Launcher
+    
 
     DataModel.g.current_workspace = workspace
 
