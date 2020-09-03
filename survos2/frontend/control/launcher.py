@@ -11,7 +11,7 @@ from survos2.model.singleton import Singleton
 from survos2.frontend.modal import ModalManager
 from survos2.utils import format_yaml, get_logger, Timer
 from survos2.survos import remote_client, parse_response, init_api
-from survos2.config import Config
+#from survos2.config import Config
 from survos2.api.utils import APIException, handle_exceptions, handle_api_exceptions
 
 from importlib import import_module

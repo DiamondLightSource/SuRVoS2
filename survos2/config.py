@@ -9,7 +9,7 @@ class _Config(type):
     __data__ = { # Defaults
         'title': 'SuRVoS',
         'api': {
-            'host': '172.23.5.231',
+            'host': '127.0.0.1', #'172.23.5.231',
             'port': 8123,
             'plugins': [],
             'renderer': 'mpl'
@@ -23,7 +23,7 @@ class _Config(type):
             'stretch': False
         },
         'model': {
-            'chroot':  '/dls/science/groups/das/SuRVoS/s2/data/',   #,      # full path, or can be 'tmp'
+            'chroot':  'C:\work\diam\data', #'/dls/science/groups/das/SuRVoS/s2/data/',   #,      # full path, or can be 'tmp'
             'dbtype': 'yaml'
         },
         'logging': {
@@ -82,20 +82,26 @@ __default_config_files__ = [
     op.join(op.expanduser('~'), '.survosrc')
 ]
 
+#
+# Load available config from environment
+#
 for __config_file in __default_config_files__:
     configs = []
     if op.isfile(__config_file):
         with open(__config_file, 'r') as __f:
             configs.append(yaml.safe_load(__f))
+
     # Load all the default config
     for config in configs:
         Config.update(config)
+
     # Overwrite with the enviromental config
     # e.g. activate test environment with SURVOS_ENV=test
     for config in configs:
         envs = config.get('environments', [])
         if envs and 'SURVOS_ENV' in os.environ and os.environ['SURVOS_ENV'] in envs:
             Config.update(envs[os.environ['SURVOS_ENV']])
+
     # Overwrite with `all` special environment
     for config in configs:
         envs = config.get('environments', [])
@@ -104,7 +110,6 @@ for __config_file in __default_config_files__:
 
 
 # Overwrite config with enviromental variables SURVOS_$section_$setting
-# e.g.: replace default renderer with SURVOS_API_RENDERER=mpl
 for k1, v in _Config.__data__.items():
     if type(v) == dict:
         for k2 in v:

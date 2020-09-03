@@ -86,7 +86,7 @@ def run_server(command:'Command to execute in `plugin.action` format.',
 @begin.subcommand
 def nu_gui(workspace: 'Workspace path (full or chrooted) to load',
         project_file: 'JSON project file',
-        server: 'URI to the remote SuRVoS API Server'=default_uri):
+        server: 'URI to the remote SuRVoS API Server'): #=default_uri):
 
     from survos2.frontend import main
     from napari import gui_qt
