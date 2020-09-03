@@ -91,8 +91,8 @@ def hex_string_to_rgba(hex_string):
 def frontend(cData):
 
     logger.info(f"Connected to launcher {Launcher.g.connected}")    
-    default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
-    Launcher.g.set_remote(default_uri)
+    #default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
+    #Launcher.g.set_remote(default_uri)
     
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
