@@ -22,7 +22,7 @@ workspace.add_data workspace=test_s1  data_fname=D:/datasets/survos_brain/ws3/da
 
 Inital setup:
 
-Currently, startyp config resides in the survos2/config.py, which is where 
+Currently, startup config resides in the survos2/config.py, which is where 
 the ip address and port of the server are stored.
 
 survos2/settings.yaml should not need to be modified often, and contains the list of plugins that
@@ -51,7 +51,9 @@ They implement a particular folder structure and access protocol for data.
 After creation, add_data to a workspace, then create a dataset.
 
 All work in survos is organized around a workspace. Image processing, supervoxel generation and segmentation
-takes place by choosing a group and creating a new dataset in that group, e.g. 'features' and '001_gaussian_blur'
+takes place by choosing a group and creating a new dataset in that group, e.g. in the group 'features' with
+the dataset name '001_gaussian_blur'.
+
 The settings chosen in the gui are saved as metadata into the dataset.yaml within that datasets folder
 (e.g. in workspace_name/session_name/features/001_gaussian_blur/) which sits in that folder along with the data 
 in hdf5 format, with a name like chunk_0x0x0.h5)

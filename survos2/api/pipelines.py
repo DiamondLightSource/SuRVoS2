@@ -12,9 +12,8 @@ from survos2.api.utils import save_metadata, dataset_repr
 from survos2.api.types import DataURI, Float, SmartBoolean, \
     FloatOrVector, IntList, String, Int, FloatList, DataURIList
 from survos2.api import workspace as ws
-from survos2.server.supervoxels import superregion_factory
 from survos2.server.features import features_factory
-from survos2.server.superseg import sr_predict
+
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.api.utils import get_function_api, save_metadata, dataset_repr
@@ -72,6 +71,7 @@ def superregion_segment(workspace: String, anno_id: String, region_id: String, f
     logger.debug(f"sr_predict with {len(features)} features and anno of shape {anno_image.shape} and sr of shape {supervoxel_image.shape}")
     
     #run predictions
+    from survos2.server.superseg import sr_predict
     segmentation = sr_predict(supervoxel_image, anno_image, features)
 
     # store in dst
