@@ -1,9 +1,4 @@
-"""
 
-
-
-
-"""
 import numpy as np
 
 
@@ -13,9 +8,7 @@ _MaskPrev   = 240 # 1111 0000
 
 
 def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0):
-    """
 
-    """
     mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
 
     def tobounds(slices):

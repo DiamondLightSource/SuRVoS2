@@ -10,8 +10,10 @@ from survos2.model import DataModel
 from survos2.frontend.model import ClientData
 from loguru import logger
 
+from survos2.frontend.plugins.base import LazyComboBox, LazyMultiComboBox
 from survos2.frontend.plugins.regions import RegionComboBox
-from survos2.frontend.plugins.annotations import MultiAnnotationComboBox, AnnotationComboBox, LevelComboBox
+from survos2.frontend.plugins.annotations import LevelComboBox
+from survos2.frontend.plugins.annotation_tool import MultiAnnotationComboBox
 
 _PipelineNotifier = PluginNotifier()
 
