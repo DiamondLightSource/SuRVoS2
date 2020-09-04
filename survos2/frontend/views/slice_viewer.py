@@ -22,6 +22,8 @@ from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.frontend.plugins.annotation_tool import MultiAnnotationComboBox
 
 from survos2.frontend.components.icon_buttons import ToolIconButton
+
+
 class CmapComboBox(LazyComboBox):
 
     def __init__(self, parent=None):
