@@ -1,5 +1,4 @@
 from survos2.model import Workspace
-from survos2.data import mrbrain, embrain
 from survos2.io import dataset_from_uri
 from survos2.api.regions import get_slice
 import os
@@ -19,7 +18,7 @@ from torch.testing import assert_allclose
 @pytest.fixture(scope="session")
 def datamodel():
     # make test vol
-    map_fullpath = os.path.join("./test/data/testvol_4x4x4b.h5")
+    map_fullpath = os.path.join("./testvol_4x4x4b.h5")
     
     testvol = np.array([[[0.1761602 , 0.6701295 , 0.13151232, 0.95726678],
         [0.4795476 , 0.48114134, 0.0410548 , 0.29893265],
