@@ -11,25 +11,22 @@ from loguru import logger
 
 from survos2.config import Config
 from survos2.utils import format_yaml
-from survos2.survos import init_api, run_command, _parse_uri
-from survos2.frontend.control.launcher import Launcher
+from survos2.survos import init_api, run_command
+
 default_uri = '{}:{}'.format(Config['api.host'], Config['api.port'])
 
 #fmt = "{time} - {name} - {level} - {message}"
-
 fmt = " <green>{name}</green> - <level>{level} - {message}</level>"
 logger.remove() # remove default logger
 #logger.add(sys.stderr, level="DEBUG")
 logger.add(sys.stderr, level="DEBUG", format=fmt, colorize=True)  #minimal stderr logger
-
 #logger.add("logs/main.log", level="DEBUG", format=fmt) #compression='zip')
 
 
 
 @begin.subcommand
 def start_server(workspace:'Workspace path (full or chrooted) to load',
-            server: 'URI to the remote SuRVoS API Server to start'):
-            #port:'port like URI to start the server at'=Config['api.port']):
+            port:'port like URI to start the server at'):
     """
     Start a SuRVoS API Server listeting for requests.
     """
@@ -39,11 +36,7 @@ def start_server(workspace:'Workspace path (full or chrooted) to load',
     from survos2.model import DataModel
     DataModel.g.current_workspace = workspace
 
-    host, port = _parse_uri(server)
-    port = int(port)
-    print(f"host, port: {host} {port}")
-    resp = Launcher.g.set_remote(server)
-
+    
     logger.debug(f"Started server on port {port} with workspace {workspace}")
 
     api, __plugins = init_api(return_plugins=True)
@@ -56,7 +49,7 @@ def start_server(workspace:'Workspace path (full or chrooted) to load',
     api.http.add_middleware(middleware)
     CORSMiddleware(api)
 
-    api.http.serve(port=port, display_intro=False)
+    api.http.serve(port=int(port), display_intro=False)
 
 
 
@@ -125,7 +118,6 @@ def classic_gui(workspace: 'Workspace path (full or chrooted) to load',
     from survos2.frontend.mainwindow import MainWindow
     from survos2.frontend.control.launcher import Launcher
     
-
     DataModel.g.current_workspace = workspace
 
     logger.info(f"Connecting to server: {server}")

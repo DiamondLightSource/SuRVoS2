@@ -2,7 +2,7 @@
 #######################################################
 # from plugins/regions.py
 
-from survos2.frontend.components import *
+from survos2.frontend.components.base import *
 
 import numpy as np
 
@@ -14,6 +14,8 @@ from survos2.model import DataModel
 from survos2.frontend.control import Launcher
 from survos2.server.config import scfg
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
+
+from survos2.frontend.components.icon_buttons import IconButton
 class RegionComboBox(LazyComboBox):
 
     def __init__(self, full=False, header=(None, 'None'), parent=None):

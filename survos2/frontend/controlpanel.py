@@ -37,7 +37,7 @@ import pyqtgraph.opengl as gl
 
 from survos2.helpers import prepare_3channel, simple_norm, norm1
 
-from survos2.frontend.components import *
+from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.regions import *
 from survos2.frontend.plugins.features import *
