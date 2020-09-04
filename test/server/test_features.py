@@ -1,5 +1,3 @@
-
-
 from survos2.model import Workspace
 from survos2.data import mrbrain, embrain
 from survos2.io import dataset_from_uri
@@ -16,12 +14,11 @@ from survos2.frontend.control import Launcher
 from survos2.model import DataModel
 
 from loguru import logger
-
 from torch.testing import assert_allclose
 
 @pytest.fixture(scope="session")
 def datamodel():
-    test_datadir = "/dls/science/groups/das/SuRVoS/s2/tests"
+    test_datadir = 'c:/work/diam/'# "/dls/science/groups/das/SuRVoS/s2/tests"
     
     # make test vol
     map_fullpath = os.path.join(test_datadir,"testvol_4x4x4b.h5")
@@ -135,35 +132,4 @@ class Tests(object):
        
 if __name__ == '__main__':
     pytest.main()
-
-
-
-def test():
-    if Workspace.exists('test_survos'):
-        ws = Workspace('test_survos')
-        print("Found workspace")
-        #logger.info('Removing existing test workspace')
-        #Workspace.remove('test_survos')
-        #print(Workspace.has_dataset())
-    else:
-        logger.info('Creating test workspace')
-        ws = Workspace.create('test_survos')
-    
-    
-    with dataset_from_uri(mrbrain()) as data:
-        ws.add_data(data)
-
-    print(ws.tojson())
-
-    #if not (ws.has_dataset('features/gauss')):
-    #    ws.add_dataset('features/gauss', np.float32)
-    #ds = ws.get_dataset('features/gauss')
-    
-    with dataset_from_uri(mrbrain()) as data:
-        ds.set_data(data)
-        ds[...] = data
-        ds.load(data)
-
-    print(ws.path())
-    print(ws.tojson())
 
