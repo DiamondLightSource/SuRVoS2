@@ -1,5 +1,3 @@
-
-
 import numpy as np
 from skimage import io
 
@@ -9,8 +7,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from survos2.frontend.components.base import *
 from survos2.frontend.utils import resource
 from survos2.model import DataModel
-#from survos2.ui.qt.qtcompat import QtCore, QtWidgets, QtGui
-from survos2.frontend.plugins.base import ViewerExtension
+from survos2.frontend.plugins.viewer import ViewerExtension
 
 from qtpy import QtWidgets, QtCore, QtGui
 from survos2.frontend.views.base import register_view
