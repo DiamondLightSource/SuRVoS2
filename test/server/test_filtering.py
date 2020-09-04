@@ -1,4 +1,7 @@
-from survos2.server.filtering import gaussian, gaussian_blur, simple_invert, simple_laplacian
+from survos2.server.filtering import gaussian, gaussian_blur, simple_invert
+
+"""
+
 
 
 # todo replace with two calls to one function
@@ -52,3 +55,4 @@ def calc_feats(cropped_vol):
     
     return feats
     
+"""
