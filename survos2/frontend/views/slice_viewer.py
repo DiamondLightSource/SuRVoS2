@@ -19,7 +19,7 @@ from survos2.model import DataModel
 
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.regions import RegionComboBox
-from survos2.frontend.plugins.annotations import MultiAnnotationComboBox
+from survos2.frontend.plugins.annotation_tool import MultiAnnotationComboBox
 
 from survos2.frontend.components.icon_buttons import ToolIconButton
 class CmapComboBox(LazyComboBox):
