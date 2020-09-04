@@ -5,7 +5,7 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize, Signal
 
-from survos2.frontend.components import *
+from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
 from survos2.model import DataModel
 from loguru import logger

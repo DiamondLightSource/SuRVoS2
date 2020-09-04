@@ -42,7 +42,7 @@ import pyqtgraph as pg
 
 from survos2.server.config import scfg
 from survos2.helpers import prepare_3channel, simple_norm, norm1
-from survos2.frontend.components import *
+from survos2.frontend.components.base import *
 from survos2.frontend.control import Launcher
 
 from collections import OrderedDict

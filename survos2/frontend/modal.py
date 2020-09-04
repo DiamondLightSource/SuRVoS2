@@ -3,7 +3,7 @@ from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize
 from qtpy import QtCore, QtWidgets, QtGui
 from qtpy.QtCore import Signal
-from survos2.frontend.components import *
+from survos2.frontend.components.base import *
 #from survos2.frontend.plugins.base import *
 
 

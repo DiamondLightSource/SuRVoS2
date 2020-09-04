@@ -49,7 +49,7 @@ from survos2.server.config import scfg
 from survos2.helpers import prepare_3channel, simple_norm, norm1
 from survos2.frontend.control import Launcher
 
-from survos2.frontend.components import *
+from survos2.frontend.components.base import *
 
 
 from collections import OrderedDict
