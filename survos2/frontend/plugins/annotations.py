@@ -13,11 +13,14 @@ from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize, Signal
 
 
-from survos2.frontend.components import *
+from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.base import register_plugin, Plugin, Tool, ViewerExtension
 from survos2.frontend.plugins.regions import RegionComboBox
+from survos2.frontend.components.icon_buttons import DelIconButton, IconButton
+
 from survos2.model import DataModel
+
 from loguru import logger
 
 from survos2.utils import decode_numpy

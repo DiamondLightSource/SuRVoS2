@@ -22,8 +22,10 @@ import numpy as np
 import numba
 import math
 from scipy import stats
-
 import napari
+
+from survos2.frontend.components import ToolIconButton
+
 
 logger = get_logger()
 

@@ -6,7 +6,7 @@ from survos2.utils import decode_numpy
 from survos2.frontend.views.viewer import Viewer
 from survos2.frontend.views.base import register_view
 
-from survos2.frontend.components import *
+from survos2.frontend.components.base import *
 
 from survos2.frontend.utils import resource
 
@@ -21,7 +21,7 @@ from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.frontend.plugins.annotations import MultiAnnotationComboBox
 
-
+from survos2.frontend.components.icon_buttons import ToolIconButton
 class CmapComboBox(LazyComboBox):
 
     def __init__(self, parent=None):
