@@ -12,7 +12,7 @@ from survos2.frontend.utils import resource
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.regions import RegionComboBox
-from survos2.frontend.plugins.annotations import MultiAnnotationComboBox, AnnotationComboBox
+from survos2.frontend.plugins.annotation_tool import MultiAnnotationComboBox, AnnotationComboBox
 from survos2.frontend.plugins.pipelines import PipelinesComboBox
 
 from survos2.model import DataModel

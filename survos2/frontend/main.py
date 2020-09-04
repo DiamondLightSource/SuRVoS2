@@ -152,15 +152,8 @@ def init_proj(wparams, precrop=False):
     # TODO: replacing all this with a pure workspace-and-api approach
 
     filtered_layers = [np.array(img_volume).astype(np.float32)]
-    
-    #vol_anno = np.ones_like(filtered_layers[0])
-    #dataset_feats, features_stack = prepare_prediction_features(filtered_layers)
-    #feats = SRFeatures(filtered_layers, dataset_feats, features_stack)
-    #vol_supervoxels = np.ones_like(filtered_layers[0]) #superregions.supervoxel_vol.astype(np.uint32)    
-    
     layer_names = ['Main',]
     opacities = [1.0,]
-
 
     from survos2.server.config import scfg
     clientData = ClientData(filtered_layers, layer_names, opacities, 
