@@ -98,7 +98,6 @@ def nu_gui(workspace: 'Workspace path (full or chrooted) to load',
     
     logger.info(f"Connecting to server: {server}")
     resp = Launcher.g.set_remote(server)
-
     logger.info(f"Response from server: {resp}")
 
     if Launcher.g.connected:
@@ -107,7 +106,7 @@ def nu_gui(workspace: 'Workspace path (full or chrooted) to load',
 
 @begin.subcommand
 def classic_gui(workspace: 'Workspace path (full or chrooted) to load',
-       server: 'URI to the remote SuRVoS API Server' = default_uri):
+       server: 'URI to the remote SuRVoS API Server'):
     """
     Show Classic SuRVoS QT user interface
     """
@@ -115,7 +114,7 @@ def classic_gui(workspace: 'Workspace path (full or chrooted) to load',
     #from survos2.ui.qt import MainWindow
     #from survos2.ui.qt.control import Launcher
     from survos2.model import DataModel
-    from survos2.frontend.mainwindow import MainWindow
+    from survos2.frontend.classic_gui import MainWindow
     from survos2.frontend.control.launcher import Launcher
     
     DataModel.g.current_workspace = workspace

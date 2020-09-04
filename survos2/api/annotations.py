@@ -138,18 +138,18 @@ def delete_label(workspace: String, level: String, idx: Int, full: SmartBoolean=
 @hug.get()
 def annotate_voxels(workspace: String, level: String, slice_idx: Int,
                     yy: IntList, xx: IntList, label: Int, full: SmartBoolean=False):
-    from survos2.api.annotate import annotate_voxels as annotate
+    from survos2.api.annotate import annotate_voxels 
     ds = get_level(workspace, level, full)
-    annotate(ds, slice_idx=slice_idx, yy=yy, xx=xx, label=label)
+    annotate_voxels(ds, slice_idx=slice_idx, yy=yy, xx=xx, label=label)
 
 
 @hug.get()
 def annotate_regions(workspace: String, level: String, region: DataURI,
                      r: IntList, label: Int, full: SmartBoolean=False):
-    from survos2.api.annotate import annotate_regions as annotate
+    from survos2.api.annotate import annotate_regions 
     ds = get_level(workspace, level, full)
     region = dataset_from_uri(region, mode='r')
-    annotate(ds, region, r=r, label=label)
+    annotate_regions(ds, region, r=r, label=label)
 
 
 @hug.get()
