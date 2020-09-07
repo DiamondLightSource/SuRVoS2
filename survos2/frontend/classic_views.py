@@ -96,34 +96,3 @@ def update_ui():
     time.sleep(0.1)
 
 
-
-"""
-        from .views import list_views, get_view
-
-        _loaded_views = {}
-        view_container_widget = ViewContainer()
-
-        def _load_view(name):
-            view = get_view(name)
-            name, cls, title = view['name'], view['cls'], view['title']
-            return view_container_widget.load_view(name, title, cls)
-
-        def _unload_view(name):
-            view_container.unload_view(name)
-
-        def _show_view(name, **kwargs):
-            view_container.select_view(name, **kwargs)
-
-        def _load_views(views=None):
-            all_views = list_views() if views is None else views
-            for vname in all_views:
-                view = _load_view(vname)
-                _loaded_views[vname] = view
-
-        _load_views()
-
-        tab5.layout = QVBoxLayout()
-        tab5.setLayout(tab5.layout)
-        tab5.layout.addWidget(view_container_widget)
-        
-"""
