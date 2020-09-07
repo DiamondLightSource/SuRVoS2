@@ -28,13 +28,6 @@ import pyqtgraph.parametertree.parameterTypes as pTypes
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from pyqtgraph.widgets.MatplotlibWidget import MatplotlibWidget
 
-from pyqtgraph.flowchart import Flowchart, Node
-import pyqtgraph.flowchart.library as fclib
-from pyqtgraph.flowchart.library.common import CtrlNode
-import pyqtgraph.opengl as gl
-
-
-from survos2.helpers import prepare_3channel, simple_norm, norm1
 
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
@@ -118,14 +111,13 @@ class PluginPanelWidget(QtWidgets.QWidget):
             self.pluginContainer.show_plugin(name)
             
         logger.debug(f"Plugins loaded: {list_plugins()}")
+
     def setup(self):
         for plugin_name in list_plugins():
             plugin = get_plugin(plugin_name)
             name = plugin['name']
             title = plugin['title']
             plugin_cls = plugin['cls']  #full classname
-
-            logger.debug(f"Plugin loaded: {name}, {title}, {plugin_cls}")  
             self.pluginContainer.show_plugin(name)
       
         

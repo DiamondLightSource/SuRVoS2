@@ -32,10 +32,10 @@ import signal
 import yaml
 
 from PyQt5 import QtCore, QtGui
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QHBoxLayout
 import pyqtgraph.parametertree.parameterTypes as pTypes
 from pyqtgraph.parametertree import Parameter, ParameterTree, ParameterItem, registerParameterType
-from qtpy.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QPushButton, QWidget
+from qtpy.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QPushButton, QWidget, QLineEdit, QLabel
 
 from loguru import logger
 
@@ -61,44 +61,51 @@ ptree_init2 = [{'name': 'Name',
    {'name': 'precrop_roi',
     'type': 'list',
     'values': [0, 64, 100, 228, 100, 228]}]},
-    {'name': 'Save/Restore functionality', 'type': 'group', 'children': [
-        {'name': 'Save State', 'type': 'action'},
-        {'name': 'Restore State', 'type': 'action', 'children': [
-            {'name': 'Add missing items', 'type': 'bool', 'value': True},
-            {'name': 'Remove extra items', 'type': 'bool', 'value': True},
-        ]},
-    ]}]
+    ]
 
 
 class ConfigEditor(QWidget):
-    def __init__(self, workspace_config, pipeline_config, *args, **kwargs):
+    def __init__(self, run_config, workspace_config, pipeline_config, *args, **kwargs):
         super(ConfigEditor, self).__init__()
+
+        self.run_config = run_config
         self.workspace_config = workspace_config
         self.pipeline_config = pipeline_config
-        
-        self.layout = QVBoxLayout()
-        
-        workspace_config_ptree = self.init_ptree(workspace_config)
-        pipeline_config_ptree = self.init_ptree(pipeline_config)
 
+        run_config_ptree = self.init_ptree(self.run_config)
+        workspace_config_ptree = self.init_ptree(self.workspace_config)
+        pipeline_config_ptree = self.init_ptree(self.pipeline_config)
+
+        self.layout = QVBoxLayout()
         tabwidget = QTabWidget()
         tab1 = QWidget()
         tab2 = QWidget()
-        tabwidget.addTab(tab1, "Workspace")
-        tabwidget.addTab(tab2, "Pipeline")
+        tab3 = QWidget()
+
+        tabwidget.addTab(tab1, "Start Survos")
+        tabwidget.addTab(tab2, "Workspace")
+        #tabwidget.addTab(tab3, "Pipeline")
         
         create_workspace_button = QPushButton("Create workspace")
+        run_button = QPushButton("Run button")
+        
         tab1.layout = QVBoxLayout()
         tab1.setLayout(tab1.layout)
-        tab1.layout.addWidget(workspace_config_ptree)
-        tab1.layout.addWidget(create_workspace_button)
+        tab1.layout.addWidget(run_config_ptree)        
+        tab1.layout.addWidget(run_button)
 
-        output_config_button = QPushButton("Save config")
         tab2.layout = QVBoxLayout()
         tab2.setLayout(tab2.layout)
-        tab2.layout.addWidget(pipeline_config_ptree)
-        tab2.layout.addWidget(output_config_button)
-                
+        tab2.layout.addWidget(workspace_config_ptree)
+        tab2.layout.addWidget(create_workspace_button)
+        
+        output_config_button = QPushButton("Save config")
+        tab3.layout = QVBoxLayout()
+        tab3.setLayout(tab3.layout)
+        tab3.layout.addWidget(pipeline_config_ptree)
+        tab3.layout.addWidget(output_config_button)
+
+        run_button.clicked.connect(self.run_clicked)        
         output_config_button.clicked.connect(self.output_config_clicked)
         create_workspace_button.clicked.connect(self.create_workspace_clicked)
         
@@ -107,13 +114,11 @@ class ConfigEditor(QWidget):
         self.setGeometry(300, 300, 450, 650)
         self.setWindowTitle('Config editor')
         self.setLayout(self.layout)
-
         self.show()
 
     
     def setup_ptree_params(self, p):
         def parameter_tree_change(param, changes):
-            print("tree changes:")
 
             for param, change, data in changes:
                 path = p.childPath(param)
@@ -125,38 +130,20 @@ class ConfigEditor(QWidget):
 
                 sibs = param.parent().children()
 
-                logger.debug(f"Path: {path}")
-                logger.debug(f"Parent: {param.parent}")
-                logger.debug(f"Siblings: {sibs}")
+                logger.debug(f"Parameter: {path[-1]}")
                 logger.debug(f"Value: {param.value}")
-
-                logger.debug('  parameter: %s' % childName)
-                logger.debug('  change:    %s' % change)
                 logger.debug('  data:      %s' % str(data))
 
-        p.sigTreeStateChanged.connect(parameter_tree_change)  # callback 1
+        p.sigTreeStateChanged.connect(parameter_tree_change)  
 
         def valueChanging(param, value):
             print("Value: %s\n %s" % (param, value))
 
         for child in p.children():
-            child.sigValueChanging.connect(valueChanging)  # callback 2
+            child.sigValueChanging.connect(valueChanging)  
             
             for ch2 in child.children():
                 ch2.sigValueChanging.connect(valueChanging)
-
-        def save():
-            global state
-            state = p.saveState()
-
-        def restore():
-            global state
-            add = p['Save/Restore functionality', 'Restore State', 'Add missing items']
-            rem = p['Save/Restore functionality', 'Restore State', 'Remove extra items']
-            p.restoreState(state, addChildren=add, removeChildren=rem)
-
-        #p.param('Save/Restore functionality', 'Save State').sigActivated.connect(save)
-        #p.param('Save/Restore functionality', 'Restore State').sigActivated.connect(restore)
 
         return p
 
@@ -207,9 +194,14 @@ class ConfigEditor(QWidget):
 
     def output_config_clicked(self, event):
         out_fname = 'pipeline_cfg.yml'
-        logger.debug("Outputting pipeline config: {out_fname}")
+        logger.debug(f"Outputting pipeline config: {out_fname}")
         with open(out_fname, 'w') as outfile:
             yaml.dump(self.pipeline_config, outfile, default_flow_style=False, sort_keys=False)
+
+    def run_clicked(self, event):
+        import subprocess
+        subprocess.run([f"python survos.py nu_gui {self.workspace} server={self.server}", "-l"])
+
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -219,9 +211,13 @@ if __name__ == "__main__":
                         'vol_fname': 'mcd_s10_Nuc_Cyt_r1.h5',
                         'workspace_name' : 'test_hunt'}
 
+    run_config = {'server_address': '172.23.5.231:8123',
+                   'CHROOT': '/dls/science/groups/das/SuRVoS/s2/data/',
+                   'workspace_name' : 'test_s1' }
+
     from survos2.server.config import cfg
     pipeline_config = dict(cfg)
 
     app = QApplication([])
-    config_editor = ConfigEditor(workspace_config, pipeline_config)
+    config_editor = ConfigEditor(run_config, workspace_config, pipeline_config)
     app.exec_()
