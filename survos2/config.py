@@ -15,15 +15,15 @@ class _Config(type):
             'renderer': 'mpl'
         },
         'computing': {
-            'chunks': True,
-            'chunk_size': 100,
+            'chunks': False,
+            'chunk_size': 500,
             'chunk_padding': 0,
             'chunk_size_sparse': 10,
             'scale': False,
             'stretch': False
         },
         'model': {
-            'chroot':  '/dls/science/groups/das/SuRVoS/s2/data/',   #,      # full path, or can be 'tmp'
+            'chroot':  'c:/work/diam/data/', #'/dls/science/groups/das/SuRVoS/s2/data/',   #,      # full path, or can be 'tmp'
             'dbtype': 'yaml'
         },
         'logging': {

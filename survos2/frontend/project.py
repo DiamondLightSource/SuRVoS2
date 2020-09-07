@@ -117,9 +117,8 @@ class ConfigEditor(QWidget):
         self.show()
 
     
-    def setup_ptree_params(self, p):
+    def setup_ptree_params(self, p, config_dict):
         def parameter_tree_change(param, changes):
-
             for param, change, data in changes:
                 path = p.childPath(param)
 
@@ -130,7 +129,8 @@ class ConfigEditor(QWidget):
 
                 sibs = param.parent().children()
 
-                logger.debug(f"Parameter: {path[-1]}")
+                config_dict[path[-1]] = data
+                logger.debug(f"Parameter: {path}")
                 logger.debug(f"Value: {param.value}")
                 logger.debug('  data:      %s' % str(data))
 
@@ -182,25 +182,28 @@ class ConfigEditor(QWidget):
     def init_ptree(self, config_dict):
         ptree_init = self.dict_to_params(config_dict)
         parameters = Parameter.create(name='ptree_init', type='group', children=ptree_init)
-        params = self.setup_ptree_params(parameters)
+        params = self.setup_ptree_params(parameters, config_dict)
         ptree = ParameterTree()
         ptree.setParameters(params, showTop=False)    
         
         return ptree
 
     def create_workspace_clicked(self, event):
+        print(self.workspace_config)
         logger.debug("Creating workspace: ")
         init_ws(self.workspace_config)
 
     def output_config_clicked(self, event):
+        print(self.pipeline_config)
         out_fname = 'pipeline_cfg.yml'
         logger.debug(f"Outputting pipeline config: {out_fname}")
         with open(out_fname, 'w') as outfile:
             yaml.dump(self.pipeline_config, outfile, default_flow_style=False, sort_keys=False)
 
     def run_clicked(self, event):
+        print(self.run_config)
         import subprocess
-        subprocess.run([f"python survos.py nu_gui {self.workspace} server={self.server}", "-l"])
+        subprocess.run([f"python survos.py nu_gui {self.run_config['workspace_name']} server={self.run_config['server_address']}", "-l"])
 
 
 if __name__ == "__main__":
@@ -209,11 +212,11 @@ if __name__ == "__main__":
     workspace_config = {'dataset_name': "data",
                         'datasets_dir': "D:/datasets/",
                         'vol_fname': 'mcd_s10_Nuc_Cyt_r1.h5',
-                        'workspace_name' : 'test_hunt'}
+                        'workspace_name' : 'test_hunt2'}
 
     run_config = {'server_address': '172.23.5.231:8123',
                    'CHROOT': '/dls/science/groups/das/SuRVoS/s2/data/',
-                   'workspace_name' : 'test_s1' }
+                   'workspace_name' : 'test_hunt2' }
 
     from survos2.server.config import cfg
     pipeline_config = dict(cfg)

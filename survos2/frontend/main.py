@@ -66,7 +66,7 @@ def init_ws(wparams):
     logger.info(f"Initialising workspace {ws_name} with image volume {image_path}.")
 
     original_data = h5py.File(image_path, 'r')
-    img_volume = original_data[dataset_name][80:160,200:600,200:600]
+    img_volume = original_data[dataset_name]
     
     logger.info(f"Loaded vol of size {img_volume.shape}")
 

@@ -396,6 +396,7 @@ class Dataset(BaseDataset):
                 self.set_chunk_data(idx, values[gslice], slices=cslice)
 
     def load(self, data):
+        logger.debug(f"Loading dataset {data}")
         if tuple(data.shape) != tuple(self.shape):
             raise Exception('Data shape does not match: {} expected {}'.format(self.shape, data.shape))
         if isinstance(data, da.Array):
