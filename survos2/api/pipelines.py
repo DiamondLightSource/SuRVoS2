@@ -19,19 +19,17 @@ from survos2.model import DataModel
 from survos2.api.utils import get_function_api, save_metadata, dataset_repr
 from typing import List
 
-from survos2.server.config import scfg
+from survos2.server.config import cfg
 
 
 __pipeline_group__ = 'pipeline'
 __pipeline_dtype__ = 'float32'
 __pipeline_fill__ = 0
 
-# a pipeline produces output such as a segmentation, and often has several different inputs
-# of several different types as well as a dictionary of parameters
-# (e.g. a superregion segmentation takes an annotation uint16, a supervoxel uint32 and multiple float32 images)
 
+#@hug.get()
 #def run_pipeline():
-#    pipeline = Pipeline(cData.scfg.pipeline_ops)
+#    pipeline = Pipeline(cData.cfg.pipeline_ops)
 #    pipeline.init_payload(p)
 #    process_pipeline(pipeline)
 #    result = pipeline.get_result()

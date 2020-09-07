@@ -28,7 +28,7 @@ the ip address and port of the server are stored.
 survos2/settings.yaml should not need to be modified often, and contains the list of plugins that
 will be loaded by survos.
 
-The server state is in scfg ("survos config"), which is the master configuration dictionary, broken into
+The server state is in cfg ("survos config"), which is the master configuration dictionary, broken into
 global survos parameters, filter parameters and pipeline (prediction) parameters. 
 
 server/config.py

@@ -9,9 +9,6 @@ from loguru import logger
 from scipy import ndimage
 from skimage import img_as_ubyte, img_as_float
 from skimage import io
-#import seaborn as sns
-
-
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize
 
@@ -21,26 +18,20 @@ from vispy import scene
 from vispy.color import Colormap
 
 import pyqtgraph as pg
-#from pyqtgraph.Qt import QtCore, QtGui
-
 
 import pyqtgraph.parametertree.parameterTypes as pTypes
 from pyqtgraph.parametertree import Parameter, ParameterTree
 import pyqtgraph.parametertree.parameterTypes as pTypes
 from pyqtgraph.parametertree import Parameter, ParameterTree
 from pyqtgraph.widgets.MatplotlibWidget import MatplotlibWidget
-#rom pyqtgraph.Qt import QtCore, QtGui
 from pyqtgraph.flowchart import Flowchart, Node
 import pyqtgraph.flowchart.library as fclib
 from pyqtgraph.flowchart.library.common import CtrlNode
 import pyqtgraph.opengl as gl
 import pyqtgraph as pg
 
-#import rx
-#from rx.subject import Subject
 
-
-from survos2.server.config import scfg
+from survos2.server.config import cfg
 from survos2.helpers import prepare_3channel, simple_norm, norm1
 from survos2.frontend.components.base import *
 from survos2.frontend.control import Launcher
@@ -66,8 +57,7 @@ def _fill_features(combo, full=False, filter=True, ignore=None):
         params.setdefault('kind', 'unknown')
     
         result[0] = params
-    
-###########################
+
 
 _FeatureNotifier = PluginNotifier()
 
@@ -226,8 +216,3 @@ class Label(QtWidgets.QLabel):
         return self.text()
 
 
-
-
-
-
-###############################################################
