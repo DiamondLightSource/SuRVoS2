@@ -44,7 +44,7 @@ class CmapComboBox(LazyComboBox):
 
 class Layer(QCSWidget):
 
-    updated = Signal(object)# QtCore.pyqtSignal()
+    updated = Signal()# QtCore.pyqtSignal()
 
     def __init__(self, name='layer', source=None, cmap=None,
                  parent=None):
@@ -123,7 +123,7 @@ class LayerManager(QtWidgets.QMenu):
 
     __all_layers__ = {}
 
-    paramsUpdated = Signal(object) #QtCore.pyqtSignal()
+    paramsUpdated = Signal() #QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -180,7 +180,7 @@ class WorkspaceLayerManager(LayerManager):
 @register_view(name='slice_viewer')
 class SliceViewer(QCSWidget):
 
-    slice_updated =Signal(object)#  QtCore.pyqtSignal(int)
+    slice_updated =Signal(int)#  QtCore.pyqtSignal(int)
 
     def __init__(self, layer_manager=None, parent=None):
         super().__init__(parent=parent)

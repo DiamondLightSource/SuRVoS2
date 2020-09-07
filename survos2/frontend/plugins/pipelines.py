@@ -18,6 +18,8 @@ from survos2.frontend.plugins.annotation_tool import MultiAnnotationComboBox
 _PipelineNotifier = PluginNotifier()
 
 from survos2.frontend.control import Launcher
+from survos2.server.config import cfg
+
 
 def _fill_pipelines(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
@@ -231,7 +233,7 @@ class PipelineCard(Card):
 
     def view_pipeline(self):
         logger.debug(f"View pipeline_id {self.pipeline_id}")
-        scfg.ppw.clientEvent.emit({'source': 'pipelines', 'data':'view_pipeline', 'pipeline_id': self.pipeline_id})
+        cfg.ppw.clientEvent.emit({'source': 'pipelines', 'data':'view_pipeline', 'pipeline_id': self.pipeline_id})
 
     def compute_pipeline(self):
         src_grp = None if self.annotations_source.currentIndex() == 0 else 'pipelines'
