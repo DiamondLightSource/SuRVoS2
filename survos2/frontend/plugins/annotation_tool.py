@@ -1,12 +1,19 @@
 from qtpy import QtWidgets, QtCore, QtGui
-from matplotlib.colors import ListedColormap
+import numpy as np
+from skimage.draw import line
+from skimage.morphology import disk
+from scipy.ndimage import binary_dilation
 
+from matplotlib.colors import ListedColormap
+import numpy as np
 
 from survos2.frontend.control.launcher import Launcher
 from survos2.frontend.plugins.viewer import ViewerExtension, Tool
 from survos2.frontend.components.base import LazyComboBox, LazyMultiComboBox, HBox, FAIcon, PluginNotifier, Slider
 from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.model.model import DataModel
+
+from survos2.utils import decode_numpy
 _AnnotationNotifier = PluginNotifier()
 
 

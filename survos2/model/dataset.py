@@ -4,15 +4,12 @@ Hdf5 datasets, with metadata and custom chunking
 """
 
 import os
-import os.path as op
 import shutil
-
 import copy
 
 import h5py as h5
 import numpy as np
 import dask.array as da
-
 import logging as log
 
 import collections
@@ -105,7 +102,7 @@ class Dataset(BaseDataset):
     __dsname__ = '__data__'
 
     def __init__(self, path, readonly=False):
-        if not op.isdir(path):
+        if not os.path.isdir(path):
             raise DatasetException('Dataset \'%s\' does not exist.' % path)
         self._load(path)
         self._readonly = readonly
@@ -116,13 +113,13 @@ class Dataset(BaseDataset):
 
     def _load(self, path):
         logger.info(f"Loading dataset on {path}")
-        self._id = op.basename(path)
+        self._id = os.path.basename(path)
         self._path = path
-        dbpath = op.join(path, self.__dbname__)
+        dbpath = os.path.join(path, self.__dbname__)
         
-        if op.isfile(dbpath + '.yaml'):
+        if os.path.isfile(dbpath + '.yaml'):
             self._db = db = AttributeDB(dbpath, dbtype='yaml')
-        elif op.isfile(dbpath + '.json'):
+        elif os.path.isfile(dbpath + '.json'):
             self._db = db = AttributeDB(dbpath, dbtype='json')
         else:
             raise DatasetException('DB not found: \'%s\' is not a valid dataset.' % path)
@@ -243,9 +240,9 @@ class Dataset(BaseDataset):
 
         if Dataset.exists(path):
             raise DatasetException('Dataset \'%s\' already exists.' % path)
-        if op.isfile(path):
+        if os.path.isfile(path):
             raise DatasetException('Path \'%s\' is not a valid directory path.' % path)
-        elif op.isdir(path) and os.listdir(dir):  # non-empty dir
+        elif os.path.isdir(path) and os.listdir(dir):  # non-empty dir
             raise DatasetException('Path \'%s\' already exists.' % path)
 
         if data is not None:
@@ -275,10 +272,10 @@ class Dataset(BaseDataset):
         }
 
         # Filesystem
-        if not op.isdir(path):
+        if not os.path.isdir(path):
             os.makedirs(path)
 
-        dbpath = op.join(path, Dataset.__dbname__)
+        dbpath = os.path.join(path, Dataset.__dbname__)
         # Database
         db = AttributeDB.create(dbpath, dbtype=database)
         db.update(metadata)
@@ -336,7 +333,7 @@ class Dataset(BaseDataset):
         return self.create_chunk(idx)
 
     def has_chunk(self, idx):
-        return op.isfile(self._idx2name(idx))
+        return os.path.isfile(self._idx2name(idx))
 
     def del_chunk(self, idx):
         if self.readonly:
@@ -538,7 +535,7 @@ class Dataset(BaseDataset):
 
 class DataChunk(object):
     def __init__(self, idx, path, shape, dtype, fillvalue):
-        if not op.isfile(path):
+        if not os.path.isfile(path):
             raise Exception('Wrong initialization of a DataChunk({}): {}'.format(idx, path))
         self._idx = idx
         self._path = path
