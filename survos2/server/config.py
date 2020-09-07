@@ -8,9 +8,9 @@ from survos2.helpers import AttrDict
 # both feature and region-level metadata as well as
 # pipelines for storing particular workspace-specific configs
 
-#App-wide
+#App-wide -> todo: mpve into main config
 survos_config_yaml = """
-scfg:
+cfg:
   proj: hunt
   preprocessing: {}
   random_seed_main: 32
@@ -18,15 +18,11 @@ scfg:
   refine_lambda: 1.0
   resample_amt: 0.5
   save_output_files: false
-  computing:
-    chunks: true
-    chunk_size: 1024  # 1 Gb
   mscale: 1.0
-  logging:
-    level: info
   plot_all: false
   roi_crop: [0,2500, 0, 2500, 0, 2500]
   torch_models_fullpath:  ../experiments
+  current_annotation: 001_level
 """
 
 #Filters (features and sr)
@@ -90,14 +86,14 @@ pipeline:
 
 """
 
-scfg = AttrDict(yaml.safe_load(survos_config_yaml)['scfg'])
+cfg = AttrDict(yaml.safe_load(survos_config_yaml)['cfg'])
 filter_cfg = AttrDict(yaml.safe_load(filter_yaml))
 pipeline_cfg = AttrDict(yaml.safe_load(pipeline_yaml))
 
 # attribute access and AppState class to bundle any other application state
 # merge config dictionaries to make app state 
-scfg = {**scfg, **filter_cfg}
-scfg = {**scfg, **pipeline_cfg}
-scfg = AttrDict(scfg)
+cfg = {**cfg, **filter_cfg}
+cfg = {**cfg, **pipeline_cfg}
+cfg = AttrDict(cfg)
 
 

@@ -149,6 +149,7 @@ def predict_sr(patch: Patch, params: dict):
 def clean_segmentation(patch: Patch, params: params)
 
     predicted = patch.image_layers['segmentation']
+
     # clean prediction
     struct2 = ndimage.generate_binary_structure(3, 2)
     predicted_cl = (predicted > 0.0) * 1.0

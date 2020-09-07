@@ -39,7 +39,10 @@ from survos2.server.features import features_factory
 from survos2.server.model import SRData, SRPrediction
 from survos2.server.region_labeling import rlabels
 from survos2.server.supervoxels import invrmap, superregion_factory
-from survos2.server.config import scfg
+from survos2.server.config import cfg
+
+
+
 #
 # SuRVoS 2 imports
 #
@@ -190,7 +193,7 @@ def sr_predict(supervoxel_image: np.ndarray, anno_image: np.ndarray,
     srprediction = _sr_prediction(feats.features_stack,
                                 anno_image.astype(np.uint16),
                                 sr,
-                                scfg.pipeline['predict_params'])
+                                cfg.pipeline['predict_params'])
     
     logger.info(f"Made sr prediction {srprediction}")
     
