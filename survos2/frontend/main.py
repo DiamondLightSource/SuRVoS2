@@ -48,7 +48,7 @@ from survos2.entity.sampler import crop_vol_and_pts_centered
 
 
 def preprocess(img_volume):
-    img_volume=np.array(img_volume).astype(np.float32)
+    img_volume = np.array(img_volume).astype(np.float32)
     img_volume = np.nan_to_num(img_volume)
 
     img_volume = img_volume - np.min(img_volume)
@@ -56,25 +56,22 @@ def preprocess(img_volume):
 
     return img_volume
 
-def init_ws(project_file, ws_name):
-    logger.info(f"Initialising workspace {ws_name} with image volume specified in project file {project_file}")
-        
-    with open(project_file) as project_file:    
-            wparams = json.load(project_file)
-            wparams = AttrDict(wparams)
-    
+def init_ws(wparams):        
+    ws_name = wparams['workspace_name']
     dataset_name = wparams['dataset_name']
     datasets_dir = wparams['datasets_dir']
     fname = wparams['vol_fname'] 
 
-    logger.info(f"Loading h5 file {os.path.join(datasets_dir, fname)}")
-    original_data = h5py.File(os.path.join(datasets_dir, fname), 'r')
-    ds = original_data[dataset_name]
-    img_volume = ds  #[dataset_name]
+    image_path = os.path.join(datasets_dir, fname)
+    logger.info(f"Initialising workspace {ws_name} with image volume {image_path}.")
+
+    original_data = h5py.File(image_path, 'r')
+    img_volume = original_data[dataset_name][80:160,200:600,200:600]
+    
     logger.info(f"Loaded vol of size {img_volume.shape}")
 
-    img_volume=preprocess(img_volume)
-    tmpvol_fullpath = "out\\tmpvol.h5"
+    img_volume = preprocess(img_volume)
+    tmpvol_fullpath = "tmp\\tmpvol.h5"
 
     with h5py.File(tmpvol_fullpath,  'w') as hf:
         hf.create_dataset("data",  data=img_volume)
@@ -85,21 +82,21 @@ def init_ws(project_file, ws_name):
     survos.run_command('workspace', 'add_data', workspace=ws_name,
                 data_fname=tmpvol_fullpath,
                 dtype='float32')
+
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
     survos.run_command("workspace", "add_dataset", workspace=ws_name, 
         dataset_name=dataset_name, dtype='float32')
 
 
-def init_proj(wparams, precrop=False):    
+def init_proj(precrop=False):    
 
     #DataModel.g.current_workspace = wparams.workspace
     #logger.debug(f"Set current workspace to {DataModel.g.current_workspace}")
 
-    entities_df = pd.read_csv(os.path.join(wparams.project_dir, wparams.entities_relpath))
-    entities_df.drop(entities_df.columns[entities_df.columns.str.contains('unnamed', case = False)],axis = 1, inplace = True)
-    entities_df = make_entity_df(np.array(entities_df), flipxy=wparams.flipxy)
-
-    logger.debug(f"Loaded entities {entities_df.shape}")
+    #entities_df = pd.read_csv(os.path.join(wparams.project_dir, wparams.entities_relpath))
+    #entities_df.drop(entities_df.columns[entities_df.columns.str.contains('unnamed', case = False)],axis = 1, inplace = True)
+    #entities_df = make_entity_df(np.array(entities_df), flipxy=wparams.flipxy)
+    #logger.debug(f"Loaded entities {entities_df.shape}")
 
     survos.init_api()
 
@@ -148,19 +145,20 @@ def init_proj(wparams, precrop=False):
                     dtype='float32')
         DataModel.g.current_workspace = tmp_ws_name    
     
-    # Prepare clientData (what gets loaded into napari)
+    # Prepare clientData (what gets loaded into client and napari widget)
     # TODO: replacing all this with a pure workspace-and-api approach
 
     filtered_layers = [np.array(img_volume).astype(np.float32)]
     layer_names = ['Main',]
     opacities = [1.0,]
 
-    from survos2.server.config import scfg
-    clientData = ClientData(filtered_layers, layer_names, opacities, 
-                            entities_df, wparams['class_names'], scfg)
-    
-    clientData.wparams = wparams
+    #class_names = ['blank',]
+    #if 'class_names' in wparams.keys():
+    #    class_names = wparams['class_names']
 
+    from survos2.server.config import cfg
+    clientData = ClientData(filtered_layers, layer_names, opacities, cfg)
+    #clientData.wparams = wparams
     return clientData
 
 
@@ -172,20 +170,15 @@ def setup_ws(project_file=None):
 
     return clientData
 
-def startup(project_file):
-    clientData = setup_ws(project_file)
+def startup():
+    clientData = init_proj()
     viewer = frontend(clientData)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--project_file', default='./projects/brain/ws_brain.json')
-    parser.add_argument('-i', '--init_name', default=None)
     args = parser.parse_args()
     
-    if not args.init_name:
-        startup(args.project_file)
-    else: 
-        init_ws(args.project_file, args.init_name)
+    startup()
 
 
 if __name__ == "__main__":

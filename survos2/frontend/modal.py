@@ -4,21 +4,12 @@ from qtpy.QtCore import QSize
 from qtpy import QtCore, QtWidgets, QtGui
 from qtpy.QtCore import Signal
 from survos2.frontend.components.base import *
-#from survos2.frontend.plugins.base import *
-
-
 from survos2.model.singleton import Singleton
-
-#from survos2.ui.qt.components import *
-#from survos2.ui.qt.qtcompat import QtWidgets, QtCore, QtGui
 from survos2.frontend.utils import resource
 
-import os.path as op
 
 
-#def resource(*args):
-#    rdir = op.dirname(__file__)
-#    return op.normpath(op.join(rdir, 'resources', *args))
+
 
 class _Modal(QCSWidget):
 
