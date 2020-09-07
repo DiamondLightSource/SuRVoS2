@@ -30,7 +30,6 @@ class FeatureComboBox(LazyComboBox):
         
         _fill_features(self, full=self.full)
 
-
 def _fill_features(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
     result = Launcher.g.run('features', 'existing', **params)
@@ -61,14 +60,14 @@ class FeaturesPlugin(Plugin):
         self.feature_combo.addItem('Add feature')
         result = Launcher.g.run('features', 'available', workspace=True)
         
-        if not result:
-            params = {}                       
-            params['category'] = 'feat'
-            params['name'] = 'f0'
-            result = {}
-            result[0] = params
+        #if not result:
+        #    params = {}                       
+        #    params['category'] = 'feat'
+        #    params['name'] = 'f0'
+        #    result = {}
+        #    result[0] = params#
 
-            self.feature_params['feature'] = {'feature_param1': {  'type':'Int'}}
+        #    self.feature_params['feature'] = {'feature_param1': {  'type':'Int'}}
 
         if result:
             all_categories = sorted(set(p['category'] for p in result))
@@ -196,7 +195,7 @@ class FeatureCard(Card):
 
     def view_feature(self):
         logger.debug(f"View feature_id {self.feature_id}")
-        scfg.ppw.clientEvent.emit({'source': 'features', 'data':'view_feature', 'feature_id': self.feature_id})
+        cfg.ppw.clientEvent.emit({'source': 'features', 'data':'view_feature', 'feature_id': self.feature_id})
 
 
     def compute_feature(self):

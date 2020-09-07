@@ -9,9 +9,9 @@ class ClientData:
     vol_stack : np.ndarray
     layer_names : List[str]
     opacities : List[int]
-    entities : pd.DataFrame
-    classnames : np.ndarray
-    scfg: AttrDict
+    #entities : pd.DataFrame
+    #classnames : np.ndarray
+    cfg: AttrDict
 
 
 

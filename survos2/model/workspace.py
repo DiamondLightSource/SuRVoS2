@@ -19,7 +19,7 @@ CHUNK_SIZE = Config['computing.chunk_size']
 
 if CHROOT in ['tmp', 'temp']:
     tmp = tempfile.gettempdir()
-    CHROOT = op.join(tmp, 'tmp_survos_chroot')
+    CHROOT = os.path.join(tmp, 'tmp_survos_chroot')
     os.makedirs(CHROOT, exist_ok=True)
 
 logger.info(f"CHROOT is {CHROOT}")
@@ -36,11 +36,10 @@ class Workspace(object):
         logger.debug(f"INIT workspace at {path}")
         
         path = self._validate_path(path)
-        if not op.isdir(path):
+        if not os.path.isdir(path):
             raise WorkspaceException('Workspace \'{}\' does not exist.'.format(path))
         self._path = path
-        #logger.debug(f"Set workspace path to {self._path}")
-
+        
     # JSON representation
     @property
     def path(self):
@@ -57,7 +56,7 @@ class Workspace(object):
     @staticmethod
     def _validate_path(path):
         print(CHROOT)
-        if not CHROOT and op.realpath(path) != path:
+        if not CHROOT and os.path.realpath(path) != path:
             raise WorkspaceException('\'{}\' is not a valid workspace path without CHROOT'
                                      .format(path))
         elif CHROOT:
@@ -74,10 +73,10 @@ class Workspace(object):
     def create(path):
         
         path = Workspace._validate_path(path)
-        if op.isdir(path) and os.listdir(path):
+        if os.path.isdir(path) and os.listdir(path):
             raise WorkspaceException('Directory \'%s\' is not empty.' % path)
         
-        elif not op.isdir(path):
+        elif not os.path.isdir(path):
             os.makedirs(path)
         
         return Workspace(path)
@@ -100,13 +99,12 @@ class Workspace(object):
     # Auxiliary
     def genpath(self, *args):
         if len(args) > 0:            
-            #logger.debug(f"genpath: {args}")
             
             for i in range(len(args)-1):
                 check_relpath(args[i], args[i+1])
             
-            kpath = op.normpath(op.join(*args))
-            path = op.realpath(op.join(self._path, kpath))
+            kpath = os.path.normpath(os.path.join(*args))
+            path = os.path.realpath(os.path.join(self._path, kpath))
             
             check_relpath(self._path, path)
             
@@ -131,15 +129,14 @@ class Workspace(object):
         
         path = self.genpath(session, group) if group else self.genpath(session)
         
-        if not op.isdir(path):
+        if not os.path.isdir(path):
             logger.debug('path is not a directory')
             return []
 
         datasets = [ds for ds in os.listdir(path)]
-        #logger.debug(f"Datasets {datasets}")
         
         if group:
-            datasets = [op.sep.join([group, ds]) for ds in datasets]
+            datasets = [os.path.sep.join([group, ds]) for ds in datasets]
         
         return [ds for ds in datasets if self.has_dataset(ds, session=session)]
 
@@ -172,7 +169,7 @@ class Workspace(object):
             raise WorkspaceException('Invalid session name: \'%s\'' % session)
         # Update filesystem
         path = self.genpath(session)
-        if not op.isdir(path):
+        if not os.path.isdir(path):
             os.makedirs(path)
 
     def remove_session(self, session):
@@ -187,19 +184,19 @@ class Workspace(object):
         if not self.has_data():
             raise WorkspaceException('Workspace data has not been initialized')
         path = self.genpath(session)
-        return session != self.__dsname__ and op.isdir(path)
+        return session != self.__dsname__ and os.path.isdir(path)
 
 
     def add_data(self, data_fname):
         if self.has_data():
             raise WorkspaceException('Workspace has already been initialized with data.')        
+        
         #path = self.genpath(self.__dsname__)
         
         chunks = CHUNK_SIZE if CHUNK_DATA else None
         path = self.genpath(self.__dsname__)
-        #logger.debug(f"Creating dataset at: {path}")
         Dataset.create(path, data=data_fname, chunks=chunks)
-        #logger.debug(f"Adding default session")
+        
         #self.add_session('default')
 
         return self.get_data()
@@ -207,7 +204,7 @@ class Workspace(object):
     # Datasets
     def add_dataset(self, dataset_name, dtype, session='default',
                     fillvalue=0, chunks=None, shape=None):
-        dataset_name = dataset_name.replace('/', op.sep)
+        dataset_name = dataset_name.replace('/', os.path.sep)
         
         if self.has_dataset(dataset_name, session=session):
             raise WorkspaceException('Dataset \'{}::{}\' already exists.'
@@ -218,13 +215,12 @@ class Workspace(object):
         chunk_size = chunks or metadata['chunk_size']
         dtype = np.dtype(dtype).name
         path = self.genpath(session, dataset_name)
-        #logger.debug(f'Adding dataset in path {path}')
         
         return Dataset.create(path, shape=shape, dtype=dtype, chunks=chunk_size,
                               fillvalue=fillvalue, database=DATABASE)
 
     def remove_dataset(self, dataset_name, session='default'):
-        dataset_name = dataset_name.replace('/', op.sep)
+        dataset_name = dataset_name.replace('/', os.path.sep)
         if not self.has_dataset(dataset_name, session=session):
             raise WorkspaceException('Dataset \'{}::{}\' does not exist.'
                                      .format(session, dataset_name))
@@ -233,7 +229,7 @@ class Workspace(object):
 
     def has_dataset(self, dataset_name, session='default'):
         #logger.debug(f'has_dataset {dataset_name} for session {session}')
-        dataset_name = dataset_name.replace('/', op.sep)
+        dataset_name = dataset_name.replace('/', os.path.sep)
         
         if self.has_session(session):
             path = self.genpath(session, dataset_name)
@@ -241,18 +237,15 @@ class Workspace(object):
         return False
 
     def get_dataset(self, dataset_name, session='default', **kwargs):
-        dataset_name = dataset_name.replace('/', op.sep)
-        #logger.debug(f'Getting dataset {dataset_name}')
-
+        dataset_name = dataset_name.replace('/', os.path.sep)
+        
         if not self.has_dataset(dataset_name, session=session):
             raise WorkspaceException('Dataset \'{}::{}\' does not exist.'
                                      .format(session, dataset_name))
         
         path = self.genpath(session, dataset_name)
         ds = Dataset(path, **kwargs)
-
-        #logger.debug(f"Got dataset {ds}")
-
+        
         if tuple(ds.shape) != tuple(self.metadata()['shape']):
             raise WorkspaceException('Dataset \'{}::{}\' has incorrect `shape`.'
                                      'Got {}, expected {}.'
