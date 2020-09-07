@@ -37,18 +37,18 @@ def select_region(imvol : np.ndarray) -> Tuple[float, float, float, float, float
 
 def calc_feats(cropped_vol):
     img_vol =cropped_vol
-    roi_crop = scfg.roi_crop
+    roi_crop = cfg.roi_crop
 
     roi_crop = [0,cropped_vol.shape[0],0,cropped_vol.shape[1], 0,cropped_vol.shape[2]]
     
-    feature_params = [[gaussian, scfg.filter1['gauss_params']],
-    [gaussian, scfg.filter2['gauss_params'] ],
-    [simple_laplacian, scfg.filter4['laplacian_params'] ],
-    [tvdenoising3d, scfg.filter3['tvdenoising3d_params'] ]]
+    feature_params = [[gaussian, cfg.filter1['gauss_params']],
+    [gaussian, cfg.filter2['gauss_params'] ],
+    [simple_laplacian, cfg.filter4['laplacian_params'] ],
+    [tvdenoising3d, cfg.filter3['tvdenoising3d_params'] ]]
 
 
     #feature_params = [ 
-    #    [tvdenoising3d, scfg.filter3['tvdenoising3d_params'] ]
+    #    [tvdenoising3d, cfg.filter3['tvdenoising3d_params'] ]
     #]
 
     feats = generate_features(img_vol, feature_params, roi_crop, 1.0)
