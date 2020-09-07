@@ -27,7 +27,7 @@ from survos2.model import DataModel
 from loguru import logger
 
 from survos2.utils import decode_numpy
-from survos2.server.config import scfg
+from survos2.server.config import cfg
 
 _AnnotationNotifier = PluginNotifier()
 
@@ -147,7 +147,7 @@ class AnnotationLevel(Card):
 
     def view_level(self):
         logger.debug(f"View feature_id {self.level_id}")
-        scfg.ppw.clientEvent.emit({'source': 'annotations', 
+        cfg.ppw.clientEvent.emit({'source': 'annotations', 
                                             'data':'view_annotations', 
                                             'level_id': self.level_id})
 
