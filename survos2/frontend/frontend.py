@@ -176,8 +176,6 @@ def frontend(cData):
                     src_arr = src_dataset[:]
                     viewer.add_labels(src_arr, name=msg['pipeline_id'], color=cmapping)
                 
-                               
-
             elif msg['data'] == 'view_annotations':
                 logger.debug(f"view_annotation {msg['level_id']}")
 
