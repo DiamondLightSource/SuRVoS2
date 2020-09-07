@@ -6,7 +6,7 @@
         "background"
     ],
     "flipxy" : false,
-    "project_dir" : "/dls/science/groups/das/SuRVoS/s2/SuRVoS2/projects/brain/",
+    "project_dir" : "./projects/brain/",
     "workspace" : "test_s1",
     "dataset_name" : "data",
     "entities_relpath": "entities_brain.csv",

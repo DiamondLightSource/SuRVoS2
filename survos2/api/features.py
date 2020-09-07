@@ -41,9 +41,9 @@ def total_variation(src: DataURI, dst: DataURI, lamda: Float = 10,
 
 @hug.get() 
 @save_metadata
-def spatial_gradient_3d(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Edges':
+def spatial_gradient_3d(src: DataURI, dst: DataURI) -> 'Edges':
     from ..server.filtering import spatial_gradient_3d
-    map_blocks(spatial_gradient_3d, src, out=dst, sigma=sigma, normalize=True)
+    map_blocks(spatial_gradient_3d, src, out=dst, normalize=True)
 
 
 @hug.get() 
@@ -65,16 +65,16 @@ def gaussian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Denoising
 
 @hug.get()
 @save_metadata
-def laplacian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Edges':
+def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> 'Edges':
     from ..server.filtering import ndimage_laplacian
-    map_blocks(ndimage_laplacian, src, out=dst, sigma=sigma, normalize=True)
+    map_blocks(ndimage_laplacian, src, out=dst, kernel_size=kernel_size, normalize=True)
 
 
 @hug.get()
 @save_metadata
-def simple_invert(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> 'Simple':
+def simple_invert(src: DataURI, dst: DataURI) -> 'Simple':
     from ..server.filtering import simple_invert
-    map_blocks(simple_invert, src, out=dst, sigma=sigma, normalize=True)
+    map_blocks(simple_invert, src, out=dst, normalize=True)
 
 
 @hug.get()

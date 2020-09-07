@@ -14,7 +14,7 @@ from torchio.data.inference import GridSampler, GridAggregator
 
 
 # todo: simple way to add multiple aggregators and bundle results
-def batch_pipeline(input_array, entity_pts, scfg, patch_size=(64,64,64), patch_overlap=(0,0,0), batch_size=1):
+def batch_pipeline(input_array, entity_pts, cfg, patch_size=(64,64,64), patch_overlap=(0,0,0), batch_size=1):
     logger.debug("Starting up gridsampler pipeline...")
     input_tensors = []
     output_tensors = []
@@ -36,7 +36,7 @@ def batch_pipeline(input_array, entity_pts, scfg, patch_size=(64,64,64), patch_o
     aggregator1 = GridAggregator(grid_sampler)
     aggregator2 = GridAggregator(grid_sampler)
 
-    pipeline = Pipeline(scfg)
+    pipeline = Pipeline(cfg)
 
     # use MarkedVols?
     payloads = []

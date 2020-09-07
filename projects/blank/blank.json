@@ -1,0 +1,6 @@
+{
+    "flipxy" : false,
+    "project_dir" : "./projects/blank/",
+    "dataset_name" : "data",
+    "entities_relpath": "blank_entities.csv"
+}   
