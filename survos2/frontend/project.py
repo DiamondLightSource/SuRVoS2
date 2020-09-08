@@ -72,9 +72,9 @@ class ConfigEditor(QWidget):
         self.workspace_config = workspace_config
         self.pipeline_config = pipeline_config
 
-        run_config_ptree = self.init_ptree(self.run_config)
-        workspace_config_ptree = self.init_ptree(self.workspace_config)
-        pipeline_config_ptree = self.init_ptree(self.pipeline_config)
+        run_config_ptree = self.init_ptree(self.run_config, name="Run")
+        workspace_config_ptree = self.init_ptree(self.workspace_config, name="Workspace")
+        pipeline_config_ptree = self.init_ptree(self.pipeline_config, name="Pipeline")
 
         self.layout = QVBoxLayout()
         tabwidget = QTabWidget()
@@ -85,7 +85,7 @@ class ConfigEditor(QWidget):
         tabwidget.addTab(tab1, "Start Survos")
         tabwidget.addTab(tab2, "Workspace")
         #tabwidget.addTab(tab3, "Pipeline")
-        
+        #         
         create_workspace_button = QPushButton("Create workspace")
         run_button = QPushButton("Run button")
         
@@ -112,7 +112,7 @@ class ConfigEditor(QWidget):
         self.layout.addWidget(tabwidget)
                 
         self.setGeometry(300, 300, 450, 650)
-        self.setWindowTitle('Config editor')
+        self.setWindowTitle('SuRVoS Settings Editor')
         self.setLayout(self.layout)
         self.show()
 
@@ -130,15 +130,14 @@ class ConfigEditor(QWidget):
                 sibs = param.parent().children()
 
                 config_dict[path[-1]] = data
-                logger.debug(f"Parameter: {path}")
-                logger.debug(f"Value: {param.value}")
-                logger.debug('  data:      %s' % str(data))
-
+                #logger.debug(f"Parameter: {path}")
+                #logger.debug(f"Value: {param.value}")
+                #logger.debug(f"Data {data}")
         p.sigTreeStateChanged.connect(parameter_tree_change)  
 
         def valueChanging(param, value):
-            print("Value: %s\n %s" % (param, value))
-
+            pass
+            
         for child in p.children():
             child.sigValueChanging.connect(valueChanging)  
             
@@ -149,6 +148,7 @@ class ConfigEditor(QWidget):
 
 
     def dict_to_params(self, param_dict, name="Group"):
+        print(param_dict.keys())
         ptree_param_dicts = []
         ctr = 0
         for key in param_dict.keys():
@@ -175,12 +175,12 @@ class ConfigEditor(QWidget):
             ptree_param_dicts.append(d)
             
         ptree_init = [
-            {'name': 'Name', 'type': 'group', 'children': ptree_param_dicts}]
+            {'name': name, 'type': 'group', 'children': ptree_param_dicts}]
 
         return ptree_init
 
-    def init_ptree(self, config_dict):
-        ptree_init = self.dict_to_params(config_dict)
+    def init_ptree(self, config_dict, name='Group'):
+        ptree_init = self.dict_to_params(config_dict, name)
         parameters = Parameter.create(name='ptree_init', type='group', children=ptree_init)
         params = self.setup_ptree_params(parameters, config_dict)
         ptree = ParameterTree()
@@ -202,25 +202,34 @@ class ConfigEditor(QWidget):
 
     def run_clicked(self, event):
         print(self.run_config)
+        import os
+        command_dir = os.getcwd()
+        script_fullname = os.path.join(command_dir,"survos.py")
+        if not os.path.isfile(script_fullname):
+            raise Exception("{}: no such file".format(script_fullname))
+        print(script_fullname)
+        
         import subprocess
-        subprocess.run([f"python survos.py nu_gui {self.run_config['workspace_name']} server={self.run_config['server_address']}", "-l"])
-
+        subprocess.call(['python', script_fullname, 'nu_gui', self.run_config['workspace_name'], self.run_config['server_address'], ])
+        
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     
-    workspace_config = {'dataset_name': "data",
+    workspace_config = {
+                        'dataset_name': "data",
                         'datasets_dir': "D:/datasets/",
                         'vol_fname': 'mcd_s10_Nuc_Cyt_r1.h5',
                         'workspace_name' : 'test_hunt2'}
 
-    run_config = {'server_address': '172.23.5.231:8123',
+    run_config = { 
+                   'server_address': '172.23.5.231:8123',
                    'CHROOT': '/dls/science/groups/das/SuRVoS/s2/data/',
                    'workspace_name' : 'test_hunt2' }
 
     from survos2.server.config import cfg
     pipeline_config = dict(cfg)
-
+    
     app = QApplication([])
     config_editor = ConfigEditor(run_config, workspace_config, pipeline_config)
     app.exec_()
