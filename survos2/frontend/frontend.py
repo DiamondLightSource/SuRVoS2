@@ -10,8 +10,10 @@ import skimage
 from matplotlib.colors import Normalize
 
 from pyqtgraph.widgets.ProgressDialog import ProgressDialog
-from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import QSize, Signal
+from qtpy import QtCore
+from qtpy.QtWidgets import QTabWidget, QVBoxLayout, QWidget
+
+from qtpy.QtCore import QSize
 from loguru import logger
 
 from skimage import img_as_float, img_as_ubyte
@@ -395,8 +397,7 @@ def frontend(cData):
         # Tabs
         #
 
-        from qtpy.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QPushButton, QWidget
-
+        
         tabwidget = QTabWidget()
         tab1 = QWidget()
         tab2 = QWidget()

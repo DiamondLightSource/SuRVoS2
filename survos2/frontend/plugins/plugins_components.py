@@ -1,42 +1,17 @@
 import numpy as np
-import pandas as pd
-from numba import jit
-import scipy
-import yaml
-from vispy import scene
-from vispy.color import Colormap
+
 from loguru import logger
 from scipy import ndimage
 from skimage import img_as_ubyte, img_as_float
 from skimage import io
 from qtpy.QtWidgets import QRadioButton, QPushButton
-from qtpy.QtCore import QSize
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from vispy import scene
-from vispy.color import Colormap
-
-import pyqtgraph as pg
-
-import pyqtgraph.parametertree.parameterTypes as pTypes
-from pyqtgraph.parametertree import Parameter, ParameterTree
-import pyqtgraph.parametertree.parameterTypes as pTypes
-from pyqtgraph.parametertree import Parameter, ParameterTree
-from pyqtgraph.widgets.MatplotlibWidget import MatplotlibWidget
-from pyqtgraph.flowchart import Flowchart, Node
-import pyqtgraph.flowchart.library as fclib
-from pyqtgraph.flowchart.library.common import CtrlNode
-import pyqtgraph.opengl as gl
-import pyqtgraph as pg
-
-
-from survos2.server.config import cfg
 from survos2.helpers import prepare_3channel, simple_norm, norm1
 from survos2.frontend.components.base import *
 from survos2.frontend.control import Launcher
 
-from collections import OrderedDict
 
 
 def _fill_features(combo, full=False, filter=True, ignore=None):

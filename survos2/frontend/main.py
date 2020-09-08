@@ -27,10 +27,7 @@ from pathlib import Path
 from survos2.frontend.nb_utils import show_images
 from attrdict import AttrDict
 
-import skimage
-from skimage import img_as_float, img_as_ubyte
 
-from napari import layers
 
 from survos2.frontend.frontend import frontend
 from survos2.server.model import SRFeatures  # ,  SegData
@@ -39,11 +36,10 @@ from survos2.frontend.model import ClientData
 
 from survos2.entity.entities import make_entity_df
 from survos2 import survos
-import survos2.frontend.control
 from survos2.frontend.control import Launcher
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
-from survos2.frontend.model import ClientData
+
 from survos2.entity.sampler import crop_vol_and_pts_centered
 
 
@@ -117,6 +113,7 @@ def init_proj(precrop=False):
 
     logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")
 
+    
     # view a ROI from a big volume by creating a temp dataset from a crop.
     if precrop:
         precrop_coord = wparams.precrop_coord
