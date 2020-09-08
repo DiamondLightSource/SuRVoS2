@@ -51,8 +51,8 @@ from numpy import linalg
 from survos2.frontend.nb_utils import summary_stats
 from numpy.linalg import LinAlgError
 
-#warnings.filterwarnings("ignore")
-#warnings.filterwarnings(action='once')
+# warnings.filterwarnings("ignore")
+# warnings.filterwarnings(action='once')
 
 from survos2.entity.anno.geom import centroid_3d, rescale_3d
 from dataclasses import dataclass
@@ -62,76 +62,59 @@ def offset_points(pts, patch_pos):
     offset_z = patch_pos[0]
     offset_x = patch_pos[1]
     offset_y = patch_pos[2]
-    
+
     print(f"Offset: {offset_x}, {offset_y}, {offset_z}")
-   
-    z = pts[:,0].copy() - offset_z
-    x = pts[:,1].copy() - offset_x
-    y = pts[:,2].copy() - offset_y
-    
-    c = pts[:,3].copy() 
-    
-    
-    offset_pts = np.stack([z,x,y, c], axis=1)
-    
+
+    z = pts[:, 0].copy() - offset_z
+    x = pts[:, 1].copy() - offset_x
+    y = pts[:, 2].copy() - offset_y
+
+    c = pts[:, 3].copy()
+
+    offset_pts = np.stack([z, x, y, c], axis=1)
+
     return offset_pts
-    
+
 
 def make_entity_df(pts, flipxy=True):
     if flipxy:
-        entities_df = pd.DataFrame({'z': pts[:, 0], 
-                                'x': pts[:, 2],
-                                'y': pts[:, 1],
-                                'class_code' : pts[:,3]})
+        entities_df = pd.DataFrame(
+            {"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]}
+        )
     else:
-        entities_df = pd.DataFrame({'z': pts[:, 0], 
-                                'x': pts[:, 1],
-                                'y': pts[:, 2],
-                                'class_code' : pts[:,3]})
-    
-    entities_df = entities_df.astype({'x': 'int32', 
-                                  'y': 'int32', 
-                                  'z':'int32', 
-                                  'class_code': 'int32'})
+        entities_df = pd.DataFrame(
+            {"z": pts[:, 0], "x": pts[:, 1], "y": pts[:, 2], "class_code": pts[:, 3]}
+        )
+
+    entities_df = entities_df.astype(
+        {"x": "int32", "y": "int32", "z": "int32", "class_code": "int32"}
+    )
     return entities_df
-
-
 
 
 def make_entity_feats_df(pts, flipxy=True):
     if flipxy:
-        entities_df = pd.DataFrame({'z': pts[:, 0], 
-                                'x': pts[:, 2],
-                                'y': pts[:, 1],
-                                'class_code' : pts[:,3]})
+        entities_df = pd.DataFrame(
+            {"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]}
+        )
     else:
-        entities_df = pd.DataFrame({'z': pts[:, 0], 
-                                'x': pts[:, 1],
-                                'y': pts[:, 2],
-                                'class_code' : pts[:,3]})
-    
-    entities_df = entities_df.astype({'x': 'int32', 
-                                  'y': 'int32', 
-                                  'z':'int32', 
-                                  'class_code': 'int32'})
+        entities_df = pd.DataFrame(
+            {"z": pts[:, 0], "x": pts[:, 1], "y": pts[:, 2], "class_code": pts[:, 3]}
+        )
+
+    entities_df = entities_df.astype(
+        {"x": "int32", "y": "int32", "z": "int32", "class_code": "int32"}
+    )
     return entity_feats_df
 
 
-
-
 def make_entity_df2(pts):
-    entities_df = pd.DataFrame({'z': pts[:, 0], 
-                             'x': pts[:, 2],
-                             'y': pts[:, 1],
-                            'class_code' : pts[:,3]})
+    entities_df = pd.DataFrame(
+        {"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]}
+    )
 
+    entities_df = entities_df.astype(
+        {"x": "float32", "y": "float32", "z": "int32", "class_code": "int32"}
+    )
 
-    entities_df = entities_df.astype({'x': 'float32', 
-                                  'y': 'float32', 
-                                  'z':'int32', 
-                                  'class_code': 'int32'})
-        
     return entities_df
-
-
-

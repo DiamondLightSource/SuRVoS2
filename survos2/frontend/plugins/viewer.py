@@ -5,7 +5,6 @@ from survos2.frontend.components.base import QCSWidget
 
 
 class Tool(QCSWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self._viewer = None
@@ -44,7 +43,6 @@ class Tool(QCSWidget):
 
 
 class ViewerExtension(QtCore.QObject):
-
     def __init__(self, modifiers=None, enabled=True):
         super().__init__()
         self.fig = None
@@ -90,4 +88,3 @@ class ViewerExtension(QtCore.QObject):
     def redraw(self):
         if self.fig:
             self.fig.redraw()
-

@@ -14,7 +14,6 @@ from survos2.frontend.views.base import register_view
 
 
 class ZoomPan(ViewerExtension):
-
     def __init__(self, zoom_factor=2, max_zoom_level=4):
         super().__init__(modifiers=QtCore.Qt.ControlModifier)
         self.data_size = [1, 1]
@@ -26,14 +25,14 @@ class ZoomPan(ViewerExtension):
 
         self.current_zoom = 1
         self.zoom_factor = zoom_factor
-        self.max_zoom = 1. / (zoom_factor**max_zoom_level)
+        self.max_zoom = 1.0 / (zoom_factor ** max_zoom_level)
 
     def install(self, fig, axes):
         super().install(fig, axes)
-        self.connect('scroll_event', self.do_zoom)
-        self.connect('button_press_event', self.pan_press)
-        self.connect('button_release_event', self.pan_release)
-        self.connect('motion_notify_event', self.pan_motion)
+        self.connect("scroll_event", self.do_zoom)
+        self.connect("button_press_event", self.pan_press)
+        self.connect("button_release_event", self.pan_release)
+        self.connect("motion_notify_event", self.pan_motion)
 
     def do_zoom(self, event):
         # https://stackoverflow.com/questions/11551049/matplotlib-plot-zooming-with-scroll-wheel
@@ -46,9 +45,9 @@ class ZoomPan(ViewerExtension):
         xdata = event.xdata  # get event x location
         ydata = event.ydata  # get event y location
 
-        if event.button == 'up':
+        if event.button == "up":
             scale_factor = 1 / self.zoom_factor
-        elif event.button == 'down':
+        elif event.button == "down":
             scale_factor = self.zoom_factor
         else:
             return
@@ -62,11 +61,11 @@ class ZoomPan(ViewerExtension):
         new_width = (cur_xlim[1] - cur_xlim[0]) * scale_factor
         new_height = (cur_ylim[1] - cur_ylim[0]) * scale_factor
 
-        relx = (cur_xlim[1] - xdata)/(cur_xlim[1] - cur_xlim[0])
-        rely = (cur_ylim[1] - ydata)/(cur_ylim[1] - cur_ylim[0])
+        relx = (cur_xlim[1] - xdata) / (cur_xlim[1] - cur_xlim[0])
+        rely = (cur_ylim[1] - ydata) / (cur_ylim[1] - cur_ylim[0])
 
-        ax.set_xlim([xdata - new_width * (1-relx), xdata + new_width * (relx)])
-        ax.set_ylim([ydata - new_height * (1-rely), ydata + new_height * (rely)])
+        ax.set_xlim([xdata - new_width * (1 - relx), xdata + new_width * (relx)])
+        ax.set_ylim([ydata - new_height * (1 - rely), ydata + new_height * (rely)])
 
         self.current_zoom = new_zoom
         self.redraw()
@@ -108,7 +107,6 @@ class ZoomPan(ViewerExtension):
 
 
 class MplCanvas(FigureCanvas):
-
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
@@ -118,8 +116,9 @@ class MplCanvas(FigureCanvas):
 
         super().__init__(fig)
         self.setParent(parent)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                           QtWidgets.QSizePolicy.Expanding)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         self.updateGeometry()
 
     def compute_initial_figure(self):
@@ -133,8 +132,7 @@ class MplCanvas(FigureCanvas):
 
 
 class SliceMplCanvas(MplCanvas):
-
-    def __init__(self, axes_color='#0277BD', parent=None):
+    def __init__(self, axes_color="#0277BD", parent=None):
         self.axes_color = axes_color
         super().__init__(parent=parent)
 
@@ -156,9 +154,8 @@ class SliceMplCanvas(MplCanvas):
         self.redraw()
 
 
-@register_view(name='viewer')
+@register_view(name="viewer")
 class Viewer(QCSWidget):
-
     def __init__(self, camera=True, parent=None):
         super().__init__(parent=parent)
         self.canvas = SliceMplCanvas(parent=self)

@@ -1,5 +1,3 @@
-
-
 import pytest
 import logging
 import numpy as np
@@ -9,9 +7,7 @@ from survos2.data import embrain, mrbrain
 from survos2.improc.utils import asnparray
 
 
-@pytest.mark.parametrize("data_func", [
-    mrbrain, embrain
-])
+@pytest.mark.parametrize("data_func", [mrbrain, embrain])
 def test_data(data_func):
     # TODO Replace this test with datasets that exist or that can be downloaded
     # dataset = dataset_from_uri(data_func())
@@ -23,5 +19,6 @@ def test_data(data_func):
     # dataset.close()
     pass
 
-if __name__ == '__main__':
-    pytest.main(args=['-s', __file__, '--loglevel', logging.DEBUG])
+
+if __name__ == "__main__":
+    pytest.main(args=["-s", __file__, "--loglevel", logging.DEBUG])

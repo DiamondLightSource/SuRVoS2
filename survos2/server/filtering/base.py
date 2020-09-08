@@ -12,6 +12,6 @@ from torch.nn import functional as F
 import kornia
 from loguru import logger
 
+
 def simple_invert(data, sigma=5.0):
     return 1.0 - data
-

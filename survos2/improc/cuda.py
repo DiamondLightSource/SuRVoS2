@@ -1,5 +1,3 @@
-
-
 import logging
 import numpy as np
 import atexit
@@ -35,10 +33,12 @@ def gpu_argument_wrapper(func, dtype=None):
     the result of the function will be kept in the gpu, or returned as a
     numpy array otherwise.
     """
+
     @wraps(func)
     def wrapper(*args, keep_gpu=False, **kwargs):
         r = func(*args, **kwargs)
         return asgpuarray(r, dtype) if keep_gpu else asnparray(r, dtype)
+
     return wrapper
 
 
@@ -48,16 +48,18 @@ def gpu_context_wrapper(func):
     allowing chunking operations to run simultaneously in the GPU.
     """
     logger.debug("In gpu_context_wrapper")
+
     @wraps(func)
     def wrapper(*args, **kwargs):
-        gpucontext = create_context(kwargs.pop('gpu_id', 0))
+        gpucontext = create_context(kwargs.pop("gpu_id", 0))
         r = func(*args, **kwargs)
-        if kwargs.get('keep_gpu', False):
+        if kwargs.get("keep_gpu", False):
             atexit.register(gpucontext.detach)
             gpucontext.pop()
         else:
             gpucontext.detach()
         return r
+
     return wrapper
 
 
@@ -73,13 +75,18 @@ def asgpuarray(data, dtype=None):
 
     if isinstance(data, gpuarray.GPUArray):
         if np.dtype(data.dtype) != np.dtype(dtype):
-            raise ValueError("Data type `{}` does not match expected type `{}`"
-                             .format(np.dtype(data.dtype).name,
-                                     np.dtype(dtype).name))
+            raise ValueError(
+                "Data type `{}` does not match expected type `{}`".format(
+                    np.dtype(data.dtype).name, np.dtype(dtype).name
+                )
+            )
         return data
     if np.dtype(data.dtype) != np.dtype(dtype):
-        logging.warn("Probably unsafe type casting to CUDA array: {} to {}"
-                     .format(np.dtype(data.dtype).name, np.dtype(dtype).name))
+        logging.warn(
+            "Probably unsafe type casting to CUDA array: {} to {}".format(
+                np.dtype(data.dtype).name, np.dtype(dtype).name
+            )
+        )
 
     return gpuarray.to_gpu(asnparray(data, dtype=dtype))
 
@@ -111,15 +118,20 @@ def grid_kernel_config(kernel, shape, isotropic=False):
         while np.prod(block) > max_threads:
             block = np.maximum(1, np.round(block - 0.1 * block)).astype(int)
     else:
-        max_axis = np.floor(max_threads**(1./len(shape)))
+        max_axis = np.floor(max_threads ** (1.0 / len(shape)))
         block = [max_axis] * len(shape) + [1] * (3 - len(shape))
 
     block = tuple(map(int, block))
-    grid = tuple(map(int, (
-        (shape[2] + block[0] - 1) // block[0],
-        (shape[1] + block[1] - 1) // block[1],
-        (shape[0] + block[2] - 1) // block[2]
-    )))
+    grid = tuple(
+        map(
+            int,
+            (
+                (shape[2] + block[0] - 1) // block[0],
+                (shape[1] + block[1] - 1) // block[1],
+                (shape[0] + block[2] - 1) // block[2],
+            ),
+        )
+    )
 
     return block, grid
 

@@ -1,5 +1,3 @@
-
-
 import hug
 
 from . import api

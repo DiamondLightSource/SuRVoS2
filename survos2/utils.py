@@ -1,5 +1,3 @@
-
-
 import os
 import sys
 import os.path as op
@@ -13,13 +11,15 @@ import time
 import logging
 
 from loguru import logger
-#logger.remove()
+
+# logger.remove()
 __loggers__ = {}
 
-#log_format = " {level: <8} | {file} | {name: ^15} | {function: ^15} | {line: >3} | {message}| {exception}"
+# log_format = " {level: <8} | {file} | {name: ^15} | {function: ^15} | {line: >3} | {message}| {exception}"
 
-#logger.add(sys.stderr, format=log_format, level="INFO", colorize=True) #{time}
+# logger.add(sys.stderr, format=log_format, level="INFO", colorize=True) #{time}
 logger.opt(colors=True)
+
 
 def encode_numpy(ndarray):
     dtype = np.dtype(ndarray.dtype).name
@@ -28,15 +28,15 @@ def encode_numpy(ndarray):
 
 
 def decode_numpy(dictarray):
-    data = base64.b64decode(dictarray.pop('data'))
-    data = np.fromstring(data, dtype=dictarray['dtype'])
-    data.shape = dictarray['shape']
+    data = base64.b64decode(dictarray.pop("data"))
+    data = np.fromstring(data, dtype=dictarray["dtype"])
+    data.shape = dictarray["shape"]
     return data
 
 
 def find_library(libname):
     libname, _ = op.splitext(libname)
-    lib_paths = os.environ['LD_LIBRARY_PATH'].split(os.pathsep)
+    lib_paths = os.environ["LD_LIBRARY_PATH"].split(os.pathsep)
     for folder in lib_paths + sys.path:
         if op.isdir(folder):
             if any([f.startswith(libname) for f in os.listdir(folder)]):
@@ -61,19 +61,20 @@ def setup_logger(name=None, level=None):
     Returns a logger formatted as specified in the SuRVoS config file.
     """
     from .config import Config
+
     logger = logging.getLogger(name)
     logger.handlers = []
-    level = level or Config['logging.level'].upper() or logging.ERROR
-    if Config['logging.std']:
+    level = level or Config["logging.level"].upper() or logging.ERROR
+    if Config["logging.std"]:
         handler = logging.StreamHandler()
         handler.setLevel(level)
-        fmt = logging.Formatter(Config['logging.std_format'])
+        fmt = logging.Formatter(Config["logging.std_format"])
         handler.setFormatter(fmt)
         logger.addHandler(handler)
-    if Config['logging.file']:
-        handler = logging.FileHandler(Config['logging.file'])
+    if Config["logging.file"]:
+        handler = logging.FileHandler(Config["logging.file"])
         handler.setLevel(level)
-        fmt = logging.Formatter(Config['logging.file_format'])
+        fmt = logging.Formatter(Config["logging.file_format"])
         handler.setFormatter(fmt)
         logger.addHandler(handler)
     return logger
@@ -92,6 +93,7 @@ class Timer(object):
 
         message to show - elapsed: 0.0000 seconds.
     """
+
     def __init__(self, name, *args):
         self.name = name
         self.args = list(args)
@@ -104,13 +106,15 @@ class Timer(object):
         self.args.extend(args)
 
     def __exit__(self, type, value, traceback):
-        self.tend = (time.time() - self.tstart)
+        self.tend = time.time() - self.tstart
         if len(self.args):
-            logging.info('{0}: {1:.4f} seconds, Args: {2}'
-                         .format(self.name, self.tend, tuple(self.args)))
+            logging.info(
+                "{0}: {1:.4f} seconds, Args: {2}".format(
+                    self.name, self.tend, tuple(self.args)
+                )
+            )
         else:
-            logging.info('{0}: {1:.4f} seconds'
-                         .format(self.name, self.tend))
+            logging.info("{0}: {1:.4f} seconds".format(self.name, self.tend))
 
 
 def check_relpath(path1, path2, exception=True):
@@ -137,7 +141,7 @@ def check_relpath(path1, path2, exception=True):
     p2 = op.normpath(op.join(path1, path2))
     if op.relpath(p1, p2).endswith(op.basename(p1)):
         if exception:
-            raise ValueError('Invalid path \'%s\'' % path2)
+            raise ValueError("Invalid path '%s'" % path2)
         return False
     return p2
 
@@ -155,30 +159,29 @@ class AttributeDB(dict):
         The writing backend to choose. Values are 'yaml' or 'json'.
     """
 
-    def __init__(self, filename, dbtype='yaml'):
+    def __init__(self, filename, dbtype="yaml"):
         super(AttributeDB, self).__init__()
-        self.use_yaml = dbtype == 'yaml'
+        self.use_yaml = dbtype == "yaml"
         self.filename = AttributeDB.dbpath(filename, dbtype)
         self.read(self.filename)
 
     @staticmethod
     def dbpath(filename, dbtype):
-        if not filename.endswith('.' + dbtype):
-            filename += '.' + dbtype
+        if not filename.endswith("." + dbtype):
+            filename += "." + dbtype
         return filename
 
     @staticmethod
-    def create(filename, dbtype='yaml'):
+    def create(filename, dbtype="yaml"):
         filename = AttributeDB.dbpath(filename, dbtype)
         if os.path.isfile(filename):
-            raise FileExistsError('Database file \'{}\' already exists.'
-                                  .format(filename))
-        with open(filename, 'w') as f:
-            if dbtype == 'yaml':
+            raise FileExistsError("Database file '{}' already exists.".format(filename))
+        with open(filename, "w") as f:
+            if dbtype == "yaml":
                 os.utime(filename, None)
-            elif dbtype == 'json':
-                f.write('{}')
-        return AttributeDB(filename, dbtype='yaml')
+            elif dbtype == "json":
+                f.write("{}")
+        return AttributeDB(filename, dbtype="yaml")
 
     def read(self, filename=None, exists_ok=False):
         self.clear()
@@ -203,21 +206,24 @@ class AttributeDB(dict):
 
     def save(self, filename=None):
         filename = filename or self.filename
-        with open(filename, 'w') as handle:
+        with open(filename, "w") as handle:
             if self.use_yaml:
-                yaml.dump(dict(self), handle, indent=4,
-                          explicit_start=True, explicit_end=True)
+                yaml.dump(
+                    dict(self), handle, indent=4, explicit_start=True, explicit_end=True
+                )
             else:
                 json.dump(dict(self), handle, sort_keys=True, indent=4)
 
 
 def _canpickle(obj):
     import pickle
+
     try:
         pickle.dumps(obj)
         return True
     except Exception:
         return False
+
 
 def _transform_params(data):
     result = dict()
@@ -226,24 +232,25 @@ def _transform_params(data):
             continue
         if type(v) == tuple:
             v = list(v)
-        elif hasattr(v, 'tolist'):
+        elif hasattr(v, "tolist"):
             v = v.tolist()
         if type(v) == bytes:
             v = str(v)
         result[k] = v
     return result
 
+
 def parse_params(data):
     d = _transform_params(data)
-    if 'pipeline' in data:
-        d.update({f.__name__: parse_params(p) for f, p in data['pipeline']})
-        del d['pipeline']
+    if "pipeline" in data:
+        d.update({f.__name__: parse_params(p) for f, p in data["pipeline"]})
+        del d["pipeline"]
     return d
 
 
 def format_yaml(data, flow=None, **kwargs):
     data = parse_params(data)
-    kwargs.setdefault('explicit_start', True)
-    kwargs.setdefault('explicit_end', True)
+    kwargs.setdefault("explicit_start", True)
+    kwargs.setdefault("explicit_end", True)
     kwargs.update(dict(default_flow_style=flow))
     return yaml.dump(data, **kwargs)[:-1]

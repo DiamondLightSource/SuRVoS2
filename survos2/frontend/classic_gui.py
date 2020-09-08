@@ -1,11 +1,11 @@
-
 import os
 
-#from .utils import resource
+# from .utils import resource
 from .qtcompat import QtWidgets, QtCore, QtGui
 from .plugins import list_plugins, get_plugin
 from .views import list_views, get_view
-#from .components import *
+
+# from .components import *
 from .modal import ModalManager
 from .control import Launcher
 
@@ -25,13 +25,21 @@ from scipy import stats
 import napari
 
 from survos2.frontend.components.icon_buttons import ToolIconButton
-from survos2.frontend.components.base import QCSWidget, HBox, VBox, TabBar, Header, ScrollPane
+from survos2.frontend.components.base import (
+    QCSWidget,
+    HBox,
+    VBox,
+    TabBar,
+    Header,
+    ScrollPane,
+)
 
 logger = get_logger()
 
+
 def resource(*args):
     rdir = os.path.dirname(__file__)
-    return os.path.normpath(os.path.join(rdir, 'resources', *args))
+    return os.path.normpath(os.path.join(rdir, "resources", *args))
 
 
 class IconContainer(QCSWidget):
@@ -45,10 +53,10 @@ class IconContainer(QCSWidget):
         self.btn_group.setExclusive(True)
         self.plugins = {}
 
-    def load_plugin(self, name, icon, title=''):
+    def load_plugin(self, name, icon, title=""):
         if name in self.plugins:
             return
-        btn = ToolIconButton(icon, title, color='white', size=(24, 24), checkable=True)
+        btn = ToolIconButton(icon, title, color="white", size=(24, 24), checkable=True)
         self.plugins[name] = btn
         self.vbox.addWidget(btn)
         self.btn_group.addButton(btn)
@@ -80,7 +88,7 @@ class PluginContainer(QCSWidget):
         self.setMinimumWidth(self.__sidebar_width__)
         self.setMaximumWidth(self.__sidebar_width__)
 
-        self.title = Header('Plugin')
+        self.title = Header("Plugin")
         self.container = ScrollPane(parent=self)
 
         vbox = VBox(self, margin=(1, 0, 2, 0), spacing=5)
@@ -105,13 +113,13 @@ class PluginContainer(QCSWidget):
     def show_plugin(self, name):
         if name in self.plugins and name != self.selected_name:
             if self.selected is not None:
-                self.selected['widget'].setParent(None)
+                self.selected["widget"].setParent(None)
             self.selected_name = name
             self.selected = self.plugins[name]
-            self.title.setText(self.selected['title'])
-            self.container.addWidget(self.selected['widget'], 1)
-            if hasattr(self.selected['widget'], 'setup'):
-                self.selected['widget'].setup()
+            self.title.setText(self.selected["title"])
+            self.container.addWidget(self.selected["widget"], 1)
+            if hasattr(self.selected["widget"], "setup"):
+                self.selected["widget"].setup()
 
 
 class ViewContainer(QCSWidget):
@@ -141,22 +149,22 @@ class ViewContainer(QCSWidget):
         views = [v for v in views if v in self.views]
 
         for view in views:
-            self.header.addTab(view, self.views[view]['title'])
+            self.header.addTab(view, self.views[view]["title"])
 
         if self.current_view is None:
             self.select_view(views[0])
         else:
-            widget = self.views[self.current_view]['widget']
-            if hasattr(widget, 'setup'):
+            widget = self.views[self.current_view]["widget"]
+            if hasattr(widget, "setup"):
                 widget.setup()
 
     def select_view(self, name):
         if name in self.views:
-            self.container.setCurrentIndex(self.views[name]['idx'])
+            self.container.setCurrentIndex(self.views[name]["idx"])
             self.current_view = name
             self.header.setSelected(name)
-            widget = self.views[self.current_view]['widget']
-            if hasattr(widget, 'setup'):
+            widget = self.views[self.current_view]["widget"]
+            if hasattr(widget, "setup"):
                 widget.setup()
 
     def load_view(self, name, title, cls):
@@ -173,15 +181,16 @@ class ViewContainer(QCSWidget):
 
     def propagate_keybinding(self, evt):
         if self.current_view is not None:
-            widget = self.views[self.current_view]['widget']
-            if hasattr(widget, 'triggerKeybinding'):
+            widget = self.views[self.current_view]["widget"]
+            if hasattr(widget, "triggerKeybinding"):
                 widget.triggerKeybinding(evt.key(), evt.modifiers())
 
         if not evt.isAccepted():
             evt.accept()
 
+
 def update_ui():
-    logger.info('Updating UI')
+    logger.info("Updating UI")
     QtCore.QCoreApplication.processEvents()
     time.sleep(0.1)
 
@@ -199,13 +208,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.p = Process(target=update_ui)
         self.p.start()
 
-        material_font = resource('iconfont', 'MaterialIcons-Regular.ttf')
+        material_font = resource("iconfont", "MaterialIcons-Regular.ttf")
         QtGui.QFontDatabase.addApplicationFont(material_font)
 
-        qcs_path = resource('qcs', 'survos.qcs')
+        qcs_path = resource("qcs", "survos.qcs")
         print(qcs_path)
         if os.path.isfile(qcs_path):
-            with open(qcs_path, 'r') as f:
+            with open(qcs_path, "r") as f:
                 self.setStyleSheet(f.read())
 
         self.setWindowTitle(title)
@@ -214,13 +223,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self._loaded_plugins = {}
         self._setup_layout()
         self.setMinimumSize(1024, 768)
-        
+
         if maximize:
             self.showMaximized()
         else:
             self.show()
 
-        ModalManager.instance(self).show_loading('Populating workspace')
+        ModalManager.instance(self).show_loading("Populating workspace")
         self._load_views(views)
         name = self._load_plugins(plugins)
         self.select_plugin(name)
@@ -249,7 +258,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pluginContainer.view_requested.connect(self.show_view)
         self.plugin2views = dict()
 
-          
     def _load_plugins(self, plugins=None):
         all_plugins = list_plugins() if plugins is None else plugins
         for pname in all_plugins:
@@ -270,11 +278,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if name in self.plugin2views:
             return
         plugin = get_plugin(name)
-        name = plugin['name']
-        title = plugin['title']
-        plugin_cls = plugin['cls']
-        self.plugin2views[name] = plugin['views']
-        self.iconContainer.load_plugin(name, plugin['icon'], title)
+        name = plugin["name"]
+        title = plugin["title"]
+        plugin_cls = plugin["cls"]
+        self.plugin2views[name] = plugin["views"]
+        self.iconContainer.load_plugin(name, plugin["icon"], title)
         return self.pluginContainer.load_plugin(name, title, plugin_cls)
 
     def unload_plugin(self, name):
@@ -283,7 +291,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def load_view(self, name):
         view = get_view(name)
-        name, cls, title = view['name'], view['cls'], view['title']
+        name, cls, title = view["name"], view["cls"], view["title"]
         return self.viewContainer.load_view(name, title, cls)
 
     def unload_view(self, name):
@@ -304,14 +312,14 @@ class MainWindow(QtWidgets.QMainWindow):
         if e.key() == QtCore.Qt.Key_Escape:
             self.setFocus()
             e.accept()
-        elif e.key() == ord(Config['qtui.menuKey']):
+        elif e.key() == ord(Config["qtui.menuKey"]):
             current = self.pluginContainer.minimumWidth()
             stop = self.pluginContainer.__sidebar_width__ - current
             start = self.pluginContainer.__sidebar_width__ - stop
 
             group = QtCore.QParallelAnimationGroup()
 
-            for anim in [b'maximumWidth', b'minimumWidth']:
+            for anim in [b"maximumWidth", b"minimumWidth"]:
                 anim = QtCore.QPropertyAnimation(self.pluginContainer, anim)
                 anim.setDuration(100)
                 anim.setStartValue(start)

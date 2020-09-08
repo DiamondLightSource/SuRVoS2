@@ -41,17 +41,16 @@ class SmallVolWidget:
     def __init__(self, smallvol):
 
         self.imv = pg.ImageView()
-        self.imv.setImage(smallvol, xvals=np.linspace(1., 3., smallvol.shape[0]))
+        self.imv.setImage(smallvol, xvals=np.linspace(1.0, 3.0, smallvol.shape[0]))
 
     def set_vol(self, smallvol):
-        self.imv.setImage(smallvol, xvals=np.linspace(1., 3., smallvol.shape[0]))
+        self.imv.setImage(smallvol, xvals=np.linspace(1.0, 3.0, smallvol.shape[0]))
         self.imv.jumpFrames(smallvol.shape[0] // 2)
 
 
-
 # have to inherit from QGraphicsObject in order for signal to work
-class TableWidget(QtWidgets.QGraphicsObject):        
-    clientEvent  = Signal(object)  
+class TableWidget(QtWidgets.QGraphicsObject):
+    clientEvent = Signal(object)
 
     def __init__(self):
         super().__init__()
@@ -59,17 +58,19 @@ class TableWidget(QtWidgets.QGraphicsObject):
 
         self.w.show()
         self.w.resize(500, 500)
-        self.w.setWindowTitle('Entity table')
-    
+        self.w.setWindowTitle("Entity table")
+
         self.w.cellClicked.connect(self.cell_clicked)
         self.w.doubleClicked.connect(self.double_clicked)
         self.w.selected_row = 0
 
     def set_data(self, data):
-        self.w.setData(data)        
+        self.w.setData(data)
 
     def double_clicked(self):
-        self.clientEvent.emit({'source': 'table', 'data':'show_roi', 'selected_roi': self.w.selected_row})
+        self.clientEvent.emit(
+            {"source": "table", "data": "show_roi", "selected_roi": self.w.selected_row}
+        )
 
         for index in self.w.selectedIndexes():
             logger.debug(f"Retrieved item from table: {self.w.model().data(index)}")
@@ -77,4 +78,3 @@ class TableWidget(QtWidgets.QGraphicsObject):
     def cell_clicked(self, row, col):
         logger.debug("Row %d and Column %d was clicked" % (row, col))
         self.w.selected_row = row
-                    

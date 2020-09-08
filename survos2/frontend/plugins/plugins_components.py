@@ -39,33 +39,32 @@ from survos2.frontend.control import Launcher
 from collections import OrderedDict
 
 
-
 def _fill_features(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
-    
-    result = Launcher.g.run('features', 'existing', **params)
-    
+
+    result = Launcher.g.run("features", "existing", **params)
+
     if result:
         for fid in result:
             if fid != ignore:
-                combo.addItem(fid, result[fid]['name'])
+                combo.addItem(fid, result[fid]["name"])
 
     else:
         result = dict()
-        params.setdefault('id',7)
-        params.setdefault('name', 'feat0')
-        params.setdefault('kind', 'unknown')
-    
+        params.setdefault("id", 7)
+        params.setdefault("name", "feat0")
+        params.setdefault("kind", "unknown")
+
         result[0] = params
 
 
 _FeatureNotifier = PluginNotifier()
 
-class SourceComboBox(LazyComboBox):
 
+class SourceComboBox(LazyComboBox):
     def __init__(self, ignore_source=None, parent=None):
         self.ignore_source = ignore_source
-        super().__init__(header=('__data__', 'Raw Data'), parent=parent)
+        super().__init__(header=("__data__", "Raw Data"), parent=parent)
         _FeatureNotifier.listen(self.update)
 
     def fill(self):
@@ -73,21 +72,32 @@ class SourceComboBox(LazyComboBox):
 
 
 class MultiSourceComboBox(LazyMultiComboBox):
-
     def __init__(self, parent=None):
-        super().__init__(header=('__data__', 'Raw Data'), text='Select Source',
-                         parent=parent)
+        super().__init__(
+            header=("__data__", "Raw Data"), text="Select Source", parent=parent
+        )
         _FeatureNotifier.listen(self.update)
 
     def fill(self):
         _fill_features(self, full=True)
 
+
 class Slider(QCSWidget):
 
     valueChanged = QtCore.Signal(int)
 
-    def __init__(self, value=None, vmax=100, vmin=0, step=1, tracking=True,
-                 label=True, auto_accept=True, center=False, parent=None):
+    def __init__(
+        self,
+        value=None,
+        vmax=100,
+        vmin=0,
+        step=1,
+        tracking=True,
+        label=True,
+        auto_accept=True,
+        center=False,
+        parent=None,
+    ):
         super().__init__(parent=parent)
         if value is None:
             value = vmin
@@ -147,9 +157,9 @@ class Slider(QCSWidget):
 
     def wheelEvent(self, e):
         if e.angleDelta().y() > 0 and self.value() < self.maximum():
-            self.setValue(self.value()+self.step)
+            self.setValue(self.value() + self.step)
         elif e.angleDelta().y() < 0 and self.value() > self.minimum():
-            self.setValue(self.value()-self.step)
+            self.setValue(self.value() - self.step)
 
     def value(self):
         return self.pending or self.slider.value()
@@ -162,7 +172,6 @@ class Slider(QCSWidget):
 
 
 class RealSlider(Slider):
-
     def __init__(self, value=0, vmax=100, vmin=0, n=1000, **kwargs):
         super().__init__(value=0, vmin=0, vmax=n, **kwargs)
         self._n = n
@@ -181,12 +190,11 @@ class RealSlider(Slider):
         return self._values[self.slider.value()]
 
     def update_label(self, idx):
-        idx = '{0:.3f}'.format(self._values[idx])
+        idx = "{0:.3f}".format(self._values[idx])
         super().update_label(idx)
 
     def _update_linspace(self):
-        self._values = np.linspace(self._vmin, self._vmax,
-                                   self._n + 1, endpoint=True)
+        self._values = np.linspace(self._vmin, self._vmax, self._n + 1, endpoint=True)
 
     def setValue(self, val):
         idx = self._mapvalue(val)
@@ -206,13 +214,11 @@ class RealSlider(Slider):
     def minimum(self):
         return self._vmin
 
-class Label(QtWidgets.QLabel):
 
+class Label(QtWidgets.QLabel):
     def __init__(self, *args):
         super().__init__(*args)
         self.setAlignment(QtCore.Qt.AlignCenter)
 
     def value(self):
         return self.text()
-
-

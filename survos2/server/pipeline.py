@@ -39,7 +39,7 @@ from survos2.frontend.nb_utils import show_images
 
 
 @dataclass
-class Patch():
+class Patch:
     """A Patch is processed by a Pipeline
 
     3 layer dictionaries for the different types (float image, integer image, geometry)
@@ -50,11 +50,11 @@ class Patch():
     TODO Adapter
     """
 
-    image_layers : Dict  
-    annotation_layers : Dict
-    geometry_layers : Dict
+    image_layers: Dict
+    annotation_layers: Dict
+    geometry_layers: Dict
 
-    
+
 class Pipeline:
     """
     A pipeline produces output such as a segmentation, and often has 
@@ -69,20 +69,21 @@ class Pipeline:
 
 
     """
+
     def __init__(self, params, models=None):
         self.params = params
-        self.ordered_ops = iter(params['ordered_ops'])
-        self.payload = None  
-        
-    def init_payload(self,patch):
-        self.payload = patch        
+        self.ordered_ops = iter(params["ordered_ops"])
+        self.payload = None
+
+    def init_payload(self, patch):
+        self.payload = patch
+
     def output_result(self):
         return self.payload
+
     def __iter__(self):
         return self
+
     def __next__(self):
         self.payload = next(self.ordered_ops)(self.payload)
         return self.payload
-
-
-    

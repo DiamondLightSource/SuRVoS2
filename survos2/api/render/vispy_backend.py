@@ -1,5 +1,3 @@
-
-
 import os
 import numpy as np
 
@@ -9,9 +7,10 @@ from matplotlib import cm
 
 from survos2.utils import find_library
 
-if find_library('libOSMesa'):
+if find_library("libOSMesa"):
     from vispy import use
-    use(app='osmesa')
+
+    use(app="osmesa")
 
 from vispy import app, gloo
 from vispy.io import _make_png
@@ -22,37 +21,52 @@ from vispy.color.colormap import Colormap, ColorArray, get_colormaps as get_visp
 from survos2.utils import get_logger
 from survos2.api.render.backend import Renderer, Layer
 
-BACKEND_NAME = 'Vispy ({})'.format(app.use_app().backend_name)
+BACKEND_NAME = "Vispy ({})".format(app.use_app().backend_name)
 
 logger = get_logger()
 
 VispyCmaps = OrderedDict()
-VispyCmaps['Primary'] = dict(grays='grays')
-VispyCmaps['Others'] = {k: k for k in get_vispy_cmaps() if k != 'grays'}
+VispyCmaps["Primary"] = dict(grays="grays")
+VispyCmaps["Others"] = {k: k for k in get_vispy_cmaps() if k != "grays"}
 
-for cmap_name in ['viridis', 'inferno', 'magma', 'plasma']:
+for cmap_name in ["viridis", "inferno", "magma", "plasma"]:
     cmap = cm.get_cmap(cmap_name)
     colors = cmap(np.linspace(0, 1, 64))[:, :3]
     cmap = Colormap(ColorArray(colors))
-    VispyCmaps['Primary'][cmap_name] = cmap
+    VispyCmaps["Primary"][cmap_name] = cmap
 
 
 class VispyLayer(Layer):
-
-    def __init__(self, renderer, data, cmap='gray', clim=(0, 1),
-                 interp='nearest', alpha=100, order=1):
-        super().__init__(renderer, data, cmap=cmap, clim=clim, interp=interp,
-                         alpha=alpha, order=order)
-        self.visual = ImageVisual(self._data, clim=self._clim, cmap=cmap,
-                                  interpolation=self._interp)
-        self.alphaFilter = Alpha(self._alpha / 100.)
+    def __init__(
+        self,
+        renderer,
+        data,
+        cmap="gray",
+        clim=(0, 1),
+        interp="nearest",
+        alpha=100,
+        order=1,
+    ):
+        super().__init__(
+            renderer,
+            data,
+            cmap=cmap,
+            clim=clim,
+            interp=interp,
+            alpha=alpha,
+            order=order,
+        )
+        self.visual = ImageVisual(
+            self._data, clim=self._clim, cmap=cmap, interpolation=self._interp
+        )
+        self.alphaFilter = Alpha(self._alpha / 100.0)
         self.visual.attach(self.alphaFilter)
         self._rescale()
         print("Vispy")
 
     def set_order(self, order):
         super().set_order(order)
-        self.visual.transform.translate = (-1, 1, -.01 * order)
+        self.visual.transform.translate = (-1, 1, -0.01 * order)
 
     def _convert_cmap(self, cmap):
         if type(cmap) == list:
@@ -61,26 +75,27 @@ class VispyLayer(Layer):
 
     def _rescale(self):
         height, width = self._data.shape[:2]
-        vscale = -2. / height
-        hscale = 2. / width
+        vscale = -2.0 / height
+        hscale = 2.0 / width
         zdepth = -0.01 * self._order
-        transform = transforms.STTransform(scale=(hscale, vscale),
-                                           translate=(-1, 1, zdepth))
+        transform = transforms.STTransform(
+            scale=(hscale, vscale), translate=(-1, 1, zdepth)
+        )
         self.visual.transform = transform
 
     def update_image(self, data, **kwargs):
         self.visual.set_data(data)
-        if 'clim' in kwargs:
-            self.visual.clim = kwargs['clim']
-        if 'cmap' in kwargs:
-            cmap = self._convert_cmap(kwargs['cmap'])
+        if "clim" in kwargs:
+            self.visual.clim = kwargs["clim"]
+        if "cmap" in kwargs:
+            cmap = self._convert_cmap(kwargs["cmap"])
             self.visual.cmap = cmap
-        if 'interp' in kwargs:
-            self.visual.interpolation = kwargs['interp']
-        if 'alpha' in kwargs:
-            self.alphaFilter.alpha = kwargs['alpha'] / 100.
-        if 'order' in kwargs:
-            self.set_order(kwargs['order'])
+        if "interp" in kwargs:
+            self.visual.interpolation = kwargs["interp"]
+        if "alpha" in kwargs:
+            self.alphaFilter.alpha = kwargs["alpha"] / 100.0
+        if "order" in kwargs:
+            self.set_order(kwargs["order"])
         super().update_image(data, **kwargs)
 
     def draw(self):
@@ -89,13 +104,22 @@ class VispyLayer(Layer):
 
 
 class VispyRenderer(app.Canvas, Renderer):
-
-    def __init__(self, size=(512, 512), save_png=False, compression=0,
-                 layer_cls=VispyLayer, **kwargs):
+    def __init__(
+        self,
+        size=(512, 512),
+        save_png=False,
+        compression=0,
+        layer_cls=VispyLayer,
+        **kwargs
+    ):
         app.Canvas.__init__(self, size=size, **kwargs)
-        Renderer.__init__(self, size=size, save_png=save_png,
-                          compression=compression,
-                          layer_cls=layer_cls)
+        Renderer.__init__(
+            self,
+            size=size,
+            save_png=save_png,
+            compression=compression,
+            layer_cls=layer_cls,
+        )
         self._rendertex = gloo.Texture2D(shape=self._size + (4,))
         self._fbo = gloo.FrameBuffer(self._rendertex, gloo.RenderBuffer(self._size))
 

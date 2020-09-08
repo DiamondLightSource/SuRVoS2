@@ -8,11 +8,7 @@ from survos2.model.singleton import Singleton
 from survos2.frontend.utils import resource
 
 
-
-
-
 class _Modal(QCSWidget):
-
     def __init__(self, message, parent=None):
         super().__init__(parent=parent)
         vbox = VBox(self, margin=30, spacing=20, align=QtCore.Qt.AlignCenter)
@@ -25,18 +21,17 @@ class _Modal(QCSWidget):
 
 
 class LoadingModal(QCSWidget):
-
     def __init__(self, message, parent=None):
         super().__init__(parent=parent)
         vbox = VBox(self, margin=30, align=QtCore.Qt.AlignCenter)
         self.loading = Label()
-        #movie = QtGui.QMovie(resource("loading.gif"))
-        #self.loading.setMovie(movie)
+        # movie = QtGui.QMovie(resource("loading.gif"))
+        # self.loading.setMovie(movie)
         self.label = Label(message)
         self.label.setWordWrap(True)
         vbox.addWidget(self.loading)
         vbox.addWidget(self.label)
-        #movie.start()
+        # movie.start()
 
     def setMessage(self, msg):
         self.label.setText(msg)
@@ -46,7 +41,7 @@ class AcceptModal(_Modal):
 
     accepted = QtCore.Signal()
 
-    def __init__(self, message, btn_text='Close', parent=None):
+    def __init__(self, message, btn_text="Close", parent=None):
         super().__init__(message, parent=parent)
         self.btn = PushButton(btn_text)
         if parent:
@@ -59,24 +54,22 @@ class AcceptModal(_Modal):
 
 
 class ErrorModal(AcceptModal):
-
     def __init__(self, message, **kwargs):
         super().__init__(message, **kwargs)
-        self.setProperty('error', True)
+        self.setProperty("error", True)
 
 
 class WarnModal(AcceptModal):
-
     def __init__(self, message, **kwargs):
         super().__init__(message, **kwargs)
-        self.setProperty('warn', True)
+        self.setProperty("warn", True)
 
 
 class YesNoModal(_Modal):
 
     accepted = QtCore.Signal(bool)
 
-    def __init__(self, message, msg_yes='Accept', msg_no='Cancel', parent=None):
+    def __init__(self, message, msg_yes="Accept", msg_no="Cancel", parent=None):
         super().__init__(message, parent=parent)
         self.yes = PushButton(msg_yes)
         self.no = PushButton(msg_no)
@@ -113,7 +106,7 @@ class ModalManager(QtWidgets.QDialog, SWidget):
     def show(self, widget=None, save_state=True, block=False):
         clear_layout(self.container)
         if widget:
-            widget.setProperty('container', True)
+            widget.setProperty("container", True)
             self.container.addWidget(widget)
             if save_state:
                 self.current_widget = widget
@@ -132,8 +125,8 @@ class ModalManager(QtWidgets.QDialog, SWidget):
 
     def connection_lost(self):
         self.prev_modal = self.current_widget
-        errmsg = 'Connection with the server lost. Try reconnecting.'
-        widget = WarnModal(errmsg, btn_text='Reconnect')
+        errmsg = "Connection with the server lost. Try reconnecting."
+        widget = WarnModal(errmsg, btn_text="Reconnect")
         widget.accepted.connect(self._try_reconnect)
         self.show(widget, block=True)
 
@@ -142,24 +135,26 @@ class ModalManager(QtWidgets.QDialog, SWidget):
         super().hide()
 
     def terminate(self):
-        label = Label('Connection to . Restart the client.')
-        label.setProperty('error', True)
+        label = Label("Connection to . Restart the client.")
+        label.setProperty("error", True)
         self.show(label)
 
     def _try_reconnect(self):
         from survos2.frontend.control import Launcher
 
         for i in range(5):
-            self.current_widget.setMessage('Attempting to reconnect.. ({}/5)'.format(i+1))
+            self.current_widget.setMessage(
+                "Attempting to reconnect.. ({}/5)".format(i + 1)
+            )
             Launcher.g.reconnect()
 
         if not Launcher.g.connected:
-            errmsg = 'Unable to reconnect to the server. Check your connection ' \
-                     'and that Server is running and try again.'
+            errmsg = (
+                "Unable to reconnect to the server. Check your connection "
+                "and that Server is running and try again."
+            )
             self.current_widget.setMessage(errmsg)
         else:
             self.accept()
             if self.prev_modal:
                 self.show(self.prev_modal)
-
-

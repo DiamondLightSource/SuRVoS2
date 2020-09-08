@@ -1,5 +1,3 @@
-
-
 from collections import OrderedDict
 from functools import partial
 
@@ -12,7 +10,7 @@ def register_view(cls=None, name=None, title=None):
         return partial(register_view, name=name, title=title)
 
     if name in __available_views__:
-        raise ValueError('View {} already registered.'.format(name))
+        raise ValueError("View {} already registered.".format(name))
 
     if title is None:
         title = name.capitalize()
@@ -23,7 +21,7 @@ def register_view(cls=None, name=None, title=None):
 
 def get_view(name):
     if name not in __available_views__:
-        raise ValueError('View {} not registered'.format(name))
+        raise ValueError("View {} not registered".format(name))
     return __available_views__[name]
 
 

@@ -8,7 +8,7 @@ from survos2.helpers import AttrDict
 # both feature and region-level metadata as well as
 # pipelines for storing particular workspace-specific configs
 
-#App-wide -> todo: mpve into main config
+# App-wide -> todo: mpve into main config
 survos_config_yaml = """
 cfg:
   proj: hunt
@@ -25,7 +25,7 @@ cfg:
   current_annotation: 001_level
 """
 
-#Filters (features and sr)
+# Filters (features and sr)
 filter_yaml = """
 filter_cfg:
   superregions1:
@@ -86,14 +86,12 @@ pipeline:
 
 """
 
-cfg = AttrDict(yaml.safe_load(survos_config_yaml)['cfg'])
+cfg = AttrDict(yaml.safe_load(survos_config_yaml)["cfg"])
 filter_cfg = AttrDict(yaml.safe_load(filter_yaml))
 pipeline_cfg = AttrDict(yaml.safe_load(pipeline_yaml))
 
 # attribute access and AppState class to bundle any other application state
-# merge config dictionaries to make app state 
+# merge config dictionaries to make app state
 cfg = {**cfg, **filter_cfg}
 cfg = {**cfg, **pipeline_cfg}
 cfg = AttrDict(cfg)
-
-

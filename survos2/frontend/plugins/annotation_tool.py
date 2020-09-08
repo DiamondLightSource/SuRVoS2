@@ -9,43 +9,51 @@ import numpy as np
 
 from survos2.frontend.control.launcher import Launcher
 from survos2.frontend.plugins.viewer import ViewerExtension, Tool
-from survos2.frontend.components.base import LazyComboBox, LazyMultiComboBox, HBox, FAIcon, PluginNotifier, Slider
+from survos2.frontend.components.base import (
+    LazyComboBox,
+    LazyMultiComboBox,
+    HBox,
+    FAIcon,
+    PluginNotifier,
+    Slider,
+)
 from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.model.model import DataModel
 
 from survos2.utils import decode_numpy
+
 _AnnotationNotifier = PluginNotifier()
 
 
 def _fill_annotations(combo, full=False):
     params = dict(workspace=True, full=full)
-    levels = Launcher.g.run('annotations', 'get_levels', **params)
+    levels = Launcher.g.run("annotations", "get_levels", **params)
     if levels:
         for level in levels:
-            combo.addCategory(level['name'])
-            if not 'labels' in level:
+            combo.addCategory(level["name"])
+            if not "labels" in level:
                 continue
-            for label in level['labels'].values():
-                icon = FAIcon('fa.square', color=label['color'])
-                lidx = '{}:{}'.format(level['id'], label['idx'])
-                data = dict(level=level['id'], idx=label['idx'], color=label['color'])
-                combo.addItem(lidx, label['name'], icon=icon, data=data)
+            for label in level["labels"].values():
+                icon = FAIcon("fa.square", color=label["color"])
+                lidx = "{}:{}".format(level["id"], label["idx"])
+                data = dict(level=level["id"], idx=label["idx"], color=label["color"])
+                combo.addItem(lidx, label["name"], icon=icon, data=data)
 
 
 class AnnotationComboBox(LazyComboBox):
     def __init__(self, full=False, parent=None):
         self.full = full
-        super().__init__(parent=parent, header=(None, 'Select Label'))
+        super().__init__(parent=parent, header=(None, "Select Label"))
         _AnnotationNotifier.listen(self.update)
 
     def fill(self):
         _fill_annotations(self, full=self.full)
 
-class MultiAnnotationComboBox(LazyMultiComboBox):
 
+class MultiAnnotationComboBox(LazyMultiComboBox):
     def __init__(self, full=False, parent=None):
         self.full = full
-        super().__init__(parent=parent, text='Select Label', groupby=('level', 'idx'))
+        super().__init__(parent=parent, text="Select Label", groupby=("level", "idx"))
         _AnnotationNotifier.listen(self.update)
 
     def fill(self):
@@ -76,12 +84,12 @@ class Annotator(ViewerExtension):
 
     def install(self, fig, axes):
         super().install(fig, axes)
-        self.connect('button_press_event', self.draw_press)
-        self.connect('button_release_event', self.draw_release)
-        self.connect('motion_notify_event', self.draw_motion)
+        self.connect("button_press_event", self.draw_press)
+        self.connect("button_release_event", self.draw_release)
+        self.connect("motion_notify_event", self.draw_motion)
         self.data_size = DataModel.g.current_workspace_shape[1:]
         self.line_mask = np.zeros(self.data_size, np.bool)
-        cmap = ListedColormap([(0,0,0,0)] * 2)
+        cmap = ListedColormap([(0, 0, 0, 0)] * 2)
         self.line_mask_ax = self.axes.imshow(self.line_mask, cmap=cmap, vmin=0, vmax=1)
         if self.region is not None:
             self.region_mask = self.axes.imshow(np.empty(self.data_size, np.uint8))
@@ -128,7 +136,7 @@ class Annotator(ViewerExtension):
     def set_color(self, color):
         self.color = QtGui.QColor(color).getRgbF()
         self.color_overlay = self.color[:3] + (0.5,)
-        self.line_mask_ax.set_cmap(ListedColormap([(0,0,0,0), self.color]))
+        self.line_mask_ax.set_cmap(ListedColormap([(0, 0, 0, 0), self.color]))
 
     def set_linewidth(self, line_width):
         self.line_width = line_width
@@ -147,7 +155,7 @@ class Annotator(ViewerExtension):
         self.line_mask[y, x] = True
 
         if self.region is not None and self.cmap is not None:
-            if hasattr(self.cmap, '_lut'):
+            if hasattr(self.cmap, "_lut"):
                 sv = self.region[y, x]
                 self.all_regions |= set([sv])
                 self.cmap._lut[sv] = self.color_overlay
@@ -160,11 +168,11 @@ class Annotator(ViewerExtension):
             return
         y = int(evt.ydata)
         x = int(evt.xdata)
-        py = self.current['y'][-1]
-        px = self.current['x'][-1]
+        py = self.current["y"][-1]
+        px = self.current["x"][-1]
         yy, xx = line(py, px, y, x)
-        self.current['y'].append(y)
-        self.current['x'].append(x)
+        self.current["y"].append(y)
+        self.current["x"].append(x)
 
         if self.line_width > 1:
             yy, xx = self.dilate_annotations(yy, xx)
@@ -176,7 +184,7 @@ class Annotator(ViewerExtension):
             svs = set(self.region[yy, xx])
             self.all_regions |= svs
             modified = False
-            if hasattr(self.cmap, '_lut'):
+            if hasattr(self.cmap, "_lut"):
                 for sv in svs:
                     if self.cmap._lut[sv][-1] == 0:
                         self.cmap._lut[sv] = self.color_overlay
@@ -212,9 +220,9 @@ class Annotator(ViewerExtension):
 
         r = np.ceil(self.line_width / 2)
         ymin = int(max(0, yy.min() - r))
-        ymax = int(min(data.shape[0], yy.max()+1+r))
+        ymax = int(min(data.shape[0], yy.max() + 1 + r))
         xmin = int(max(0, xx.min() - r))
-        xmax = int(min(data.shape[1], xx.max()+1+r))
+        xmax = int(min(data.shape[1], xx.max() + 1 + r))
         mask = data[ymin:ymax, xmin:xmax]
 
         mask = binary_dilation(mask, disk(self.line_width / 2).astype(np.bool))
@@ -223,14 +231,14 @@ class Annotator(ViewerExtension):
         xx += xmin
         return yy, xx
 
+
 # todo:adapt
 class AnnotationTool(Tool):
-
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         hbox = HBox(self, margin=7, spacing=5)
         self.label = AnnotationComboBox()
-        self.region = RegionComboBox(header=(None, 'Voxels'), full=True)
+        self.region = RegionComboBox(header=(None, "Voxels"), full=True)
         self.width = Slider(vmin=1, vmax=30)
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
@@ -240,7 +248,7 @@ class AnnotationTool(Tool):
         self.region.currentIndexChanged.connect(self.selection_changed)
         self.width.valueChanged.connect(self.selection_changed)
 
-        self.selection = dict(label=None, color='#00000000', region=None, width=1)
+        self.selection = dict(label=None, color="#00000000", region=None, width=1)
         self.annotator = Annotator(enabled=False)
         self.annotator.annotated.connect(self.on_annotated)
 
@@ -248,34 +256,33 @@ class AnnotationTool(Tool):
         super().setEnabled(flag)
         if flag:
             self.viewer.install_extension(self.annotator)
-            self.annotator.set_color(self.selection['color'])
-            self.annotator.set_linewidth(self.selection['width'])
+            self.annotator.set_color(self.selection["color"])
+            self.annotator.set_linewidth(self.selection["width"])
         else:
             self.annotator.disable()
 
     def selection_changed(self):
         label, region, line_width = self.value()
-        color = '#00000000' if label is None else label['color']
-        level = 'annotations/' + label['level'] if label else None
-        self.selection = dict(label=label, region=region, color=color,
-                              width=line_width)
+        color = "#00000000" if label is None else label["color"]
+        level = "annotations/" + label["level"] if label else None
+        self.selection = dict(label=label, region=region, color=color, width=line_width)
         self.slice_updated(self.current_idx)
         self.annotator.setEnabled(label is not None)
         if label:
             self.annotator.set_color(color)
             self.annotator.set_linewidth(line_width)
-            self.viewer.show_layer('annotations', level)
+            self.viewer.show_layer("annotations", level)
 
     def value(self):
         return (self.label.value(), self.region.value(), self.width.value())
 
     def slice_updated(self, idx):
         super().slice_updated(idx)
-        region = self.selection['region']
+        region = self.selection["region"]
         if region:
             region = DataModel.g.dataset_uri(region)
             params = dict(workpace=True, src=region, slice_idx=idx)
-            result = Launcher.g.run('regions', 'get_slice', **params)
+            result = Launcher.g.run("regions", "get_slice", **params)
             if result:
                 region = decode_numpy(result)
                 self.annotator.set_region(region)
@@ -283,28 +290,28 @@ class AnnotationTool(Tool):
             self.annotator.set_region(None)
 
     def on_annotated(self, points):
-        level = self.selection['label']['level']
-        label = self.selection['label']['idx']
+        level = self.selection["label"]["level"]
+        label = self.selection["label"]["idx"]
         params = dict(workspace=True, level=level, label=label)
-        if self.selection['region'] is None:
+        if self.selection["region"] is None:
             yy, xx = points
             idx = self.current_idx
             params.update(slice_idx=idx, yy=yy.tolist(), xx=xx.tolist())
-            result = Launcher.g.run('annotations', 'annotate_voxels', **params)
+            result = Launcher.g.run("annotations", "annotate_voxels", **params)
         else:
-            region = DataModel.g.dataset_uri(self.selection['region'])
+            region = DataModel.g.dataset_uri(self.selection["region"])
             params.update(region=region, r=list(map(int, points)), modal=False)
-            result = Launcher.g.run('annotations', 'annotate_regions', **params)
+            result = Launcher.g.run("annotations", "annotate_regions", **params)
         if result:
             self.viewer.update()
 
     def triggerKeybinding(self, key, modifiers):
-        if self.selection is None or self.selection['label'] is None:
+        if self.selection is None or self.selection["label"] is None:
             return
         result = None
-        level = self.selection['label']['level']
+        level = self.selection["label"]["level"]
         params = dict(workspace=True, level=level)
         if modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_Z:
-            result = Launcher.g.run('annotations', 'annotate_undo', **params)
+            result = Launcher.g.run("annotations", "annotate_undo", **params)
             if result:
                 self.viewer.update()

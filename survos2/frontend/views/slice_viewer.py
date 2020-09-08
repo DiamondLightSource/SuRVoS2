@@ -1,5 +1,3 @@
-
-
 from collections import OrderedDict
 
 from survos2.utils import decode_numpy
@@ -25,29 +23,25 @@ from survos2.frontend.components.icon_buttons import ToolIconButton
 
 
 class CmapComboBox(LazyComboBox):
-
     def __init__(self, parent=None):
         super().__init__(select=1, parent=parent)
 
     def fill(self):
-        result = Launcher.g.run('render', 'cmaps')
+        result = Launcher.g.run("render", "cmaps")
         if result:
             for category in result:
                 self.addCategory(category)
                 for cmap in result[category]:
-                    if cmap == 'Greys':
-                        cmap = 'Greys_r'
+                    if cmap == "Greys":
+                        cmap = "Greys_r"
                     self.addItem(cmap)
-
-
 
 
 class Layer(QCSWidget):
 
-    updated = Signal()# QtCore.pyqtSignal()
+    updated = Signal()  # QtCore.pyqtSignal()
 
-    def __init__(self, name='layer', source=None, cmap=None,
-                 parent=None):
+    def __init__(self, name="layer", source=None, cmap=None, parent=None):
         super().__init__(parent=parent)
         self.name = name
         self.source = source or ComboBox()
@@ -61,13 +55,13 @@ class Layer(QCSWidget):
         hbox.addWidget(self.slider)
         hbox.addWidget(self.checkbox)
 
-        if hasattr(self.source, 'currentIndexChanged'):
+        if hasattr(self.source, "currentIndexChanged"):
             self.source.currentIndexChanged.connect(self._params_updated)
-        elif hasattr(self.source, 'valueChanged'):
+        elif hasattr(self.source, "valueChanged"):
             self.source.valueChanged.connect(self._params_updated)
-        if hasattr(self.cmap, 'currentIndexChanged'):
+        if hasattr(self.cmap, "currentIndexChanged"):
             self.cmap.currentIndexChanged.connect(self._params_updated)
-        elif hasattr(self.cmap, 'colorChanged'):
+        elif hasattr(self.cmap, "colorChanged"):
             self.cmap.colorChanged.connect(self._params_updated)
 
         self.slider.setMinimumWidth(150)
@@ -75,8 +69,12 @@ class Layer(QCSWidget):
         self.checkbox.toggled.connect(self._params_updated)
 
     def value(self):
-        return (self.source.value(), self.cmap.value(),
-                self.slider.value(), self.checkbox.value())
+        return (
+            self.source.value(),
+            self.cmap.value(),
+            self.slider.value(),
+            self.checkbox.value(),
+        )
 
     def _params_updated(self):
         self.updated.emit()
@@ -91,11 +89,15 @@ class Layer(QCSWidget):
 
 class DataLayer(Layer):
     def __init__(self, name):
-        super().__init__(name, Label('Raw Data'))
+        super().__init__(name, Label("Raw Data"))
 
     def value(self):
-        return ('__data__', self.cmap.value(),
-                self.slider.value(), self.checkbox.value())
+        return (
+            "__data__",
+            self.cmap.value(),
+            self.slider.value(),
+            self.checkbox.value(),
+        )
 
 
 class FeatureLayer(Layer):
@@ -106,7 +108,7 @@ class FeatureLayer(Layer):
 class RegionLayer(Layer):
     def __init__(self, name):
         region = RegionComboBox(full=True)
-        color = ColorButton('#0D47A1')
+        color = ColorButton("#0D47A1")
         super().__init__(name, region, color)
 
 
@@ -123,7 +125,7 @@ class LayerManager(QtWidgets.QMenu):
 
     __all_layers__ = {}
 
-    paramsUpdated = Signal() #QtCore.pyqtSignal()
+    paramsUpdated = Signal()  # QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -156,7 +158,7 @@ class LayerManager(QtWidgets.QMenu):
 
     def value(self):
         params = {k: v.value() for k, v in self._layers.items()}
-        params['clim'] = (self.vmin.value(), self.vmax.value())
+        params["clim"] = (self.vmin.value(), self.vmax.value())
         return params
 
     def accept(self):
@@ -169,18 +171,18 @@ class LayerManager(QtWidgets.QMenu):
 class WorkspaceLayerManager(LayerManager):
 
     __all_layers__ = (
-        ('data', 'Data', DataLayer),
-        ('feature', 'Feature', FeatureLayer),
-        ('regions', 'Regions', RegionLayer),
-        ('annotations', 'Annotations', AnnotationsLayer),
-        ('prediction', 'Predictions', Layer)
+        ("data", "Data", DataLayer),
+        ("feature", "Feature", FeatureLayer),
+        ("regions", "Regions", RegionLayer),
+        ("annotations", "Annotations", AnnotationsLayer),
+        ("prediction", "Predictions", Layer),
     )
 
 
-@register_view(name='slice_viewer')
+@register_view(name="slice_viewer")
 class SliceViewer(QCSWidget):
 
-    slice_updated =Signal(int)#  QtCore.pyqtSignal(int)
+    slice_updated = Signal(int)  #  QtCore.pyqtSignal(int)
 
     def __init__(self, layer_manager=None, parent=None):
         super().__init__(parent=parent)
@@ -205,12 +207,12 @@ class SliceViewer(QCSWidget):
         self.tools = []
         self.viz_params = None
         print("Adding layer manager")
-        self.layer_manager = self.add_tool('Layer', 'fa.adjust', layer_manager)
+        self.layer_manager = self.add_tool("Layer", "fa.adjust", layer_manager)
         self.layer_manager.paramsUpdated.connect(self.params_updated)
         self.slider.valueChanged.connect(self.show_slice)
         self.slider.sliderReleased.connect(self._updated)
 
-        self.viewer.mpl_connect('button_press_event', self.show_layer_manager)
+        self.viewer.mpl_connect("button_press_event", self.show_layer_manager)
 
         self.update()
 
@@ -229,13 +231,18 @@ class SliceViewer(QCSWidget):
         self.tools = [self.tools[0]]
 
     def add_tool(self, name, icon, menu=None, tool=None):
-        btn = ToolIconButton(icon, name, size=(36, 36), color='white',
-                             checkable=tool is not None and menu is None)
+        btn = ToolIconButton(
+            icon,
+            name,
+            size=(36, 36),
+            color="white",
+            checkable=tool is not None and menu is None,
+        )
         self.tools.append(btn)
         self.menu_panel.addWidget(btn)
 
         if tool:
-            tool.setProperty('menu', True)
+            tool.setProperty("menu", True)
             tool.setVisible(False)
             tool.set_viewer(self)
             self.tool_container.addWidget(tool)
@@ -268,7 +275,7 @@ class SliceViewer(QCSWidget):
     def show_slice(self, idx):
         params = dict(slice_idx=idx, workspace=True, timeit=True)
         params.update(self.viz_params)
-        result = Launcher.g.run('render', 'render_workspace', **params)
+        result = Launcher.g.run("render", "render_workspace", **params)
         if result:
             image = decode_numpy(result)
             self.viewer.update_image(image)
@@ -298,7 +305,7 @@ class SliceViewer(QCSWidget):
     def triggerKeybinding(self, key, modifiers):
         if key == QtCore.Qt.Key_H:
             self.viewer.center()
-        elif self.current_tool and hasattr(self.current_tool, 'triggerKeybinding'):
+        elif self.current_tool and hasattr(self.current_tool, "triggerKeybinding"):
             self.current_tool.triggerKeybinding(key, modifiers)
 
     def install_extension(self, ext):

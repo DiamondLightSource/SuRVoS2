@@ -1,5 +1,3 @@
-
-
 import pytest
 
 import numpy as np
@@ -27,16 +25,16 @@ def func_d(arr):
     return arr + 1
 
 
-#def test_wrapping():
+# def test_wrapping():
 #    data = np.random.randint(0, 10, size=(100, 946, 946))
 #    chunks = optimal_chunksize(data, 100)#
 
-    # Test full inception
+# Test full inception
 #    r1 = map_blocks(func_a, data, pad=False, chunk_size=chunks, timeit=True)
 #    np.testing.assert_allclose(r1, data + 3)
 #    assert r1.dtype == func_a.__out_dtype__
 
-    # Test simple wrapping
+# Test simple wrapping
 #    r1 = map_blocks(func_b, data, pad=False, chunk_size=chunks, timeit=True)
 #    r2 = map_blocks(func_c, data, pad=False, chunk_size=chunks, timeit=True)
 #    r3 = da.from_array(data, chunks=chunks).map_blocks(func_d).compute()
@@ -50,5 +48,5 @@ def func_d(arr):
 #    assert r3.dtype == data.dtype
 
 
-if __name__ == '__main__':
-    pytest.main(args=['-s', __file__, '--loglevel', logging.DEBUG])
+if __name__ == "__main__":
+    pytest.main(args=["-s", __file__, "--loglevel", logging.DEBUG])

@@ -1,5 +1,3 @@
-
-
 import os.path as op
 
 import numpy as np
@@ -20,29 +18,37 @@ __dirname__ = op.dirname(__file__)
 
 
 @gpuregion
-def slic3d(data, nsp=None, sp_shape=None, compactness=30, sigma=None,
-           spacing=(1,1,1), max_iter=3, postprocess=False):
+def slic3d(
+    data,
+    nsp=None,
+    sp_shape=None,
+    compactness=30,
+    sigma=None,
+    spacing=(1, 1, 1),
+    max_iter=3,
+    postprocess=False,
+):
     assert data.ndim == 3 or data.ndim == 4
     dshape = np.asarray(data.shape[-3:], int)
 
-    with open(op.join(__dirname__, 'kernels', 'slic3d.cu'), 'r') as f:
+    with open(op.join(__dirname__, "kernels", "slic3d.cu"), "r") as f:
         _mod_conv = SourceModule(f.read())
-        gpu_slic_init = _mod_conv.get_function('init_clusters')
-        gpu_slic_expectation = _mod_conv.get_function('expectation')
-        gpu_slic_maximization = _mod_conv.get_function('maximization')
+        gpu_slic_init = _mod_conv.get_function("init_clusters")
+        gpu_slic_expectation = _mod_conv.get_function("expectation")
+        gpu_slic_maximization = _mod_conv.get_function("maximization")
 
     if sp_shape is not None:
         _sp_shape = list(sp_shape)
         if len(_sp_shape) == 3:
             _sp_grid = (dshape + _sp_shape - 1) // _sp_shape
         else:
-            raise ValueError('Incorrect `sp_shape`: {}'.format(sp_shape))
+            raise ValueError("Incorrect `sp_shape`: {}".format(sp_shape))
     elif nsp is not None:
-        sp_size = int(round((np.prod(data.shape) / nsp)**(1./3.)))
+        sp_size = int(round((np.prod(data.shape) / nsp) ** (1.0 / 3.0)))
         _sp_shape = (sp_size, sp_size, sp_size)
         _sp_grid = (dshape + sp_shape - 1) // sp_shape
     else:
-        raise ValueError('`nsp` or `sp_shape` has to be provided.')
+        raise ValueError("`nsp` or `sp_shape` has to be provided.")
 
     sp_shape = np.asarray(tuple(_sp_shape[::-1]), int3)
     sp_grid = np.asarray(tuple(_sp_grid[::-1]), int3)
@@ -62,47 +68,77 @@ def slic3d(data, nsp=None, sp_shape=None, compactness=30, sigma=None,
     vblock, vgrid = flat_kernel_config(gpu_slic_init, dshape)
     cblock, cgrid = flat_kernel_config(gpu_slic_init, _sp_grid)
 
-    gpu_slic_init(data_gpu, centers_gpu, n_centers, n_features,
-        sp_grid, sp_shape, im_shape, block=cblock, grid=cgrid)
+    gpu_slic_init(
+        data_gpu,
+        centers_gpu,
+        n_centers,
+        n_features,
+        sp_grid,
+        sp_shape,
+        im_shape,
+        block=cblock,
+        grid=cgrid,
+    )
 
     for _ in range(max_iter):
-        gpu_slic_expectation(data_gpu, centers_gpu, labels_gpu, m, S,
-            n_centers, n_features, spacing, sp_grid, sp_shape, im_shape,
-            block=vblock, grid=vgrid)
+        gpu_slic_expectation(
+            data_gpu,
+            centers_gpu,
+            labels_gpu,
+            m,
+            S,
+            n_centers,
+            n_features,
+            spacing,
+            sp_grid,
+            sp_shape,
+            im_shape,
+            block=vblock,
+            grid=vgrid,
+        )
 
-        gpu_slic_maximization(data_gpu, labels_gpu, centers_gpu,
-            n_centers, n_features, sp_grid, sp_shape, im_shape,
-            block=cblock, grid=cgrid)
+        gpu_slic_maximization(
+            data_gpu,
+            labels_gpu,
+            centers_gpu,
+            n_centers,
+            n_features,
+            sp_grid,
+            sp_shape,
+            im_shape,
+            block=cblock,
+            grid=cgrid,
+        )
 
     r = ccl3d(labels_gpu, remap=True)
 
-    #labels = labels_gpu.get()
-    
-    #binlab = np.bincount(labels.ravel())
-    
+    # labels = labels_gpu.get()
+
+    # binlab = np.bincount(labels.ravel())
+
     binlab = np.bincount(r.ravel())
 
     if postprocess:
-        min_size = int(np.prod(_sp_shape) / 10.)
+        min_size = int(np.prod(_sp_shape) / 10.0)
         logger.debug(f"Postprocessing SRData with min_size {min_size}")
-        
+
         r = merge_small(asnparray(data), r, min_size)
         binlab = np.bincount(r.ravel())
 
     return r
 
 
-def postprocess(data,r, sp_shape, min_size):
+def postprocess(data, r, sp_shape, min_size):
     dshape = np.asarray(data.shape[-3:], int)
     if sp_shape is not None:
         _sp_shape = list(sp_shape)
         if len(_sp_shape) == 3:
             _sp_grid = (dshape + _sp_shape - 1) // _sp_shape
         else:
-            raise ValueError('Incorrect `sp_shape`: {}'.format(sp_shape))
+            raise ValueError("Incorrect `sp_shape`: {}".format(sp_shape))
 
     logger.debug(f"Postprocessing SRData with min_size {min_size}")
-    min_size = int(np.prod(_sp_shape) / 10.)
+    min_size = int(np.prod(_sp_shape) / 10.0)
     r = merge_small(asnparray(data), r, min_size)
     binlab = np.bincount(r.ravel())
 

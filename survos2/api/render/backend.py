@@ -4,9 +4,16 @@ from loguru import logger
 
 
 class Layer(object):
-
-    def __init__(self, renderer, data, cmap='gray', clim=(0, 1),
-                 interp='nearest', alpha=100, order=1):
+    def __init__(
+        self,
+        renderer,
+        data,
+        cmap="gray",
+        clim=(0, 1),
+        interp="nearest",
+        alpha=100,
+        order=1,
+    ):
         self._renderer = renderer
         self._data = data
         self._cmap = self._convert_cmap(cmap)
@@ -47,17 +54,20 @@ class Layer(object):
         self._prev_params.update(params)
 
     def filter_params(self, params):
-        params =  {k: v for k, v in params.items()
-                   if k not in self._prev_params or params[k] != self._prev_params[k]}
+        params = {
+            k: v
+            for k, v in params.items()
+            if k not in self._prev_params or params[k] != self._prev_params[k]
+        }
         return params
 
 
 class Renderer(object):
+    def __init__(
+        self, size=(512, 512), save_png=False, compression=0, layer_cls=Layer, **kwargs
+    ):
 
-    def __init__(self, size=(512, 512), save_png=False, compression=0,
-                 layer_cls=Layer, **kwargs):
-
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         self._save_png = save_png
         self._compression = compression
 
@@ -79,7 +89,7 @@ class Renderer(object):
         return im
 
     def update_layer(self, group, name, data, **kwargs):
-        visible = kwargs.pop('visible', True)
+        visible = kwargs.pop("visible", True)
         if group in self._layers and name in self._layers[group]:
             layer = self._layers[group][name]
             kwargs = layer.filter_params(kwargs)
@@ -107,7 +117,7 @@ class Renderer(object):
     def image(self):
         if self._image is not None:
             return self._image
-        raise ValueError('No image available')
+        raise ValueError("No image available")
 
     @property
     def png(self):
@@ -132,7 +142,7 @@ class Renderer(object):
             binning = self._binning
 
         if binning != 1:
-            self.resize(tuple(int(s//binning) for s in self.data_size))
+            self.resize(tuple(int(s // binning) for s in self.data_size))
             self._binning = binning
         elif self._size != self.data_size:
             self.resize(self.data_size)

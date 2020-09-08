@@ -51,8 +51,8 @@ class Plugin(QCSWidget):
 
     change_view = QtCore.Signal(str, dict)
 
-    __icon__ = 'square'
-    __pname__ = 'plugin'
+    __icon__ = "square"
+    __pname__ = "plugin"
     __title__ = None
     __views__ = []
 
@@ -62,7 +62,7 @@ class Plugin(QCSWidget):
 
     def show_view(self, name, **kwargs):
         if name not in self.__views__:
-            raise ValueError('View `{}` was not preloaded.'.format(name))
+            raise ValueError("View `{}` was not preloaded.".format(name))
         self.change_view.emit(name, kwargs)
 
     def register_view(self, view, widget):
@@ -84,7 +84,7 @@ def register_plugin(cls):
     views = cls.__views__
 
     if name in __available_plugins__:
-        raise ValueError('Plugin {} already registered.'.format(name))
+        raise ValueError("Plugin {} already registered.".format(name))
 
     if title is None:
         title = name.capitalize()
@@ -96,13 +96,12 @@ def register_plugin(cls):
 
 def get_plugin(name):
     if name not in __available_plugins__:
-        raise ValueError('Plugin {} not registered'.format(name))
+        raise ValueError("Plugin {} not registered".format(name))
     return __available_plugins__[name]
 
 
 def list_plugins():
     return list(__available_plugins__.keys())
-
 
 
 ##
@@ -118,13 +117,13 @@ class PluginContainer(QCSWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setMinimumWidth(self.__sidebar_width__)
-        #self.setMaximumWidth(self.__sidebar_width__)
+        # self.setMaximumWidth(self.__sidebar_width__)
 
-        self.title = Header('Plugin')
+        self.title = Header("Plugin")
         self.container = ScrollPane(parent=self)
 
         vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
-        #vbox.addWidget(self.title)
+        # vbox.addWidget(self.title)
         vbox.addWidget(self.container, 1)
 
         self.plugins = {}
@@ -143,17 +142,14 @@ class PluginContainer(QCSWidget):
         self.plugins.pop(name, None)
 
     def show_plugin(self, name):
-        if name in self.plugins: #and name != self.selected_name:
+        if name in self.plugins:  # and name != self.selected_name:
             print(f"show_plugin: {name}")
-        
-            #if self.selected is not None:
+
+            # if self.selected is not None:
             #    self.selected['widget'].setParent(None)
             self.selected_name = name
             self.selected = self.plugins[name]
-            self.title.setText(self.selected['title'])
-            self.container.addWidget(self.selected['widget'], 1)
-            if hasattr(self.selected['widget'], 'setup'):
-                self.selected['widget'].setup()
-
-
-
+            self.title.setText(self.selected["title"])
+            self.container.addWidget(self.selected["widget"], 1)
+            if hasattr(self.selected["widget"], "setup"):
+                self.selected["widget"].setup()

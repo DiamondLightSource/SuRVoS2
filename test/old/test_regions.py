@@ -1,5 +1,3 @@
-
-
 import os
 import logging
 import pytest
@@ -22,8 +20,10 @@ slic_params = dict(sp_shape=(10, 10, 10), compactness=30)
 #     data.close()
 
 
-@pytest.mark.skipif("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true",
-                    reason="Travis doesn't support CUDA tests")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ and os.environ["TRAVIS"] == "true",
+    reason="Travis doesn't support CUDA tests",
+)
 def test_compare_supervoxels():
     # TODO Fix up and replace this test
     # data_gauss = map_blocks(gaussian, data, **gauss_params, timeit=True)
@@ -46,5 +46,6 @@ def test_compare_supervoxels():
     # logger.info('Total regions: {} vs {} vs {}'.format(nreg1, nreg2, nreg3))
     pass
 
-if __name__ == '__main__':
-    pytest.main(args=['-s', __file__, '--loglevel', logging.DEBUG])
+
+if __name__ == "__main__":
+    pytest.main(args=["-s", __file__, "--loglevel", logging.DEBUG])

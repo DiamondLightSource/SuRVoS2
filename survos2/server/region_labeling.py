@@ -6,12 +6,12 @@ from numba import jit
 # original rlabels always was hanging, replaced with quick numba fix
 
 # y: labels (annotation vol)
-# R: superregions 
+# R: superregions
 # nr: number of superregions
 # ny: number of labels
 @jit
 def simple_rlabels(y, R, ny, nr, min_ratio):
-    
+
     N = R.shape[0]
 
     sizes = np.zeros(nr, dtype=np.uint32)
@@ -39,12 +39,20 @@ def simple_rlabels(y, R, ny, nr, min_ratio):
 
     return out
 
-def rlabels(y : np.uint16, R : np.uint32, nr : int =None, ny : int=None, norm:bool=None, min_ratio:int=0):
-    
-    #WARNING: silently fails if types are not exactly correct
+
+def rlabels(
+    y: np.uint16,
+    R: np.uint32,
+    nr: int = None,
+    ny: int = None,
+    norm: bool = None,
+    min_ratio: int = 0,
+):
+
+    # WARNING: silently fails if types are not exactly correct
     y = np.array(y)
     R = np.array(R)
-    
+
     nr = nr or R.max() + 1
     ny = ny or y.max() + 1
 
@@ -63,7 +71,4 @@ def rlabels(y : np.uint16, R : np.uint32, nr : int =None, ny : int=None, norm:bo
     # features = mappings._rlabels(y.ravel(), R.ravel(), ny, nr, min_ratio)
 
     return features
-    #return normalize(features).astype(np.uint16, norm=norm)
-
-
-
+    # return normalize(features).astype(np.uint16, norm=norm)

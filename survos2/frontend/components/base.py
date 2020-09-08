@@ -20,11 +20,14 @@ from collections import defaultdict
 import qtawesome as qta
 
 from survos2.frontend.utils import resource
-from survos2.frontend.components.icon_buttons import DelIconButton, ViewIconButton, AddIconButton
+from survos2.frontend.components.icon_buttons import (
+    DelIconButton,
+    ViewIconButton,
+    AddIconButton,
+)
 
 
 class Label(QtWidgets.QLabel):
-
     def __init__(self, *args):
         super().__init__(*args)
         self.setAlignment(QtCore.Qt.AlignCenter)
@@ -34,27 +37,26 @@ class Label(QtWidgets.QLabel):
 
 
 class SWidget(QtWidgets.QWidget):
-
     def __init__(self, class_name, parent=None):
         super().__init__(parent=parent)
         obj_name = QCSWidget.convert_name(class_name)
         self.setObjectName(obj_name)
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
 
-        file_path = resource('qcs', obj_name + '.qcs')
+        file_path = resource("qcs", obj_name + ".qcs")
         if os.path.isfile(file_path):
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 self.setStyleSheet(f.read())
 
     @staticmethod
     def convert_name(name):
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
 class QCSWidget(SWidget):
 
-    resized = Signal() # Signal
+    resized = Signal()  # Signal
 
     def __init__(self, parent=None):
         super().__init__(self.__class__.__name__, parent=parent)
@@ -73,12 +75,13 @@ class QCSWidget(SWidget):
     def value(self):
         return None
 
+
 def layout_items(layout):
-   return (layout.itemAt(i) for i in range(layout.count()))
+    return (layout.itemAt(i) for i in range(layout.count()))
 
 
 def layout_widgets(layout):
-   return (layout.itemAt(i).widget() for i in range(layout.count()))
+    return (layout.itemAt(i).widget() for i in range(layout.count()))
 
 
 def clear_layout(layout):
@@ -88,22 +91,25 @@ def clear_layout(layout):
 
 class PluginNotifier(QtCore.QObject):
     updated = Signal()
+
     def listen(self, *args, **kwargs):
         self.updated.connect(*args, **kwargs)
+
     def notify(self):
         self.updated.emit()
 
 
 def _fill_features(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
-    result = Launcher.g.run('features', 'existing', **params)
-    
+    result = Launcher.g.run("features", "existing", **params)
+
     result = dict()
     result[0] = params
     if result:
         for fid in result:
             if fid != ignore:
-                combo.addItem(fid, result[fid]['name'])
+                combo.addItem(fid, result[fid]["name"])
+
 
 #########################
 
@@ -111,11 +117,12 @@ def _fill_features(combo, full=False, filter=True, ignore=None):
 def dataset_repr(ds):
     metadata = dict()
     metadata.update(ds.metadata())
-    metadata.pop('__data__', None)
-    metadata.setdefault('id', ds.id)
-    metadata.setdefault('name', os.path.basename(ds._path))
-    metadata.setdefault('kind', 'unknown')
+    metadata.pop("__data__", None)
+    metadata.setdefault("id", ds.id)
+    metadata.setdefault("name", os.path.basename(ds._path))
+    metadata.setdefault("kind", "unknown")
     return metadata
+
 
 ##################################
 
@@ -125,9 +132,7 @@ def FAIcon(*args, **kwargs):
 
 
 class HBox(QtWidgets.QHBoxLayout):
-
-    def __init__(self, parent=None, margin=0, spacing=0,
-                 align=QtCore.Qt.AlignLeft):
+    def __init__(self, parent=None, margin=0, spacing=0, align=QtCore.Qt.AlignLeft):
         super().__init__(parent)
         m = [margin] * 4 if type(margin) not in [list, tuple] else margin
         self.setSpacing(spacing)
@@ -149,13 +154,10 @@ class HBox(QtWidgets.QHBoxLayout):
         elif widget is None:
             widget = QtWidgets.QWidget()
         super().addWidget(widget, stretch)
-
 
 
 class VBox(QtWidgets.QVBoxLayout):
-
-    def __init__(self, parent=None, margin=0, spacing=0,
-                 align=QtCore.Qt.AlignTop):
+    def __init__(self, parent=None, margin=0, spacing=0, align=QtCore.Qt.AlignTop):
         super().__init__(parent)
         m = [margin] * 4 if type(margin) not in [list, tuple] else margin
         self.setSpacing(spacing)
@@ -179,12 +181,11 @@ class VBox(QtWidgets.QVBoxLayout):
         super().addWidget(widget, stretch)
 
 
-
 class Header(QtWidgets.QLabel):
-
     def __init__(self, text):
         super().__init__(text)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QLabel {
                 width: 100%;
                 min-height: 30px;
@@ -192,32 +193,35 @@ class Header(QtWidgets.QLabel):
                 qproperty-alignment: AlignCenter;
                 background-color: #0D47A1;
             }
-            """)
+            """
+        )
+
 
 class SubHeader(QtWidgets.QLabel):
-
     def __init__(self, text):
         super().__init__(text)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QLabel {
                 min-height: 25px;
                 color: white;
                 qproperty-alignment: AlignCenter;
                 background-color: #00838F;
             }
-            """)
+            """
+        )
 
 
 class HWidgets(QtWidgets.QWidget):
-
     def __init__(self, *widgets, **kwargs):
-        super().__init__(kwargs.pop('parent', None))
-        self.setObjectName('hwidgets')
-        margin = kwargs.pop('margin', 5)
-        self.setStyleSheet('margin-left: {}px; margin-right: {}px;'
-                           .format(margin, margin))
+        super().__init__(kwargs.pop("parent", None))
+        self.setObjectName("hwidgets")
+        margin = kwargs.pop("margin", 5)
+        self.setStyleSheet(
+            "margin-left: {}px; margin-right: {}px;".format(margin, margin)
+        )
 
-        stretch = kwargs.pop('stretch', [])
+        stretch = kwargs.pop("stretch", [])
         if type(stretch) not in [list, tuple]:
             stretch = [stretch]
         hbox = HBox(self)
@@ -237,8 +241,7 @@ class HWidgets(QtWidgets.QWidget):
 
 
 class LineEdit(QtWidgets.QLineEdit):
-
-    def __init__(self, text=None, default='', parse=str, fontsize=None, **kwargs):
+    def __init__(self, text=None, default="", parse=str, fontsize=None, **kwargs):
         super().__init__(text, **kwargs)
         self.default = default
         self.parse = parse
@@ -250,7 +253,7 @@ class LineEdit(QtWidgets.QLineEdit):
             self.setPlaceholderText(str(default))
 
         if fontsize is not None:
-            self.setStyleSheet('font-size: {}px;'.format(fontsize))
+            self.setStyleSheet("font-size: {}px;".format(fontsize))
         self.returnPressed.connect(self.clearFocus)
         self.editingFinished.connect(self.parseInput)
 
@@ -306,17 +309,15 @@ class TabBar(QCSWidget):
 
 
 class PushButton(QtWidgets.QPushButton):
-
     def __init__(self, *args, accent=False, flat=False, **kwargs):
         super().__init__(*args, **kwargs)
         if accent:
-            self.setProperty('accent', True)
+            self.setProperty("accent", True)
         if flat:
             self.setFlat(True)
 
 
 class ScrollPane(QtWidgets.QScrollArea):
-
     def __init__(self, margin=5, parent=None):
         super().__init__(parent=parent)
         container = QtWidgets.QWidget(parent=parent)
@@ -330,12 +331,11 @@ class ScrollPane(QtWidgets.QScrollArea):
         self.layout.addWidget(widget, stretch)
 
 
-
 class ColorButton(QtWidgets.QPushButton):
 
     colorChanged = Signal(str)
 
-    def __init__(self, color='#000000', clickable=True, **kwargs):
+    def __init__(self, color="#000000", clickable=True, **kwargs):
         super().__init__(**kwargs)
         self.setColor(color)
         if clickable:
@@ -344,7 +344,8 @@ class ColorButton(QtWidgets.QPushButton):
     def setColor(self, color):
         color = str(QtGui.QColor(color).name())
         if color is None:
-            self.setStyleSheet("""
+            self.setStyleSheet(
+                """
                 QPushButton, QPushButton:hover {
                     background-color:
                         qlineargradient(
@@ -357,9 +358,11 @@ class ColorButton(QtWidgets.QPushButton):
                             stop: 0.8 red, stop: 0.85 white
                         );
                 }
-            """)
+            """
+            )
         else:
-            self.setStyleSheet("""
+            self.setStyleSheet(
+                """
                 QPushButton { background-color: %s; }
                 QPushButton:hover {
                     background-color:
@@ -368,7 +371,9 @@ class ColorButton(QtWidgets.QPushButton):
                             stop: 0 white, stop: 1 %s
                         );
                     }
-            """ % (color, color))
+            """
+                % (color, color)
+            )
 
         self.color = color
 
@@ -384,11 +389,17 @@ class ColorButton(QtWidgets.QPushButton):
 
 
 class Card(QCSWidget):
-
-    def __init__(self, title=None, removable=False, editable=False,
-                 collapsible=False, addbtn=False, parent=None):
+    def __init__(
+        self,
+        title=None,
+        removable=False,
+        editable=False,
+        collapsible=False,
+        addbtn=False,
+        parent=None,
+    ):
         super().__init__(parent=parent)
-        self.setProperty('card', True)
+        self.setProperty("card", True)
         self.spacing = 5
         self.vbox = VBox(self, margin=5, spacing=self.spacing)
         self.total_height = 0
@@ -430,14 +441,14 @@ class Card(QCSWidget):
         self._visible = True
 
     def add_row(self, widget, max_height=30, header=False):
-        widget.setProperty('header', header)
+        widget.setProperty("header", header)
         widget.setMaximumHeight(max_height)
         self.vbox.addWidget(widget)
         self.total_height += max_height + self.spacing
         self.setMinimumHeight(self.total_height)
 
     def update_height(self, max_height=30):
-        self.total_height -= (max_height + self.spacing)
+        self.total_height -= max_height + self.spacing
         self.setMinimumHeight(self.total_height)
 
     def _title_edited(self):
@@ -479,18 +490,16 @@ class Card(QCSWidget):
 
 
 class Spacing(QCSWidget):
-
     def __init__(self, spacing, parent=None):
         super().__init__(parent=parent)
         self.setMinimumWidth(spacing)
         self.setMaximumWidth(spacing)
 
 
-        
 class CheckBox(QCSWidget):
-
-    def __init__(self, text=None, checked=False, align=QtCore.Qt.AlignRight,
-                 parent=None):
+    def __init__(
+        self, text=None, checked=False, align=QtCore.Qt.AlignRight, parent=None
+    ):
         super().__init__(parent=parent)
         self.chk = QtWidgets.QCheckBox()
         self.chk.setFixedWidth(20)
@@ -513,7 +522,6 @@ class CheckBox(QCSWidget):
             self.txt.mousePressEvent = self.label_clicked
         self.chk.setChecked(checked)
 
-
     def __getattr__(self, attr):
         return self.chk.__getattribute__(attr)
 
@@ -528,23 +536,20 @@ class CheckBox(QCSWidget):
         return self.isChecked()
 
 
-
-
 class LineEdit3D(QCSWidget):
-
     def __init__(self, *args, parent=None, **kwargs):
         super().__init__(parent=parent)
-        default = kwargs.get('default', 0)
+        default = kwargs.get("default", 0)
         if type(default) not in [list, tuple]:
             default = [default] * 3
         self.line_edits = []
         self.hbox = HBox(self, spacing=0)
         self.hbox.addWidget(QtWidgets.QWidget(), 1)
-        for i, c in enumerate(['z', 'y', 'x']):
-            kwargs.setdefault('default', default[i])
+        for i, c in enumerate(["z", "y", "x"]):
+            kwargs.setdefault("default", default[i])
             le = LineEdit(*args, **kwargs)
             le.setAlignment(QtCore.Qt.AlignCenter)
-            label = QtWidgets.QLabel(c + ':')
+            label = QtWidgets.QLabel(c + ":")
             self.hbox.addWidget(label)
             self.hbox.addWidget(le)
             self.line_edits.append(le)
@@ -560,7 +565,6 @@ class LineEdit3D(QCSWidget):
 
 
 class AbstractLazyWrapper(QtCore.QObject):
-
     def __init__(self, lazy=False, parent=None):
         super().__init__(parent)
         if lazy:
@@ -577,7 +581,6 @@ class AbstractLazyWrapper(QtCore.QObject):
 
 
 class ComboBox(QtWidgets.QComboBox, AbstractLazyWrapper):
-
     def __init__(self, select=None, header=None, lazy=False, parent=None):
         self._items = []
         self._header = header
@@ -665,20 +668,24 @@ class ComboBox(QtWidgets.QComboBox, AbstractLazyWrapper):
 
 
 class LazyComboBox(ComboBox):
-
     def __init__(self, *args, **kwargs):
-        kwargs['lazy'] = True
+        kwargs["lazy"] = True
         super().__init__(*args, **kwargs)
-
-
 
 
 class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
 
     valueChanged = Signal()
 
-    def __init__(self, header=None, lazy=False, select=None,
-                 text='Select', groupby=None, parent=None):
+    def __init__(
+        self,
+        header=None,
+        lazy=False,
+        select=None,
+        text="Select",
+        groupby=None,
+        parent=None,
+    ):
         self._items = []
         self._actions = []
         self._header = header
@@ -689,17 +696,17 @@ class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
         self._toolmenu.installEventFilter(self)
         AbstractLazyWrapper.__init__(self, lazy)
         self.setMenu(self._toolmenu)
-        #self.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+        # self.setPopupMode(QtWidgets.QToolButton.InstantPopup)
 
-        self.setProperty('combo', True)
-        self._toolmenu.setProperty('combo', True)
+        self.setProperty("combo", True)
+        self._toolmenu.setProperty("combo", True)
         self._toolmenu.aboutToHide.connect(self._update_text)
 
         self._update_text()
 
-        file_path = resource('qcs', 'survos.qcs')
+        file_path = resource("qcs", "survos.qcs")
         if os.path.isfile(file_path):
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 style = f.read()
                 self.setStyleSheet(style)
                 self._toolmenu.setStyleSheet(style)
@@ -713,7 +720,7 @@ class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
         if len(names) == 0:
             self.setText(self._text)
         else:
-            self.setText('; '.join(names))
+            self.setText("; ".join(names))
 
     def eventFilter(self, target, evt):
         super().eventFilter(target, evt)
@@ -803,16 +810,19 @@ class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
         self._actions[idx].setChecked(flag)
 
     def names(self):
-        return list(item[1] for i, item in enumerate(self.items())
-                    if self.itemChecked(i))
+        return list(
+            item[1] for i, item in enumerate(self.items()) if self.itemChecked(i)
+        )
 
     def keys(self):
         return self.values(keys=True)
 
     def values(self, keys=False):
-        values = (item[0] if item[2] is None or keys else item[2]
-                  for i, item in enumerate(self.items())
-                  if self.itemChecked(i))
+        values = (
+            item[0] if item[2] is None or keys else item[2]
+            for i, item in enumerate(self.items())
+            if self.itemChecked(i)
+        )
         if keys:
             return values
         if self._groupby:
@@ -825,25 +835,32 @@ class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
                 else:
                     if self._groupby in val:
                         result[val[self._groupby]].append(val)
-            return [(k, v) for k,v in result.items()]
+            return [(k, v) for k, v in result.items()]
         return values
 
 
 class LazyMultiComboBox(MultiComboBox):
-
     def __init__(self, **kwargs):
-        kwargs['lazy'] = True
+        kwargs["lazy"] = True
         super().__init__(**kwargs)
-
-
 
 
 class Slider(QCSWidget):
 
     valueChanged = Signal(int)
 
-    def __init__(self, value=None, vmax=100, vmin=0, step=1, tracking=True,
-                 label=True, auto_accept=True, center=False, parent=None):
+    def __init__(
+        self,
+        value=None,
+        vmax=100,
+        vmin=0,
+        step=1,
+        tracking=True,
+        label=True,
+        auto_accept=True,
+        center=False,
+        parent=None,
+    ):
         super().__init__(parent=parent)
         if value is None:
             value = vmin
@@ -903,9 +920,9 @@ class Slider(QCSWidget):
 
     def wheelEvent(self, e):
         if e.angleDelta().y() > 0 and self.value() < self.maximum():
-            self.setValue(self.value()+self.step)
+            self.setValue(self.value() + self.step)
         elif e.angleDelta().y() < 0 and self.value() > self.minimum():
-            self.setValue(self.value()-self.step)
+            self.setValue(self.value() - self.step)
 
     def value(self):
         return self.pending or self.slider.value()
@@ -918,7 +935,6 @@ class Slider(QCSWidget):
 
 
 class RealSlider(Slider):
-
     def __init__(self, value=0, vmax=100, vmin=0, n=1000, **kwargs):
         super().__init__(value=0, vmin=0, vmax=n, **kwargs)
         self._n = n
@@ -937,12 +953,11 @@ class RealSlider(Slider):
         return self._values[self.slider.value()]
 
     def update_label(self, idx):
-        idx = '{0:.3f}'.format(self._values[idx])
+        idx = "{0:.3f}".format(self._values[idx])
         super().update_label(idx)
 
     def _update_linspace(self):
-        self._values = np.linspace(self._vmin, self._vmax,
-                                   self._n + 1, endpoint=True)
+        self._values = np.linspace(self._vmin, self._vmax, self._n + 1, endpoint=True)
 
     def setValue(self, val):
         idx = self._mapvalue(val)
@@ -964,7 +979,6 @@ class RealSlider(Slider):
 
 
 class Label(QtWidgets.QLabel):
-
     def __init__(self, *args):
         super().__init__(*args)
         self.setAlignment(QtCore.Qt.AlignCenter)

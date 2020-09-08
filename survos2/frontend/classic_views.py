@@ -1,4 +1,3 @@
-
 import os.path as op
 
 from .utils import resource
@@ -51,22 +50,22 @@ class ViewContainer(QCSWidget):
         views = [v for v in views if v in self.views]
 
         for view in views:
-            self.header.addTab(view, self.views[view]['title'])
+            self.header.addTab(view, self.views[view]["title"])
 
         if self.current_view is None:
             self.select_view(views[0])
         else:
-            widget = self.views[self.current_view]['widget']
-            if hasattr(widget, 'setup'):
+            widget = self.views[self.current_view]["widget"]
+            if hasattr(widget, "setup"):
                 widget.setup()
 
     def select_view(self, name):
         if name in self.views:
-            self.container.setCurrentIndex(self.views[name]['idx'])
+            self.container.setCurrentIndex(self.views[name]["idx"])
             self.current_view = name
             self.header.setSelected(name)
-            widget = self.views[self.current_view]['widget']
-            if hasattr(widget, 'setup'):
+            widget = self.views[self.current_view]["widget"]
+            if hasattr(widget, "setup"):
                 widget.setup()
 
     def load_view(self, name, title, cls):
@@ -83,16 +82,15 @@ class ViewContainer(QCSWidget):
 
     def propagate_keybinding(self, evt):
         if self.current_view is not None:
-            widget = self.views[self.current_view]['widget']
-            if hasattr(widget, 'triggerKeybinding'):
+            widget = self.views[self.current_view]["widget"]
+            if hasattr(widget, "triggerKeybinding"):
                 widget.triggerKeybinding(evt.key(), evt.modifiers())
 
         if not evt.isAccepted():
             evt.accept()
 
+
 def update_ui():
-    logger.info('Updating UI')
+    logger.info("Updating UI")
     QtCore.QCoreApplication.processEvents()
     time.sleep(0.1)
-
-

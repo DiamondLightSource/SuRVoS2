@@ -1,5 +1,3 @@
-
-
 import os.path as op
 
 import numpy as np
@@ -19,10 +17,10 @@ __dirname__ = op.dirname(__file__)
 def tvdenoising3d(data, lamda=15, max_iter=100):
     assert data.ndim == 3
 
-    with open(op.join(__dirname__, 'kernels', 'tv.cu'), 'r') as f:
+    with open(op.join(__dirname__, "kernels", "tv.cu"), "r") as f:
         _mod_tv = SourceModule(f.read())
-        gpu_tv_u = _mod_tv.get_function('update_u')
-        gpu_tv_p = _mod_tv.get_function('update_p')
+        gpu_tv_u = _mod_tv.get_function("update_u")
+        gpu_tv_p = _mod_tv.get_function("update_p")
 
     dsize = np.prod(data.shape)
 
@@ -33,18 +31,27 @@ def tvdenoising3d(data, lamda=15, max_iter=100):
     x_gpu = gpuarray.zeros_like(f_gpu)
 
     lamda = np.float32(1.0 / lamda)
-    #z, y, x = map(np.int32, data.shape)
+    # z, y, x = map(np.int32, data.shape)
     shape = np.asarray(data.shape[::-1], dtype=int3)
     mtpb = gpu_tv_u.max_threads_per_block
     block, grid = flat_kernel_config(gpu_tv_u, data.shape)
 
     for i in range(max_iter):
         tau2 = np.float32(0.3 + 0.02 * i)
-        tau1 = np.float32((1. / tau2) * ((1. / 6.) - (5. / (15. + i))))
+        tau1 = np.float32((1.0 / tau2) * ((1.0 / 6.0) - (5.0 / (15.0 + i))))
 
-        gpu_tv_u(f_gpu, z_gpu, y_gpu, x_gpu, u_gpu, tau1, lamda, shape,
-            block=block, grid=grid)
-        gpu_tv_p(u_gpu, z_gpu, y_gpu, x_gpu, tau2, shape,
-            block=block, grid=grid)
+        gpu_tv_u(
+            f_gpu,
+            z_gpu,
+            y_gpu,
+            x_gpu,
+            u_gpu,
+            tau1,
+            lamda,
+            shape,
+            block=block,
+            grid=grid,
+        )
+        gpu_tv_p(u_gpu, z_gpu, y_gpu, x_gpu, tau2, shape, block=block, grid=grid)
 
     return u_gpu

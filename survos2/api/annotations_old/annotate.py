@@ -1,11 +1,9 @@
-
-
 import numpy as np
 
 
-_MaskSize   = 4   # 4 bits per history label
-_MaskCopy   = 15  # 0000 1111
-_MaskPrev   = 240 # 1111 0000
+_MaskSize = 4  # 4 bits per history label
+_MaskCopy = 15  # 0000 1111
+_MaskPrev = 240  # 1111 0000
 
 
 def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0):
@@ -28,9 +26,9 @@ def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0):
         return False
 
     if label >= 16 or label < 0 or type(label) != int:
-        raise ValueError('Label has to be in bounds [0, 15]')
+        raise ValueError("Label has to be in bounds [0, 15]")
 
-    modified = dataset.get_attr('modified')
+    modified = dataset.get_attr("modified")
     for i in range(dataset.total_chunks):
         idx = dataset.unravel_chunk_index(i)
         chunk_slices = dataset.global_chunk_bounds(idx)
@@ -45,20 +43,19 @@ def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0):
         dataset[chunk_slices] = data_chunk
         modified[i] = (modified[i] << 1) & mbit | 1
 
-    dataset.set_attr('modified', modified)
-
+    dataset.set_attr("modified", modified)
 
 
 def annotate_regions(dataset, region, r=None, label=0):
     if label >= 16 or label < 0 or type(label) != int:
-        raise ValueError('Label has to be in bounds [0, 15]')
+        raise ValueError("Label has to be in bounds [0, 15]")
     if r is None or len(r) == 0:
         return
 
     mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
 
     rmax = np.max(r)
-    modified = dataset.get_attr('modified')
+    modified = dataset.get_attr("modified")
     for i in range(dataset.total_chunks):
         idx = dataset.unravel_chunk_index(i)
         chunk_slices = dataset.global_chunk_bounds(idx)
@@ -76,11 +73,11 @@ def annotate_regions(dataset, region, r=None, label=0):
         dataset[chunk_slices] = data_chunk
         modified[i] = (modified[i] << 1) & mbit | 1
 
-    dataset.set_attr('modified', modified)
+    dataset.set_attr("modified", modified)
 
 
 def undo_annotation(dataset):
-    modified = dataset.get_attr('modified')
+    modified = dataset.get_attr("modified")
     for i in range(dataset.total_chunks):
         if modified[i] & 1 == 0:
             continue
@@ -89,26 +86,26 @@ def undo_annotation(dataset):
         data = dataset[chunk_slices]
         data = (data << _MaskSize) | (data >> _MaskSize)
         dataset[chunk_slices] = data
-    dataset.set_attr('modified', modified)
+    dataset.set_attr("modified", modified)
 
 
 def erase_label(dataset, label=0):
     if label >= 16 or label < 0 or type(label) != int:
-        raise ValueError('Label has to be in bounds [0, 15]')
+        raise ValueError("Label has to be in bounds [0, 15]")
     lmask = _MaskCopy - label
     # remove label from all history
     nbit = np.dtype(dataset.dtype).itemsize * 8
-    btop = 2**nbit - 1
+    btop = 2 ** nbit - 1
     for i in range(dataset.total_chunks):
         idx = dataset.unravel_chunk_index(i)
         chunk_slices = dataset.global_chunk_bounds(idx)
         data_chunk = dataset[chunk_slices]
         modified = False
         for s in range(nbit // _MaskSize):
-            shift = (s * _MaskSize)
+            shift = s * _MaskSize
             cmask = _MaskCopy << shift
-            rmask = (data_chunk & cmask == label << shift) # Check presence of label
-            if np.any(rmask): # Delete label
+            rmask = data_chunk & cmask == label << shift  # Check presence of label
+            if np.any(rmask):  # Delete label
                 modified = True
                 hmask = btop - (label << shift)
                 data_chunk[rmask] &= hmask

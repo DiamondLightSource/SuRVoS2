@@ -1,5 +1,3 @@
-
-
 import numpy as np
 import logging
 
@@ -39,8 +37,9 @@ def gaussian(data, sigma=0.5, **kwargs):
     elif data.ndim == 3:
         result = _gaussian3d(data, sigma=sigma, **kwargs)
     else:
-        raise ValueError("Input dataset has to be 2 or 3 dimensional: {}"
-                         .format(data.ndim))
+        raise ValueError(
+            "Input dataset has to be 2 or 3 dimensional: {}".format(data.ndim)
+        )
     return result
 
 
@@ -73,8 +72,9 @@ def _gaussian2d(data, sigma=0.5, size=None, **kwargs):
         kz = make_gaussian_1d(sigma[0], size=size, **kwargs)
         ky = make_gaussian_1d(sigma[1], size=size, **kwargs)
     else:
-        raise ValueError('Incorrect parameter `sigma`: a scalar or '
-                         '`(sy, sx)` vector is expected.')
+        raise ValueError(
+            "Incorrect parameter `sigma`: a scalar or " "`(sy, sx)` vector is expected."
+        )
     return conv_sep(data, [ky, kx])
 
 
@@ -108,8 +108,10 @@ def _gaussian3d(data, sigma=0.5, **kwargs):
         ky = make_gaussian_1d(sigma[1], **kwargs)
         kx = make_gaussian_1d(sigma[2], **kwargs)
     else:
-        raise ValueError('Incorrect parameter `sigma`: a scalar or '
-                         '`(sz, sy, sx)` vector is expected.')
+        raise ValueError(
+            "Incorrect parameter `sigma`: a scalar or "
+            "`(sz, sy, sx)` vector is expected."
+        )
     return conv_sep(data, [kz, ky, kx])
 
 
@@ -137,7 +139,7 @@ def gaussian_center(data, sigma=0.5, **kwargs):
         The result of the filtering resulting from PyCuda. Use `.get()` to
         retrieve the corresponding Numpy array.
     """
-    kwargs['keep_gpu'] = True
+    kwargs["keep_gpu"] = True
     data = asgpuarray(data)
     result = data - gaussian(data, sigma=sigma, **kwargs)
     return result
@@ -168,9 +170,9 @@ def gaussian_norm(data, sigma=0.5, **kwargs):
         The result of the filtering resulting from PyCuda. Use `.get()` to
         retrieve the corresponding Numpy array.
     """
-    kwargs['keep_gpu'] = True
+    kwargs["keep_gpu"] = True
     num = gaussian_center(data, sigma=sigma, **kwargs)
-    den = cumath.sqrt(gaussian(num**2, sigma=sigma, **kwargs))
+    den = cumath.sqrt(gaussian(num ** 2, sigma=sigma, **kwargs))
     # TODO numerical precision ignore den < 1e-7
     num /= den
     return num

@@ -45,7 +45,12 @@ from skimage import filters as skfilt
 from skimage import img_as_float
 from skimage.color import rgb2gray
 from skimage.filters import threshold_isodata, threshold_li, threshold_otsu
-from skimage.filters import threshold_yen, threshold_mean, threshold_triangle, threshold_minimum
+from skimage.filters import (
+    threshold_yen,
+    threshold_mean,
+    threshold_triangle,
+    threshold_minimum,
+)
 from skimage.morphology import closing
 from skimage.morphology import dilation, opening
 from skimage.morphology import disk
@@ -66,11 +71,6 @@ import scipy.signal as signal
 from pathlib import Path
 
 import napari
-
-
-
-
-
 
 
 def view_volume(imgvol, points=[], name=""):
@@ -99,7 +99,6 @@ def view_volume(imgvol, points=[], name=""):
     return viewer
 
 
-
 def view_volume2(imgvol, name=""):
     with napari.gui_qt():
         viewer = napari.Viewer()
@@ -107,13 +106,13 @@ def view_volume2(imgvol, name=""):
 
 
 def view_volume(imgvol, points=[], name=""):
-   
+
     translate_limits = (28, 100)
     size = np.array([2] * len(points))
 
     with napari.gui_qt():
         viewer = napari.Viewer()
-        viewer.theme = 'light'
+        viewer.theme = "light"
         viewer.add_image(imgvol, name=name)
 
         if len(points) > 0:
@@ -129,47 +128,49 @@ def stdize(image):
     image = image / std
     return image
 
+
 def simple_norm(arr, minim=0.0, maxim=1.0):
-    
+
     normed_arr = arr.copy()
     normed_arr -= np.min(arr)
-    
-    normed_arr =  normed_arr / (maxim - minim)
+
+    normed_arr = normed_arr / (maxim - minim)
     return normed_arr
+
 
 def norm1(img_data):
     img_data = img_data - img_data.mean()
     img_data = img_data - img_data.min()
-    #image = image / std
+    # image = image / std
     img_data /= np.max(img_data)
 
     return img_data
 
 
-def prepare_3channel(selected_images, patch_size=(28,28)):
+def prepare_3channel(selected_images, patch_size=(28, 28)):
 
-    selected_3channel = []  
+    selected_3channel = []
 
     for i in range(len(selected_images)):
-        
-        img_out = np.zeros((patch_size[0],patch_size[1], 3)) 
-        
-        if i % 1000 == 0: 
-            print(i, selected_images[i].shape)
-        
-        try:
-            img_data = selected_images[i]    
-            img_data = norm1(img_data) 
 
-            img_out[:,:,0] = img_data
-            img_out[:,:,1] = img_data
-            img_out[:,:,2] = img_data
+        img_out = np.zeros((patch_size[0], patch_size[1], 3))
+
+        if i % 1000 == 0:
+            print(i, selected_images[i].shape)
+
+        try:
+            img_data = selected_images[i]
+            img_data = norm1(img_data)
+
+            img_out[:, :, 0] = img_data
+            img_out[:, :, 1] = img_data
+            img_out[:, :, 2] = img_data
 
             selected_3channel.append(img_out)
-        
+
         except ValueError as e:
             print(e)
-        
+
     return selected_3channel
 
 
@@ -177,10 +178,11 @@ def docstring_parameter(*sub):
     def dec(obj):
         obj.__doc__ = obj.__doc__.format(*sub)
         return obj
+
     return dec
 
 
-def plot_2d_data(data, labels, titles=['x', 'y'], suptitle="2d data"):
+def plot_2d_data(data, labels, titles=["x", "y"], suptitle="2d data"):
 
     fig = plt.figure(figsize=(8, 6))
     t = fig.suptitle(suptitle, fontsize=14)
@@ -190,17 +192,25 @@ def plot_2d_data(data, labels, titles=['x', 'y'], suptitle="2d data"):
     ys = list(data[:, 1])
 
     # sns.reset_orig()  # get default matplotlib styles back
-    rgb_palette = sns.color_palette('husl', n_colors=len(np.unique(labels)))  # a list of RGB tuples
+    rgb_palette = sns.color_palette(
+        "husl", n_colors=len(np.unique(labels))
+    )  # a list of RGB tuples
 
     clrs = [rgb_palette[idx] for idx in labels]
 
-    ax.scatter(xs, ys, c=clrs, marker='o')
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
+    ax.scatter(xs, ys, c=clrs, marker="o")
+    ax.set_xlabel("X Label")
+    ax.set_ylabel("Y Label")
 
 
-def plot_3d_data_in_2d(data, labels, titles=['x', 'y', 'z'],
-    xlim=(-50, 50), ylim=(-50, 50), suptitle="3d data in 2d"):
+def plot_3d_data_in_2d(
+    data,
+    labels,
+    titles=["x", "y", "z"],
+    xlim=(-50, 50),
+    ylim=(-50, 50),
+    suptitle="3d data in 2d",
+):
     """Plot 3d data as a 2d plot with variable point size
     
     Arguments:
@@ -213,7 +223,7 @@ def plot_3d_data_in_2d(data, labels, titles=['x', 'y', 'z'],
         ylim {Tupel[float, float]} -- Y axis limits (default: {(-50, 50)})
         suptitle {str} -- Overall diagram title (default: {"3d data in 2d"})
     """
-                       
+
     fig = plt.figure(figsize=(8, 6))
     t = fig.suptitle(suptitle, fontsize=14)
     ax = fig.add_subplot(111)
@@ -223,19 +233,29 @@ def plot_3d_data_in_2d(data, labels, titles=['x', 'y', 'z'],
     size = list(data[:, 2] * 5)
 
     # sns.reset_orig()  # get default matplotlib styles back
-    rgb_palette = sns.color_palette('husl', n_colors=len(np.unique(labels)))  # a list of RGB tuples
+    rgb_palette = sns.color_palette(
+        "husl", n_colors=len(np.unique(labels))
+    )  # a list of RGB tuples
 
     clrs = [rgb_palette[idx] for idx in labels]
 
-    ax.scatter(xs, ys, c=clrs, s=size, marker='o')
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
+    ax.scatter(xs, ys, c=clrs, s=size, marker="o")
+    ax.set_xlabel("X Label")
+    ax.set_ylabel("Y Label")
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
 
 
-def plot_3d_data(data, labels, titles=['x', 'y', 'z'], suptitle="3d data", xlim=(-50, 50), 
-    ylim=(-50, 50), zlim=(-50, 50), figsize=(10, 10)):
+def plot_3d_data(
+    data,
+    labels,
+    titles=["x", "y", "z"],
+    suptitle="3d data",
+    xlim=(-50, 50),
+    ylim=(-50, 50),
+    zlim=(-50, 50),
+    figsize=(10, 10),
+):
     """Plot 3d data as points in a 3d plot
     
     Arguments:
@@ -249,37 +269,39 @@ def plot_3d_data(data, labels, titles=['x', 'y', 'z'], suptitle="3d data", xlim=
         ylim {Tuple[float,float]} -- Y axis limits (default: {(-50, 50)})
         zlim {Tuple[float,float]} -- Z axis limits (default: {(-50, 50)})
         figsize {Tuple[float,float]} -- Figure size  (default: {(10, 10)})
-    """         
+    """
     fig = plt.figure(figsize=figsize)
     t = fig.suptitle(suptitle, fontsize=14)
 
     fig = plt.figure(figsize=figsize)
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
 
     xs = list(data[:, 0])
     ys = list(data[:, 1])
     zs = list(data[:, 2])
 
     # sns.reset_orig()  # default matplotlib
-    rgb_palette = sns.color_palette('Spectral', n_colors=len(np.unique(labels)) + 10)  # a list of RGB tuples
+    rgb_palette = sns.color_palette(
+        "Spectral", n_colors=len(np.unique(labels)) + 10
+    )  # a list of RGB tuples
 
     clrs = [rgb_palette[idx] for idx in labels]
 
-    ax.scatter(xs, ys, zs, c=clrs, marker='.')
-    
+    ax.scatter(xs, ys, zs, c=clrs, marker=".")
+
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.set_zlim(zlim)
-    
-    ax.set_xlabel('X Label')
-    ax.set_ylabel('Y Label')
-    ax.set_zlabel('Z Label')
+
+    ax.set_xlabel("X Label")
+    ax.set_ylabel("Y Label")
+    ax.set_zlabel("Z Label")
 
     plt.grid()
     return fig, ax
 
 
-def plot_4d_data(data, labels, titles=['P', 'Q', 'R', 'S'], suptitle="4d data"):
+def plot_4d_data(data, labels, titles=["P", "Q", "R", "S"], suptitle="4d data"):
     """Plot 4d data as 3d data with variable point size
     
     Arguments:
@@ -300,15 +322,18 @@ def plot_4d_data(data, labels, titles=['P', 'Q', 'R', 'S'], suptitle="4d data"):
     size = list(data[:, 3] * 3)
 
     # sns.reset_orig()  # get default matplotlib styles back
-    rgb_palette = sns.color_palette('husl', n_colors=len(np.unique(labels)))  # a list of RGB tuples
+    rgb_palette = sns.color_palette(
+        "husl", n_colors=len(np.unique(labels))
+    )  # a list of RGB tuples
 
     clrs = [rgb_palette[idx] for idx in labels]
 
-    ax.scatter(xs, ys, zs, c=clrs, marker='o', edgecolors='none', s=size)
+    ax.scatter(xs, ys, zs, c=clrs, marker="o", edgecolors="none", s=size)
 
     ax.set_xlabel(titles[0])
     ax.set_ylabel(titles[1])
     ax.set_zlabel(titles[2])
+
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -316,8 +341,6 @@ class AttrDict(dict):
         super(AttrDict, self).__init__(*args, **kwargs)
 
         self.__dict__ = self
-
-
 
 
 def make_dirs(dirs):
@@ -350,4 +373,3 @@ def parse_tuple(string):
 
     except:
         return
-
