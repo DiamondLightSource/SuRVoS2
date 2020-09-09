@@ -23,20 +23,8 @@ from vispy import scene
 from vispy.color import Colormap
 
 import pyqtgraph as pg
-import pyqtgraph.parametertree.parameterTypes as pTypes
-from pyqtgraph.parametertree import Parameter, ParameterTree
-import pyqtgraph.parametertree.parameterTypes as pTypes
-from pyqtgraph.parametertree import Parameter, ParameterTree
-from pyqtgraph.widgets.MatplotlibWidget import MatplotlibWidget
-from pyqtgraph.flowchart import Flowchart, Node
-import pyqtgraph.flowchart.library as fclib
-from pyqtgraph.flowchart.library.common import CtrlNode
-import pyqtgraph.opengl as gl
-import pyqtgraph as pg
 
-from survos2.server.config import cfg
-from survos2.helpers import prepare_3channel, simple_norm, norm1
-from survos2.frontend.control import Launcher
+import pyqtgraph.parametertree.parameterTypes as pTypes
 
 from survos2.frontend.components.base import *
 from survos2.frontend.components.base import QCSWidget

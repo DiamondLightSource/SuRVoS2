@@ -1,0 +1,40 @@
+f1:
+    action: features.gaussian
+    src: 001_level
+    dst: 001_gblur
+    params:
+        sigma: 1
+        lamda: 2
+f2:
+    action: features.gaussian
+    src: 001_gblur
+    dst: 002_gblur
+    params:
+        sigma: 1
+        lamda: 2
+r1:
+    action: regions.supervoxels
+    src: 001_gblur
+    dst: 001_regions
+    params:
+        slic_feat_idx: -1
+        compactness: 20
+        postprocess: false
+        sp_shape:
+            - 18
+            - 18
+            - 18
+p1:
+    action: pipeline.superregion_segment
+    src: 
+        features: [001_gblur, 002_gblur]
+        region: 001_regions
+        annotation: 001_level 
+    dst: 001_sr_prediction
+    params:
+        clf: ensemble
+        type: rf 
+        n_estimators: 10
+        proj: False
+        max_depth: 20
+        n_jobs: 1

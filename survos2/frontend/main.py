@@ -9,34 +9,19 @@ import os
 import sys
 import numpy as np
 from loguru import logger
-import argparse
-import os
+
 import h5py
-import ast
 import json
 import time
-import pandas as pd
-import sys
-import math
 
-from matplotlib import patches, patheffects
-from dataclasses import dataclass
 from typing import List, Dict
-from pprint import pprint
-from pathlib import Path
-from survos2.frontend.nb_utils import show_images
+
 from attrdict import AttrDict
 
-
-
 from survos2.frontend.frontend import frontend
-from survos2.server.model import SRFeatures  # ,  SegData
-from survos2.server.features import prepare_prediction_features
 from survos2.frontend.model import ClientData
-
 from survos2.entity.entities import make_entity_df
 from survos2 import survos
-from survos2.frontend.control import Launcher
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
 
@@ -113,55 +98,7 @@ def init_proj(precrop=False):
 
     logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")
 
-    
-    # view a ROI from a big volume by creating a temp dataset from a crop.
-    if precrop:
-        precrop_coord = wparams.precrop_coord
-        precrop_vol_size = wparams.precrop_vol_size
-        logger.info(f"Preprocess cropping at {precrop_coord} to {precrop_vol_size}")
-
-        img_volume, precropped_pts = crop_vol_and_pts_centered(
-            img_volume,
-            np.array(entities_df),
-            location=precrop_coord,
-            patch_size=precrop_vol_size,
-            debug_verbose=True,
-            offset=True,
-        )
-
-        entities_df = make_entity_df(precropped_pts, flipxy=False)
-
-        tmp_ws_name = DataModel.g.current_workspace + "_tmp"
-
-        result = survos.run_command("workspace", "get", workspace=tmp_ws_name)
-
-        if not type(result[0]) == dict:
-            logger.debug("Creating temp workspace")
-            survos.run_command("workspace", "create", workspace=tmp_ws_name)
-        else:
-            logger.debug("tmp exists, deleting and recreating")
-            survos.run_command("workspace", "delete", workspace=tmp_ws_name)
-            logger.debug("workspace deleted")
-            survos.run_command("workspace", "create", workspace=tmp_ws_name)
-            logger.debug("workspace recreated")
-
-        import h5py
-
-        tmpvol_fullpath = "out\\tmpvol.h5"
-        with h5py.File(tmpvol_fullpath, "w") as hf:
-            hf.create_dataset("data", data=img_volume)
-
-        survos.run_command(
-            "workspace",
-            "add_data",
-            workspace=tmp_ws_name,
-            data_fname=tmpvol_fullpath,
-            dtype="float32",
-        )
-        DataModel.g.current_workspace = tmp_ws_name
-
     # Prepare clientData (what gets loaded into client and napari widget)
-    # TODO: replacing all this with a pure workspace-and-api approach
 
     filtered_layers = [np.array(img_volume).astype(np.float32)]
     layer_names = [
@@ -171,15 +108,56 @@ def init_proj(precrop=False):
         1.0,
     ]
 
-    # class_names = ['blank',]
-    # if 'class_names' in wparams.keys():
-    #    class_names = wparams['class_names']
-
     from survos2.server.config import cfg
 
     clientData = ClientData(filtered_layers, layer_names, opacities, cfg)
-    # clientData.wparams = wparams
     return clientData
+
+
+def precrop(img_volume, entities_df):
+    """view a ROI from a big volume by creating a temp dataset from a crop.
+    """
+    precrop_coord = precrop_coord
+    precrop_vol_size = precrop_vol_size
+    logger.info(f"Preprocess cropping at {precrop_coord} to {precrop_vol_size}")
+
+    img_volume, precropped_pts = crop_vol_and_pts_centered(
+        img_volume,
+        np.array(entities_df),
+        location=precrop_coord,
+        patch_size=precrop_vol_size,
+        debug_verbose=True,
+        offset=True,
+    )
+
+    entities_df = make_entity_df(precropped_pts, flipxy=False)
+
+    tmp_ws_name = DataModel.g.current_workspace + "_tmp"
+
+    result = survos.run_command("workspace", "get", workspace=tmp_ws_name)
+
+    if not type(result[0]) == dict:
+        logger.debug("Creating temp workspace")
+        survos.run_command("workspace", "create", workspace=tmp_ws_name)
+    else:
+        logger.debug("tmp exists, deleting and recreating")
+        survos.run_command("workspace", "delete", workspace=tmp_ws_name)
+        logger.debug("workspace deleted")
+        survos.run_command("workspace", "create", workspace=tmp_ws_name)
+        logger.debug("workspace recreated")
+
+    tmpvol_fullpath = "out\\tmpvol.h5"
+    with h5py.File(tmpvol_fullpath, "w") as hf:
+        hf.create_dataset("data", data=img_volume)
+
+    survos.run_command(
+        "workspace",
+        "add_data",
+        workspace=tmp_ws_name,
+        data_fname=tmpvol_fullpath,
+        dtype="float32",
+    )
+    DataModel.g.current_workspace = tmp_ws_name
 
 
 def setup_ws(project_file=None):
@@ -196,12 +174,5 @@ def startup():
     viewer = frontend(clientData)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    args = parser.parse_args()
-
-    startup()
-
-
 if __name__ == "__main__":
-    main()
+    startup()

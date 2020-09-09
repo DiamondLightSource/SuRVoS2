@@ -55,24 +55,20 @@ def superregion_segment(
     logger.debug(
         f"superregion_segment with workspace {workspace}, anno {anno_id} and superregions {region_id} and features {feature_ids}"
     )
-    logging.debug(f"DataModel.g.current_workspace{DataModel.g.current_workspace}")
     # get anno
     src = DataModel.g.dataset_uri(anno_id, group="annotations")
-    logger.debug(f"Getting anno {src} from workspace {DataModel.g.current_workspace}")
     with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         anno_image = src_dataset[:]
 
     # get superregions
     src = DataModel.g.dataset_uri(region_id, group="regions")
-    logger.debug(f"Getting superregions {src}")
     with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         supervoxel_image = src_dataset[:]
 
     # get features
     features = []
-    logger.debug(f"feature_ids: {feature_ids}")
 
     for feature_id in feature_ids:
         src = DataModel.g.dataset_uri(feature_id, group="features")

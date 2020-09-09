@@ -1,40 +1,71 @@
 import numpy as np
-import pandas as pd
-from numba import jit
-import scipy
-import yaml
+
 
 from loguru import logger
-from scipy import ndimage
-from skimage import img_as_ubyte, img_as_float
-from skimage import io
-
 
 from qtpy import QtWidgets
-from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize, Signal
 
-from vispy import scene
-from vispy.color import Colormap
-
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtGui
-from pyqtgraph.parametertree import Parameter, ParameterTree
-import pyqtgraph.parametertree.parameterTypes as pTypes
-from pyqtgraph.widgets.MatplotlibWidget import MatplotlibWidget
-
-from pyqtgraph.flowchart import Flowchart, Node
-import pyqtgraph.flowchart.library as fclib
-from pyqtgraph.flowchart.library.common import CtrlNode
-import pyqtgraph.opengl as gl
-import pyqtgraph as pg
 from survos2.frontend.model import ClientData
 
-import matplotlib.cm as cm
-from matplotlib.colors import Normalize
-import matplotlib.patches as mpatches
-import matplotlib.patheffects as PathEffects
-from matplotlib import offsetbox
+
+def setup_entity_table(viewer, cData):
+    tabledata = []
+
+    for i in range(len(cData.entities)):
+        entry = (
+            i,
+            cData.entities.iloc[i]["z"],
+            cData.entities.iloc[i]["x"],
+            cData.entities.iloc[i]["y"],
+            cData.entities.iloc[i]["class_code"],
+        )
+        tabledata.append(entry)
+
+    tabledata = np.array(
+        tabledata,
+        dtype=[
+            ("index", int),
+            ("z", int),
+            ("x", int),
+            ("y", int),
+            ("class_code", int),
+        ],
+    )
+
+    logger.debug(f"Loaded {len(tabledata)} entities.")
+    sel_start, sel_end = 0, len(cData.entities)
+
+    centers = np.array(
+        [
+            [
+                np.int(np.float(cData.entities.iloc[i]["z"])),
+                np.int(np.float(cData.entities.iloc[i]["x"])),
+                np.int(np.float(cData.entities.iloc[i]["y"])),
+            ]
+            for i in range(sel_start, sel_end)
+        ]
+    )
+
+    num_classes = len(np.unique(cData.entities["class_code"])) + 5
+    logger.debug(f"Number of entity classes {num_classes}")
+    palette = np.array(sns.color_palette("hls", num_classes))  # num_classes))
+    # norm = Normalize(vmin=0, vmax=num_classes)
+
+    face_color_list = [
+        palette[class_code] for class_code in cData.entities["class_code"]
+    ]
+
+    entity_layer = viewer.add_points(
+        centers,
+        size=[10] * len(centers),
+        opacity=0.5,
+        face_color=face_color_list,
+        n_dimensional=True,
+    )
+    cData.tabledata = tabledata
+
+    return entity_layer, tabledata
 
 
 class SmallVolWidget:

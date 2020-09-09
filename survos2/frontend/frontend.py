@@ -5,7 +5,7 @@ import napari
 import time
 from typing import List
 import seaborn as sns
-import skimage
+
 
 from matplotlib.colors import Normalize
 
@@ -41,65 +41,6 @@ from survos2.helpers import simple_norm
 def update_ui():
     QtCore.QCoreApplication.processEvents()
     time.sleep(0.1)
-
-
-def setup_entity_table(viewer, cData):
-    tabledata = []
-
-    for i in range(len(cData.entities)):
-        entry = (
-            i,
-            cData.entities.iloc[i]["z"],
-            cData.entities.iloc[i]["x"],
-            cData.entities.iloc[i]["y"],
-            cData.entities.iloc[i]["class_code"],
-        )
-        tabledata.append(entry)
-
-    tabledata = np.array(
-        tabledata,
-        dtype=[
-            ("index", int),
-            ("z", int),
-            ("x", int),
-            ("y", int),
-            ("class_code", int),
-        ],
-    )
-
-    logger.debug(f"Loaded {len(tabledata)} entities.")
-    sel_start, sel_end = 0, len(cData.entities)
-
-    centers = np.array(
-        [
-            [
-                np.int(np.float(cData.entities.iloc[i]["z"])),
-                np.int(np.float(cData.entities.iloc[i]["x"])),
-                np.int(np.float(cData.entities.iloc[i]["y"])),
-            ]
-            for i in range(sel_start, sel_end)
-        ]
-    )
-
-    num_classes = len(np.unique(cData.entities["class_code"])) + 5
-    logger.debug(f"Number of entity classes {num_classes}")
-    palette = np.array(sns.color_palette("hls", num_classes))  # num_classes))
-    norm = Normalize(vmin=0, vmax=num_classes)
-
-    face_color_list = [
-        palette[class_code] for class_code in cData.entities["class_code"]
-    ]
-
-    entity_layer = viewer.add_points(
-        centers,
-        size=[10] * len(centers),
-        opacity=0.5,
-        face_color=face_color_list,
-        n_dimensional=True,
-    )
-    cData.tabledata = tabledata
-
-    return entity_layer, tabledata
 
 
 def hex_string_to_rgba(hex_string):
@@ -397,7 +338,6 @@ def frontend(cData):
         # Tabs
         #
 
-        
         tabwidget = QTabWidget()
         tab1 = QWidget()
         tab2 = QWidget()
@@ -484,6 +424,7 @@ def frontend(cData):
             logger.debug("Erode")
             str_3D = ndimage.morphology.generate_binary_structure(3, 1)
             img = viewer.layers.selected[0].data.copy()
+            img = img / np.max(img)
             img = simple_norm(img)
 
             img = ndimage.morphology.binary_dilation(img_as_ubyte(img), str_3D)

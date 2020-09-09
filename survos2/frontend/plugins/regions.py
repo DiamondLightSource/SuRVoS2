@@ -7,7 +7,7 @@ import numpy as np
 
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
-from qtpy.QtCore import QSize
+
 from survos2.frontend.plugins.base import *
 from survos2.model import DataModel
 from survos2.frontend.control import Launcher

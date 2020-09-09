@@ -9,6 +9,7 @@ from survos2.helpers import AttrDict
 # pipelines for storing particular workspace-specific configs
 
 # App-wide -> todo: mpve into main config
+
 survos_config_yaml = """
 cfg:
   proj: hunt

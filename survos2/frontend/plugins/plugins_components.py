@@ -13,7 +13,6 @@ from survos2.frontend.components.base import *
 from survos2.frontend.control import Launcher
 
 
-
 def _fill_features(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
 

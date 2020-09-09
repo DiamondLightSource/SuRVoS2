@@ -9,10 +9,6 @@ from survos2.frontend.plugins.base import *
 from survos2.model import DataModel
 from loguru import logger
 
-# logger = get_logger()
-from survos2.frontend.model import ClientData
-
-
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.plugins_components import SourceComboBox
 
@@ -59,15 +55,6 @@ class FeaturesPlugin(Plugin):
         self.feature_combo.clear()
         self.feature_combo.addItem("Add feature")
         result = Launcher.g.run("features", "available", workspace=True)
-
-        # if not result:
-        #    params = {}
-        #    params['category'] = 'feat'
-        #    params['name'] = 'f0'
-        #    result = {}
-        #    result[0] = params#
-
-        #    self.feature_params['feature'] = {'feature_param1': {  'type':'Int'}}
 
         if result:
             all_categories = sorted(set(p["category"] for p in result))
@@ -198,6 +185,8 @@ class FeatureCard(Card):
 
     def view_feature(self):
         logger.debug(f"View feature_id {self.feature_id}")
+        from survos2.server.config import cfg
+
         cfg.ppw.clientEvent.emit(
             {
                 "source": "features",

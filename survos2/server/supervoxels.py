@@ -1,35 +1,24 @@
 """"
-Supervoxel generation 
+Supervoxels 
 
-
+ISSUES 
 Things that go wrong with supervoxel generation:
 
 The image used is not smooth enough. The algorithm generates far too many supervoxels and 
 crashes if an overly detailed image is used as the source image.
 
-TODO
-+add padding before supervoxel generation
 
 
 """
 import os
-import sys
 from typing import List
 import numpy as np
-import pandas as pd
 import scipy
-
-from collections import namedtuple
-from skimage import img_as_ubyte, img_as_float
-from skimage import io
-from scipy import ndimage
+from loguru import logger
 
 #
 # SuRVoS 2 imports
 #
-
-from functools import partial
-
 from survos2.improc import map_blocks
 
 # from survos2.improc.features import gaussian, tvdenoising3d
@@ -39,27 +28,25 @@ from survos2.improc.segmentation import _qpbo as qpbo
 from survos2.improc.segmentation.appearance import train, predict, refine, invrmap
 from survos2.improc.segmentation.mappings import rmeans
 from survos2.io import dataset_from_uri
-from survos2.model import Workspace, Dataset
-from survos2.utils import decode_numpy, encode_numpy
-from survos2.api.utils import save_metadata, dataset_repr
 
 import survos2.api.workspace as ws
-
-
 from survos2.server.model import SRData
 
-from loguru import logger
 
-
-def generate_supervoxels(dataset_feats, filtered_stack, dataset_feats_idx, slic_params):
+def generate_supervoxels(
+    dataset_feats: List[np.ndarray],
+    filtered_stack: np.ndarray,
+    dataset_feats_idx: int,
+    slic_params: dict,
+):
     """Generate a supervoxel volume image
-    
+
     Arguments:
         dataset_feats {list of filtered volumes} -- list of filters of original input image volume
         filtered_stack {volume that is a stack of dataset_feats} -- reshaped version of dataset feats for rmeans
         dataset_feats_idx {int} -- index of the filter to use for supervoxel calculation
         slic_params {dict} -- Supervoxel generation parameters
-    
+
     Returns: dataclass with all the information required for prediction
     """
     logger.info(f"Using feature idx {dataset_feats_idx} for supervoxels.")
@@ -77,11 +64,11 @@ def generate_supervoxels(dataset_feats, filtered_stack, dataset_feats_idx, slic_
         **slic_params,
         timeit=False,
     )
-    supervoxel_vol = supervoxel_vol.astype(np.uint32, copy=True)  #
+    supervoxel_vol = supervoxel_vol.astype(np.uint32, copy=True)
     logger.info(f"Finished slic with supervoxel vol of shape {supervoxel_vol.shape}")
 
     supervoxel_vol = supervoxel_vol[...]
-    supervoxel_vol = np.asarray(supervoxel_vol)  # .astype(np.uint32, copy=True)
+    supervoxel_vol = np.asarray(supervoxel_vol)
     supervoxel_vol = np.nan_to_num(supervoxel_vol)
     logger.info(
         f"Calling rmeans with filtered_stack { len(filtered_stack)} and supervoxel_vol {supervoxel_vol.shape}"
@@ -128,8 +115,8 @@ def prepare_supervoxels(
     roi_crop: np.ndarray,
     resample_amt: float,
 ) -> SRData:
-    """Load supervoxels from file, then generate supervoxel features from a features stack and the supervoxel rag,
-    then bundle as SRData and return.
+    """Load supervoxels from file, then generate supervoxel features from a
+    features stack and the supervoxel rag,then bundle as SRData and return.
 
     Args:
         supervoxels (List[str]): list of supervoxels
@@ -138,7 +125,7 @@ def prepare_supervoxels(
         resample_amt (float): zoom level
 
     Returns:
-        [SRData]: superregions dataclass object 
+        [SRData]: superregions dataclass object
     """
 
     logger.debug(f"Loading supervoxel file {supervoxels[0]}")

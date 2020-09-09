@@ -32,16 +32,6 @@ def quick_norm(imgvol1):
     return imgvol1
 
 
-# center-size, single slice
-# def get_img_in_bbox(image_volume, sliceno, x,y,w,h):
-#        return image_volume[int(sliceno), x-w:x+w, y-h:y+h]
-
-
-# center-size for x/y but interval for slice
-# def get_vol_in_bbox(image_volume, slice_start, slice_end, x,y,w,h):
-#        return image_volume[slice_start:slice_end, x-w:x+w, y-h:y+h]
-
-
 def prepare_point_data(pts, patch_pos):
 
     offset_z = patch_pos[0]

@@ -207,7 +207,6 @@ def view_data(
         overlay.close()
 
 
-# old
 @begin.subcommand
 def process(
     pfile: "Process file with the plugin+command instructions",
@@ -220,10 +219,10 @@ def process(
 
     print(pfile)
 
-    if not os.path.isabs(args.workflow):
-        fworkflows = os.path.join(os.getcwd(), args.workflow)
+    if not os.path.isabs(pfile):
+        fworkflows = os.path.join(os.getcwd(), pfile)
     else:
-        fworkflows = args.workflow
+        fworkflows = pfile
 
     with open(fworkflows) as f:
         workflows = yaml.safe_load(f.read())
@@ -239,5 +238,5 @@ def process(
 
 
 @begin.start(auto_convert=True, cmd_delim="--")
-def run(name="Gawain", quest="Holy Grail", colour="green"):
-    "We are the k.ni.ghts of the round table..."
+def run(name="SuRVoS", quest="Segmentation"):
+    "SuRVoS"
