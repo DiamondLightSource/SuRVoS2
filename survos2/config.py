@@ -7,7 +7,12 @@ class _Config(type):
 
     __data__ = {  # Defaults
         "title": "SuRVoS",
-        "api": {"host": "127.0.0.1", "port": 8123, "plugins": [], "renderer": "mpl"},
+        "api": {
+            "host": "127.0.0.1",
+            "port": 8123,
+            "plugins": [],
+            "renderer": "mpl",
+        },
         "computing": {
             "chunks": False,
             "chunk_size": 500,
@@ -17,7 +22,7 @@ class _Config(type):
             "stretch": False,
         },
         "model": {
-            "chroot": "C:/work/diam/data", #"/dls/science/groups/das/SuRVoS/s2/data/", #"V:\data",  # ,  #,  # full path, or can be 'tmp'
+            "chroot": "C:/work/diam/data",  # "/dls/science/groups/das/SuRVoS/s2/data/", #"V:\data",  # ,  #,  # full path, or can be 'tmp'
             "dbtype": "yaml",
         },
         "logging": {
