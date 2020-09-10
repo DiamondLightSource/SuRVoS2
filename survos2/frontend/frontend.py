@@ -186,8 +186,6 @@ def frontend(cData):
 
             elif msg["data"] == "view_supervoxels":
                 logger.debug(f"view_feature {msg['region_id']}")
-
-                # DataModel.g.current_workspace = test_workspace_name
                 src = DataModel.g.dataset_uri(msg["region_id"], group="regions")
 
                 with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
@@ -305,34 +303,11 @@ def frontend(cData):
 
         # Plugin Panel widget
         viewer.dw.ppw.clientEvent.connect(lambda x: processEvents(x))
-
-        # todo: fix hack connection
         cData.cfg.ppw = viewer.dw.ppw
 
         # Button panel widget
         # bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')
-        viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x))
-
-        # viewer.dw.table_control.w.events.subscribe(lambda x: processEvents(x)  )
-
-        #
-        # magicgui
-        #
-
-        # roi_gui_widget = roi_gui.Gui()
-        # viewer.window.add_dock_widget(roi_gui_widget, area='top')
-        # viewer.layers.events.changed.connect(lambda x: roi_gui_widget.refresh_choices())
-        # roi_gui_widget.refresh_choices()
-
-        # workspace_layer_controls_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer.layerButtons, area='right')
-        # workspace_layer_controls_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer.viewerButtons, area='left')
-
-        # from survos2.frontend.views.layer_manager import WorkspaceLayerManager
-        # workspace_layer_manager_widget = WorkspaceLayerManager()
-        # viewer.window.add_dock_widget(workspace_layer_manager_widget, area='right')
-
-        # workspace_layer_controls_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer.dockLayerControls, area='left')
-        # workspace_layer_manager_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer.dockLayerList, area='left')
+        #viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x))
 
         #
         # Tabs
