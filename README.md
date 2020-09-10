@@ -1,8 +1,7 @@
 # SuRVoS2
 Next generation of SuRVoS - Coming soon!
 
-
-[![Build Status](https://travis-ci.org/DiamondLightSource/SuRVoS2.svg?branch=master)](https://travis-ci.org/DiamondLightSource/SuRVoS2)
+[![pipeline status](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/badges/master/pipeline.svg?job=linux-build&key_text=Linux+build)](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/-/commits/master) [![pipeline status](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/badges/master/pipeline.svg?job=linux-test&key_text=Linux+tests)](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/-/commits/master) [![coverage report](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/badges/master/coverage.svg)](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/-/commits/master)
 
 ## Run server
 
