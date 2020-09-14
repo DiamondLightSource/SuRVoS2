@@ -152,6 +152,7 @@ dependencies:
     - babel
     - backcall
     - cachey
+    - cuda-slic
     - docutils
     - freetype-py
     - humanize

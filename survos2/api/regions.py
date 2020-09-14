@@ -42,26 +42,31 @@ def get_slice(src: DataURI, slice_idx: Int):
 def supervoxels(
     src: DataURIList,
     dst: DataURI,
-    shape: IntList = [10, 10, 10],
-    compactness: Float = 30,
+    shape: Int,
+    n_segments: Int = 10,
+    compactness: Float = 20,
     spacing: FloatList = [1, 1, 1],
+    multichannel: SmartBoolean = False,
+    enforce_connectivity: SmartBoolean = False
 ):
     """
-    API wrapper for `survos2.improc.regions.slic3d`.
+    API wrapper for `cuda-slic`.
     """
-    from ..improc.regions.slic import slic3d
+    from cuda_slic import slic
 
     logger.info(
-        f"Calling slic3d with src: {src} dst: {dst}\n Shape {shape} Compactness {compactness} Spacing {spacing}"
-    )
+        f"Calling cuda-slic with src: {src} dst: {dst}\n n_segments {n_segments} Compactness {compactness} Spacing {spacing}"
+    ) 
     # import pdb; pdb.set_trace()
     map_blocks(
-        slic3d,
+        slic,
         *src,
         out=dst,
-        sp_shape=shape,
+        n_segments=n_segments,
         spacing=spacing,
         compactness=compactness,
+        multichannel=False,
+        enforce_connectivity=False,
         stack=True,
         timeit=True,
         uses_gpu=True,

@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from survos2.data import embrain
-from survos2.improc.regions.slic import slic3d
+from cuda_slic import slic
 from survos2.improc.features import gaussian
 from survos2.improc.utils import map_blocks, map_pipeline
 from survos2.utils import Timer, get_logger
@@ -27,13 +27,13 @@ slic_params = dict(sp_shape=(10, 10, 10), compactness=30)
 def test_compare_supervoxels():
     # TODO Fix up and replace this test
     # data_gauss = map_blocks(gaussian, data, **gauss_params, timeit=True)
-    # reg1 = map_blocks(slic3d, data_gauss, **slic_params, timeit=True)
+    # reg1 = map_blocks(slic, data_gauss, **slic_params, timeit=True)
 
-    # pipeline = [(gaussian, gauss_params), (slic3d, slic_params)]
+    # pipeline = [(gaussian, gauss_params), (slic, slic_params)]
     # reg2 = map_pipeline(data, pipeline=pipeline, timeit=True)
 
-    # with Timer('raw slic3d'):
-    #     reg3 = slic3d(data_gauss, **slic_params)
+    # with Timer('raw slic'):
+    #     reg3 = slic(data_gauss, **slic_params)
 
     # nreg1 = int(reg1.max())
     # nreg2 = int(reg2.max())

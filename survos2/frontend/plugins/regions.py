@@ -112,11 +112,11 @@ class SupervoxelCard(Card):
 
         self.svsource = MultiSourceComboBox()
         self.svsource.setMaximumWidth(250)
-        self.svshape = LineEdit3D(parse=int, default=10)
+        self.svshape = LineEdit(parse=int, default=10)
         self.svshape.setMaximumWidth(250)
         self.svspacing = LineEdit3D(parse=float, default=1)
         self.svspacing.setMaximumWidth(250)
-        self.svcompactness = LineEdit(parse=float, default=30)
+        self.svcompactness = LineEdit(parse=float, default=20)
         self.svcompactness.setMaximumWidth(250)
         self.compute_btn = PushButton("Compute")
         self.view_btn = PushButton("View", accent=True)
@@ -154,12 +154,14 @@ class SupervoxelCard(Card):
         src = [DataModel.g.dataset_uri(s) for s in self.svsource.value()]
         dst = DataModel.g.dataset_uri(self.svid, group="regions")
         logger.debug(f"Compute sv: Src {src} Dst {dst}")
+        n_segments=int(np.prod(DataModel.g.current_workspace_shape)//self.svshape.value() ** 3)
 
         params = dict(
             src=src,
             dst=dst,
-            compactness=self.svcompactness.value(),
+            compactness=round(self.svcompactness.value()/100, 3),
             shape=self.svshape.value(),
+            n_segments=n_segments,
             spacing=self.svspacing.value(),
             modal=False,  # todo: fix multiprocessing issue for running in background
         )
@@ -170,7 +172,7 @@ class SupervoxelCard(Card):
         if "shape" in params:
             self.svshape.setValue(params["shape"])
         if "compactness" in params:
-            self.svcompactness.setValue(params["compactness"])
+            self.svcompactness.setValue(params["compactness"]*100)
         if "spacing" in params:
             self.svspacing.setValue(params["spacing"])
         if "source" in params:

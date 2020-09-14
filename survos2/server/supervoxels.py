@@ -11,6 +11,7 @@ crashes if an overly detailed image is used as the source image.
 
 """
 import os
+import copy
 from typing import List
 import numpy as np
 import scipy
@@ -23,7 +24,7 @@ from survos2.improc import map_blocks
 
 # from survos2.improc.features import gaussian, tvdenoising3d
 from survos2.improc.regions.rag import create_rag
-from survos2.improc.regions.slic import slic3d
+from cuda_slic import slic
 from survos2.improc.segmentation import _qpbo as qpbo
 from survos2.improc.segmentation.appearance import train, predict, refine, invrmap
 from survos2.improc.segmentation.mappings import rmeans
@@ -57,11 +58,14 @@ def generate_supervoxels(
 
     block_z, block_x, block_y = dataset_feats[0].shape
 
+    # Make a copy of the dictionary without the 'shape' parameter
+    slic_params_copy = copy.deepcopy(slic_params)
+    slic_params_copy.pop('shape', None)
     # map_blocks through Dask
     supervoxel_vol = map_blocks(
-        slic3d,
+        slic,
         dataset_feats[dataset_feats_idx].astype(np.float32),
-        **slic_params,
+        **slic_params_copy,
         timeit=False,
     )
     supervoxel_vol = supervoxel_vol.astype(np.uint32, copy=True)
