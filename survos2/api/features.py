@@ -19,10 +19,13 @@ __feature_fill__ = 0
 from loguru import logger
 
 
+def pass_through(x):
+    return x
+
 @hug.get()
 @save_metadata
-def viewer(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "Viewer":
-    pass
+def viewer(src: DataURI, dst: DataURI) -> "Viewer":
+    map_blocks(pass_through, src, out=dst,  normalize=True)
 
 
 @hug.get()
@@ -53,7 +56,7 @@ def spatial_gradient_3d(src: DataURI, dst: DataURI) -> "Edges":
 def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "Denoising":
     from ..server.filtering import gaussian_blur
 
-    map_blocks(gaussian_blur, src, out=dst, sigma=sigma, normalize=True)
+    map_blocks(gaussian_blur, src, out=dst, sigma=sigma, pad=4, normalize=True)
 
 
 @hug.get()

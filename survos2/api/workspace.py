@@ -11,7 +11,7 @@ from survos2.config import Config
 from survos2.model import Workspace, Dataset
 
 
-logger = get_logger()
+from loguru import logger
 
 ### Workspace
 
@@ -45,17 +45,18 @@ def add_data(workspace: String, data_fname: String):
     from survos2.improc.utils import optimal_chunksize
 
     ws = get(workspace)
-    logger.info("Adding data to workspace {ws}")
+    logger.info(f"Adding data to workspace {ws}")
 
     with dataset_from_uri(data_fname, mode="r") as data:
+        
         chunk_size = optimal_chunksize(data, Config["computing.chunk_size"])
+        logger.debug(f'Calculating optimal chunk size using chunk_size {Config["computing.chunk_size"]}: {chunk_size}')
+        
         data = da.from_array(data, chunks=chunk_size)
         data -= da.min(data)
         data /= da.max(data)
 
         ds = ws.add_data(data)
-
-    logger.info(type(ds))
 
     return ds
 

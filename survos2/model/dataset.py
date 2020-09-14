@@ -21,8 +21,7 @@ from survos2.utils import AttributeDB, get_logger
 from survos2.improc.utils import optimal_chunksize
 
 
-logger = get_logger()
-
+from loguru import logger
 
 CHUNKS = Config["computing.chunk_size"] if Config["computing.chunks"] else None
 CHUNKS_SPARSE = (

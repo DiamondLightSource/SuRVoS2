@@ -6,11 +6,13 @@ api:
     - annotations
     - features
     - regions
-    - render
     - pipelines
+    - entitys
+    - render
 computing:
   chunks: true
-  chunk_size: 1024      # 1 Gb
+  chunk_size: 16       # 1 Gb
+  chunk_padding : 4
 
 logging:
   level: info
@@ -26,7 +28,7 @@ environments:
 
     computing:
       chunks: true      # Automatic chunking
-      chunk_size: 100   # in MB
+      chunk_size: 10   # in MB
       chunk_size_sparse: 10
 
     model:

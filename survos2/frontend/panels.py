@@ -117,10 +117,11 @@ class PluginPanelWidget(QtWidgets.QWidget):
             name = plugin["name"]
             title = plugin["title"]
             plugin_cls = plugin["cls"]  # full classname
+            tab = plugin["tab"]
 
             logger.debug(f"Plugin loaded: {name}, {title}, {plugin_cls}")
             self.pluginContainer.load_plugin(name, title, plugin_cls)
-            self.pluginContainer.show_plugin(name)
+            self.pluginContainer.show_plugin(name, tab)
 
         logger.debug(f"Plugins loaded: {list_plugins()}")
 
@@ -130,7 +131,8 @@ class PluginPanelWidget(QtWidgets.QWidget):
             name = plugin["name"]
             title = plugin["title"]
             plugin_cls = plugin["cls"]  # full classname
-            self.pluginContainer.show_plugin(name)
+            tab = plugin["tab"]
+            self.pluginContainer.show_plugin(name, tab)
 
 
 class QtPlotWidget(QtWidgets.QWidget):

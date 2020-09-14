@@ -8,15 +8,15 @@ class _Config(type):
     __data__ = {  # Defaults
         "title": "SuRVoS",
         "api": {
-            "host": "127.0.0.1",
+            "host": "172.23.5.231",
             "port": 8123,
             "plugins": [],
             "renderer": "mpl",
         },
         "computing": {
-            "chunks": False,
-            "chunk_size": 500,
-            "chunk_padding": 0,
+            "chunks": True,
+            "chunk_size": 100,
+            "chunk_padding": 8,
             "chunk_size_sparse": 10,
             "scale": False,
             "stretch": False,

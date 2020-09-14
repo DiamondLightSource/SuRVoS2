@@ -19,7 +19,11 @@ from loguru import logger
 from skimage import img_as_float, img_as_ubyte
 from scipy import ndimage
 
-from survos2.frontend.components.entity import TableWidget, SmallVolWidget
+from survos2.frontend.components.entity import (
+    TableWidget,
+    SmallVolWidget,
+    setup_entity_table,
+)
 from survos2.frontend.panels import ButtonPanelWidget, PluginPanelWidget
 from survos2.model import DataModel
 from survos2.frontend.control.launcher import Launcher
@@ -38,10 +42,32 @@ from survos2.server.config import cfg
 from survos2.helpers import simple_norm
 
 
+import threading
+from PyQt5.QtCore import QThread, QTimer
+from PyQt5.QtWidgets import QApplication, QPushButton, QWidget
+
+
+
+
+class WorkerThread(QThread):
+    def run(self):
+        def work():
+            cfg.ppw.clientEvent.emit(
+            {"source": "update_annotation", "data": "update_annotation", "value": None}
+            )
+            cfg.ppw.clientEvent.emit(
+                {"source": "update_annotation", "data": "refresh", "value": None}
+            )
+            QThread.sleep(5)
+        timer = QTimer()
+        timer.timeout.connect(work)
+        timer.start(10000)
+        self.exec_()
+
+
 def update_ui():
     QtCore.QCoreApplication.processEvents()
     time.sleep(0.1)
-
 
 def hex_string_to_rgba(hex_string):
     hex_value = hex_string.lstrip("#")
@@ -53,10 +79,22 @@ def hex_string_to_rgba(hex_string):
 
 
 def frontend(cData):
-    use_entities = False
+    src = DataModel.g.dataset_uri("__data__")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        entity_fullname = src_dataset.get_metadata("entities_name")
+    logger.info(f"entity_fullname {entity_fullname}")
+    if entity_fullname is None:
+        use_entities = False
+    else:
+        use_entities = True
+
+    cfg.timer = WorkerThread()
+    
+
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
-        viewer.theme = "light"
+        viewer.theme = "dark"
 
         # remove in order to rearrange standard Napari layer widgets
         # viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerList)
@@ -64,25 +102,16 @@ def frontend(cData):
 
         # Load data into viewer
         viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])
-        # labels_from_pts = viewer.add_labels(cData.vol_anno, name='labels')
-        # labels_from_pts.visible = False
 
         viewer.dw = AttrDict()
         viewer.dw.bpw = ButtonPanelWidget()
         viewer.dw.ppw = PluginPanelWidget()
         viewer.dw.ppw.setMinimumSize(QSize(400, 500))
 
-        #
-        # Entities
-        #
-        if use_entities:
-            entity_layer, tabledata = setup_entity_table(viewer, cData)
-            viewer.dw.table_control = TableWidget()
-            viewer.dw.table_control.set_data(tabledata)
-            vol1 = sample_roi(cData.vol_stack[0], tabledata, vol_size=(32, 32, 32))
-            logger.debug(f"Sampled ROI vol of shape {vol1.shape}")
-            viewer.dw.smallvol_control = SmallVolWidget(vol1)
-            cData.cfg.object_table = viewer.dw.table_control
+        #attach workspace to viewer for interactive debugging
+        from survos2.model import Workspace
+        ws = Workspace(DataModel.g.current_workspace)
+        viewer.dw.ws = ws
 
         def setup_pipeline():
             pipeline_ops = [
@@ -146,10 +175,22 @@ def frontend(cData):
                                 cmapping[int(k)] = hex_string_to_rgba(v["color"])
 
                 src = DataModel.g.dataset_uri(msg["pipeline_id"], group="pipeline")
+
                 with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
                     src_dataset = DM.sources[0]
                     src_arr = src_dataset[:]
-                    viewer.add_labels(src_arr, name=msg["pipeline_id"], color=cmapping)
+
+                    existing_layer = [
+                        v for v in viewer.layers if v.name == msg["pipeline_id"]
+                    ]
+
+                    if len(existing_layer) > 0:
+                        existing_layer[0].data = src_arr
+                    else:
+
+                        viewer.add_labels(
+                            src_arr, name=msg["pipeline_id"], color=cmapping
+                        )
 
             elif msg["data"] == "view_annotations":
                 logger.debug(f"view_annotation {msg['level_id']}")
@@ -162,7 +203,6 @@ def frontend(cData):
                 result = Launcher.g.run(
                     "annotations", "get_levels", workspace=DataModel.g.current_workspace
                 )
-                logger.debug(f"Result of regions existing: {result}")
 
                 if result:
                     for r in result:
@@ -172,7 +212,14 @@ def frontend(cData):
                             for k, v in r["labels"].items():
                                 cmapping[int(k)] = hex_string_to_rgba(v["color"])
 
-                    viewer.add_labels(src_arr, name=msg["level_id"], color=cmapping)
+                    existing_layer = [
+                        v for v in viewer.layers if v.name == msg["level_id"]
+                    ]
+
+                    if len(existing_layer) > 0:
+                        existing_layer[0].data = src_arr
+                    else:
+                        viewer.add_labels(src_arr, name=msg["level_id"], color=cmapping)
 
             elif msg["data"] == "view_feature":
                 logger.debug(f"view_feature {msg['feature_id']}")
@@ -182,7 +229,15 @@ def frontend(cData):
                 with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
                     src_dataset = DM.sources[0]
                     src_arr = src_dataset[:]
-                    viewer.add_image(src_arr, name=msg["feature_id"])
+
+                    existing_layer = [
+                        v for v in viewer.layers if v.name == msg["feature_id"]
+                    ]
+
+                    if len(existing_layer) > 0:
+                        existing_layer[0].data = src_arr
+                    else:
+                        viewer.add_image(src_arr, name=msg["feature_id"])
 
             elif msg["data"] == "view_supervoxels":
                 logger.debug(f"view_feature {msg['region_id']}")
@@ -191,7 +246,54 @@ def frontend(cData):
                 with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
                     src_dataset = DM.sources[0]
                     src_arr = src_dataset[:]
-                    viewer.add_labels(src_arr, name=msg["region_id"])
+
+                    existing_layer = [
+                        v for v in viewer.layers if v.name == msg["region_id"]
+                    ]
+                    if len(existing_layer) > 0:
+                        existing_layer[0].data = src_arr
+                    else:
+                        viewer.add_labels(src_arr, name=msg["region_id"])
+
+            elif msg["data"] == "view_entitys":
+                logger.debug(f"view_entitys {msg['entitys_id']}")
+                dsname = 'entitys\\' + msg['entitys_id']
+                ds = viewer.dw.ws.get_dataset(dsname)
+                logger.debug(f"Using dataset {ds}")
+
+                entities_fullname = ds.get_metadata("fullname")
+                logger.info(f"Viewing entities {entities_fullname}")
+                tabledata, entities_df = setup_entity_table(entities_fullname)
+                
+                sel_start, sel_end = 0, len(entities_df)
+
+                centers = np.array(
+                    [
+                        [
+                            np.int(np.float(entities_df.iloc[i]["z"])),
+                            np.int(np.float(entities_df.iloc[i]["x"])),
+                            np.int(np.float(entities_df.iloc[i]["y"])),
+                        ]
+                        for i in range(sel_start, sel_end)
+                    ]
+                )
+                
+                num_classes = len(np.unique(entities_df["class_code"])) + 2
+                logger.debug(f"Number of entity classes {num_classes}")
+                palette = np.array(
+                    sns.color_palette("hls", num_classes)
+                )  
+                face_color_list = [
+                    palette[class_code] for class_code in entities_df["class_code"]
+                ]
+
+                entity_layer = viewer.add_points(
+                    centers,
+                    size=[10] * len(centers),
+                    opacity=0.5,
+                    face_color=face_color_list,
+                    n_dimensional=True,
+                )
 
             elif msg["data"] == "flip_coords":
                 logger.debug(f"flip coords {msg['axis']}")
@@ -217,6 +319,7 @@ def frontend(cData):
                 logger.info(f"Selected layers {layers_selected}")
                 selected_layer_idx = int(np.where(layers_selected)[0][0])
                 selected_layer = viewer.layers[selected_layer_idx]
+
                 if viewer.layers[selected_layer_idx]._type_string == "points":
                     pts = viewer.layers[selected_layer_idx].data
 
@@ -256,7 +359,7 @@ def frontend(cData):
                     logger.info(f"Showing ROI {msg['selected_roi']}")
                     vol1 = sample_roi(
                         cData.vol_stack[0],
-                        cData.tabledata,
+                        cData.cfg.tabledata,
                         selected_roi_idx,
                         vol_size=(32, 32, 32),
                     )
@@ -307,34 +410,33 @@ def frontend(cData):
 
         # Button panel widget
         # bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')
-        #viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x))
+        # viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x))
 
         #
         # Tabs
         #
 
-        tabwidget = QTabWidget()
-        tab1 = QWidget()
-        tab2 = QWidget()
-        tab3 = QWidget()
-
-        tabwidget.addTab(tab1, "Segmentation")
+        #tabwidget = QTabWidget()
+        #tab1 = QWidget()
+        #tab2 = QWidget()
+        #tabwidget.addTab(tab1, "Main")
         # tabwidget.addTab(tab2, "Analyze")
 
-        tab1.layout = QVBoxLayout()
-        tab1.setLayout(tab1.layout)
-        tab1.layout.addWidget(viewer.dw.ppw)
+        #tab1.layout = QVBoxLayout()
+        #tab1.setLayout(tab1.layout)
+        #tab1.layout.addWidget(viewer.dw.ppw)
 
-        if use_entities:
-            tabwidget.addTab(tab2, "Objects")
-            tab2.layout = QVBoxLayout()
-            tab2.setLayout(tab2.layout)
-            tab2.layout.addWidget(viewer.dw.table_control.w)
-            tab2.layout.addWidget(viewer.dw.smallvol_control.imv)
-            viewer.dw.table_control.clientEvent.connect(lambda x: processEvents(x))
+        # if use_entities:
+        #    tabwidget.addTab(tab2, "Objects")
+        #    tab2.layout = QVBoxLayout()
+        #    tab2.setLayout(tab2.layout)
+        #    tab2.layout.addWidget(viewer.dw.table_control.w)
+        #    tab2.layout.addWidget(viewer.dw.smallvol_control.imv)
+        #    viewer.dw.table_control.clientEvent.connect(lambda x: processEvents(x))
 
-        tabwidget_dockwidget = viewer.window.add_dock_widget(tabwidget, area="right")
-        tabwidget_dockwidget.setWindowTitle("Workspace")
+        pluginwidget_dockwidget = viewer.window.add_dock_widget(viewer.dw.ppw, area="right")
+        pluginwidget_dockwidget.setWindowTitle("Workspace")
+
         workspace_gui_widget = workspace_gui.Gui()
         workspace_gui_dockwidget = viewer.window.add_dock_widget(
             workspace_gui_widget, area="left"
@@ -368,20 +470,22 @@ def frontend(cData):
             else:
                 return False
 
-        if use_entities:
-            from survos2.entity.sampler import sample_region_at_pt
+        # if use_entities:
+        #     from survos2.entity.sampler import sample_region_at_pt
 
-            sample_region_at_pt(cData.vol_stack[0], [50, 50, 50], (32, 32, 32))
+        #     sample_region_at_pt(cData.vol_stack[0], [50, 50, 50], (32, 32, 32))
 
-            @entity_layer.mouse_drag_callbacks.append
-            def get_connected_component_shape(layer, event):
-                coords = np.round(layer.coordinates).astype(int)
-                if coords_in_view(cData.vol_stack[0].shape, coords):
-                    vol1 = sample_region_at_pt(cData.vol_stack[0], coords, (32, 32, 32))
-                    logger.debug(f"Sampled from {coords} a vol of shape {vol1.shape}")
-                    viewer.dw.smallvol_control.set_vol(np.transpose(vol1, (0, 2, 1)))
-                msg = f"Displaying vol of shape {vol1.shape}"
-                viewer.status = msg
+        #     @entity_layer.mouse_drag_callbacks.append
+        #     def view_location(layer, event):
+        #         coords = np.round(layer.coordinates).astype(int)
+        #         if coords_in_view(coords, cData.vol_stack[0].shape):
+        #             vol1 = sample_region_at_pt(cData.vol_stack[0], coords, (32, 32, 32))
+        #             logger.debug(f"Sampled from {coords} a vol of shape {vol1.shape}")
+        #             viewer.dw.smallvol_control.set_vol(np.transpose(vol1, (0, 2, 1)))
+        #             msg = f"Displaying vol of shape {vol1.shape}"
+        #             viewer.status = msg
+        #         else:
+        #             print("Coords out of view")
 
         @napari.Viewer.bind_key("Shift-D")
         def dilate(viewer):

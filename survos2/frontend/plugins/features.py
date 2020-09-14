@@ -1,4 +1,5 @@
 import numpy as np
+from loguru import logger
 
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
@@ -7,8 +8,6 @@ from qtpy.QtCore import QSize, Signal
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
 from survos2.model import DataModel
-from loguru import logger
-
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.plugins_components import SourceComboBox
 
@@ -40,6 +39,7 @@ class FeaturesPlugin(Plugin):
     __icon__ = "fa.picture-o"
     __pname__ = "features"
     __views__ = ["slice_viewer"]
+    __tab__ = "workspace"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)

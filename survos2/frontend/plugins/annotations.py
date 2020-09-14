@@ -48,6 +48,7 @@ class AnnotationPlugin(Plugin):
     __icon__ = "fa.pencil"
     __pname__ = "annotations"
     __views__ = ["slice_viewer"]
+    __tab__ = "workspace"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -116,8 +117,10 @@ class AnnotationLevel(Card):
         self.le_title = LineEdit(level["name"])
         self.le_title.setProperty("header", True)
         self.labels = {}
-        self._populate_labels()
         self._add_view_btn()
+        self._populate_labels()
+        
+        
 
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
@@ -136,16 +139,6 @@ class AnnotationLevel(Card):
         if result:
             self.removed.emit(self.level_id)
             _AnnotationNotifier.notify()
-
-    def view_level(self):
-        logger.debug(f"View feature_id {self.level_id}")
-        cfg.ppw.clientEvent.emit(
-            {
-                "source": "annotations",
-                "data": "view_annotations",
-                "level_id": self.level_id,
-            }
-        )
 
     def remove_label(self, idx):
         if idx in self.labels:
@@ -166,6 +159,21 @@ class AnnotationLevel(Card):
             for k, label in result.items():
                 if k not in self.labels:
                     self._add_label_widget(label)
+            
+
+    def view_level(self):
+        logger.debug(f"View feature_id {self.level_id}")
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "annotations",
+                "data": "view_annotations",
+                "level_id": self.level_id,
+            }
+        )
+
+
+        
+        cfg.timer.start()
 
     def _add_view_btn(self):
         btn_view = PushButton("View", accent=True)

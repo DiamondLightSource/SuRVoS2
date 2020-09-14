@@ -351,10 +351,8 @@ def _apply(
                 depth = trim = {i: d for i, d in enumerate(pad)}
 
             g = da.overlap.overlap(datasets[0], depth=depth, boundary="reflect")
-            # g = da.ghost.ghost(datasets[0], depth=depth, boundary='reflect')
             r = g.map_blocks(func, **kwargs)
             logger.debug(f"Result of applying map blocks before trim {r.shape}")
-            # result = da.ghost.trim_internal(r, trim)
             logger.debug(f"Trimming with trim {trim}")
             result = da.overlap.trim_internal(r, trim)
         else:
@@ -363,14 +361,13 @@ def _apply(
         logger.debug(f"Result of applying map blocks {result.shape}")
         rchunks = result.chunks
 
-        # if not relabel and normalize:
-        #    result = result / da.nanmax(da.fabs(result))
+        if not relabel and normalize:
+           result = result / da.nanmax(da.fabs(result))
 
         if out is not None:
             logger.debug(f"Storing {result} output in {out}")
             result = result.compute()
             # result.store(out) # , compute=True)
-
             # result = result.compute()
             logger.debug(f"Computed result of {result.shape}")
             out[...] = result
@@ -378,15 +375,15 @@ def _apply(
             result = result.compute()
             return result
 
-        # if relabel:
-        #    logger.info("Relabeling chunks")
-        #    if out is not None:
-        #        result = dask_relabel_chunks(da.from_array(out, chunks=rchunks))
-        #       result.store(out, compute=True)
-        #  else:
-        #     result = dask_relabel_chunks(da.from_array(result, chunks=rchunks))
-        #    if compute:
-        #       result = result.compute()
+        if relabel:
+            logger.info("Relabeling chunks")
+            if out is not None:
+                result = dask_relabel_chunks(da.from_array(out, chunks=rchunks))
+                result.store(out, compute=True)
+            else:
+                result = dask_relabel_chunks(da.from_array(result, chunks=rchunks))
+            if compute:
+                result = result.compute()
     else:
         logger.debug(f"Applying func {func} to dataset without chunking.")
         result = func(*datasets, **kwargs)
@@ -403,7 +400,7 @@ def map_blocks(
     *args,
     chunk=CHUNK,
     chunk_size=CHUNK_SIZE,
-    pad=CHUNK_PAD,
+    pad=8,
     compute=True,
     scale=SCALE,
     stretch=STRETCH,

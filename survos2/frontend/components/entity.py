@@ -1,24 +1,36 @@
 import numpy as np
-
-
+import seaborn as sns
+import pyqtgraph as pg
+import pandas as pd
 from loguru import logger
 
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
 
 from survos2.frontend.model import ClientData
+from survos2.entity.entities import make_entity_df
 
 
-def setup_entity_table(viewer, cData):
+def setup_entity_table(entities_fullname):
+
+    entities_df = pd.read_csv(entities_fullname)
+    entities_df.drop(
+        entities_df.columns[entities_df.columns.str.contains("unnamed", case=False)],
+        axis=1,
+        inplace=True,
+    )
+    entities_df = make_entity_df(np.array(entities_df), flipxy=True)
+    logger.debug(f"Loaded entities {entities_df.shape}")
+
     tabledata = []
 
-    for i in range(len(cData.entities)):
+    for i in range(len(entities_df)):
         entry = (
             i,
-            cData.entities.iloc[i]["z"],
-            cData.entities.iloc[i]["x"],
-            cData.entities.iloc[i]["y"],
-            cData.entities.iloc[i]["class_code"],
+            entities_df.iloc[i]["z"],
+            entities_df.iloc[i]["x"],
+            entities_df.iloc[i]["y"],
+            entities_df.iloc[i]["class_code"],
         )
         tabledata.append(entry)
 
@@ -34,38 +46,10 @@ def setup_entity_table(viewer, cData):
     )
 
     logger.debug(f"Loaded {len(tabledata)} entities.")
-    sel_start, sel_end = 0, len(cData.entities)
+    
 
-    centers = np.array(
-        [
-            [
-                np.int(np.float(cData.entities.iloc[i]["z"])),
-                np.int(np.float(cData.entities.iloc[i]["x"])),
-                np.int(np.float(cData.entities.iloc[i]["y"])),
-            ]
-            for i in range(sel_start, sel_end)
-        ]
-    )
-
-    num_classes = len(np.unique(cData.entities["class_code"])) + 5
-    logger.debug(f"Number of entity classes {num_classes}")
-    palette = np.array(sns.color_palette("hls", num_classes))  # num_classes))
-    # norm = Normalize(vmin=0, vmax=num_classes)
-
-    face_color_list = [
-        palette[class_code] for class_code in cData.entities["class_code"]
-    ]
-
-    entity_layer = viewer.add_points(
-        centers,
-        size=[10] * len(centers),
-        opacity=0.5,
-        face_color=face_color_list,
-        n_dimensional=True,
-    )
-    cData.tabledata = tabledata
-
-    return entity_layer, tabledata
+    
+    return tabledata, entities_df
 
 
 class SmallVolWidget:
@@ -94,6 +78,9 @@ class TableWidget(QtWidgets.QGraphicsObject):
         self.w.cellClicked.connect(self.cell_clicked)
         self.w.doubleClicked.connect(self.double_clicked)
         self.w.selected_row = 0
+
+        stylesheet = "QHeaderView::section{Background-color:rgb(1,80,160);border-radius:14px;}"
+        self.w.setStyleSheet(stylesheet)
 
     def set_data(self, data):
         self.w.setData(data)

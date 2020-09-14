@@ -55,7 +55,7 @@ class Workspace(object):
 
     @staticmethod
     def _validate_path(path):
-        print(CHROOT)
+    
         if not CHROOT and os.path.realpath(path) != path:
             raise WorkspaceException(
                 "'{}' is not a valid workspace path without CHROOT".format(path)

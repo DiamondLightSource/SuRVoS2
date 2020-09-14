@@ -15,7 +15,7 @@ from scipy import ndimage
 from skimage import img_as_ubyte, img_as_float
 from skimage import io
 
-from qtpy.QtWidgets import QRadioButton, QPushButton
+from qtpy.QtWidgets import QTabWidget, QVBoxLayout, QWidget, QRadioButton, QPushButton
 from qtpy.QtCore import QSize
 from qtpy import QtWidgets, QtCore, QtGui
 
@@ -31,7 +31,6 @@ from survos2.frontend.components.base import QCSWidget
 
 from collections import OrderedDict
 
-# from plugins/base.py
 __available_plugins__ = OrderedDict()
 
 
@@ -43,6 +42,7 @@ class Plugin(QCSWidget):
     __pname__ = "plugin"
     __title__ = None
     __views__ = []
+    __tab__ = "workspace"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -70,6 +70,7 @@ def register_plugin(cls):
     icon = cls.__icon__
     title = cls.__title__
     views = cls.__views__
+    tab = cls.__tab__
 
     if name in __available_plugins__:
         raise ValueError("Plugin {} already registered.".format(name))
@@ -77,8 +78,10 @@ def register_plugin(cls):
     if title is None:
         title = name.capitalize()
 
-    desc = dict(cls=cls, name=name, icon=icon, title=title, views=views)
+    desc = dict(cls=cls, name=name, icon=icon, title=title, views=views, tab=tab)
     __available_plugins__[name] = desc
+
+    
     return cls
 
 
@@ -92,27 +95,52 @@ def list_plugins():
     return list(__available_plugins__.keys())
 
 
-##
-# from mainwindow.py
-
-
 class PluginContainer(QCSWidget):
 
     view_requested = QtCore.Signal(str, dict)
-
     __sidebar_width__ = 440
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setMinimumWidth(self.__sidebar_width__)
-        # self.setMaximumWidth(self.__sidebar_width__)
+        
+        self.tabwidget = QTabWidget()
+        vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
+        vbox.addWidget(self.tabwidget, 1)
+
+        tab1 = QWidget()
+        tab2 = QWidget()
+        tab3 = QWidget()
+        tab4 = QWidget()
+
+        self.tabwidget.addTab(tab1, "Workspace")
+        self.tabwidget.addTab(tab2, "Segmentation")
+        self.tabwidget.addTab(tab3, "Objects")
+        self.tabwidget.addTab(tab4, "Analyze")
+
+        tab1.layout = QVBoxLayout()
+        tab1.setLayout(tab1.layout)
+
+        tab2.layout = QVBoxLayout()
+        tab2.setLayout(tab2.layout)
+
+        tab3.layout = QVBoxLayout()
+        tab3.setLayout(tab3.layout)
+
+        tab4.layout = QVBoxLayout()
+        tab4.setLayout(tab4.layout)
 
         self.title = Header("Plugin")
-        self.container = ScrollPane(parent=self)
 
-        vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
-        # vbox.addWidget(self.title)
-        vbox.addWidget(self.container, 1)
+        self.workspace_container = ScrollPane(parent=self)
+        self.segmentation_container = ScrollPane(parent=self)
+        self.entities_container = ScrollPane(parent=self)
+        self.analyze_container = ScrollPane(parent=self)
+
+        tab1.layout.addWidget(self.workspace_container)
+        tab2.layout.addWidget(self.segmentation_container)
+        tab3.layout.addWidget(self.entities_container)
+        tab4.layout.addWidget(self.analyze_container)
 
         self.plugins = {}
         self.selected_name = None
@@ -129,7 +157,7 @@ class PluginContainer(QCSWidget):
     def unload_plugin(self, name):
         self.plugins.pop(name, None)
 
-    def show_plugin(self, name):
+    def show_plugin(self, name, tab):
         if name in self.plugins:  # and name != self.selected_name:
             print(f"show_plugin: {name}")
 
@@ -138,6 +166,15 @@ class PluginContainer(QCSWidget):
             self.selected_name = name
             self.selected = self.plugins[name]
             self.title.setText(self.selected["title"])
-            self.container.addWidget(self.selected["widget"], 1)
+
+            if tab=='workspace':
+                self.workspace_container.addWidget(self.selected["widget"], 1)
+            elif tab=='segmentation':
+                self.segmentation_container.addWidget(self.selected["widget"], 1)
+            elif tab=='entities':
+                self.entities_container.addWidget(self.selected["widget"], 1)
+                
+            elif tab=='analyze':
+                self.analyze_container.addWidget(self.selected["widget"], 1)                 
             if hasattr(self.selected["widget"], "setup"):
                 self.selected["widget"].setup()

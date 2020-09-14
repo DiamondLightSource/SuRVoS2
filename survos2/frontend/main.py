@@ -1,21 +1,11 @@
-"""
-
-Init involves pointing survos to an image volume an a list of entities (which can be blank)
-
-TODO: remove all the custom project stuff, leaving just init_ws and init_proj
-
-"""
 import os
 import sys
 import numpy as np
 from loguru import logger
-
 import h5py
 import json
 import time
-
 from typing import List, Dict
-
 from attrdict import AttrDict
 
 from survos2.frontend.frontend import frontend
@@ -24,7 +14,6 @@ from survos2.entity.entities import make_entity_df
 from survos2 import survos
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
-
 from survos2.entity.sampler import crop_vol_and_pts_centered
 
 
@@ -38,21 +27,39 @@ def preprocess(img_volume):
     return img_volume
 
 
-def init_ws(wparams):
+def init_ws(wparams, precrop=False):
     ws_name = wparams["workspace_name"]
     dataset_name = wparams["dataset_name"]
     datasets_dir = wparams["datasets_dir"]
     fname = wparams["vol_fname"]
 
     image_path = os.path.join(datasets_dir, fname)
-    logger.info(f"Initialising workspace {ws_name} with image volume {image_path}.")
+    logger.info(f"Initialising workspace {ws_name} with image volume {image_path}")
 
     original_data = h5py.File(image_path, "r")
-    img_volume = original_data[dataset_name]
 
+    if "group_name" in wparams:
+        group_name = wparams["group_name"]
+        logger.info("Extracting dataset and then group")
+        img_volume = original_data[dataset_name]
+        img_volume = img_volume[group_name]
+    else:
+        logger.info("Extracting dataset")
+        img_volume = original_data[dataset_name]
+        
     logger.info(f"Loaded vol of size {img_volume.shape}")
-
     img_volume = preprocess(img_volume)
+
+    if "precrop_coords" in wparams:
+        precrop_coords = wparams['precrop_coords']
+        if "precrop_vol_size" in wparams:
+            precrop_vol_size = wparams['precrop_vol_size']
+
+            if wparams["entities_name"] is not None:
+                entities_name = wparams["entities_name"]
+                    
+            img_volume, entities_df = precrop(img_volume, entities_df, precrop_coords, precrop_vol_size)
+        
     tmpvol_fullpath = "tmp\\tmpvol.h5"
 
     with h5py.File(tmpvol_fullpath, "w") as hf:
@@ -70,6 +77,17 @@ def init_ws(wparams):
     )
 
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
+
+    DataModel.g.current_workspace = ws_name
+    if "entities_name" in wparams:
+        entities_name = wparams["entities_name"]
+        logger.info(f"Setting entities_name in metadata to {entities_name}")
+        
+        src = DataModel.g.dataset_uri("__data__")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            src_dataset.set_metadata("entities_name", entities_name)
+
     survos.run_command(
         "workspace",
         "add_dataset",
@@ -79,16 +97,7 @@ def init_ws(wparams):
     )
 
 
-def init_proj(precrop=False):
-
-    # DataModel.g.current_workspace = wparams.workspace
-    # logger.debug(f"Set current workspace to {DataModel.g.current_workspace}")
-
-    # entities_df = pd.read_csv(os.path.join(wparams.project_dir, wparams.entities_relpath))
-    # entities_df.drop(entities_df.columns[entities_df.columns.str.contains('unnamed', case = False)],axis = 1, inplace = True)
-    # entities_df = make_entity_df(np.array(entities_df), flipxy=wparams.flipxy)
-    # logger.debug(f"Loaded entities {entities_df.shape}")
-
+def init_client(precrop=False):
     survos.init_api()
 
     src = DataModel.g.dataset_uri("__data__")
@@ -97,8 +106,6 @@ def init_proj(precrop=False):
         img_volume = src_dataset[:]
 
     logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")
-
-    # Prepare clientData (what gets loaded into client and napari widget)
 
     filtered_layers = [np.array(img_volume).astype(np.float32)]
     layer_names = [
@@ -114,11 +121,13 @@ def init_proj(precrop=False):
     return clientData
 
 
-def precrop(img_volume, entities_df):
-    """view a ROI from a big volume by creating a temp dataset from a crop.
+def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
     """
-    precrop_coord = precrop_coord
-    precrop_vol_size = precrop_vol_size
+    View a ROI from a big volume by creating a temp dataset from a crop. 
+    Crop both the volume and the associated entities.
+    Used for big volumes tha never get loaded into viewer.
+    """
+    
     logger.info(f"Preprocess cropping at {precrop_coord} to {precrop_vol_size}")
 
     img_volume, precropped_pts = crop_vol_and_pts_centered(
@@ -132,47 +141,21 @@ def precrop(img_volume, entities_df):
 
     entities_df = make_entity_df(precropped_pts, flipxy=False)
 
-    tmp_ws_name = DataModel.g.current_workspace + "_tmp"
-
-    result = survos.run_command("workspace", "get", workspace=tmp_ws_name)
-
-    if not type(result[0]) == dict:
-        logger.debug("Creating temp workspace")
-        survos.run_command("workspace", "create", workspace=tmp_ws_name)
-    else:
-        logger.debug("tmp exists, deleting and recreating")
-        survos.run_command("workspace", "delete", workspace=tmp_ws_name)
-        logger.debug("workspace deleted")
-        survos.run_command("workspace", "create", workspace=tmp_ws_name)
-        logger.debug("workspace recreated")
-
-    tmpvol_fullpath = "out\\tmpvol.h5"
-    with h5py.File(tmpvol_fullpath, "w") as hf:
-        hf.create_dataset("data", data=img_volume)
-
-    survos.run_command(
-        "workspace",
-        "add_data",
-        workspace=tmp_ws_name,
-        data_fname=tmpvol_fullpath,
-        dtype="float32",
-    )
-    DataModel.g.current_workspace = tmp_ws_name
-
+    return img_volume, entities_df
 
 def setup_ws(project_file=None):
     with open(project_file) as project_file:
         wparams = json.load(project_file)
         wparams = AttrDict(wparams)
-        clientData = init_proj(wparams)
+        clientData = init_client(wparams)
 
     return clientData
 
 
-def startup():
-    clientData = init_proj()
+def start_client():
+    clientData = init_client()
     viewer = frontend(clientData)
 
 
 if __name__ == "__main__":
-    startup()
+    start_client()

@@ -1,24 +1,22 @@
 import numpy as np
-
+from loguru import logger
 from qtpy import QtWidgets
 
 from qtpy.QtCore import QSize, Signal
+
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.model import DataModel
 from survos2.frontend.model import ClientData
-from loguru import logger
-
 from survos2.frontend.plugins.base import LazyComboBox, LazyMultiComboBox
 from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.annotation_tool import MultiAnnotationComboBox
-
-_PipelineNotifier = PluginNotifier()
-
 from survos2.frontend.control import Launcher
 from survos2.server.config import cfg
+
+_PipelineNotifier = PluginNotifier()
 
 
 def _fill_pipelines(combo, full=False, filter=True, ignore=None):
@@ -52,6 +50,7 @@ class PipelinesPlugin(Plugin):
     __icon__ = "fa.picture-o"
     __pname__ = "pipelines"
     __views__ = ["slice_viewer"]
+    __tab__ = "segmentation"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -257,7 +256,7 @@ class PipelineCard(Card):
         ]
 
         all_params = dict(src=src, dst=dst, modal=False)
-        all_params["workspace"] = "test_s2"
+        all_params["workspace"] = DataModel.g.current_workspace
         all_params["region_id"] = str(self.regions_source.value().rsplit("/", 1)[-1])
         all_params[
             "feature_ids"

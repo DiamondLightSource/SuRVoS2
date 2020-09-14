@@ -26,6 +26,7 @@ import pandas as pd
 import sklearn
 from loguru import logger
 from sklearn.decomposition import PCA, IncrementalPCA
+from sklearn.kernel_approximation import RBFSampler
 from sklearn.ensemble import (
     AdaBoostClassifier,
     ExtraTreesClassifier,
@@ -144,7 +145,7 @@ def predict(X, clf, proj=None, label=True, probs=False, log=False):
     return result
 
 
-def _sr_prediction(features_stack, annotation_volume, sr: SRData, predict_params):
+def _sr_prediction(features_stack, annotation_volume, sr: SRData, predict_params, do_pca=False):
     """Prepare superregions and predict
     
     Arguments:
@@ -171,14 +172,15 @@ def _sr_prediction(features_stack, annotation_volume, sr: SRData, predict_params
     X_train = sr.supervoxel_features[i_train]
 
     # Projection
-    # proj = PCA(n_components='mle', whiten=True, random_state=42)
-    # proj = StandardScaler()
-    # proj = SparseRandomProjection(n_components=X_train.shape[1], random_state=42)
-    # rnd = 42
-    # proj = RBFSampler(n_components=max(X_train.shape[1], 50), random_state=rnd)
-    # X_train = proj.fit_transform(X_train)
-    # print(X_train)
 
+    if do_pca:
+        proj = PCA(n_components='mle', whiten=True, random_state=42)
+        proj = StandardScaler()
+        proj = SparseRandomProjection(n_components=X_train.shape[1], random_state=42)
+        rnd = 42
+        proj = RBFSampler(n_components=max(X_train.shape[1], 50), random_state=rnd)
+        X_train = proj.fit_transform(X_train)
+    
     Y_train = Yr[i_train]
 
     clf = train(

@@ -106,7 +106,7 @@ def nu_gui(
     logger.info(f"Response from server: {resp}")
 
     if Launcher.g.connected:
-        main.startup()
+        main.start_client()
 
 
 @begin.subcommand

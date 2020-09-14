@@ -1,7 +1,3 @@
-#######################################################
-# from plugins/regions.py
-
-from survos2.frontend.components.base import *
 
 import numpy as np
 
@@ -9,11 +5,11 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 
 from survos2.frontend.plugins.base import *
+from survos2.frontend.components.base import *
 from survos2.model import DataModel
 from survos2.frontend.control import Launcher
 from survos2.server.config import cfg
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
-
 from survos2.frontend.components.icon_buttons import IconButton
 
 
@@ -41,6 +37,7 @@ class RegionsPlugin(Plugin):
     __icon__ = "fa.qrcode"
     __pname__ = "regions"
     __views__ = ["slice_viewer"]
+    __tab__ = "segmentation"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)

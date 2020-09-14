@@ -9,7 +9,8 @@ Set CHROOT in survos2/config.py or leave as 'tmp'
 Create a workspace (requires a new name than existing
 workspaces in CHROOT)
 
-survos.py run_server workspace.create workspace=test_s1
+Running the server using the Hug Local Server:
+python .\survos.py run_server workspace.create server=0:0 workspace=test_s1
 
 Add data to the workspace:
 
