@@ -22,7 +22,7 @@ class _Config(type):
             "stretch": False,
         },
         "model": {
-            "chroot": "C:\work\diam\data",  # "/dls/science/groups/das/SuRVoS/s2/data/", #"V:\data",  # ,  #,  # full path, or can be 'tmp'
+            "chroot": "/dls/science/groups/das/SuRVoS/s2/data/", #"V:\data",  # ,  #,  # full path, or can be 'tmp'
             "dbtype": "yaml",
         },
         "logging": {
