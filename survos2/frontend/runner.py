@@ -184,12 +184,12 @@ class ConfigEditor(QWidget):
         return ptree
 
     def create_workspace_clicked(self, event):
-        #print(self.workspace_config)
+        # print(self.workspace_config)
         logger.debug("Creating workspace: ")
         init_ws(self.workspace_config)
 
     def output_config_clicked(self, event):
-        #print(self.pipeline_config)
+        # print(self.pipeline_config)
         out_fname = "pipeline_cfg.yml"
         logger.debug(f"Outputting pipeline config: {out_fname}")
         with open(out_fname, "w") as outfile:
@@ -198,7 +198,7 @@ class ConfigEditor(QWidget):
             )
 
     def run_clicked(self, event):
-        #print(self.run_config)
+        # print(self.run_config)
         import os
 
         command_dir = os.getcwd()
@@ -255,12 +255,11 @@ if __name__ == "__main__":
         "vol_fname": "brain.h5",
         "workspace_name": "test_brain",
         "entities_name": "C:\\work\\diam\\projects\\brain\\entities_brain.csv",
-    }    
+    }
 
     run_config = {
         "server_address": "127.0.0.1:8123",
         # "server_address": "172.23.5.231:8123",
-        "CHROOT": "/dls/science/groups/das/SuRVoS/s2/data/",
         "workspace_name": "test_brain",
     }
 

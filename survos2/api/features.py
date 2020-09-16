@@ -22,10 +22,11 @@ from loguru import logger
 def pass_through(x):
     return x
 
+
 @hug.get()
 @save_metadata
 def viewer(src: DataURI, dst: DataURI) -> "Viewer":
-    map_blocks(pass_through, src, out=dst,  normalize=True)
+    map_blocks(pass_through, src, out=dst, normalize=True)
 
 
 @hug.get()

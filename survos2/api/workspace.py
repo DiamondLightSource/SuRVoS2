@@ -48,10 +48,12 @@ def add_data(workspace: String, data_fname: String):
     logger.info(f"Adding data to workspace {ws}")
 
     with dataset_from_uri(data_fname, mode="r") as data:
-        
+
         chunk_size = optimal_chunksize(data, Config["computing.chunk_size"])
-        logger.debug(f'Calculating optimal chunk size using chunk_size {Config["computing.chunk_size"]}: {chunk_size}')
-        
+        logger.debug(
+            f'Calculating optimal chunk size using chunk_size {Config["computing.chunk_size"]}: {chunk_size}'
+        )
+
         data = da.from_array(data, chunks=chunk_size)
         data -= da.min(data)
         data /= da.max(data)

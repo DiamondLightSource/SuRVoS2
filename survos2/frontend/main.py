@@ -46,20 +46,22 @@ def init_ws(wparams, precrop=False):
     else:
         logger.info("Extracting dataset")
         img_volume = original_data[dataset_name]
-        
+
     logger.info(f"Loaded vol of size {img_volume.shape}")
     img_volume = preprocess(img_volume)
 
     if "precrop_coords" in wparams:
-        precrop_coords = wparams['precrop_coords']
+        precrop_coords = wparams["precrop_coords"]
         if "precrop_vol_size" in wparams:
-            precrop_vol_size = wparams['precrop_vol_size']
+            precrop_vol_size = wparams["precrop_vol_size"]
 
             if wparams["entities_name"] is not None:
                 entities_name = wparams["entities_name"]
-                    
-            img_volume, entities_df = precrop(img_volume, entities_df, precrop_coords, precrop_vol_size)
-        
+
+            img_volume, entities_df = precrop(
+                img_volume, entities_df, precrop_coords, precrop_vol_size
+            )
+
     tmpvol_fullpath = "tmp\\tmpvol.h5"
 
     with h5py.File(tmpvol_fullpath, "w") as hf:
@@ -82,7 +84,7 @@ def init_ws(wparams, precrop=False):
     if "entities_name" in wparams:
         entities_name = wparams["entities_name"]
         logger.info(f"Setting entities_name in metadata to {entities_name}")
-        
+
         src = DataModel.g.dataset_uri("__data__")
         with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
             src_dataset = DM.sources[0]
@@ -127,7 +129,7 @@ def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
     Crop both the volume and the associated entities.
     Used for big volumes tha never get loaded into viewer.
     """
-    
+
     logger.info(f"Preprocess cropping at {precrop_coord} to {precrop_vol_size}")
 
     img_volume, precropped_pts = crop_vol_and_pts_centered(
@@ -142,6 +144,7 @@ def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
     entities_df = make_entity_df(precropped_pts, flipxy=False)
 
     return img_volume, entities_df
+
 
 def setup_ws(project_file=None):
     with open(project_file) as project_file:

@@ -33,7 +33,7 @@ __entitys_names__ = ["points", "boxes"]
 
 @hug.get()
 def set_csv(dst: DataURI, fullname: String) -> "Points":
- 
+
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
@@ -46,7 +46,6 @@ def set_csv(dst: DataURI, fullname: String) -> "Points":
         DM.out[:] = img_volume
         dst_dataset = DM.sources[0]
         dst_dataset.set_attr("fullname", fullname)
- 
 
 
 @hug.get()

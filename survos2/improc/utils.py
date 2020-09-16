@@ -362,7 +362,7 @@ def _apply(
         rchunks = result.chunks
 
         if not relabel and normalize:
-           result = result / da.nanmax(da.fabs(result))
+            result = result / da.nanmax(da.fabs(result))
 
         if out is not None:
             logger.debug(f"Storing {result} output in {out}")

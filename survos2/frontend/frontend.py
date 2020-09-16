@@ -47,18 +47,21 @@ from PyQt5.QtCore import QThread, QTimer
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget
 
 
-
-
 class WorkerThread(QThread):
     def run(self):
         def work():
             cfg.ppw.clientEvent.emit(
-            {"source": "update_annotation", "data": "update_annotation", "value": None}
+                {
+                    "source": "update_annotation",
+                    "data": "update_annotation",
+                    "value": None,
+                }
             )
             cfg.ppw.clientEvent.emit(
                 {"source": "update_annotation", "data": "refresh", "value": None}
             )
             QThread.sleep(5)
+
         timer = QTimer()
         timer.timeout.connect(work)
         timer.start(10000)
@@ -68,6 +71,7 @@ class WorkerThread(QThread):
 def update_ui():
     QtCore.QCoreApplication.processEvents()
     time.sleep(0.1)
+
 
 def hex_string_to_rgba(hex_string):
     hex_value = hex_string.lstrip("#")
@@ -90,7 +94,6 @@ def frontend(cData):
         use_entities = True
 
     cfg.timer = WorkerThread()
-    
 
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
@@ -108,8 +111,9 @@ def frontend(cData):
         viewer.dw.ppw = PluginPanelWidget()
         viewer.dw.ppw.setMinimumSize(QSize(400, 500))
 
-        #attach workspace to viewer for interactive debugging
+        # attach workspace to viewer for interactive debugging
         from survos2.model import Workspace
+
         ws = Workspace(DataModel.g.current_workspace)
         viewer.dw.ws = ws
 
@@ -257,14 +261,14 @@ def frontend(cData):
 
             elif msg["data"] == "view_entitys":
                 logger.debug(f"view_entitys {msg['entitys_id']}")
-                dsname = 'entitys\\' + msg['entitys_id']
+                dsname = "entitys\\" + msg["entitys_id"]
                 ds = viewer.dw.ws.get_dataset(dsname)
                 logger.debug(f"Using dataset {ds}")
 
                 entities_fullname = ds.get_metadata("fullname")
                 logger.info(f"Viewing entities {entities_fullname}")
                 tabledata, entities_df = setup_entity_table(entities_fullname)
-                
+
                 sel_start, sel_end = 0, len(entities_df)
 
                 centers = np.array(
@@ -277,12 +281,10 @@ def frontend(cData):
                         for i in range(sel_start, sel_end)
                     ]
                 )
-                
+
                 num_classes = len(np.unique(entities_df["class_code"])) + 2
                 logger.debug(f"Number of entity classes {num_classes}")
-                palette = np.array(
-                    sns.color_palette("hls", num_classes)
-                )  
+                palette = np.array(sns.color_palette("hls", num_classes))
                 face_color_list = [
                     palette[class_code] for class_code in entities_df["class_code"]
                 ]
@@ -416,15 +418,15 @@ def frontend(cData):
         # Tabs
         #
 
-        #tabwidget = QTabWidget()
-        #tab1 = QWidget()
-        #tab2 = QWidget()
-        #tabwidget.addTab(tab1, "Main")
+        # tabwidget = QTabWidget()
+        # tab1 = QWidget()
+        # tab2 = QWidget()
+        # tabwidget.addTab(tab1, "Main")
         # tabwidget.addTab(tab2, "Analyze")
 
-        #tab1.layout = QVBoxLayout()
-        #tab1.setLayout(tab1.layout)
-        #tab1.layout.addWidget(viewer.dw.ppw)
+        # tab1.layout = QVBoxLayout()
+        # tab1.setLayout(tab1.layout)
+        # tab1.layout.addWidget(viewer.dw.ppw)
 
         # if use_entities:
         #    tabwidget.addTab(tab2, "Objects")
@@ -434,7 +436,9 @@ def frontend(cData):
         #    tab2.layout.addWidget(viewer.dw.smallvol_control.imv)
         #    viewer.dw.table_control.clientEvent.connect(lambda x: processEvents(x))
 
-        pluginwidget_dockwidget = viewer.window.add_dock_widget(viewer.dw.ppw, area="right")
+        pluginwidget_dockwidget = viewer.window.add_dock_widget(
+            viewer.dw.ppw, area="right"
+        )
         pluginwidget_dockwidget.setWindowTitle("Workspace")
 
         workspace_gui_widget = workspace_gui.Gui()

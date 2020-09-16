@@ -46,9 +46,7 @@ def setup_entity_table(entities_fullname):
     )
 
     logger.debug(f"Loaded {len(tabledata)} entities.")
-    
 
-    
     return tabledata, entities_df
 
 
@@ -79,7 +77,9 @@ class TableWidget(QtWidgets.QGraphicsObject):
         self.w.doubleClicked.connect(self.double_clicked)
         self.w.selected_row = 0
 
-        stylesheet = "QHeaderView::section{Background-color:rgb(1,80,160);border-radius:14px;}"
+        stylesheet = (
+            "QHeaderView::section{Background-color:rgb(1,80,160);border-radius:14px;}"
+        )
         self.w.setStyleSheet(stylesheet)
 
     def set_data(self, data):

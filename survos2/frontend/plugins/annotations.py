@@ -119,8 +119,6 @@ class AnnotationLevel(Card):
         self.labels = {}
         self._add_view_btn()
         self._populate_labels()
-        
-        
 
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
@@ -159,7 +157,6 @@ class AnnotationLevel(Card):
             for k, label in result.items():
                 if k not in self.labels:
                     self._add_label_widget(label)
-            
 
     def view_level(self):
         logger.debug(f"View feature_id {self.level_id}")
@@ -171,8 +168,6 @@ class AnnotationLevel(Card):
             }
         )
 
-
-        
         cfg.timer.start()
 
     def _add_view_btn(self):

@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from qtpy import QtWidgets
@@ -18,6 +17,7 @@ from survos2.frontend.components.entity import (
     SmallVolWidget,
     setup_entity_table,
 )
+
 
 @register_plugin
 class EntitysPlugin(Plugin):
@@ -41,7 +41,11 @@ class EntitysPlugin(Plugin):
         vbox.addLayout(self.entitys_layout)
 
     def add_entitys(self):
-        params = dict(order=1, workspace=True, fullname="C:\\work\\diam\\projects\\brain\\entities_brain.csv")
+        params = dict(
+            order=1,
+            workspace=True,
+            fullname="C:\\work\\diam\\projects\\brain\\entities_brain.csv",
+        )
         result = Launcher.g.run("entitys", "create", **params)
 
         if result:
@@ -50,7 +54,9 @@ class EntitysPlugin(Plugin):
             entitysfullname = result["fullname"]
             self._add_entitys_widget(entitysid, entitysname, entitysfullname, True)
 
-    def _add_entitys_widget(self, entitysid, entitysname, entitysfullname, expand=False):
+    def _add_entitys_widget(
+        self, entitysid, entitysname, entitysfullname, expand=False
+    ):
         widget = EntitysCard(entitysid, entitysname, entitysfullname)
         widget.showContent(expand)
         self.entitys_layout.addWidget(widget)
@@ -60,12 +66,11 @@ class EntitysPlugin(Plugin):
             src_dataset = DM.sources[0]
             src_dataset.set_metadata("entities_fullname", entitysfullname)
 
-
-        #vol1 = sample_roi(cData.vol_stack[0], tabledata, vol_size=(32, 32, 32))
-        #logger.debug(f"Sampled ROI vol of shape {vol1.shape}")
-        #self.smallvol_control = SmallVolWidget(vol1)
-        #cfg.object_table = self.table_control
-        #cfg.tabledata = tabledata
+        # vol1 = sample_roi(cData.vol_stack[0], tabledata, vol_size=(32, 32, 32))
+        # logger.debug(f"Sampled ROI vol of shape {vol1.shape}")
+        # self.smallvol_control = SmallVolWidget(vol1)
+        # cfg.object_table = self.table_control
+        # cfg.tabledata = tabledata
 
         self.existing_entitys[entitysid] = widget
         return widget
@@ -98,26 +103,34 @@ class EntitysPlugin(Plugin):
                 entitysfullname = params.pop("fullname", entity)
 
                 if params.pop("kind", "unknown") != "unknown":
-                    widget = self._add_entitys_widget(entitysid, entitysname, entitysfullname)
+                    widget = self._add_entitys_widget(
+                        entitysid, entitysname, entitysfullname
+                    )
                     widget.update_params(params)
                     self.existing_entitys[entitysid] = widget
                 else:
                     logger.debug(
-                        "+ Skipping loading entity: {}, {}".format(entitysid, entitysname)
+                        "+ Skipping loading entity: {}, {}".format(
+                            entitysid, entitysname
+                        )
                     )
 
 
 class EntitysCard(Card):
     def __init__(self, entitysid, entitysname, entitysfullname, parent=None):
         super().__init__(
-            title=entitysname, collapsible=True, removable=True, editable=True, parent=parent
+            title=entitysname,
+            collapsible=True,
+            removable=True,
+            editable=True,
+            parent=parent,
         )
         self.entitysid = entitysid
         self.entitysname = entitysname
-        
+
         self.entitysfullname = LineEdit(parse=str, default=50)
         self.entitysfullname.setValue(entitysfullname)
-        
+
         self.entitysfullname.setMaximumWidth(250)
         self.compute_btn = PushButton("Compute")
         self.view_btn = PushButton("View", accent=True)
@@ -127,15 +140,13 @@ class EntitysCard(Card):
         self.add_row(HWidgets(None, self.view_btn, Spacing(35)))
         self.add_row(HWidgets(None, self.get_btn, Spacing(35)))
 
-
         self.view_btn.clicked.connect(self.view_entitys)
         self.get_btn.clicked.connect(self.get_entitys)
-        
+
         self.table_control = TableWidget()
         tabledata, _ = setup_entity_table(entitysfullname)
         self.table_control.set_data(tabledata)
         self.add_row(self.table_control.w)
-
 
     def card_deleted(self):
         params = dict(entitys_id=self.entitysid, workspace=True)
@@ -161,8 +172,7 @@ class EntitysCard(Card):
 
     def get_entitys(self):
         dst = DataModel.g.dataset_uri(self.entitysid, group="entitys")
-        
+
         params = dict(dst=dst, fullname=self.entitysfullname.value())
         logger.debug(f"Getting entities with params {params}")
         Launcher.g.run("entitys", "set_csv", **params)
-

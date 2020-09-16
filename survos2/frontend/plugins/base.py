@@ -81,7 +81,6 @@ def register_plugin(cls):
     desc = dict(cls=cls, name=name, icon=icon, title=title, views=views, tab=tab)
     __available_plugins__[name] = desc
 
-    
     return cls
 
 
@@ -103,7 +102,7 @@ class PluginContainer(QCSWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setMinimumWidth(self.__sidebar_width__)
-        
+
         self.tabwidget = QTabWidget()
         vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
         vbox.addWidget(self.tabwidget, 1)
@@ -167,14 +166,14 @@ class PluginContainer(QCSWidget):
             self.selected = self.plugins[name]
             self.title.setText(self.selected["title"])
 
-            if tab=='workspace':
+            if tab == "workspace":
                 self.workspace_container.addWidget(self.selected["widget"], 1)
-            elif tab=='segmentation':
+            elif tab == "segmentation":
                 self.segmentation_container.addWidget(self.selected["widget"], 1)
-            elif tab=='entities':
+            elif tab == "entities":
                 self.entities_container.addWidget(self.selected["widget"], 1)
-                
-            elif tab=='analyze':
-                self.analyze_container.addWidget(self.selected["widget"], 1)                 
+
+            elif tab == "analyze":
+                self.analyze_container.addWidget(self.selected["widget"], 1)
             if hasattr(self.selected["widget"], "setup"):
                 self.selected["widget"].setup()
