@@ -126,9 +126,6 @@ class ConfigEditor(QWidget):
                 sibs = param.parent().children()
 
                 config_dict[path[-1]] = data
-                # logger.debug(f"Parameter: {path}")
-                # logger.debug(f"Value: {param.value}")
-                # logger.debug(f"Data {data}")
 
         p.sigTreeStateChanged.connect(parameter_tree_change)
 
@@ -234,33 +231,39 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     workspace_config = {
-        "dataset_name": "data",
-        "datasets_dir": "D:/datasets/",
-        "vol_fname": "mcd_s10_Nuc_Cyt_r1.h5",
-        "workspace_name": "test_hunt2",
-        "entities_name": "C:\\work\\diam\\projects\\hunt1\\entities_hunt_df1.csv",
-    }
-
-    workspace_config = {
         "dataset_name": "dataset",
         "datasets_dir": "D:/datasets/",
         "vol_fname": "combined_zooniverse_data.h5",
         "workspace_name": "test_vf1",
         "group_name": "workflow_1",
     }
-
     workspace_config = {
         "dataset_name": "data",
         "datasets_dir": "D:/datasets/",
         "vol_fname": "brain.h5",
         "workspace_name": "test_brain",
-        "entities_name": "C:\\work\\diam\\projects\\brain\\entities_brain.csv",
     }
 
     run_config = {
-        "server_address": "127.0.0.1:8123",
-        # "server_address": "172.23.5.231:8123",
+        # "server_address": "127.0.0.1:8123",
+        "server_address": "172.23.5.231:8123",
         "workspace_name": "test_brain",
+    }
+
+    workspace_config = {
+        "dataset_name": "data",
+        "datasets_dir": "D:/datasets/",
+        "vol_fname": "mcd_s10_Nuc_Cyt_r1.h5",
+        "workspace_name": "test_hunt2",
+        # "entities_name": "C:\\work\\diam\\projects\\hunt1\\entities_hunt_df1.csv",
+    }
+
+    workspace_config = {
+        "dataset_name": "dataset",
+        "datasets_dir": "/dls/science/groups/das/zooniverse/virus_factory/data",
+        "vol_fname": "combined_zooniverse_data.h5",
+        "workspace_name": "test_vf1",
+        "group_name": "workflow_1",
     }
 
     from survos2.server.config import cfg

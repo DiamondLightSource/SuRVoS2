@@ -80,15 +80,15 @@ def init_ws(wparams, precrop=False):
 
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
 
-    DataModel.g.current_workspace = ws_name
-    if "entities_name" in wparams:
-        entities_name = wparams["entities_name"]
-        logger.info(f"Setting entities_name in metadata to {entities_name}")
+    # DataModel.g.current_workspace = ws_name
+    # if "entities_name" in wparams:
+    #    entities_name = wparams["entities_name"]
+    #    logger.info(f"Setting entities_name in metadata to {entities_name}")
 
-        src = DataModel.g.dataset_uri("__data__")
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_dataset = DM.sources[0]
-            src_dataset.set_metadata("entities_name", entities_name)
+    #    src = DataModel.g.dataset_uri("__data__")
+    #    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+    #        src_dataset = DM.sources[0]
+    #        src_dataset.set_metadata("entities_name", entities_name)
 
     survos.run_command(
         "workspace",
@@ -106,6 +106,8 @@ def init_client(precrop=False):
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
+
+    DataModel.g.current_workspace_shape = img_volume.shape
 
     logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")
 

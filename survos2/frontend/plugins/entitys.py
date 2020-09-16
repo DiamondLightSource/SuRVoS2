@@ -42,9 +42,7 @@ class EntitysPlugin(Plugin):
 
     def add_entitys(self):
         params = dict(
-            order=1,
-            workspace=True,
-            fullname="C:\\work\\diam\\projects\\brain\\entities_brain.csv",
+            order=1, workspace=True, fullname="survos2/entity/blank_entities.csv",
         )
         result = Launcher.g.run("entitys", "create", **params)
 
@@ -81,7 +79,7 @@ class EntitysPlugin(Plugin):
         params["id"] = 0
         params["name"] = "points1"
         params["kind"] = "entitys"
-        params["fullname"] = "C:\\work\\diam\\projects\\brain\\entities_brain.csv"
+        params["fullname"] = "a.csv"
         result = {}
         result[0] = params
 

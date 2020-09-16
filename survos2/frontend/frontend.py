@@ -83,6 +83,9 @@ def hex_string_to_rgba(hex_string):
 
 
 def frontend(cData):
+    logger.info(
+        f"Frontend loaded image volume of shape {DataModel.g.current_workspace_shape}"
+    )
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
@@ -116,6 +119,7 @@ def frontend(cData):
 
         ws = Workspace(DataModel.g.current_workspace)
         viewer.dw.ws = ws
+        viewer.dw.datamodel = DataModel.g
 
         def setup_pipeline():
             pipeline_ops = [
