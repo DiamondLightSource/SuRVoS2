@@ -11,8 +11,8 @@ api:
     - render
 computing:
   chunks: true
-  chunk_size: 1024      # 1 Gb
-  chunk_padding : 0
+  chunk_size: 16       # 1 Gb
+  chunk_padding : 4
 
 logging:
   level: info
@@ -27,7 +27,7 @@ environments:
       renderer: mpl  
 
     computing:
-      chunks: false      # Automatic chunking
+      chunks: true      # Automatic chunking
       chunk_size: 10   # in MB
       chunk_size_sparse: 10
 

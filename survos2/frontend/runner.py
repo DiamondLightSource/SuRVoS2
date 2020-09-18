@@ -67,9 +67,6 @@ class ConfigEditor(QWidget):
         self.workspace_config = workspace_config
         self.pipeline_config = pipeline_config
 
-        self.server_process = None
-        self.client_process = None 
-
         run_config_ptree = self.init_ptree(self.run_config, name="Run")
         workspace_config_ptree = self.init_ptree(
             self.workspace_config, name="Workspace"
@@ -148,7 +145,7 @@ class ConfigEditor(QWidget):
         ctr = 0
         for key in param_dict.keys():
             entry = param_dict[key]
-            
+            print(type(entry))
             if type(entry) == str:
                 d = {"name": key, "type": "str", "value": entry}
             elif type(entry) == int:
@@ -184,10 +181,12 @@ class ConfigEditor(QWidget):
         return ptree
 
     def create_workspace_clicked(self, event):
+        # print(self.workspace_config)
         logger.debug("Creating workspace: ")
         init_ws(self.workspace_config)
 
     def output_config_clicked(self, event):
+        # print(self.pipeline_config)
         out_fname = "pipeline_cfg.yml"
         logger.debug(f"Outputting pipeline config: {out_fname}")
         with open(out_fname, "w") as outfile:
@@ -196,32 +195,34 @@ class ConfigEditor(QWidget):
             )
 
     def run_clicked(self, event):
+        # print(self.run_config)
         import os
 
         command_dir = os.getcwd()
         script_fullname = os.path.join(command_dir, "survos.py")
         if not os.path.isfile(script_fullname):
             raise Exception("{}: Script not found".format(script_fullname))
-        
+        print(script_fullname)
+
         import subprocess
 
-        self.server_process = subprocess.Popen(
+        subprocess.Popen(
             [
                 "python",
                 script_fullname,
                 "start_server",
                 self.run_config["workspace_name"],
-                self.run_config["server_port"]
+                "8123",
             ]
         )
 
-        self.client_process = subprocess.call(
+        subprocess.call(
             [
                 "python",
                 script_fullname,
                 "nu_gui",
                 self.run_config["workspace_name"],
-                str(self.run_config["server_ip"])+":"+str(self.run_config["server_port"]),
+                self.run_config["server_address"],
             ]
         )
 
@@ -236,15 +237,26 @@ if __name__ == "__main__":
         "workspace_name": "test_vf1",
         "group_name": "workflow_1",
     }
-
-
-    run_config = {
-        "server_ip": "127.0.0.1",
-        "server_port": "8131",
-        #"server_address": "172.23.5.231:8123",
+    workspace_config = {
+        "dataset_name": "data",
+        "datasets_dir": "D:/datasets/",
+        "vol_fname": "brain.h5",
         "workspace_name": "test_brain",
     }
 
+    run_config = {
+        # "server_address": "127.0.0.1:8123",
+        "server_address": "172.23.5.231:8123",
+        "workspace_name": "test_brain",
+    }
+
+    workspace_config = {
+        "dataset_name": "data",
+        "datasets_dir": "D:/datasets/",
+        "vol_fname": "mcd_s10_Nuc_Cyt_r1.h5",
+        "workspace_name": "test_hunt2",
+        # "entities_name": "C:\\work\\diam\\projects\\hunt1\\entities_hunt_df1.csv",
+    }
 
     workspace_config = {
         "dataset_name": "dataset",
@@ -254,20 +266,6 @@ if __name__ == "__main__":
         "group_name": "workflow_1",
     }
 
-
-    workspace_config = {
-        "dataset_name": "data",
-        "datasets_dir": "D:/datasets/",
-        "vol_fname": "mcd_s10_Nuc_Cyt_r1.h5",
-        "workspace_name": "test_hunt2",
-        # "entities_name": "C:\\work\\diam\\projects\\hunt1\\entities_hunt_df1.csv",
-    }
-    workspace_config = {
-        "dataset_name": "data",
-        "datasets_dir": "D:/datasets/",
-        "vol_fname": "brain.h5",
-        "workspace_name": "test_brain",
-    }
     from survos2.server.config import cfg
 
     pipeline_config = dict(cfg)
@@ -275,7 +273,3 @@ if __name__ == "__main__":
     app = QApplication([])
     config_editor = ConfigEditor(run_config, workspace_config, pipeline_config)
     app.exec_()
-
-    if config_editor.server_process is not None:
-        config_editor.server_process.kill()
-    
