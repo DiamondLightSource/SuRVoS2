@@ -46,7 +46,7 @@ def asnparray(data, dtype=None, contiguous=True):
 
     if newdata is not None:
         if newdata.dtype != dtype:
-            logger.warn(
+            logger.debug(
                 "Transforming data type from {} to {}:".format(
                     np.dtype(newdata.dtype).name, np.dtype(dtype).name
                 )
@@ -56,7 +56,7 @@ def asnparray(data, dtype=None, contiguous=True):
             newdata = newdata.copy()
         return newdata
     else:
-        logger.warn(
+        logger.debug(
             "Transforming unkown data to a numpy array. "
             "Expected pycuda.gpuarray.GPUArray, dask.array.Array "
             "or numpy.ndarray."
@@ -400,7 +400,7 @@ def map_blocks(
     *args,
     chunk=CHUNK,
     chunk_size=CHUNK_SIZE,
-    pad=8,
+    pad=0,
     compute=True,
     scale=SCALE,
     stretch=STRETCH,
@@ -509,7 +509,7 @@ def map_blocks(
             out=DM.out,
             normalize=normalize,
             **kwargs,
-            dtype=out_dtype,
+            #dtype=out_dtype,
         )
 
     if timeit:
