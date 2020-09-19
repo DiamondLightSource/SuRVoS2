@@ -95,20 +95,24 @@ def optimal_chunksize(source, max_size, item_size=4, delta=0.1, axis_weight=None
     """
     if hasattr(source, "shape") and hasattr(source, "dtype"):
         item_size = np.dtype(source.dtype).itemsize
+        logger.debug(f"Calculating optimal chunksize using itemsize {item_size}")
+        
         shape = np.asarray(source.shape, np.int16)
     else:
+        logger.debug(f"Calculating optimal chunksize using no itemsize")
         shape = np.asarray(source, np.int16)
 
     sizeMB = max_size * (2 ** 20)
     if axis_weight is None:
         axis_weight = shape / float(np.min(shape))
+
     axis_weight = 1 + np.asarray(axis_weight, float) / np.max(axis_weight)
-    total_chunks = int(ceil(np.prod(shape) * item_size / sizeMB))
+    total_chunks = int(ceil(np.prod(shape).astype(np.float64) * item_size / sizeMB))
     total_chunks_axis = [int(ceil(total_chunks / p)) for p in axis_weight]
     max_chunk_iter = [range(1, total + 1) for total in total_chunks_axis]
-
     best_chunk = shape
     best_chunk_err = np.inf
+
     for nchunks in product(*max_chunk_iter):
         chunks = np.ceil(shape / nchunks).astype(int)
         chunk_size = np.prod(chunks) * item_size
@@ -509,7 +513,7 @@ def map_blocks(
             out=DM.out,
             normalize=normalize,
             **kwargs,
-            #dtype=out_dtype,
+            dtype=out_dtype,
         )
 
     if timeit:

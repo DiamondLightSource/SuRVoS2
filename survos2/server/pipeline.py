@@ -1,7 +1,3 @@
-"""
-Pipeline ops
-
-"""
 import os
 import numpy as np
 from typing import List, Optional, Dict
@@ -41,13 +37,8 @@ from survos2.frontend.nb_utils import show_images
 @dataclass
 class Patch:
     """A Patch is processed by a Pipeline
-
     3 layer dictionaries for the different types (float image, integer image, geometry)
-    
-    Pipeline functions need to agree on the names they
-    use for layers. 
 
-    TODO Adapter
     """
 
     image_layers: Dict
@@ -57,16 +48,15 @@ class Patch:
 
 class Pipeline:
     """
-    A pipeline produces output such as a segmentation, and often has 
-    several different inputs of several different types as well as a 
-    dictionary of parameters (e.g. a superregion segmentation takes 
+    A pipeline produces output such as a segmentation, and often has
+    several different inputs of several different types as well as a
+    dictionary of parameters (e.g. a superregion segmentation takes
     an annotation uint16, a supervoxel uint32 and multiple float32 images)
 
-    A pipeline follows the iterator protocol. The caller creates an instance, 
-    providing the list of operations and a payload and then iterates through 
+    A pipeline follows the iterator protocol. The caller creates an instance,
+    providing the list of operations and a payload and then iterates through
     the pipeline. The payload may be changed with init_payload. The result Patch
     is obtained by calling output_result
-
 
     """
 
@@ -74,6 +64,7 @@ class Pipeline:
         self.params = params
         self.ordered_ops = iter(params["ordered_ops"])
         self.payload = None
+        self.models = models
 
     def init_payload(self, patch):
         self.payload = patch
@@ -85,5 +76,5 @@ class Pipeline:
         return self
 
     def __next__(self):
-        self.payload = next(self.ordered_ops)(self.payload)
+        self.payload = next(self.ordered_ops)(self.payload, self.params)
         return self.payload

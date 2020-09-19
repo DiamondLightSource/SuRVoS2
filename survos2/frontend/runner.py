@@ -246,13 +246,6 @@ if __name__ == "__main__":
     }
 
 
-    workspace_config = {
-        "dataset_name": "dataset",
-        "datasets_dir": "/dls/science/groups/das/zooniverse/virus_factory/data",
-        "vol_fname": "combined_zooniverse_data.h5",
-        "workspace_name": "test_vf1",
-        "group_name": "workflow_1",
-    }
 
 
     workspace_config = {
@@ -268,6 +261,16 @@ if __name__ == "__main__":
         "vol_fname": "brain.h5",
         "workspace_name": "test_brain",
     }
+
+    
+    workspace_config = {
+        "dataset_name": "dataset",
+        "datasets_dir": "/dls/science/groups/das/zooniverse/virus_factory/data",
+        "vol_fname": "combined_zooniverse_data.h5",
+        "workspace_name": "test_vf1",
+        "group_name": "workflow_1",
+    }
+    
     from survos2.server.config import cfg
 
     pipeline_config = dict(cfg)

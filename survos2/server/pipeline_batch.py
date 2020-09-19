@@ -1,5 +1,5 @@
 from loguru import logger
-
+from matplotlib import pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,12 +11,46 @@ import torchio as tio
 from torchio import IMAGE, LOCATION
 from torchio.data.inference import GridSampler, GridAggregator
 
+from survos2.entity.sampler import crop_vol_and_pts_centered
+from survos2.server.pipeline import Pipeline, Patch
 
-# todo: simple way to add multiple aggregators and bundle results
-def batch_pipeline(
+
+def make_masks(p):
+    print(f"Making masks ")
+    p.image_layers["mask"] = np.array([0, 1, 2, 3])
+    return p
+
+
+def make_features(p):
+    p.image_layers["features"] = np.array([0.1, 0.2, 0.3, 0.4])
+    print(f"Making features")
+    return p
+
+
+def make_sr(p):
+    p.image_layers["sr"] = np.array([0.1, 0.2, 0.3, 0.4])
+    print(f"Making superregions")
+    return p
+
+
+def make_seg_sr(p):
+    p.image_layers["seg_sr"] = np.array([0.1, 0.2, 0.3, 0.4])
+    print(f"Making segmentation with superregions")
+    return p
+
+
+def make_seg_cnn(p):
+    p.image_layers["seg_cnn"] = np.array([0.1, 0.2, 0.3, 0.4])
+    print(f"Making segmentation with cnn")
+    return p
+
+
+# todo: better way to add multiple aggregators and bundle results
+
+
+def gridsampler_pipeline(
     input_array,
     entity_pts,
-    cfg,
     patch_size=(64, 64, 64),
     patch_overlap=(0, 0, 0),
     batch_size=1,
@@ -34,7 +68,11 @@ def batch_pipeline(
         label=tio.Image(tensor=img_tens, label=tio.LABEL),
     )
 
-    img_dataset = tio.ImagesDataset([one_subject,])
+    img_dataset = tio.ImagesDataset(
+        [
+            one_subject,
+        ]
+    )
     img_sample = img_dataset[-1]
 
     grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)
@@ -42,9 +80,19 @@ def batch_pipeline(
     aggregator1 = GridAggregator(grid_sampler)
     aggregator2 = GridAggregator(grid_sampler)
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(
+        {
+            "p": 1,
+            "ordered_ops": [
+                make_masks,
+                make_features,
+                make_sr,
+                make_seg_sr,
+                make_seg_cnn,
+            ],
+        }
+    )
 
-    # use MarkedVols?
     payloads = []
 
     with torch.no_grad():
@@ -68,18 +116,27 @@ def batch_pipeline(
             plt.figure(figsize=(12, 12))
             plt.imshow(cropped_vol[cropped_vol.shape[0] // 2, :], cmap="gray")
             plt.scatter(offset_pts[:, 1], offset_pts[:, 2])
+
             logger.debug(f"Number of offset_pts: {offset_pts.shape}")
             logger.debug(
                 f"Allocating memory for no. voxels: {cropped_vol.shape[0] * cropped_vol.shape[1] * cropped_vol.shape[2]}"
             )
 
-            payload = Patch({"in_array": cropped_vol}, offset_pts, None,)
+            #payload = Patch(
+            #    {"in_array": cropped_vol},
+            #    offset_pts,
+            #    None,
+            #)
 
-            pipeline.process(payload)
+            payload = Patch({'total_mask': np.random.random((4,4),)}, {'total_anno': np.random.random((4,4),)}, {'points': np.random.random((4,3),)})
+            pipeline.init_payload(payload)
+
+            for step in pipeline:
+                print(step)
 
             # Aggregation (Output: large volume aggregated from many smaller volumes)
             output_tensor = (
-                torch.FloatTensor(payload.layers["total_mask"])
+                torch.FloatTensor(payload.annotation_layers["total_mask"])
                 .unsqueeze(0)
                 .unsqueeze(1)
             )
@@ -87,7 +144,7 @@ def batch_pipeline(
             aggregator1.add_batch(output_tensor, locations)
 
             output_tensor = (
-                torch.FloatTensor(payload.layers["prediction"])
+                torch.FloatTensor(payload.annotation_layers["prediction"])
                 .unsqueeze(0)
                 .unsqueeze(1)
             )

@@ -149,12 +149,12 @@ def _sr_prediction(
     features_stack, annotation_volume, sr: SRData, predict_params, do_pca=False
 ):
     """Prepare superregions and predict
-    
+
     Arguments:
         features_stack {stacked image volumes} -- Stack of filtered volumes to use for features
         annotation_volume {image volume} -- Annotation volume (label image)
         sr {image volume} -- Prepared superregions SRData
-    
+
     Returns:
         (volume, volume, volume) -- tuple of raw prediction, prediction mapped to labels and confidence map
     """

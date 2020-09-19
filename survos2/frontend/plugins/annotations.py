@@ -3,7 +3,7 @@ from skimage.draw import line
 from skimage.morphology import disk
 from scipy.ndimage import binary_dilation
 from matplotlib.colors import ListedColormap
-
+from loguru import logger
 
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
@@ -11,12 +11,10 @@ from survos2.frontend.plugins.base import register_plugin, Plugin
 from survos2.frontend.plugins.annotation_tool import AnnotationTool
 from survos2.frontend.components.icon_buttons import DelIconButton, IconButton
 from survos2.frontend.control.launcher import Launcher
-
+from survos2.server.config import cfg
 from survos2.model import DataModel
 
-from loguru import logger
 
-from survos2.server.config import cfg
 
 _AnnotationNotifier = PluginNotifier()
 

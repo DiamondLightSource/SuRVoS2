@@ -22,7 +22,7 @@ from survos2.frontend.components.entity import (
 @register_plugin
 class EntitysPlugin(Plugin):
 
-    __icon__ = ""
+    __icon__ = "fa.picture-o"
     __pname__ = "entitys"
     __views__ = ["slice_viewer"]
     __tab__ = "entities"

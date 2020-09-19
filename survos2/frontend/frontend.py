@@ -64,7 +64,7 @@ class WorkerThread(QThread):
 
         timer = QTimer()
         timer.timeout.connect(work)
-        timer.start(10000)
+        timer.start(100000)
         self.exec_()
 
 
@@ -116,7 +116,6 @@ def frontend(cData):
 
         # attach workspace to viewer for interactive debugging
         from survos2.model import Workspace
-
         ws = Workspace(DataModel.g.current_workspace)
         viewer.dw.ws = ws
         viewer.dw.datamodel = DataModel.g
@@ -422,24 +421,6 @@ def frontend(cData):
         # Tabs
         #
 
-        # tabwidget = QTabWidget()
-        # tab1 = QWidget()
-        # tab2 = QWidget()
-        # tabwidget.addTab(tab1, "Main")
-        # tabwidget.addTab(tab2, "Analyze")
-
-        # tab1.layout = QVBoxLayout()
-        # tab1.setLayout(tab1.layout)
-        # tab1.layout.addWidget(viewer.dw.ppw)
-
-        # if use_entities:
-        #    tabwidget.addTab(tab2, "Objects")
-        #    tab2.layout = QVBoxLayout()
-        #    tab2.setLayout(tab2.layout)
-        #    tab2.layout.addWidget(viewer.dw.table_control.w)
-        #    tab2.layout.addWidget(viewer.dw.smallvol_control.imv)
-        #    viewer.dw.table_control.clientEvent.connect(lambda x: processEvents(x))
-
         pluginwidget_dockwidget = viewer.window.add_dock_widget(
             viewer.dw.ppw, area="right"
         )
@@ -480,9 +461,7 @@ def frontend(cData):
 
         # if use_entities:
         #     from survos2.entity.sampler import sample_region_at_pt
-
         #     sample_region_at_pt(cData.vol_stack[0], [50, 50, 50], (32, 32, 32))
-
         #     @entity_layer.mouse_drag_callbacks.append
         #     def view_location(layer, event):
         #         coords = np.round(layer.coordinates).astype(int)

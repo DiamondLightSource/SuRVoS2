@@ -1,11 +1,10 @@
 from survos2.entity.entities import make_entity_df
-from survos2.server.superseg import make_prediction, calc_feats
+from survos2.server.superseg import sr_predict
 from survos2.entity.anno.masks import generate_sphere_masks_fast
 from survos2.server.supervoxels import generate_supervoxels
 from survos2.server.features import (
     features_factory,
     generate_features,
-    simple_laplacian,
 )
 from survos2.server.model import SRData, SRPrediction, SRFeatures
 from survos2.entity.sampler import crop_vol_and_pts_centered
@@ -17,6 +16,9 @@ from survos2.entity.saliency import filter_proposal_mask
 from survos2.entity.saliency import measure_big_blobs
 from survos2.entity.sampler import centroid_to_bvol, viz_bvols
 from survos2.server.pipeline import Patch
+from loguru import logger
+from UtilityCluster import show_images
+
 
 
 def sphere_masks(patch: Patch, params: dict):
@@ -25,8 +27,8 @@ def sphere_masks(patch: Patch, params: dict):
         patch.geometry_layers["Entities"],
         radius=params.pipeline.mask_radius,
     )
-    # show_images([total_mask[total_mask.shape[0]//2,:]],
-    #             ['Sphere mask, radius: ' + str(mask_radius),])
+    show_images([total_mask[total_mask.shape[0]//2,:]],
+                 ['Sphere mask, radius: ' + str(mask_radius),])
 
     patch.image_layers["generated"] = total_mask
 
@@ -36,23 +38,23 @@ def sphere_masks(patch: Patch, params: dict):
 def make_masks(patch: Patch, params: dict):
     """
     Rasterize point geometry to a mask (V->R)
-    
+
     ((Array of 3d points) -> Float layer)
 
     """
     total_mask = generate_sphere_masks_fast(
         patch.image_layers["Main"],
-        patch.geometry_layers["Entities"],
-        radius=params.pipeline.mask_radius,
+        patch.geometry_layers["Points"],
+        radius=params['pipeline']['mask_radius'],
     )
 
     core_mask = generate_sphere_masks_fast(
         patch.image_layers["Main"],
-        patch.geometry_layers["Entities"],
-        radius=params.pipeline.core_radius,
+        patch.geometry_layers["Points"],
+        radius=params['pipeline']['mask_radius'],
     )
-    # show_images([total_mask[total_mask.shape[0]//2,:],
-    #             core_mask[core_mask.shape[0] // 2,:]])
+    show_images([total_mask[total_mask.shape[0]//2,:],
+                 core_mask[core_mask.shape[0] // 2,:]])
 
     patch.image_layers["total_mask"] = total_mask
     patch.image_layers["core_mask"] = core_mask
@@ -63,7 +65,7 @@ def make_masks(patch: Patch, params: dict):
 def make_features(patch: Patch, params: dict):
     """
     Features (Float layer -> List[Float layer])
-    
+
     """
     feature_params = params.feature_params["simple_gaussian"]
     logger.info("Calculating features")
@@ -89,11 +91,12 @@ def make_features(patch: Patch, params: dict):
 def acwe(patch: Patch, params: dict):
     """
     Active Contour
-    
+
     (Float layer -> Float layer)
-    
+
     """
-    edge_map = 1.0 - features.filtered_layers[0]
+    from skimage import exposure
+    edge_map = 1.0 - patch.image_layers['Main']
     edge_map = exposure.adjust_sigmoid(edge_map, cutoff=1.0)
     logger.debug("Calculating ACWE")
 
@@ -119,13 +122,13 @@ def acwe(patch: Patch, params: dict):
 
 def make_sr(patch: Patch, params: dict):
     """
-    # SRData 
-    #    Supervoxels (Float layer->Float layer)       
-    #  
+    # SRData
+    #    Supervoxels (Float layer->Float layer)
+    #
     #    Also generates feature vectors
-    
+
     SRData contains the supervoxel image as well as the feature vectors made
-    from features and the supervoxels 
+    from features and the supervoxels
 
     """
     logger.debug("Making superregions for sample")
@@ -144,7 +147,7 @@ def make_sr(patch: Patch, params: dict):
 def predict_sr(patch: Patch, params: dict):
     """
     (SRFeatures, Annotation, SRData -> Float layer prediction)
-    
+
     """
     logger.debug("Predicting superregions")
 
@@ -167,7 +170,7 @@ def predict_sr(patch: Patch, params: dict):
     return patch
 
 
-def clean_segmentation(patch: Patch, params: params):
+def clean_segmentation(patch: Patch, params: dict):
 
     predicted = patch.image_layers["segmentation"]
 

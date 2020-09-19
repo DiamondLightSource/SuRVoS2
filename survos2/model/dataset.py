@@ -110,7 +110,6 @@ class Dataset(BaseDataset):
         return self._id
 
     def _load(self, path):
-        logger.info(f"Loading dataset on {path}")
         self._id = os.path.basename(path)
         self._path = path
         dbpath = os.path.join(path, self.__dbname__)
@@ -293,7 +292,7 @@ class Dataset(BaseDataset):
 
         ds = Dataset(path, readonly=readonly)
         if data is not None:
-            log.info("Loading data into dataset: {}".format(shape))
+            log.debug("Loading data into dataset: {}".format(shape))
             ds.load(data)
         return ds
 
@@ -318,7 +317,7 @@ class Dataset(BaseDataset):
         return os.path.join(self._path, "chunk_%s.h5" % "x".join(map(str, idx)))
 
     def create_chunk(self, idx, data=None, cslices=None):
-        logger.info(f"Creating chunk {idx} {data} {cslices}")
+        logger.debug(f"Creating chunk {idx} {data} {cslices}")
         if self.readonly:
             raise DatasetException("Dataset is in readonly mode. Cannot create chunk.")
         if self.has_chunk(idx):
@@ -457,7 +456,7 @@ class Dataset(BaseDataset):
         return tuple(map(int, np.ravel_multi_index(idx, self.chunk_grid)))
 
     def _process_slices(self, slices, squeeze=False):
-        logger.info(f"_process_slices {slices}")
+        logger.debug(f"_process_slices {slices}")
         if type(slices) in [slice, int]:
             slices = [slices]
         elif slices is Ellipsis:

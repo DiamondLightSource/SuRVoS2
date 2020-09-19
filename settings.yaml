@@ -6,13 +6,13 @@ api:
     - annotations
     - features
     - regions
+    - render
     - pipelines
     - entitys
-    - render
 computing:
   chunks: true
-  chunk_size: 1024      # 1 Gb
-  chunk_padding : 0
+  chunk_size: 64     # 1 Gb
+  chunk_padding : 8
 
 logging:
   level: info
