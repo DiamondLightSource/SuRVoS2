@@ -55,10 +55,10 @@ linux-build:
   tags:
     - linux
   script:
+    - "module load cuda/10.1"
     - "mkdir -p $LINUX_CONDA_PATH"
     - "conda env create -f survos2_clean_environment_linux.yml -p $LINUX_CONDA_PATH"
     - conda activate $LINUX_CONDA_PATH
-    - "module load cuda/10.1"
     - bash make_script.sh
     - conda deactivate
   artifacts:
