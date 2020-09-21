@@ -70,6 +70,7 @@ def supervoxels(
         stack=False,
         timeit=True,
         uses_gpu=True,
+        relabel=True,
     )
 
 

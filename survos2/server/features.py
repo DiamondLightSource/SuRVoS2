@@ -2,7 +2,7 @@ import numpy as np
 from survos2.server.model import SRFeatures
 from loguru import logger
 from survos2.io import dataset_from_uri
-
+from survos2.improc.utils import map_blocks
 
 def prepare_prediction_features(filtered_layers):
     # reshaping for survos
@@ -41,7 +41,7 @@ def features_factory(filtered_layers):
     return features
 
 
-def prepare_features(features, roi_crop, resample_amt):
+def load_features(features, roi_crop, resample_amt):
     """Calculate filters on image volume to generate features for survos segmentation
     
     Arguments:
@@ -65,6 +65,7 @@ def prepare_features(features, roi_crop, resample_amt):
             roi_crop[2] : roi_crop[3],
             roi_crop[4] : roi_crop[5],
         ]
+        import scipy
         data = scipy.ndimage.zoom(data, resample_amt, order=1)
 
         logger.info(f"Cropped and resampled feature shape: {data.shape}")
@@ -79,15 +80,44 @@ def prepare_features(features, roi_crop, resample_amt):
 
     return features
 
-
 def generate_features(img_vol, feature_params, roi_crop, resample_amt):
+    """
+    Generate features, packaged as SRFeatures
+
+    Takes list of feature functions and associated parameters:
+
+    feature_params = [ 
+        [gaussian, filter_cfg.filter1['params']],
+        [gaussian, filter_cfg.filter2['params']],
+        [simple_laplacian, filter_cfg.filter4['params']],
+        [tvdenoising3d, filter_cfg.filter3['params']]]
+
+
+    Also takes a roi to use to crop the input volume, and an amount to zoom resample the image volume
+    after cropping.
+
+    Parameters
+    ----------
+    img_vol : np.ndarray
+        Input image volume as a float32 numpy array
+    feature_params : List[Tuple]
+        List of (filter_function, filter_parameter_dict)
+    roi_crop : List[int]
+        ROI to crop image volume before filtering
+    resample_amt : float
+        Amount to zoom the image volume after cropping, before filtering
+    """
     def proc_layer(layer):
         layer_crop = layer[
             roi_crop[0] : roi_crop[1],
             roi_crop[2] : roi_crop[3],
             roi_crop[4] : roi_crop[5],
         ].astype(np.float32, copy=False)
+
+        import scipy
         layer_proc = scipy.ndimage.zoom(layer_crop, resample_amt, order=1)
+
+        from survos2.improc.segmentation.mappings import normalize
         layer_proc = normalize(layer_proc, norm="unit")
         return layer_proc
 

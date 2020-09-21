@@ -11,7 +11,7 @@ api:
     - entitys
 computing:
   chunks: true
-  chunk_size: 64     # 1 Gb
+  chunk_size: 32     # 1024 is 1 Gb
   chunk_padding : 8
 
 logging:

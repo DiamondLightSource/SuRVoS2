@@ -154,7 +154,14 @@ class SupervoxelCard(Card):
         src = [DataModel.g.dataset_uri(s) for s in self.svsource.value()]
         dst = DataModel.g.dataset_uri(self.svid, group="regions")
         logger.debug(f"Compute sv: Src {src} Dst {dst}")
-        n_segments=int(np.prod(DataModel.g.current_workspace_shape)//self.svshape.value() ** 3)
+
+        from survos2.model import Workspace
+        ws = Workspace(DataModel.g.current_workspace)
+        num_chunks = np.prod(np.array(ws.metadata()['chunk_grid']))
+        chunk_size = ws.metadata()['chunk_size']
+        logger.debug(f"Using chunk_size {chunk_size} to compute number of supervoxel segments for num_chunks: {num_chunks}.")
+        
+        n_segments=int(np.prod(chunk_size)//(self.svshape.value()  ** 3))
 
         params = dict(
             src=src,

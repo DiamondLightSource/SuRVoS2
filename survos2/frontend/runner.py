@@ -84,7 +84,7 @@ class ConfigEditor(QWidget):
 
         tabwidget.addTab(tab1, "Start Survos")
         tabwidget.addTab(tab2, "Workspace")
-        # tabwidget.addTab(tab3, "Pipeline")
+        tabwidget.addTab(tab3, "Pipeline")
 
         create_workspace_button = QPushButton("Create workspace")
         run_button = QPushButton("Run button")
@@ -106,9 +106,9 @@ class ConfigEditor(QWidget):
         tab3.layout.addWidget(output_config_button)
 
         run_button.clicked.connect(self.run_clicked)
-        output_config_button.clicked.connect(self.output_config_clicked)
         create_workspace_button.clicked.connect(self.create_workspace_clicked)
-
+        output_config_button.clicked.connect(self.output_config_clicked)
+        
         self.layout.addWidget(tabwidget)
 
         self.setGeometry(300, 300, 450, 650)
@@ -244,9 +244,27 @@ if __name__ == "__main__":
         #"server_address": "172.23.5.231:8123",
         "workspace_name": "test_brain",
     }
+    workspace_config = {
+        "dataset_name": "dataset",
+        "datasets_dir": "/dls/science/groups/das/zooniverse/virus_factory/data/",
+        "vol_fname": "combined_zooniverse_data.h5",
+        "workspace_name": "test_vf1",
+        "group_name": "workflow_1",
+    }
 
+    workspace_config = {
+        "dataset_name": "data",
+        "datasets_dir": "D:/datasets/vf_anno/",
+        "vol_fname": "data.h5",
+        "workspace_name": "vf_half1",
+    }
 
-
+    workspace_config = {
+        "dataset_name": "data",
+        "datasets_dir": "D:/datasets/",
+        "vol_fname": "brain.h5",
+        "workspace_name": "test_brain",
+    }
 
     workspace_config = {
         "dataset_name": "data",
@@ -255,24 +273,17 @@ if __name__ == "__main__":
         "workspace_name": "test_hunt2",
         # "entities_name": "C:\\work\\diam\\projects\\hunt1\\entities_hunt_df1.csv",
     }
+
     workspace_config = {
         "dataset_name": "data",
         "datasets_dir": "D:/datasets/",
-        "vol_fname": "brain.h5",
-        "workspace_name": "test_brain",
+        "vol_fname": "mcd_s10_Nuc_Cyt_r1.h5",
+        "workspace_name": "test_hunt2",
+        # "entities_name": "C:\\work\\diam\\projects\\hunt1\\entities_hunt_df1.csv",
+        "downsample_by" : "2"
     }
 
-    
-    workspace_config = {
-        "dataset_name": "dataset",
-        "datasets_dir": "/dls/science/groups/das/zooniverse/virus_factory/data",
-        "vol_fname": "combined_zooniverse_data.h5",
-        "workspace_name": "test_vf1",
-        "group_name": "workflow_1",
-    }
-    
     from survos2.server.config import cfg
-
     pipeline_config = dict(cfg)
 
     app = QApplication([])

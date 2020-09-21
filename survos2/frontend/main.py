@@ -27,19 +27,19 @@ def preprocess(img_volume):
     return img_volume
 
 
-def init_ws(wparams, precrop=False):
-    ws_name = wparams["workspace_name"]
-    dataset_name = wparams["dataset_name"]
-    datasets_dir = wparams["datasets_dir"]
-    fname = wparams["vol_fname"]
+def init_ws(workspace_params):
+    ws_name = workspace_params["workspace_name"]
+    dataset_name = workspace_params["dataset_name"]
+    datasets_dir = workspace_params["datasets_dir"]
+    fname = workspace_params["vol_fname"]
 
     image_path = os.path.join(datasets_dir, fname)
     logger.info(f"Initialising workspace {ws_name} with image volume {image_path}")
 
     original_data = h5py.File(image_path, "r")
 
-    if "group_name" in wparams:
-        group_name = wparams["group_name"]
+    if "group_name" in workspace_params:
+        group_name = workspace_params["group_name"]
         logger.info("Extracting dataset and then group")
         img_volume = original_data[dataset_name]
         img_volume = img_volume[group_name]
@@ -50,17 +50,21 @@ def init_ws(wparams, precrop=False):
     logger.info(f"Loaded vol of size {img_volume.shape}")
     img_volume = preprocess(img_volume)
 
-    if "precrop_coords" in wparams:
-        precrop_coords = wparams["precrop_coords"]
-        if "precrop_vol_size" in wparams:
-            precrop_vol_size = wparams["precrop_vol_size"]
+    if "precrop_coords" in workspace_params:
+        precrop_coords = workspace_params["precrop_coords"]
+        if "precrop_vol_size" in workspace_params:
+            precrop_vol_size = workspace_params["precrop_vol_size"]
 
-            if wparams["entities_name"] is not None:
-                entities_name = wparams["entities_name"]
+            if workspace_params["entities_name"] is not None:
+                entities_name = workspace_params["entities_name"]
 
             img_volume, entities_df = precrop(
                 img_volume, entities_df, precrop_coords, precrop_vol_size
             )
+
+    if "downsample_by" in workspace_params:
+        downby = int(workspace_params["downsample_by"])
+        img_volume = img_volume[::downby, ::downby,::downby]
 
     tmpvol_fullpath = "tmp\\tmpvol.h5"
 
@@ -80,16 +84,6 @@ def init_ws(wparams, precrop=False):
 
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
 
-    # DataModel.g.current_workspace = ws_name
-    # if "entities_name" in wparams:
-    #    entities_name = wparams["entities_name"]
-    #    logger.info(f"Setting entities_name in metadata to {entities_name}")
-
-    #    src = DataModel.g.dataset_uri("__data__")
-    #    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-    #        src_dataset = DM.sources[0]
-    #        src_dataset.set_metadata("entities_name", entities_name)
-
     survos.run_command(
         "workspace",
         "add_dataset",
@@ -99,13 +93,18 @@ def init_ws(wparams, precrop=False):
     )
 
 
-def init_client(precrop=False):
+def init_client():
     survos.init_api()
+    from survos2.model import Workspace
+    ws = Workspace(DataModel.g.current_workspace)
+    dataset_name = "data"
+    ds = ws.get_dataset(dataset_name)
+    img_volume = ds[:]
 
-    src = DataModel.g.dataset_uri("__data__")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        img_volume = src_dataset[:]
+    #src = DataModel.g.dataset_uri("__data__")
+    #with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+    #    src_dataset = DM.sources[0]
+    #    img_volume = src_dataset[:]
 
     DataModel.g.current_workspace_shape = img_volume.shape
 
@@ -150,9 +149,9 @@ def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
 
 def setup_ws(project_file=None):
     with open(project_file) as project_file:
-        wparams = json.load(project_file)
-        wparams = AttrDict(wparams)
-        clientData = init_client(wparams)
+        workspace_params = json.load(project_file)
+        workspace_params = AttrDict(workspace_params)
+        clientData = init_client(workspace_params)
 
     return clientData
 

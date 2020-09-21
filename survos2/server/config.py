@@ -2,26 +2,15 @@ import yaml
 import pprint
 from survos2.helpers import AttrDict
 
-# Config yamls, kept separate for modularity (e.g. may put in separate files)
-# get combined into a master app state dict AppState
-# Should serve as application defaults, where a particular workspace has
-# both feature and region-level metadata as well as
-# pipelines for storing particular workspace-specific configs
-
-# App-wide -> todo: mpve into main config
 
 survos_config_yaml = """
 cfg:
-  proj: hunt
+  proj: unnamed
   preprocessing: {}
   random_seed_main: 32
   marker_size: 10
-  refine_lambda: 1.0
-  resample_amt: 0.5
   save_output_files: false
-  mscale: 1.0
   plot_all: false
-  roi_crop: [0,2500, 0, 2500, 0, 2500]
   torch_models_fullpath:  ../experiments
   current_annotation: 001_level
 """
@@ -57,9 +46,9 @@ filter_cfg:
         lamda: 3.7
   filter4:
     plugin: features
-    feature: simple_laplacian
+    feature: laplacian
     params:
-        sigma: 2.1
+        kernel_size: 3
   filter5:
     plugin: features
     feature: gradient  
@@ -91,8 +80,7 @@ cfg = AttrDict(yaml.safe_load(survos_config_yaml)["cfg"])
 filter_cfg = AttrDict(yaml.safe_load(filter_yaml))
 pipeline_cfg = AttrDict(yaml.safe_load(pipeline_yaml))
 
-# attribute access and AppState class to bundle any other application state
-# merge config dictionaries to make app state
+
 cfg = {**cfg, **filter_cfg}
 cfg = {**cfg, **pipeline_cfg}
 cfg = AttrDict(cfg)
