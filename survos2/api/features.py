@@ -3,7 +3,7 @@ import os.path as op
 
 from survos2.api import workspace as ws
 from survos2.api.utils import get_function_api, save_metadata, dataset_repr
-from survos2.api.types import DataURI, String, Int, Float, FloatOrVector, SmartBoolean
+from survos2.api.types import DataURI, String, Int, Float, FloatOrVector, SmartBoolean, IntOrVector
 
 from survos2.io import dataset_from_uri
 from survos2.utils import get_logger
@@ -86,6 +86,12 @@ def simple_invert(src: DataURI, dst: DataURI) -> "Simple":
 
     map_blocks(simple_invert, src, out=dst, normalize=True)
 
+@hug.get()
+@save_metadata
+def median_filter(src: DataURI, dst: DataURI, size: IntOrVector = 5) -> "Denoising":
+    from ..server.filtering import median_filter
+
+    map_blocks(median_filter, src, out=dst, size=size, normalize=True)
 
 @hug.get()
 @save_metadata

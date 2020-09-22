@@ -207,6 +207,8 @@ class PipelineCard(Card):
             pipeline = LineEdit(default=default, parse=float)
         elif type == "FloatOrVector":
             pipeline = LineEdit3D(default=default, parse=float)
+        elif type == "IntOrVector":
+            pipeline = LineEdit3D(default=default, parse=int)
         else:
             pipeline = None
 

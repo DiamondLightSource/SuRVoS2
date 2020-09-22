@@ -15,3 +15,6 @@ from loguru import logger
 
 def simple_invert(data, sigma=5.0):
     return 1.0 - data
+
+def median_filter(data, size=5):
+    return ndimage.median_filter(data, size=size)

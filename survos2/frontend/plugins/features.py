@@ -151,6 +151,8 @@ class FeatureCard(Card):
             feature = LineEdit(default=default, parse=float)
         elif type == "FloatOrVector":
             feature = LineEdit3D(default=default, parse=float)
+        elif type == "IntOrVector":
+            feature = LineEdit3D(default=default, parse=int)
         else:
             feature = None
 
