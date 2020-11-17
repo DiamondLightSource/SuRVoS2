@@ -105,7 +105,7 @@ dependencies:
   - pyqt
   - pyqtgraph
   - pysocks
-  - python=3.7
+  - python
   - python-dateutil
   - python-mimeparse
   - python_abi
