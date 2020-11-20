@@ -23,7 +23,7 @@ from survos2.api.types import (
 from survos2.api import workspace as ws
 from survos2.server.features import features_factory
 
-from survos2.improc.utils import DatasetManager
+from survos2.improc.utils import DatasetManager, dask_relabel_chunks
 from survos2.model import DataModel
 from survos2.api.utils import get_function_api, save_metadata, dataset_repr
 from typing import List
@@ -50,6 +50,7 @@ def superregion_segment(
     anno_id: String,
     region_id: String,
     feature_ids: DataURIList,
+    lam: float,
     dst: DataURI,
 ):
     logger.debug(
@@ -86,10 +87,11 @@ def superregion_segment(
     # run predictions
     from survos2.server.superseg import sr_predict
 
-    segmentation = sr_predict(supervoxel_image, anno_image, features)
+    segmentation = sr_predict(supervoxel_image, anno_image, features, lam)
 
     # store in dst
     dst = DataModel.g.dataset_uri(dst, group="pipeline")
+
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         DM.out[:] = segmentation
 

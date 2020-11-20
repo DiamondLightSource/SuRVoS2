@@ -157,6 +157,8 @@ class PipelineCard(Card):
         self._add_annotations_source()
         self._add_regions_source()
 
+        self._add_param("lam", type="Float", default=1.0)
+
         for pname, params in fparams.items():
             if pname not in ["src", "dst"]:
                 self._add_param(pname, **params)
@@ -165,7 +167,7 @@ class PipelineCard(Card):
         self._add_view_btn()
 
     def _add_view_btn(self):
-        view_btn = PushButton("View", accent=True)
+        view_btn = PushButton("3D View", accent=True)
         view_btn.clicked.connect(self.view_pipeline)
         self.add_row(HWidgets(None, view_btn, Spacing(35)))
 
@@ -265,6 +267,9 @@ class PipelineCard(Card):
         ] = feature_names_list  # ['002_gaussian_blur', '002_gaussian_blur']
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         all_params["dst"] = self.pipeline_id
+
+        all_params["lam"] = self.widgets["lam"]
+
         all_params.update({k: v.value() for k, v in self.widgets.items()})
 
         logger.info(f"Computing pipelines {self.pipeline_type} {all_params}")

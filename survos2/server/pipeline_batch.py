@@ -68,11 +68,7 @@ def gridsampler_pipeline(
         label=tio.Image(tensor=img_tens, label=tio.LABEL),
     )
 
-    img_dataset = tio.ImagesDataset(
-        [
-            one_subject,
-        ]
-    )
+    img_dataset = tio.ImagesDataset([one_subject,])
     img_sample = img_dataset[-1]
 
     grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)
@@ -122,13 +118,17 @@ def gridsampler_pipeline(
                 f"Allocating memory for no. voxels: {cropped_vol.shape[0] * cropped_vol.shape[1] * cropped_vol.shape[2]}"
             )
 
-            #payload = Patch(
+            # payload = Patch(
             #    {"in_array": cropped_vol},
             #    offset_pts,
             #    None,
-            #)
+            # )
 
-            payload = Patch({'total_mask': np.random.random((4,4),)}, {'total_anno': np.random.random((4,4),)}, {'points': np.random.random((4,3),)})
+            payload = Patch(
+                {"total_mask": np.random.random((4, 4),)},
+                {"total_anno": np.random.random((4, 4),)},
+                {"points": np.random.random((4, 3),)},
+            )
             pipeline.init_payload(payload)
 
             for step in pipeline:

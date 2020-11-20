@@ -18,6 +18,7 @@ workspace.add_data workspace=test_s1  data_fname=D:/datasets/survos_brain/ws3/da
 
 (replace the data_fname with an h5 file that has the image data stored as 'data'.)
 
+workspace.add_dataset workspace=test_s1 dataset_name=data  dtype=float32
 
 # Configuration
 

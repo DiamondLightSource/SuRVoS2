@@ -1,14 +1,10 @@
 import os
 
-# from .utils import resource
 from .qtcompat import QtWidgets, QtCore, QtGui
 from .plugins import list_plugins, get_plugin
 from .views import list_views, get_view
-
-# from .components import *
 from .modal import ModalManager
 from .control import Launcher
-
 
 from multiprocessing import Process
 from vispy.color import Colormap
@@ -16,7 +12,6 @@ from vispy.color import Colormap
 from survos2.utils import get_logger
 from survos2.config import Config
 import time
-
 
 import numpy as np
 import numba
@@ -198,24 +193,23 @@ def update_ui():
 class MainWindow(QtWidgets.QMainWindow):
 
     resized = QtCore.Signal()
-
     __title__ = "SuRVoS2: Super-Region Volume Segmentation workbench"
 
     def __init__(self, plugins=None, views=None, maximize=False, title=__title__):
         print("MainWindow")
         super().__init__()
 
-        self.p = Process(target=update_ui)
-        self.p.start()
+        #self.p = Process(target=update_ui)
+        #self.p.start()
 
         material_font = resource("iconfont", "MaterialIcons-Regular.ttf")
         QtGui.QFontDatabase.addApplicationFont(material_font)
 
-        qcs_path = resource("qcs", "survos.qcs")
-        print(qcs_path)
-        if os.path.isfile(qcs_path):
-            with open(qcs_path, "r") as f:
-                self.setStyleSheet(f.read())
+        #qcs_path = resource("qcs", "survos.qcs")
+        #print(qcs_path)
+        #if os.path.isfile(qcs_path):
+        #    with open(qcs_path, "r") as f:
+        #        self.setStyleSheet(f.read())
 
         self.setWindowTitle(title)
 
@@ -236,7 +230,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if Launcher.g.connected:
             ModalManager.g.hide()
-
+        #with napari.gui_qt():
+        #    viewer = napari.Viewer(title="SuRVoS", show=True)
+        #    viewer.theme = "light"
+        #    viewer.window._qt_window.setGeometry(100, 200, 1280, 720)
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.resized.emit()

@@ -47,7 +47,7 @@ def supervoxels(
     compactness: Float = 20,
     spacing: FloatList = [1, 1, 1],
     multichannel: SmartBoolean = False,
-    enforce_connectivity: SmartBoolean = False
+    enforce_connectivity: SmartBoolean = False,
 ):
     """
     API wrapper for `cuda-slic`.
@@ -56,7 +56,7 @@ def supervoxels(
 
     logger.info(
         f"Calling cuda-slic with src: {src} dst: {dst}\n n_segments {n_segments} Compactness {compactness} Spacing {spacing}"
-    ) 
+    )
     # import pdb; pdb.set_trace()
     map_blocks(
         slic,

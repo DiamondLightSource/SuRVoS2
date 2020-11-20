@@ -1,0 +1,42 @@
+{
+    "PATCH_DIM": 32,
+    "class_names": [
+        "DLP E",
+        "DLP F",
+        "DLP w",
+        "NaN",
+        "None ",
+        "SLP",
+        "There",
+        "Too c"
+    ],
+    "datasets_dir": "D:\\datasets",
+    "entities_relpath": "out/entities_df.csv",
+    "file_keys": [
+        "vol_locs",
+        "vol_shortlist",
+        "vol_pts"
+    ],
+    "patch_dims": [
+        6,
+        224,
+        224
+    ],
+    "patch_size": [
+        20,
+        224,
+        224
+    ],
+    "scale_alpha": 0.1,
+    "vol_locs": "out/vol_locs.h5",
+    "vol_pts": "out/vol_pts.h5",
+    "vol_shape_x": 2112,
+    "vol_shape_y": 2160,
+    "vol_shape_z": 165,
+    "vol_shortlist": "out/vol_shortlist.h5",
+    "wide_patch_pos": [
+        80,
+        1000,
+        1000
+    ]
+}

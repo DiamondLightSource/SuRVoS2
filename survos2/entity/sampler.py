@@ -10,25 +10,123 @@ import itertools
 from survos2.frontend.nb_utils import summary_stats
 from survos2.entity.anno.geom import centroid_3d, rescale_3d
 
+# from survos2.entity.entities import get_centered_vol_in_bbox
+
 from loguru import logger
 
 
-def centroid_to_bvol(cents, bvol_dim=(10, 10, 10)):
+def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16), sample_grid=False):
+
+    z_dim, x_dim, y_dim = grid_dim
+    spacez = np.linspace(0, padded_vol.shape[0] - (2 * padding[0]), z_dim)
+    spacex = np.linspace(0, padded_vol.shape[1] - (2 * padding[1]), x_dim)
+    spacey = np.linspace(0, padded_vol.shape[2] - (2 * padding[2]), y_dim)
+
+    zv, xv, yv = np.meshgrid(spacez, spacex, spacey)
+    print(zv.shape, xv.shape, yv.shape)
+
+    gridarr = np.stack((zv, xv, yv)).astype(np.uint32)
+    gridarr[:, 1, 1, 1]
+
+    zv_f = zv.reshape((z_dim * x_dim * y_dim))
+    xv_f = xv.reshape((z_dim * x_dim * y_dim))
+    yv_f = yv.reshape((z_dim * x_dim * y_dim))
+
+    class_code = [0] * len(zv_f)
+
+    trans_pts = np.stack((zv_f, xv_f, yv_f, class_code)).T.astype(np.uint32)
+
+    return trans_pts
+
+
+def generate_random_points(vol, num_pts, patch_size):
+    pts = np.random.random((num_pts, 4))
+    z_size, x_size, y_size = patch_size
+    pts[:, 0] = pts[:, 0] * (vol.shape[0] - z_size * 2) + z_size // 2
+    pts[:, 1] = pts[:, 1] * (vol.shape[1] - y_size * 2) + x_size // 2
+    pts[:, 2] = pts[:, 2] * (vol.shape[2] - x_size * 2) + y_size // 2
+    pts = np.abs(pts)
+    return pts
+
+
+def offset_points(pts, offset, scale=32, random_offset=False):
+    trans_pts = pts.copy()
+
+    trans_pts[:, 0] = pts[:, 0] + offset[0]
+    trans_pts[:, 1] = pts[:, 1] + offset[1]
+    trans_pts[:, 2] = pts[:, 2] + offset[2]
+
+    if random_offset:
+
+        trans_pts[:, 0] = pts[:, 0] + padding[0]
+        trans_pts[:, 1] = pts[:, 1] + padding[1]
+        trans_pts[:, 2] = pts[:, 2] + padding[2]
+
+        offset_rand = np.random.random(trans_pts.shape) * scale
+        offset_rand[:, 3] = np.zeros((len(trans_pts)))
+
+        trans_pts = trans_pts + offset_rand
+
+    return trans_pts
+
+
+def centroid_to_bvol(cents, bvol_dim=(10, 10, 10), flipxy=False):
     bd, bw, bh = bvol_dim
-    bvols = np.array(
-        [
-            (cz - bd, cx - bw, cy - bh, cz + bd, cx + bw, cy + bh)
-            for cz, cx, cy, _ in cents
-        ]
-    )
+    if flipxy:
+        bvols = np.array(
+            [
+                (cz - bd, cx - bw, cy - bh, cz + bd, cx + bw, cy + bh)
+                for cz, cx, cy, _ in cents
+            ]
+        )
+    else:
+        bvols = np.array(
+            [
+                (cz - bd, cx - bw, cy - bh, cz + bd, cx + bw, cy + bh)
+                for cz, cy, cx, _ in cents
+            ]
+        )
+
     return bvols
 
 
-def viz_bvols(input_array, bvols):
+def sample_volumes(sel_ents, precropped_vol):
+    sampled_vols = []
+    for i in range(len(sel_ents)):
+        ent = sel_ents.iloc[i]
+        bb = np.array(
+            [
+                ent["bb_s_z"],
+                ent["bb_f_z"],
+                ent["bb_s_x"],
+                ent["bb_f_x"],
+                ent["bb_s_y"],
+                ent["bb_f_y"],
+            ]
+        ).astype(np.uint32)
+        sampled_vols.append(sample_bvol(precropped_vol, bb))
+    return sampled_vols
+
+
+def viz_bvols(input_array, bvols, flip_coords=False):
     bvol_mask = np.zeros_like(input_array)
+    print(f"Making {len(bvols)} bvols")
     for bvol in bvols:
-        bvol = bvol.astype(int)
-        bvol_mask[bvol[0] : bvol[3], bvol[1] : bvol[4], bvol[2] : bvol[5]] = 1.0
+        # print(bvol)
+        bvol = bvol.astype(np.int32)
+        z_s = np.max((0, bvol[0]))
+        z_f = np.min((bvol[3], input_array.shape[0]))
+        x_s = np.max((0, bvol[1]))
+        x_f = np.min((bvol[4], input_array.shape[1]))
+        y_s = np.max((0, bvol[2]))
+        y_f = np.min((bvol[5], input_array.shape[2]))
+        # print(f"Sampling {z_s}, {z_f}, {x_s}, {x_f}, {y_s}, {y_f}")
+
+        if flip_coords:
+            bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
+        else:
+            bvol_mask[z_s:z_f, x_s:x_f, y_s:y_f] = 1.0
+
     return bvol_mask
 
 
@@ -118,7 +216,7 @@ def sample_marked_patches(
     img_volume, locs, pts, patch_size=(32, 32, 32), debug_verbose=False
 ):
     """Samples a large image volume into a MarkedPatches object.
-    Uses bounding volumes, and crops the image volume and associated geometry 
+    Uses bounding volumes, and crops the image volume and associated geometry
     into a list of cropped volumes and cropped geometry.
 
     Parameters
@@ -161,13 +259,11 @@ def sample_marked_patches(
         w = w // 2
         h = h // 2
 
-        x = int(np.ceil(x))  # why take np.ceil???
+        sliceno = int(sliceno)
+        x = int(np.ceil(x))
         y = int(np.ceil(y))
 
-        sliceno = int(sliceno)
-
         slice_start = np.max([0, sliceno - np.int(patch_size[0] / 2.0)])
-
         slice_end = np.min([sliceno + np.int(patch_size[0] / 2.0), img_volume.shape[0]])
 
         out_of_bounds = np.unique(
@@ -184,7 +280,7 @@ def sample_marked_patches(
         )
 
         pts_c = pts.copy()
-        vol_pts = np.delete(pts_c, out_of_bounds, axis=0)
+        sel_pts = np.delete(pts_c, out_of_bounds, axis=0)
 
         if debug_verbose:
             print("Shape of original pt data {}".format(pts.shape))
@@ -192,14 +288,22 @@ def sample_marked_patches(
 
         img = get_centered_vol_in_bbox(img_volume, slice_start, slice_end, y, x, h, w)
 
-        print(vol_pts.shape)
+        sel_pts[:, 0] = sel_pts[:, 0] - slice_start
+        sel_pts[:, 1] = sel_pts[:, 1] - (x - w)
+        sel_pts[:, 2] = sel_pts[:, 2] - (y - h)
+
         if img.shape == patch_size:
+            # print(f"Number of points cropped in bounding box: {sel_pts.shape}")
             vols.append(img)
-            vols_pts.append(
-                [vol_pts[0, 0], vol_pts[0, 1], vol_pts[0, 2], vol_pts[0, 3]]
-            )
-            vols_bbs.append([slice_start, slice_end, x - w, x + w, y - h, y + h])
-            vols_locs.append(locs[j])
+
+        else:
+            incomplete_img = np.zeros(patch_size)
+            incomplete_img[0 : img.shape[0], 0 : img.shape[1], 0 : img.shape[2]] = img
+            # print(img.shape)
+            vols.append(incomplete_img)
+        vols_pts.append(sel_pts)
+        vols_bbs.append([slice_start, slice_end, x - w, x + w, y - h, y + h])
+        vols_locs.append(locs[j])
 
     vols = np.array(vols)
     vols_pts = np.array(vols_pts)
@@ -207,32 +311,42 @@ def sample_marked_patches(
     vols_locs = np.array(vols_locs)
 
     marked_patches = MarkedPatches(vols, vols_pts, vols_locs, vols_bbs)
-    print(f"Generated {len(locs)} MarkedPatches from image of shape {vols.shape}")
+    print(f"Generated {len(locs)} MarkedPatches of shape {vols.shape}")
 
     return marked_patches
 
 
-def crop_vol_and_pts_bb(
-    img_volume, pts, bounding_box, debug_verbose=False, offset=False
+def crop_vol_and_pts(
+    img_data,
+    pts,
+    location=(60, 700, 700),
+    patch_size=(40, 300, 300),
+    debug_verbose=False,
+    offset=False,
 ):
+    patch_size = np.array(patch_size).astype(np.uint32)
+    location = np.array(location).astype(np.uint32)
 
-    # TODO: clip bbox to img_volume
-    z_st, z_end, x_st, x_end, y_st, y_end = bvol
+    # z, x_bl, x_ur, y_bl, y_ur = location[0], location[1], location[1]+patch_size[1], location[2], location[2]+patch_size[2]
+
+    slice_start = np.max([0, location[0]])
+    slice_end = np.min([location[0] + patch_size[0], img_data.shape[0]])
 
     out_of_bounds_w = np.hstack(
         (
-            np.where(pts[:, 0] <= z_st)[0],
-            np.where(pts[:, 0] >= z_end)[0],
-            np.where(pts[:, 1] >= x_st)[0],
-            np.where(pts[:, 1] <= x_end)[0],
-            np.where(pts[:, 2] >= z_st)[0],
-            np.where(pts[:, 2] <= z_end)[0],
+            np.where(pts[:, 2] >= location[2] + patch_size[2])[0],
+            np.where(pts[:, 2] <= location[2])[0],
+            np.where(pts[:, 1] >= location[1] + patch_size[1])[0],
+            np.where(pts[:, 1] <= location[1])[0],
+            np.where(pts[:, 0] <= location[0])[0],
+            np.where(pts[:, 0] >= location[0] + patch_size[0])[0],
         )
     )
 
     cropped_pts = np.array(np.delete(pts, out_of_bounds_w, axis=0))
 
     if offset:
+
         cropped_pts[:, 0] = cropped_pts[:, 0] - location[0]
         cropped_pts[:, 1] = cropped_pts[:, 1] - location[1]
         cropped_pts[:, 2] = cropped_pts[:, 2] - location[2]
@@ -245,6 +359,78 @@ def crop_vol_and_pts_bb(
         )
         print("Slice start, slice end {} {}".format(slice_start, slice_end))
         print("Cropped points array shape: {}".format(cropped_pts.shape))
+
+    img = crop_vol_in_bbox(
+        img_data,
+        slice_start,
+        slice_end,
+        location[2],
+        location[1],
+        patch_size[2],
+        patch_size[1],
+    )
+
+    return img, cropped_pts
+
+
+def crop_pts_bb(
+    pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offset=False
+):
+
+    z_st, z_end, x_st, x_end, y_st, y_end = bounding_box
+    print(z_st, z_end, x_st, x_end, y_st, y_end)
+
+    out_of_bounds_w = np.hstack(
+        (
+            np.where(pts[:, 0] <= z_st)[0],
+            np.where(pts[:, 0] >= z_end)[0],
+            np.where(pts[:, 1] <= x_st)[0],
+            np.where(pts[:, 1] >= x_end)[0],
+            np.where(pts[:, 2] <= y_st)[0],
+            np.where(pts[:, 2] >= y_end)[0],
+        )
+    )
+
+    cropped_pts = np.array(np.delete(pts, out_of_bounds_w, axis=0))
+
+    if offset:
+        location = (z_st, x_st, y_st)
+        cropped_pts[:, 0] = cropped_pts[:, 0] - location[0]
+        cropped_pts[:, 1] = cropped_pts[:, 1] - location[1]
+        cropped_pts[:, 2] = cropped_pts[:, 2] - location[2]
+        print(f"Offset location {location}")
+
+    if debug_verbose:
+        print("Cropped points array shape: {}".format(cropped_pts.shape))
+
+    return cropped_pts
+
+
+def crop_vol_and_pts_bb(
+    img_volume, pts, bounding_box, debug_verbose=False, offset=False
+):
+
+    # TODO: clip bbox to img_volume
+    z_st, z_end, y_st, y_end, x_st, x_end = bounding_box
+
+    location = (z_st, x_st, y_st)
+    out_of_bounds_w = np.hstack(
+        (
+            np.where(pts[:, 0] <= z_st)[0],
+            np.where(pts[:, 0] >= z_end)[0],
+            np.where(pts[:, 1] <= x_st)[0],
+            np.where(pts[:, 1] >= x_end)[0],
+            np.where(pts[:, 2] <= y_st)[0],
+            np.where(pts[:, 2] >= y_end)[0],
+        )
+    )
+
+    cropped_pts = np.array(np.delete(pts, out_of_bounds_w, axis=0))
+
+    if offset:
+        cropped_pts[:, 0] = cropped_pts[:, 0] - location[0]
+        cropped_pts[:, 1] = cropped_pts[:, 1] - location[1]
+        cropped_pts[:, 2] = cropped_pts[:, 2] - location[2]
 
     img = sample_bvol(img_volume, bounding_box)
 

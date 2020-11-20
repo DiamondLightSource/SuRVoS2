@@ -161,7 +161,7 @@ class FeatureCard(Card):
             self.add_row(HWidgets(None, name, feature, Spacing(35)))
 
     def _add_view_btn(self):
-        view_btn = PushButton("View", accent=True)
+        view_btn = PushButton("3D View", accent=True)
         view_btn.clicked.connect(self.view_feature)
         self.add_row(HWidgets(None, view_btn, Spacing(35)))
 

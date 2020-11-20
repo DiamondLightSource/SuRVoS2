@@ -64,7 +64,7 @@ def init_ws(workspace_params):
 
     if "downsample_by" in workspace_params:
         downby = int(workspace_params["downsample_by"])
-        img_volume = img_volume[::downby, ::downby,::downby]
+        img_volume = img_volume[::downby, ::downby, ::downby]
 
     tmpvol_fullpath = "tmp\\tmpvol.h5"
 
@@ -96,18 +96,18 @@ def init_ws(workspace_params):
 def init_client():
     survos.init_api()
     from survos2.model import Workspace
-    
-    #ws = Workspace(DataModel.g.current_workspace)
-    #dataset_name = "__data__"
-    #ds = ws.get_dataset(dataset_name)
-    #img_volume = ds[:]
-    #logger.debug(f"Image volume loaded: {img_volume.shape}")
-    
+
+    # ws = Workspace(DataModel.g.current_workspace)
+    # dataset_name = "__data__"
+    # ds = ws.get_dataset(dataset_name)
+    # img_volume = ds[:]
+    # logger.debug(f"Image volume loaded: {img_volume.shape}")
+
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
-    
+
     DataModel.g.current_workspace_shape = img_volume.shape
 
     logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")

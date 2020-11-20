@@ -9,7 +9,7 @@
     max-width: 500px;
     min-height: 200px;
 
-    background-color: #FAFAFA;
+    background-color: #121218;
     border: 2px solid #0D47A1;
 }
 

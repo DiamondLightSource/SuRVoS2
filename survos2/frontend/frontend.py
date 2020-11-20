@@ -64,7 +64,7 @@ class WorkerThread(QThread):
 
         timer = QTimer()
         timer.timeout.connect(work)
-        timer.start(100000)
+        timer.start(50000)
         self.exec_()
 
 
@@ -100,22 +100,25 @@ def frontend(cData):
 
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
+        
         viewer.theme = "dark"
+        viewer.window._qt_window.setGeometry(100, 200, 1280, 720)
 
         # remove in order to rearrange standard Napari layer widgets
-        # viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerList)
-        # viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerControls)
-
+        viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerList)
+        viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerControls)
+        #viewer.window.qt_viewer.setVisible(False)
         # Load data into viewer
         viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])
 
         viewer.dw = AttrDict()
-        viewer.dw.bpw = ButtonPanelWidget()
+        #viewer.dw.bpw = ButtonPanelWidget()
         viewer.dw.ppw = PluginPanelWidget()
-        viewer.dw.ppw.setMinimumSize(QSize(400, 500))
+        viewer.dw.ppw.setMinimumSize(QSize(400,400))
 
         # attach workspace to viewer for interactive debugging
         from survos2.model import Workspace
+
         ws = Workspace(DataModel.g.current_workspace)
         viewer.dw.ws = ws
         viewer.dw.datamodel = DataModel.g
@@ -172,14 +175,16 @@ def frontend(cData):
                 result = Launcher.g.run(
                     "annotations", "get_levels", workspace=DataModel.g.current_workspace
                 )
-                logger.debug(f"Result of regions existing: {result}")
-                if result:
-                    for r in result:
-                        level_name = r["name"]
-                        if r["kind"] == "level":
-                            cmapping = {}
-                            for k, v in r["labels"].items():
-                                cmapping[int(k)] = hex_string_to_rgba(v["color"])
+                logger.debug(f"Result of annotations get_levels: {result}")
+                # if result:
+                #     for r in result:
+                #         level_name = r["name"]
+                #         if r["kind"] == "level":
+                #             cmapping = {}
+                #             for ii, (k, v) in enumerate(r["labels"].items()):
+                #                 remapped_label = int(k) + (16 * ii)
+                #                 print(remapped_label)
+                #                 cmapping[remapped_label] = hex_string_to_rgba(v["color"])
 
                 src = DataModel.g.dataset_uri(msg["pipeline_id"], group="pipeline")
 
@@ -188,45 +193,124 @@ def frontend(cData):
                     src_arr = src_dataset[:]
 
                     existing_layer = [
-                        v for v in viewer.layers if v.name == msg["pipeline_id"]
+                        (i, v)
+                        for i, v in enumerate(viewer.layers)
+                        if v.name == "001_level"
                     ]
 
                     if len(existing_layer) > 0:
-                        existing_layer[0].data = src_arr
-                    else:
-
-                        viewer.add_labels(
-                            src_arr, name=msg["pipeline_id"], color=cmapping
+                        logger.debug(
+                            f"Removing existing layer and re-adding it with new colormapping. {existing_layer}"
                         )
+
+                        viewer.layers.remove(existing_layer[0][0])
+                        viewer.add_labels(
+                            src_arr, name=msg["pipeline_id"]) #, color=cmapping)
+                    else:
+                        viewer.add_labels(
+                            src_arr, name=msg["pipeline_id"]) #, color=cmapping)
 
             elif msg["data"] == "view_annotations":
                 logger.debug(f"view_annotation {msg['level_id']}")
 
-                src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
-                with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
-                    src_dataset = DM.sources[0]
-                    src_arr = src_dataset[:]
+                ws = Workspace(DataModel.g.current_workspace)
+                dataset_name = "annotations\\" + msg["level_id"]
+                ds = ws.get_dataset(dataset_name)
+                src_arr = ds[:]
+
+                # src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
+                # with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
+                #    src_dataset = DM.sources[0]
+                #    src_arr = src_dataset[:]
 
                 result = Launcher.g.run(
                     "annotations", "get_levels", workspace=DataModel.g.current_workspace
                 )
+                label_ids = list(np.unique(src_arr))
+                label_ids.remove(0)
+                #label_ids.reverse()
+                print(label_ids)
+
 
                 if result:
-                    for r in result:
-                        level_name = r["name"]
-                        if r["kind"] == "level":
-                            cmapping = {}
-                            for k, v in r["labels"].items():
-                                cmapping[int(k)] = hex_string_to_rgba(v["color"])
+                    # for r in result:
+                    #     level_name = r["name"]
+                    #     if r["kind"] == "level":
+                    #         cmapping = {}
+                    #         print(r["labels"].items())
+                    #         for ii, (k, v) in enumerate(r["labels"].items()):
+                    #             remapped_label = label_ids[ii]
+                    #             print(remapped_label)
+                    #             cmapping[remapped_label] = hex_string_to_rgba(v["color"])
+                    #             #cmapping[ii+1] = hex_string_to_rgba(v["color"])
+                    # print(cmapping)
+                    # #cmapping[0] = (0.0,0.0,0.0,1.0)
 
                     existing_layer = [
                         v for v in viewer.layers if v.name == msg["level_id"]
                     ]
 
+                    regions_dataset = DataModel.g.dataset_uri("regions/002_supervoxels")            
+                    with DatasetManager(regions_dataset, out=None, dtype="uint32", fillvalue=0) as DM:
+                        src_dataset = DM.sources[0]
+                        sv_arr = src_dataset[:]
+                    print(f"SV array shape {sv_arr.shape}")
+
+
                     if len(existing_layer) > 0:
                         existing_layer[0].data = src_arr
                     else:
-                        viewer.add_labels(src_arr, name=msg["level_id"], color=cmapping)
+                        label_layer = viewer.add_labels(src_arr, name=msg["level_id"])#, color=cmapping)
+                        
+                        @label_layer.mouse_drag_callbacks.append
+                        def view_location(layer, event):
+                            print('mouse down')
+                            dragged = False
+                            yield
+                            
+                            drag_pts = []
+                            all_regions = set() 
+                            
+                            while event.type == 'mouse_move':
+                                coords = np.round(layer.coordinates).astype(int)
+                                drag_pt = [viewer.dims.current_step[0], coords[0], coords[1]]
+                                drag_pts.append(drag_pt)
+                                dragged = True
+                                yield
+                            
+                            if dragged:
+                                print('drag end')
+                                print(drag_pts)
+                                
+                                level = msg["level_id"]
+                                label = 1
+
+                                #params = dict(workpace=True, src=region, slice_idx=viewer.dims.current_step[0])
+                                #result = Launcher.g.run("regions", "get_slice", **params)
+                                
+                                from survos2.utils import decode_numpy
+                                #region = decode_numpy(result)
+                                #print(region.shape)
+                                
+                                for z,x,y in drag_pts:
+                                    print(z,x,y)
+                                    sv = sv_arr[z, y, x]
+                                    all_regions |= set([sv])
+                                
+                                print(all_regions)      
+
+                                params = dict(workspace=True, level=level, label=label)
+                                region = DataModel.g.dataset_uri("regions/002_supervoxels")
+                                
+                                params.update(region=region, r=list(map(int, all_regions)), modal=False)
+                                result = Launcher.g.run("annotations", "annotate_regions", **params)
+                            
+                            else:
+                                print('single click')
+                        # coords = np.round(layer.coordinates).astype(int)
+                        # viewer.status = str(coords)
+                        # logger.debug(f"{coords} {event}")
+                        
 
             elif msg["data"] == "view_feature":
                 logger.debug(f"view_feature {msg['feature_id']}")
@@ -260,7 +344,8 @@ def frontend(cData):
                     if len(existing_layer) > 0:
                         existing_layer[0].data = src_arr
                     else:
-                        viewer.add_labels(src_arr, name=msg["region_id"])
+                        from skimage.segmentation import find_boundaries
+                        viewer.add_image(find_boundaries(src_arr), name=msg["region_id"])
 
             elif msg["data"] == "view_entitys":
                 logger.debug(f"view_entitys {msg['entitys_id']}")
@@ -377,7 +462,7 @@ def frontend(cData):
                 viewer.dw.ppw.setup()
 
             elif msg["data"] == "update_annotation":
-
+                
                 annotation_layer = [
                     v for v in viewer.layers if v.name == cfg.current_annotation
                 ]
@@ -413,19 +498,35 @@ def frontend(cData):
         viewer.dw.ppw.clientEvent.connect(lambda x: processEvents(x))
         cData.cfg.ppw = viewer.dw.ppw
 
-        # Button panel widget
-        # bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')
-        # viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x))
+        from survos2.frontend.scratch_f2 import MainWidget
+        viewer.classic_widget = MainWidget()
+        #viewer.window.qt_viewer.setFixedSize(200,200)
+        #viewer.window.qt_viewer.setVisible(False)
+        viewer.dims.ndisplay = 3
 
+        classic_dockwidget = viewer.window.add_dock_widget(viewer.classic_widget, area="right")
+        classic_dockwidget.setVisible(False)
+        
+        #main_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer, area="right")
+        #viewer.dw.bpw = ButtonPanelWidget() 
+        #bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='top')                
+        #viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x)  )  
+
+        
         #
         # Tabs
         #
 
+        
         pluginwidget_dockwidget = viewer.window.add_dock_widget(
-            viewer.dw.ppw, area="right"
+            viewer.dw.ppw, area="left"
         )
         pluginwidget_dockwidget.setWindowTitle("Workspace")
 
+        viewer.window.add_dock_widget(viewer.window.qt_viewer.dockLayerList, area="right")
+        viewer.window.add_dock_widget(viewer.window.qt_viewer.dockLayerControls, area="right")
+        #viewer.window.qt_viewer.dockLayerControls.setVisible(False)
+                
         workspace_gui_widget = workspace_gui.Gui()
         workspace_gui_dockwidget = viewer.window.add_dock_widget(
             workspace_gui_widget, area="left"
@@ -440,13 +541,16 @@ def frontend(cData):
 
         update_annotation_gui_widget = update_annotation_gui.Gui()
         update_annotation_dockwidget = viewer.window.add_dock_widget(
-            update_annotation_gui_widget, area="left"
+            update_annotation_gui_widget, area="right"
         )
         viewer.layers.events.changed.connect(
             lambda x: update_annotation_gui_widget.refresh_choices()
         )
         update_annotation_gui_widget.refresh_choices()
         update_annotation_dockwidget.setWindowTitle("Update annotation")
+        update_annotation_dockwidget.setVisible(False)
+        
+
 
         def coords_in_view(coords, image_shape):
             if (

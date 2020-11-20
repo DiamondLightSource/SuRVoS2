@@ -108,7 +108,7 @@ class PluginPanelWidget(QtWidgets.QWidget):
         QtWidgets.QWidget.__init__(self, *args, **kwargs)
         self.pluginContainer = PluginContainer()
 
-        vbox = VBox(self, margin=(1, 0, 0, 0), spacing=5)
+        vbox = VBox(self, margin=(1, 1, 1, 1), spacing=5)
         vbox.addWidget(self.pluginContainer)
         self.setLayout(vbox)
 

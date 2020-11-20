@@ -26,6 +26,44 @@ from mpl_toolkits.mplot3d import axes3d, Axes3D
 from survos2.frontend.utils import quick_norm
 
 
+def plot_slice_and_pts(
+    img_volume, pts=None, bg_vol=None, slice_idxs=(0, 0, 0), suptitle=""
+):
+    z, x, y = slice_idxs
+    print(z, x, y)
+    plt.figure(figsize=(12, 12))
+    plt.suptitle(suptitle, fontsize=20)
+    if bg_vol is None:
+        plt.imshow(img_volume[z, :], cmap="gray")
+    else:
+        plt.imshow(img_volume[z, :] + bg_vol[z, :], cmap="gray")
+    plt.title(f"XY, Z: {z}")
+    if pts is not None:
+        plt.scatter(pts[:, 1], pts[:, 2])
+
+    plt.figure(figsize=(12, 12))
+    if bg_vol is None:
+        plt.imshow(img_volume[:, :, y], cmap="gray")
+    else:
+        plt.imshow(img_volume[:, :, y] + bg_vol[:, :, y], cmap="gray")
+    plt.title(f"ZX, Y:{y}")
+    if pts is not None:
+        plt.scatter(pts[:, 1], pts[:, 0])
+
+    plt.figure(figsize=(12, 12))
+    if bg_vol is None:
+        plt.imshow(img_volume[:, x, :], cmap="gray")
+    else:
+        plt.imshow(img_volume[:, x, :] + bg_vol[:, x, :], cmap="gray")
+
+    plt.title(f"ZY, X:{x}")
+    if pts is not None:
+        plt.scatter(
+            pts[:, 2],
+            pts[:, 0],
+        )
+
+
 def view_volume(imgvol, name=""):
 
     with napari.gui_qt():
@@ -63,7 +101,10 @@ def view_labels(img_vols, label_vol, name=""):
 
         viewer = napari.Viewer()
 
-        label_layer = viewer.add_labels(label_vol, name="segmentation",)
+        label_layer = viewer.add_labels(
+            label_vol,
+            name="segmentation",
+        )
 
         return viewer
 

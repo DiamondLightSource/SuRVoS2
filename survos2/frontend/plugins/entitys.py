@@ -131,7 +131,7 @@ class EntitysCard(Card):
 
         self.entitysfullname.setMaximumWidth(250)
         self.compute_btn = PushButton("Compute")
-        self.view_btn = PushButton("View", accent=True)
+        self.view_btn = PushButton("3D View", accent=True)
         self.get_btn = PushButton("Get", accent=True)
 
         self.add_row(HWidgets("Source:", self.entitysfullname, stretch=1))

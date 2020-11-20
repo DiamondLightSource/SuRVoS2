@@ -64,7 +64,7 @@ def update_annotation_gui():
 def workspace_gui(Layer: layers.Image, Group: TransferOperation):
     logger.debug(f"Selected layer name: {Layer.name} and shape: {Layer.data.shape} ")
 
-    params = dict(feature_type="viewer", workspace=True)
+    params = dict(feature_type="raw", workspace=True)
 
     if Group.name == "features":
         result = Launcher.g.run("features", "create", **params)

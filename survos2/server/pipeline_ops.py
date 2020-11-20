@@ -1,11 +1,22 @@
+import os
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+
+import torchio as tio
+from torchio.data.inference import GridSampler, GridAggregator
+from torchio import IMAGE, LOCATION
+from torch.utils.data import DataLoader
+from torchvision import datasets, models, transforms
+from tqdm import tqdm
+
 from survos2.entity.entities import make_entity_df
 from survos2.server.superseg import sr_predict
 from survos2.entity.anno.masks import generate_sphere_masks_fast
 from survos2.server.supervoxels import generate_supervoxels
-from survos2.server.features import (
-    features_factory,
-    generate_features,
-)
+
 from survos2.server.model import SRData, SRPrediction, SRFeatures
 from survos2.entity.sampler import crop_vol_and_pts_centered
 from survos2.helpers import AttrDict
@@ -17,8 +28,37 @@ from survos2.entity.saliency import measure_big_blobs
 from survos2.entity.sampler import centroid_to_bvol, viz_bvols
 from survos2.server.pipeline import Patch
 from loguru import logger
-from UtilityCluster import show_images
+from survos2.frontend.nb_utils import show_images
 
+
+from survos2.server.features import (
+    features_factory,
+    generate_features,
+)
+from survos2.server.superseg import _sr_prediction
+from survos2.server.supervoxels import superregion_factory
+from skimage import img_as_ubyte
+from survos2.server.superseg import mrf_refinement
+
+
+def save_model(filename, model, optimizer, torch_models_fullpath):
+
+    if not os.path.exists(torch_models_fullpath):
+        os.makedirs(torch_models_fullpath)
+
+    model_dictionary = {
+        "model_state": model.state_dict(),
+        "model_optimizer": optimizer.state_dict(),
+    }
+
+    checkpoint_directory = torch_models_fullpath
+    file_path = os.path.join(checkpoint_directory, filename)
+
+    torch.save(model_dictionary, file_path)
+
+
+def make_noop(patch: Patch, params: dict):
+    return patch
 
 
 def sphere_masks(patch: Patch, params: dict):
@@ -27,8 +67,12 @@ def sphere_masks(patch: Patch, params: dict):
         patch.geometry_layers["Entities"],
         radius=params.pipeline.mask_radius,
     )
-    show_images([total_mask[total_mask.shape[0]//2,:]],
-                 ['Sphere mask, radius: ' + str(mask_radius),])
+    show_images(
+        [total_mask[total_mask.shape[0] // 2, :]],
+        [
+            "Sphere mask, radius: " + str(mask_radius),
+        ],
+    )
 
     patch.image_layers["generated"] = total_mask
 
@@ -42,19 +86,30 @@ def make_masks(patch: Patch, params: dict):
     ((Array of 3d points) -> Float layer)
 
     """
+    padding = params["mask_params"]["padding"]
+    geom = patch.geometry_layers["Points"].copy()
+
+    mask_radius = params["mask_params"]["mask_radius"]
+
+    geom[:, 0] = geom[:, 0] + padding[0]
+    geom[:, 1] = geom[:, 1] + padding[1]
+    geom[:, 2] = geom[:, 2] + padding[2]
+
     total_mask = generate_sphere_masks_fast(
         patch.image_layers["Main"],
-        patch.geometry_layers["Points"],
-        radius=params['pipeline']['mask_radius'],
+        geom,
+        radius=mask_radius[0],
     )
 
     core_mask = generate_sphere_masks_fast(
         patch.image_layers["Main"],
-        patch.geometry_layers["Points"],
-        radius=params['pipeline']['mask_radius'],
+        geom,
+        radius=params["mask_params"]["core_mask_radius"][0],
     )
-    show_images([total_mask[total_mask.shape[0]//2,:],
-                 core_mask[core_mask.shape[0] // 2,:]])
+
+    show_images(
+        [total_mask[total_mask.shape[0] // 2, :], core_mask[core_mask.shape[0] // 2, :]]
+    )
 
     patch.image_layers["total_mask"] = total_mask
     patch.image_layers["core_mask"] = core_mask
@@ -67,10 +122,11 @@ def make_features(patch: Patch, params: dict):
     Features (Float layer -> List[Float layer])
 
     """
-    feature_params = params.feature_params["simple_gaussian"]
-    logger.info("Calculating features")
 
-    cropped_vol = patch.image_layers["Main Volume"]
+    # logger.info("Calculating features")
+
+    cropped_vol = patch.image_layers["Main"]
+    print(cropped_vol.shape)
 
     roi_crop = [
         0,
@@ -80,10 +136,102 @@ def make_features(patch: Patch, params: dict):
         0,
         cropped_vol.shape[2],
     ]
+    print(f"Roi crop: {roi_crop}")
 
-    features = generate_features(cropped_vol, feature_params, roi_crop, 1.0)
+    for feature_name, v in params["feature_params"].items():
+        print(feature_name, v)
+        features = generate_features(cropped_vol, v, roi_crop, 1.0)
 
-    # TODOadd features to payload
+        for i, layer in enumerate(features.filtered_layers):
+            patch.image_layers[feature_name] = layer
+
+    return patch
+
+
+def make_sr(patch: Patch, params: dict):
+    """
+    Takes the first feature defined in feature_params
+    """
+    # logger.debug("Making superregions for sample")
+
+    filtered_layers = [patch.image_layers[k] for k in params["feature_params"].keys()]
+
+    features = features_factory(filtered_layers)
+    superregions = generate_supervoxels(
+        np.array(features.dataset_feats),
+        features.features_stack,
+        0,
+        params["filter_cfg"]["superregions1"]["params"],
+    )
+
+    patch.features = features
+    patch.image_layers["SR"] = superregions.supervoxel_vol
+
+    return patch
+
+
+def predict_sr(patch: Patch, params: dict):
+    """"""
+    # logger.debug("Predicting superregions")
+
+    sr = superregion_factory(
+        patch.image_layers["SR"].astype(np.uint16), patch.features.features_stack
+    )
+    srprediction = _sr_prediction(
+        patch.features.features_stack,
+        patch.image_layers["total_mask"].astype(np.uint),
+        sr,
+        params["pipeline"]["predict_params"],
+    )
+
+    Rp_ref = mrf_refinement(
+        srprediction.P,
+        sr.supervoxel_vol,
+        patch.features.features_stack,
+        lam=10,
+        gamma=False,
+    )
+
+    predicted = srprediction.prob_map.copy()
+    predicted -= np.min(srprediction.prob_map)
+    predicted += 1
+    predicted = img_as_ubyte(predicted / np.max(predicted))
+    predicted = predicted - np.min(predicted)
+    predicted = predicted / np.max(predicted)
+
+    patch.image_layers["segmentation"] = predicted
+    patch.image_layers["refinement"] = Rp_ref
+
+    return patch
+
+
+def make_features2(patch: Patch, params: dict):
+    """
+    Features (Float layer -> List[Float layer])
+
+    """
+
+    logger.info("Calculating features")
+
+    cropped_vol = patch.image_layers["Main"]
+    print(cropped_vol.shape)
+
+    roi_crop = [
+        0,
+        cropped_vol.shape[0],
+        0,
+        cropped_vol.shape[1],
+        0,
+        cropped_vol.shape[2],
+    ]
+    print(f"Roi crop: {roi_crop}")
+
+    for feature_name, v in params["feature_params"].items():
+        print(feature_name, v)
+        features = generate_features(cropped_vol, v, roi_crop, 1.0)
+
+        for i, layer in enumerate(features.filtered_layers):
+            patch.image_layers[feature_name] = layer
 
     return patch
 
@@ -96,9 +244,11 @@ def acwe(patch: Patch, params: dict):
 
     """
     from skimage import exposure
-    edge_map = 1.0 - patch.image_layers['Main']
+
+    edge_map = 1.0 - patch.image_layers["Main"]
     edge_map = exposure.adjust_sigmoid(edge_map, cutoff=1.0)
     logger.debug("Calculating ACWE")
+    import morphsnakes as ms
 
     seg1 = ms.morphological_geodesic_active_contour(
         edge_map,
@@ -116,11 +266,12 @@ def acwe(patch: Patch, params: dict):
     # anno = outer_mask + inner_mask
 
     patch.image_layers["acwe"] = outer_mask
+    show_images([outer_mask[outer_mask.shape[0] // 2, :]], figsize=(12, 12))
 
     return patch
 
 
-def make_sr(patch: Patch, params: dict):
+def make_sr2(patch: Patch, params: dict):
     """
     # SRData
     #    Supervoxels (Float layer->Float layer)
@@ -133,18 +284,22 @@ def make_sr(patch: Patch, params: dict):
     """
     logger.debug("Making superregions for sample")
 
+    filtered_layers = [patch.image_layers[k] for k in params["feature_params"].keys()]
+
+    features = features_factory(filtered_layers)
     superregions = generate_supervoxels(
         np.array(features.dataset_feats),
         features.features_stack,
-        params.slic_feat_idx,
-        params.slic_params,
+        params["pipeline"]["slic_feat_idx"],
+        params["slic_params"],
     )
-    logger.debug(superregions)
+
+    patch.annotation_layers["SR"] = superregions.supervoxel_vol
 
     return patch
 
 
-def predict_sr(patch: Patch, params: dict):
+def predict_sr2(patch: Patch, params: dict):
     """
     (SRFeatures, Annotation, SRData -> Float layer prediction)
 
@@ -195,17 +350,16 @@ def saliency_pipeline(patch: Patch, params: dict):
     Post process the map into bounding boxes.
     """
     output_tensor = predict_and_agg(
-        seg_models["saliency_model"],
+        params["saliency_model"],
         patch.image_layers["Main"],
         patch_size=(1, 224, 224),
         patch_overlap=(0, 0, 0),
         batch_size=1,
-        stacked_3chan=True,
+        stacked_3chan=params["pipeline"]["stacked_3chan"],
     )
 
     patch.image_layers["saliency_map"] = output_tensor.detach().squeeze(0).numpy()
     return patch
-    # POST
 
 
 def make_bb(patch: Patch, params: dict):
@@ -266,3 +420,87 @@ def cnn_predict_2d_3chan(patch: Patch, params: dict):
     patch.image_layers["cnn_prediction"] = predicted_cl
 
     return patch
+
+
+def predict_and_agg(
+    model,
+    input_array,
+    patch_size=(1, 224, 224),
+    patch_overlap=(0, 16, 16),
+    batch_size=1,
+    stacked_3chan=False,
+    extra_unsqueeze=True,
+):
+    """
+    Stacked CNN Predict and Aggregate
+    Uses torchio
+    """
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    img_tens = torch.FloatTensor(input_array)
+    print(img_tens.shape)
+
+    one_subject = tio.Subject(
+        img=tio.Image(tensor=img_tens, label=tio.INTENSITY),
+        label=tio.Image(tensor=img_tens, label=tio.LABEL),
+    )
+
+    img_dataset = tio.ImagesDataset(
+        [
+            one_subject,
+        ]
+    )
+    img_sample = img_dataset[-1]
+
+    grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)
+    patch_loader = DataLoader(grid_sampler, batch_size=batch_size)
+    aggregator = GridAggregator(grid_sampler)
+
+    input_tensors = []
+    output_tensors = []
+
+    with torch.no_grad():
+        for patches_batch in tqdm(patch_loader):
+
+            # input_tensor = patches_batch[IMAGE]
+            # locations = patches_batch[LOCATION]
+
+            input_tensor = patches_batch["img"]["data"]
+            location = patches_batch[LOCATION]
+
+            print(f"Input tensor {input_tensor.shape}")
+
+            inputs_t = input_tensor.squeeze(1)
+            inputs_t = inputs_t.to(device)
+
+            if stacked_3chan:
+                inputs_t = torch.stack(
+                    [inputs_t[:, 0, :, :], inputs_t[:, 0, :, :], inputs_t[:, 0, :, :]],
+                    axis=1,
+                )
+            else:
+                inputs_t = inputs_t[:, 0:1, :, :]
+
+            print(f"inputs_t: {inputs_t.shape}")
+
+            pred = model(inputs_t)
+            # pred = torch.sigmoid(pred[0])
+            # pred = torch.sigmoid(pred[0])
+            pred = 1.0 - pred[0].data.cpu()
+
+            # pred = pred.data.cpu()
+            print(f"pred: {pred.shape}")
+
+            if extra_unsqueeze:
+                output = pred.unsqueeze(1)
+            # output = pred.squeeze(0)
+
+            input_tensors.append(input_tensor)
+            output_tensors.append(output)
+
+            print(output.shape, location)
+            aggregator.add_batch(output, location)
+
+    output_tensor = aggregator.get_output_tensor()
+    print(input_tensor.shape, output_tensor.shape)
+
+    return output_tensor

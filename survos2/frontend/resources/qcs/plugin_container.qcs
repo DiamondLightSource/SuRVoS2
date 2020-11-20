@@ -2,7 +2,7 @@
 
 #plugin_container {
     width: 100%;
-    background-color: #EEEEEE;
+    background-color: #343439;
     border-right: 2px solid #0D47A1;
     padding: 2px;
 }

@@ -68,7 +68,7 @@ class ConfigEditor(QWidget):
         self.pipeline_config = pipeline_config
 
         self.server_process = None
-        self.client_process = None 
+        self.client_process = None
 
         run_config_ptree = self.init_ptree(self.run_config, name="Run")
         workspace_config_ptree = self.init_ptree(
@@ -108,7 +108,7 @@ class ConfigEditor(QWidget):
         run_button.clicked.connect(self.run_clicked)
         create_workspace_button.clicked.connect(self.create_workspace_clicked)
         output_config_button.clicked.connect(self.output_config_clicked)
-        
+
         self.layout.addWidget(tabwidget)
 
         self.setGeometry(300, 300, 450, 650)
@@ -148,7 +148,7 @@ class ConfigEditor(QWidget):
         ctr = 0
         for key in param_dict.keys():
             entry = param_dict[key]
-            
+
             if type(entry) == str:
                 d = {"name": key, "type": "str", "value": entry}
             elif type(entry) == int:
@@ -202,7 +202,7 @@ class ConfigEditor(QWidget):
         script_fullname = os.path.join(command_dir, "survos.py")
         if not os.path.isfile(script_fullname):
             raise Exception("{}: Script not found".format(script_fullname))
-        
+
         import subprocess
 
         self.server_process = subprocess.Popen(
@@ -211,7 +211,7 @@ class ConfigEditor(QWidget):
                 script_fullname,
                 "start_server",
                 self.run_config["workspace_name"],
-                self.run_config["server_port"]
+                self.run_config["server_port"],
             ]
         )
 
@@ -221,7 +221,9 @@ class ConfigEditor(QWidget):
                 script_fullname,
                 "nu_gui",
                 self.run_config["workspace_name"],
-                str(self.run_config["server_ip"])+":"+str(self.run_config["server_port"]),
+                str(self.run_config["server_ip"])
+                + ":"
+                + str(self.run_config["server_port"]),
             ]
         )
 
@@ -237,12 +239,11 @@ if __name__ == "__main__":
         "group_name": "workflow_1",
     }
 
-
     run_config = {
         "server_ip": "127.0.0.1",
-        "server_port": "8131",
-        #"server_address": "172.23.5.231:8123",
-        "workspace_name": "test_brain",
+        "server_port": "8134",
+        # "server_address": "172.23.5.231:8123",
+        "workspace_name": "test_hunt_d4",
     }
     workspace_config = {
         "dataset_name": "dataset",
@@ -280,10 +281,11 @@ if __name__ == "__main__":
         "vol_fname": "mcd_s10_Nuc_Cyt_r1.h5",
         "workspace_name": "test_hunt2",
         # "entities_name": "C:\\work\\diam\\projects\\hunt1\\entities_hunt_df1.csv",
-        "downsample_by" : "2"
+        "downsample_by": "2",
     }
 
     from survos2.server.config import cfg
+
     pipeline_config = dict(cfg)
 
     app = QApplication([])
@@ -292,4 +294,3 @@ if __name__ == "__main__":
 
     if config_editor.server_process is not None:
         config_editor.server_process.kill()
-    

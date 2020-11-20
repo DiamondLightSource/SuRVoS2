@@ -1,3 +1,7 @@
+"""
+Pipeline ops
+
+"""
 import os
 import numpy as np
 from typing import List, Optional, Dict
@@ -33,17 +37,25 @@ from loguru import logger
 
 from survos2.frontend.nb_utils import show_images
 
+from survos2.server.model import SRFeatures
+
 
 @dataclass
 class Patch:
     """A Patch is processed by a Pipeline
+
     3 layer dictionaries for the different types (float image, integer image, geometry)
 
+    Pipeline functions need to agree on the names they
+    use for layers.
+
+    TODO Adapter
     """
 
     image_layers: Dict
     annotation_layers: Dict
     geometry_layers: Dict
+    features: SRFeatures
 
 
 class Pipeline:
@@ -58,13 +70,13 @@ class Pipeline:
     the pipeline. The payload may be changed with init_payload. The result Patch
     is obtained by calling output_result
 
+
     """
 
     def __init__(self, params, models=None):
         self.params = params
         self.ordered_ops = iter(params["ordered_ops"])
         self.payload = None
-        self.models = models
 
     def init_payload(self, patch):
         self.payload = patch
@@ -76,5 +88,5 @@ class Pipeline:
         return self
 
     def __next__(self):
-        self.payload = next(self.ordered_ops)(self.payload, self.params)
+        self.payload = next(self.ordered_ops)(self.payload)
         return self.payload

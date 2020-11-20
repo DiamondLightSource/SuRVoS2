@@ -96,7 +96,7 @@ def optimal_chunksize(source, max_size, item_size=4, delta=0.1, axis_weight=None
     if hasattr(source, "shape") and hasattr(source, "dtype"):
         item_size = np.dtype(source.dtype).itemsize
         logger.debug(f"Calculating optimal chunksize using itemsize {item_size}")
-        
+
         shape = np.asarray(source.shape, np.int16)
     else:
         logger.debug(f"Calculating optimal chunksize using no itemsize")

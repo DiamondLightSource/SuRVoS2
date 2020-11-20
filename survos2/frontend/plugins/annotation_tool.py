@@ -281,6 +281,7 @@ class AnnotationTool(Tool):
         region = self.selection["region"]
         if region:
             region = DataModel.g.dataset_uri(region)
+            print(idx)
             params = dict(workpace=True, src=region, slice_idx=idx)
             result = Launcher.g.run("regions", "get_slice", **params)
             if result:
@@ -292,6 +293,7 @@ class AnnotationTool(Tool):
     def on_annotated(self, points):
         level = self.selection["label"]["level"]
         label = self.selection["label"]["idx"]
+        print(level, label)
         params = dict(workspace=True, level=level, label=label)
         if self.selection["region"] is None:
             yy, xx = points
@@ -300,6 +302,8 @@ class AnnotationTool(Tool):
             result = Launcher.g.run("annotations", "annotate_voxels", **params)
         else:
             region = DataModel.g.dataset_uri(self.selection["region"])
+            print(f"Region {self.selection['region']} {region}")
+            print(points)
             params.update(region=region, r=list(map(int, points)), modal=False)
             result = Launcher.g.run("annotations", "annotate_regions", **params)
         if result:

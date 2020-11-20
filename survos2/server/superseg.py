@@ -45,13 +45,15 @@ from survos2.server.model import SRData, SRPrediction
 from survos2.server.region_labeling import rlabels
 from survos2.server.supervoxels import invrmap, superregion_factory
 from survos2.server.config import cfg
-
+from survos2.improc.segmentation.appearance import refine
+from survos2.improc.segmentation.mappings import rmeans
+from survos2.improc.regions.rag import create_rag
 
 #
 # SuRVoS 2 imports
 #
 
-
+PRED_MIN = 0
 def obtain_classifier(clf_p):
 
     if clf_p["clf"] == "ensemble":
@@ -167,20 +169,19 @@ def _sr_prediction(
     )  # unsigned char and unsigned int required
     logger.debug(f"Unique labels in anno: {np.unique(annotation_volume)}")
 
-    i_train = Yr > -1
+    i_train = Yr > PRED_MIN
 
-    logger.debug(f"i_train {i_train}")
-    logger.debug(f"supervoxel_features: {sr.supervoxel_features}")
+    # logger.debug(f"i_train {i_train}")
+    # logger.debug(f"supervoxel_features: {sr.supervoxel_features}")
     X_train = sr.supervoxel_features[i_train]
 
     # Projection
 
     if do_pca:
-        proj = PCA(n_components="mle", whiten=True, random_state=42)
+        proj = PCA(n_components="mle", whiten=True, random_state=20)
         proj = StandardScaler()
-        proj = SparseRandomProjection(n_components=X_train.shape[1], random_state=42)
-        rnd = 42
-        proj = RBFSampler(n_components=max(X_train.shape[1], 50), random_state=rnd)
+        proj = SparseRandomProjection(n_components=X_train.shape[1], random_state=random_state)
+        proj = RBFSampler(n_components=max(X_train.shape[1], 50), random_state=random_state)
         X_train = proj.fit_transform(X_train)
 
     Y_train = Yr[i_train]
@@ -199,7 +200,7 @@ def _sr_prediction(
     num_supervox = sr.supervoxel_vol.max() + 1
     conf_map = invrmap(P["probs"], sr.supervoxel_vol)
 
-    srprediction = SRPrediction(prob_map, conf_map)
+    srprediction = SRPrediction(prob_map, conf_map, P)
 
     return srprediction
 
@@ -208,13 +209,14 @@ def sr_predict(
     supervoxel_image: np.ndarray,
     anno_image: np.ndarray,
     feature_images: List[np.ndarray],
+    lam: float,
 ) -> np.ndarray:
 
     feats = features_factory(feature_images)
     logger.info(f"Number of features calculated: {len(feats.features_stack)}")
 
     sr = superregion_factory(supervoxel_image.astype(np.uint32), feats.features_stack)
-    logger.info(f"Calculated superregions {sr}")
+    logger.info(f"Calculated superregions: {sr}")
 
     srprediction = _sr_prediction(
         feats.features_stack,
@@ -223,6 +225,49 @@ def sr_predict(
         cfg.pipeline["predict_params"],
     )
 
-    logger.info(f"Made sr prediction {srprediction}")
+    prob_map = srprediction.prob_map
+    logger.info(f"Made sr prediction: {srprediction}")
 
-    return srprediction.prob_map
+    prob_map = mrf_refinement(
+        srprediction.P, supervoxel_image, feats.features_stack, lam=lam
+    )
+    logger.info(f"Calculated MRF Refinement")
+
+
+    return prob_map
+
+
+def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
+
+    try:
+        supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32)
+        supervoxel_features = rmeans(features_stack.astype(np.float32), supervoxel_vol)
+        supervoxel_rag = create_rag(
+            np.array(supervoxel_vol).astype(np.uint32), connectivity=6
+        )
+
+        unary = (-np.ma.log(P["probs"])).filled()
+        pred = P["class"]
+        labels = np.asarray(
+            list(set(np.unique(P["class"][supervoxel_vol])) - set([-1])), np.int32
+        )
+        unary = unary.astype(np.float32)
+
+        mapping = np.zeros(pred.max() + 1, np.int32)
+        mapping[labels] = np.arange(labels.size)
+        
+        idx = np.where(pred > PRED_MIN)[0]
+        col = mapping[pred[idx]]
+        unary[idx, col] = 0
+
+        y_ref = refine(supervoxel_rag, unary, supervoxel_rag, lam, gamma=gamma)
+        Rp_ref = invrmap(y_ref, supervoxel_vol)
+
+        logger.debug(
+            f"Calculated mrf refinement with lamda {lam} of shape: {Rp_ref.shape}"
+        )
+
+    except Exception as err:
+        logger.error(f"MRF refinement exception: {err}")
+
+    return Rp_ref

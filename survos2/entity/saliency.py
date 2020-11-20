@@ -17,7 +17,47 @@ from typing import Collection
 from matplotlib import patches, patheffects
 from matplotlib.patches import Rectangle, Patch
 
-from loguru import logger
+# from survos2.entity.Various import draw_rect
+from scipy import ndimage
+from scipy.ndimage import label, generate_binary_structure
+
+
+def measure_components(image):
+
+    labeled_array, num_features = label(image.astype(np.uint))
+
+    print(f"Measured {num_features} features")
+    objs = ndimage.measurements.find_objects(labeled_array)
+
+    bbs = []
+
+    for i, obj in enumerate(objs):
+        z_dim = obj[0].stop - obj[0].start
+        x_dim = obj[1].stop - obj[1].start
+        y_dim = obj[2].stop - obj[2].start
+        z = obj[0].start + (z_dim / 2.0)
+        x = obj[1].start + (x_dim / 2.0)
+        y = obj[2].start + (y_dim / 2.0)
+
+        area = z_dim * x_dim * y_dim
+        bbs.append(
+            (
+                i,
+                area,
+                z,
+                y,
+                x,
+                obj[0].start,
+                obj[1].start,
+                obj[2].start,
+                obj[0].stop,
+                obj[1].stop,
+                obj[2].stop,
+            )
+        )
+
+    bbs_arr = np.array(bbs).astype(np.uint)
+    return bbs_arr
 
 
 def filter_proposal_mask(
@@ -70,21 +110,25 @@ def measure_regions(labeled_images, properties=["label", "area", "centroid", "bb
     return tables
 
 
-def filter_small_components(images):
+def filter_small_components(images, component_size=1000):
 
     labeled_images = [measure.label(image) for image in images]
     tables = measure_regions(labeled_images)
-    # coss (components_of_sufficient_size)
-    coss = [tables[i][tables[i]["area"] > 1000] for i in range(len(tables))]
-    cois = [tables[i][tables[i]["area"] < 1000] for i in range(len(tables))]
+
+    too_big = [
+        tables[i][tables[i]["area"] > component_size] for i in range(len(tables))
+    ]
+    too_small = [
+        tables[i][tables[i]["area"] < component_size] for i in range(len(tables))
+    ]
 
     filtered_images = []
 
     for img_idx in range(len(images)):
-        too_small = list(coss[img_idx]["class_code"])
+        sel_classes = list(too_big[img_idx]["class_code"])
         total_mask = np.zeros_like(images[img_idx])
 
-        for idx in too_small:
+        for idx in sel_classes:
             mask = (labeled_images[img_idx] == idx) * 1.0
             total_mask = total_mask + mask
 
@@ -118,11 +162,11 @@ def generate_click_plot_data1(img_data, click_coords):
     for j in range(len(click_coords)):
 
         if j % 5000 == 0:
-            logger.debug("Generating click plot data: {}".format(j))
+            print("Generating click plot data: {}".format(j))
 
         sliceno, y, x = click_coords[j]
         w, h = (100, 100)
-        logger.debug(x, y, w, h, sliceno)
+        print(x, y, w, h, sliceno)
 
         img = get_img_in_bbox(img_data, 75, int(np.ceil(x)), int(np.ceil(y)), w, h)
         img_shortlist.append(img)

@@ -22,7 +22,7 @@ class SRFeatures:
 @dataclass
 class SRData:
     """Dataclass bundling the supervoxel information required for prediction.
-    (supervoxel vol, supervoxel features, region adjacency graph) 
+    (supervoxel vol, supervoxel features, region adjacency graph)
     All of this information is usually calculated once, and then used repeatedly.
     """
 
@@ -33,17 +33,16 @@ class SRData:
 
 @dataclass
 class SRPrediction:
-    """Survos segmentation prediction result
-    """
+    """Survos segmentation prediction result"""
 
     prob_map: np.ndarray
     conf_map: np.ndarray
+    P: dict
 
 
 @dataclass
 class SRSegmentation:
-    """Required for a survos segmentation prediction
-    """
+    """Required for a survos segmentation prediction"""
 
     features: Optional[SRFeatures]
     superregions: Optional[SRData]

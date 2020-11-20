@@ -1,0 +1,301 @@
+{
+    "PATCH_DIM": 32,
+    "class_names": [
+        "DLP E",
+        "DLP F",
+        "DLP w",
+        "NaN",
+        "None ",
+        "SLP",
+        "There",
+        "Too c"
+    ],
+    "dataset_name": "workflow_1",
+    "datasets_dir": "D:/datasets",
+    "entities_offset": [
+        16,
+        450,
+        450
+    ],
+    "entities_relpath": "entities_df1.csv",
+    "entity_fname": "combined_clustered_ed_181020.csv",
+    "entity_fnames": [
+        "entities_maskfiltered_dbscan.csv",
+        "combined_clustered_ed_1310.csv",
+        "combined_clustered_ed_181020.csv"
+    ],
+    "entity_fpath": "D:/out",
+    "entity_meta": {
+        "0": {
+            "core_radius": [
+                7,
+                7,
+                7
+            ],
+            "name": "dlp",
+            "size": [
+                18,
+                18,
+                18
+            ]
+        },
+        "1": {
+            "core_radius": [
+                7,
+                7,
+                7
+            ],
+            "name": "dlpf",
+            "size": [
+                18,
+                18,
+                18
+            ]
+        },
+        "2": {
+            "core_radius": [
+                15,
+                15,
+                15
+            ],
+            "name": "dlpm",
+            "size": [
+                20,
+                20,
+                20
+            ]
+        },
+        "5": {
+            "core_radius": [
+                5,
+                5,
+                5
+            ],
+            "name": "slp",
+            "size": [
+                10,
+                10,
+                10
+            ]
+        }
+    },
+    "file_keys": [
+        "vol_locs",
+        "vol_shortlist",
+        "vol_pts"
+    ],
+    "flipxy": true,
+    "img_vols_fullpath": "",
+    "input_dir": "D:/datasets",
+    "label_vols_fullpath": "",
+    "main_bv_hunt": {
+        "main1": {
+            "key_coords": [
+                [
+                    0,
+                    0,
+                    0
+                ],
+                [
+                    400,
+                    896,
+                    896
+                ]
+            ]
+        },
+        "main2": {
+            "key_coords": [
+                [
+                    32,
+                    400,
+                    400
+                ],
+                [
+                    128,
+                    448,
+                    448
+                ]
+            ]
+        }
+    },
+    "main_bv_name": "widest",
+    "main_bv_vf": {
+        "br1": {
+            "key_coords": [
+                [
+                    16,
+                    800,
+                    800
+                ],
+                [
+                    128,
+                    896,
+                    896
+                ]
+            ]
+        },
+        "br2": {
+            "key_coords": [
+                [
+                    16,
+                    1000,
+                    900
+                ],
+                [
+                    128,
+                    896,
+                    896
+                ]
+            ]
+        },
+        "g1": {
+            "key_coords": [
+                [
+                    32,
+                    550,
+                    850
+                ],
+                [
+                    149,
+                    500,
+                    500
+                ]
+            ]
+        },
+        "g3": {
+            "key_coords": [
+                [
+                    16,
+                    800,
+                    800
+                ],
+                [
+                    128,
+                    896,
+                    896
+                ]
+            ]
+        },
+        "main1": {
+            "key_coords": [
+                [
+                    16,
+                    450,
+                    450
+                ],
+                [
+                    128,
+                    1344,
+                    1344
+                ]
+            ]
+        },
+        "main2": {
+            "key_coords": [
+                [
+                    16,
+                    450,
+                    450
+                ],
+                [
+                    128,
+                    1450,
+                    1450
+                ]
+            ]
+        },
+        "middle": {
+            "key_coords": [
+                [
+                    32,
+                    800,
+                    600
+                ],
+                [
+                    149,
+                    448,
+                    448
+                ]
+            ]
+        },
+        "test": {
+            "key_coords": [
+                [
+                    16,
+                    800,
+                    800
+                ],
+                [
+                    128,
+                    448,
+                    448
+                ]
+            ]
+        },
+        "tiny": {
+            "key_coords": [
+                [
+                    16,
+                    800,
+                    800
+                ],
+                [
+                    128,
+                    224,
+                    224
+                ]
+            ]
+        },
+        "tl": {
+            "key_coords": [
+                [
+                    16,
+                    450,
+                    450
+                ],
+                [
+                    128,
+                    672,
+                    672
+                ]
+            ]
+        },
+        "widest": {
+            "key_coords": [
+                [
+                    8,
+                    200,
+                    200
+                ],
+                [
+                    136,
+                    1750,
+                    1750
+                ]
+            ]
+        }
+    },
+    "outdir": "D:\\out",
+    "patch_size": [
+        20,
+        224,
+        224
+    ],
+    "proj": "vf",
+    "project_dir": "projects/vf1/",
+    "project_file": "ws_vf1.json",
+    "saliency_model_file": "fpn_blob_all_0311.pt",
+    "scale_alpha": 0.1,
+    "torch_models_fullpath": "C:/work/experiments/",
+    "vol_fname": "combined_zooniverse_data.h5",
+    "vol_locs": "vol_locs.h5",
+    "vol_pts": "vol_pts.h5",
+    "vol_shortlist": "vol_shortlist.h5",
+    "wide_patch_pos": [
+        80,
+        1000,
+        1000
+    ],
+    "workflow_name": "combined_gold",
+    "workspace": "test_vf"
+}

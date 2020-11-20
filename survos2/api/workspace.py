@@ -60,6 +60,7 @@ def add_data(workspace: String, data_fname: String):
 
         ds = ws.add_data(data)
 
+        # ds.set_attr("chunk_size", chunk_size)
     return ds
 
 

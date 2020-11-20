@@ -15,7 +15,6 @@ from survos2.server.config import cfg
 from survos2.model import DataModel
 
 
-
 _AnnotationNotifier = PluginNotifier()
 
 
@@ -169,7 +168,7 @@ class AnnotationLevel(Card):
         cfg.timer.start()
 
     def _add_view_btn(self):
-        btn_view = PushButton("View", accent=True)
+        btn_view = PushButton("3D View", accent=True)
         btn_view.clicked.connect(self.view_level)
         self.add_row(HWidgets(None, btn_view, Spacing(35)))
 

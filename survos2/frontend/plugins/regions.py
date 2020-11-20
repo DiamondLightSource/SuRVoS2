@@ -119,7 +119,7 @@ class SupervoxelCard(Card):
         self.svcompactness = LineEdit(parse=float, default=20)
         self.svcompactness.setMaximumWidth(250)
         self.compute_btn = PushButton("Compute")
-        self.view_btn = PushButton("View", accent=True)
+        self.view_btn = PushButton("3D View", accent=True)
 
         self.add_row(HWidgets("Source:", self.svsource, stretch=1))
         self.add_row(HWidgets("Shape:", self.svshape, stretch=1))
@@ -156,17 +156,20 @@ class SupervoxelCard(Card):
         logger.debug(f"Compute sv: Src {src} Dst {dst}")
 
         from survos2.model import Workspace
+
         ws = Workspace(DataModel.g.current_workspace)
-        num_chunks = np.prod(np.array(ws.metadata()['chunk_grid']))
-        chunk_size = ws.metadata()['chunk_size']
-        logger.debug(f"Using chunk_size {chunk_size} to compute number of supervoxel segments for num_chunks: {num_chunks}.")
-        
-        n_segments=int(np.prod(chunk_size)//(self.svshape.value()  ** 3))
+        num_chunks = np.prod(np.array(ws.metadata()["chunk_grid"]))
+        chunk_size = ws.metadata()["chunk_size"]
+        logger.debug(
+            f"Using chunk_size {chunk_size} to compute number of supervoxel segments for num_chunks: {num_chunks}."
+        )
+
+        n_segments = int(np.prod(chunk_size) // (self.svshape.value() ** 3))
 
         params = dict(
             src=src,
             dst=dst,
-            compactness=round(self.svcompactness.value()/100, 3),
+            compactness=round(self.svcompactness.value() / 100, 3),
             shape=self.svshape.value(),
             n_segments=n_segments,
             spacing=self.svspacing.value(),
@@ -179,7 +182,7 @@ class SupervoxelCard(Card):
         if "shape" in params:
             self.svshape.setValue(params["shape"])
         if "compactness" in params:
-            self.svcompactness.setValue(params["compactness"]*100)
+            self.svcompactness.setValue(params["compactness"] * 100)
         if "spacing" in params:
             self.svspacing.setValue(params["spacing"])
         if "source" in params:

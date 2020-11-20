@@ -110,6 +110,38 @@ def nu_gui(
 
 
 @begin.subcommand
+def classic_gui2(
+    workspace: "Workspace path (full or chrooted) to load",
+    server: "URI to the remote SuRVoS API Server",
+):
+    """
+    Show Classic SuRVoS QT user interface
+    """
+    from qtpy import QtWidgets
+
+    # from survos2.ui.qt import MainWindow
+    # from survos2.ui.qt.control import Launcher
+    from survos2.model import DataModel
+    from survos2.frontend.scratch_f2 import MainWidget
+    from survos2.frontend.control.launcher import Launcher
+
+    DataModel.g.current_workspace = workspace
+
+    logger.info(f"Connecting to server: {server}")
+    resp = Launcher.g.set_remote(server)
+    logger.info(f"Response from server: {resp}")
+
+    app = QtWidgets.QApplication([])
+    window = MainWidget(maximize=bool(Config["qtui.maximized"]))
+
+    import signal
+
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    sys.exit(app.exec_())
+
+
+@begin.subcommand
 def classic_gui(
     workspace: "Workspace path (full or chrooted) to load",
     server: "URI to the remote SuRVoS API Server",

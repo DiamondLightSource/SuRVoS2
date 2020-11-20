@@ -8,8 +8,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.cluster import DBSCAN
 
-from loguru import logger
-
 
 def centroid_3d(arr):
     length = arr.shape[0]
@@ -58,7 +56,8 @@ def chip_cluster(
     chip,
     offset_x,
     offset_y,
-    MIN_CLUSTER_SIZE=5,
+    min_cluster_size=5,
+    eps=5,
     method="hdbscan",
     plot_all=False,
     debug_verbose=False,
@@ -70,7 +69,7 @@ def chip_cluster(
         chip (np.ndarray): chip volume
         offset_x (int): x offset in original volume
         offset_y (int): y offset in original volume
-        MIN_CLUSTER_SIZE (int, optional): minimum number of points in  a cluster. Defaults to 5.
+        min_cluster_size (int, optional): minimum number of points in  a cluster. Defaults to 5.
         method (str, optional): cluster method. Defaults to 'hdbscan'.
         plot_all (bool, optional): debug plotting. Defaults to False.
         debug_verbose (bool, optional): debug messages. Defaults to False.
@@ -84,9 +83,9 @@ def chip_cluster(
 
     subsample = False
 
-    logger.debug(f"Image {chip.shape}")
+    print(f"Image {chip.shape}")
 
-    logger.debug(f"Clustering pts {orig_pts.shape}")
+    print(f"Clustering pts {orig_pts.shape}")
 
     if plot_all:
         plt.figure(figsize=(14, 14))
@@ -116,7 +115,7 @@ def chip_cluster(
         scale_y = 1.0 / np.max(X[:, 1])
         scale_z = 1.0 / np.max(X[:, 2])
         if debug_verbose:
-            logger.debug("Scaling by {} {} {}".format(scale_x, scale_y, scale_z))
+            print("Scaling by {} {} {}".format(scale_x, scale_y, scale_z))
 
         # X_rescaled = rescale_3d(orig_pts, scale_x, scale_y, scale_z)
         x_scale = xend - xstart
@@ -151,30 +150,30 @@ def chip_cluster(
     #
 
     if method == "hdbscan":
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=MIN_CLUSTER_SIZE).fit(X_rescaled)
-
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size).fit(X_rescaled)
         label_code = clusterer.labels_
-
         num_clusters_found = len(np.unique(label_code))
         threshold = pd.Series(clusterer.outlier_scores_).quantile(0.65)
         outliers = np.where(clusterer.outlier_scores_ > threshold)[0]
 
-        X_rescaled_cl = X_rescaled
-        label_code_cl = label_code
-        cluster_probs_cl = clusterer.probabilities_
+        X_rescaled_cl = np.delete(X_rescaled, outliers, axis=0)
+        label_code_cl = np.delete(label_code, outliers, axis=0)
+        cluster_probs_cl = np.delete(clusterer.probabilities_, outliers, axis=0)
+
+        # X_rescaled_cl = X_rescaled
+        # label_code_cl = label_code
+        # cluster_probs_cl = clusterer.probabilities_
         num_outliers_removed = X_rescaled.shape[0] - X_rescaled_cl.shape[0]
 
         if debug_verbose:
-            # logger.debugX_rescaled_cl.shape, label_code_cl.shape)
-            logger.debug("Limits: {} {} {} ".format(xlim, ylim, zlim))
-            logger.debug(np.min(X[:, 0]), np.min(X[:, 1]), np.min(X[:, 2]))
-
-            logger.debug(
+            print("Limits: {} {} {} ".format(xlim, ylim, zlim))
+            print(np.min(X[:, 0]), np.min(X[:, 1]), np.min(X[:, 2]))
+            print(
                 "Orig: {} Clean: {} Num points rem: {}".format(
                     X_rescaled.shape[0], X_rescaled_cl.shape[0], num_outliers_removed
                 )
             )
-            logger.debug(
+            print(
                 "Proportion removed: {}".format(
                     num_outliers_removed / X_rescaled.shape[0]
                 )
@@ -182,7 +181,7 @@ def chip_cluster(
 
     elif method == "dbscan":
 
-        clusterer = DBSCAN(eps=20, min_samples=1).fit(X_rescaled)
+        clusterer = DBSCAN(eps=eps, min_samples=1).fit(X_rescaled)
         label_code_cl = clusterer.labels_
         X_rescaled_cl = X_rescaled
         num_clusters_found = len(np.unique(label_code_cl))
@@ -195,7 +194,7 @@ def chip_cluster(
 
     cluster_coords = np.array(cluster_coords)
     cluster_sizes = np.array([len(cluster_coord) for cluster_coord in cluster_coords])
-    logger.debug(f"Cluster sizes {cluster_sizes.shape}")
+    print(f"Cluster sizes {cluster_sizes.shape}")
 
     cluster_centroids = np.array(
         [centroid_3d(cluster_coord) for cluster_coord in cluster_coords]
@@ -203,28 +202,6 @@ def chip_cluster(
 
     cluster_centroids = np.array(cluster_centroids)
     cluster_sizes = np.array(cluster_sizes)
-
-    if False:
-        plt.figure(figsize=(14, 14))
-        pal = sns.color_palette("husl", num_clusters_found + 1)
-        # pal = sns.color_palette('cubehelix', num_clusters_found + 1)
-        # pal = sns.color_palette('Paired', num_clusters_found + 1)
-        cluster_probs_cl = [1.0] * len(label_code_cl)
-        cleaned_colors = [
-            sns.desaturate(pal[col], sat)
-            for col, sat in zip(label_code_cl, cluster_probs_cl)
-        ]
-
-        plt.imshow(img_sample, cmap="gray")
-        plt.title("After")
-        plt.scatter(
-            cluster_centroids[:, 1] - offset_x,
-            cluster_centroids[:, 2] - offset_y,
-            s=60,
-            linewidth=0,
-            c=cleaned_colors,
-            alpha=1.0,
-        )
 
     title_str = "Number of original clicks: {0} Number of final centroids: {1} Av clicks cluster {2}".format(
         X_rescaled.shape[0],
@@ -252,23 +229,28 @@ def chip_cluster(
             classes_mode = np.random.choice(cluster_classes)
 
         cc.append(classes_mode)
-        # logger.debugf"Assigned class for cluster: {classes_mode}")
+        # print(f"Assigned class for cluster: {classes_mode}")
 
     if debug_verbose:
-        logger.debug(f"Number of clusters: {len(cluster_coords)}")
-        logger.debug(f"Cluster classes {cc}")
-        logger.debug(f"Len cluster classes {len(cc)}")
+        print(f"Number of clusters: {len(cluster_coords)}")
+        print(f"Cluster classes {cc}")
+        print(f"Len cluster classes {len(cc)}")
 
     if plot_all:
         show_images_and_points(
-            [img_sample,], centroid_coords_woffset, cc, figsize=(12, 12)
+            [
+                img_sample,
+            ],
+            centroid_coords_woffset,
+            cc,
+            figsize=(12, 12),
         )
 
     clustered = np.zeros((cluster_centroids.shape[0], 4))
     clustered[:, 0:3] = cluster_centroids
     clustered[:, 3] = cc
 
-    logger.debug(f"Produced clustered output of shape: {clustered.shape}")
+    print(f"Produced clustered output of shape: {clustered.shape}")
 
     return clustered
 
@@ -288,8 +270,8 @@ def chip_cluster2(
     img_sample = chip[0, :]
     subsample = False
 
-    logger.debug(f"Image {chip.shape}")
-    logger.debug(f"Clustering pts {orig_pts.shape}")
+    print(f"Image {chip.shape}")
+    print(f"Clustering pts {orig_pts.shape}")
 
     if plot_all:
         plt.figure(figsize=(14, 14))
@@ -318,8 +300,9 @@ def chip_cluster2(
         scale_y = 1.0 / np.max(X[:, 1])
         scale_z = 1.0 / np.max(X[:, 2])
         if debug_verbose:
-            logger.debug("Scaling by {} {} {}".format(scale_x, scale_y, scale_z))
+            print("Scaling by {} {} {}".format(scale_x, scale_y, scale_z))
 
+        # X_rescaled = rescale_3d(orig_pts, scale_x, scale_y, scale_z)
         x_scale = xend - xstart
         y_scale = yend - ystart
         slicestart = 0
@@ -347,6 +330,15 @@ def chip_cluster2(
         ylim = (0, chip.shape[2])
         zlim = (0, chip.shape[0])
 
+    # print(np.max(X_rescaled[:,0]), np.max(X_rescaled[:,1]), np.max(X_rescaled[:,2]))
+    # print(np.min(X_rescaled[:,0]), np.min(X_rescaled[:,1]), np.min(X_rescaled[:,2]))
+
+    # print(np.max(X_rescaled[:,0]), np.max(X_rescaled[:,1]), np.max(X_rescaled[:,2]))
+    # print(np.min(X_rescaled[:,0]), np.min(X_rescaled[:,1]), np.min(X_rescaled[:,2]))
+
+    # print(np.max(X_rescaled[:,0]), np.max(X_rescaled[:,1]), np.max(X_rescaled[:,2]))
+    # print(np.min(X_rescaled[:,0]), np.min(X_rescaled[:,1]), np.min(X_rescaled[:,2]))
+
     #
     # Point cloud cluster
     #
@@ -360,22 +352,25 @@ def chip_cluster2(
         threshold = pd.Series(clusterer.outlier_scores_).quantile(0.65)
         outliers = np.where(clusterer.outlier_scores_ > threshold)[0]
 
+        # X_rescaled_cl = np.delete(X_rescaled,  outliers,axis=0)
+        # label_code_cl = np.delete(label_code,  outliers,axis=0)
+        # cluster_probs_cl = np.delete(clusterer.probabilities_, outliers, axis=0)
         X_rescaled_cl = X_rescaled
         label_code_cl = label_code
         cluster_probs_cl = clusterer.probabilities_
         num_outliers_removed = X_rescaled.shape[0] - X_rescaled_cl.shape[0]
 
         if debug_verbose:
-            # logger.debugX_rescaled_cl.shape, label_code_cl.shape)
-            logger.debug("Limits: {} {} {} ".format(xlim, ylim, zlim))
-            logger.debug(np.min(X[:, 0]), np.min(X[:, 1]), np.min(X[:, 2]))
+            # print(X_rescaled_cl.shape, label_code_cl.shape)
+            print("Limits: {} {} {} ".format(xlim, ylim, zlim))
+            print(np.min(X[:, 0]), np.min(X[:, 1]), np.min(X[:, 2]))
 
-            logger.debug(
+            print(
                 "Orig: {} Clean: {} Num points rem: {}".format(
                     X_rescaled.shape[0], X_rescaled_cl.shape[0], num_outliers_removed
                 )
             )
-            logger.debug(
+            print(
                 "Proportion removed: {}".format(
                     num_outliers_removed / X_rescaled.shape[0]
                 )
@@ -416,14 +411,19 @@ def chip_cluster2(
     cluster_coords = np.array(cluster_coords)
 
     cluster_sizes = np.array([len(cluster_coord) for cluster_coord in cluster_coords])
-    logger.debug(f"Cluster sizes {cluster_sizes.shape}")
+    print(f"Cluster sizes {cluster_sizes.shape}")
 
     cluster_centroids = np.array(
         [centroid_3d(cluster_coord) for cluster_coord in cluster_coords]
     )
 
     cluster_centroids = np.array(cluster_centroids)
+
+    # sns.distplot(cluster_centroids[np.isfinite(cluster_centroids)], rug=True)
+
     cluster_sizes = np.array(cluster_sizes)
+
+    # sns.distplot(cluster_sizes[np.isfinite(cluster_sizes)], rug=True)
 
     title_str = "Number of original clicks: {0} Number of final centroids: {1} Av clicks cluster {2}".format(
         X_rescaled.shape[0],
@@ -438,7 +438,7 @@ def chip_cluster2(
     centroid_coords_woffset = cc2.copy()
     centroid_coords_woffset[:, 1] = centroid_coords_woffset[:, 1] - offset_y
     centroid_coords_woffset[:, 0] = centroid_coords_woffset[:, 0] - offset_x
-    logger.debug(centroid_coords_woffset)
+    print(centroid_coords_woffset)
     cc = []
 
     for c in cluster_coords:
@@ -451,11 +451,14 @@ def chip_cluster2(
             classes_mode = np.random.choice(cluster_classes)
 
         cc.append(classes_mode)
-        # logger.debugf"Assigned class for cluster: {classes_mode}")
+        # print(f"Assigned class for cluster: {classes_mode}")
 
     if debug_verbose:
-        logger.debug(f"Number of clusters: {len(cluster_coords)}")
-        logger.debug(f"Cluster classes {cc}")
-        logger.debug(f"Len cluster classes {len(cc)}")
+        print(f"Number of clusters: {len(cluster_coords)}")
+        print(f"Cluster classes {cc}")
+        print(f"Len cluster classes {len(cc)}")
+
+    # if plot_all:
+    #    show_images_and_points([img_sample,], centroid_coords_woffset, cc, figsize=(12,12))
 
     return cluster_centroids, cc

@@ -60,7 +60,7 @@ def generate_supervoxels(
 
     # Make a copy of the dictionary without the 'shape' parameter
     slic_params_copy = copy.deepcopy(slic_params)
-    slic_params_copy.pop('shape', None)
+    slic_params_copy.pop("shape", None)
     # map_blocks through Dask
     supervoxel_vol = map_blocks(
         slic,

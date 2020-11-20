@@ -89,9 +89,9 @@ class ModalManager(QtWidgets.QDialog, SWidget):
     def __init__(self, parent):
         QtWidgets.QDialog.__init__(self, parent=parent)
         SWidget.__init__(self, self.__class__.__name__, parent=parent)
-        if parent:
-            parent.resized.connect(self.parent_resized)
-            self.parent_resized()
+        # if parent:
+        #    parent.resized.connect(self.parent_resized)
+        #    self.parent_resized()
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.container = VBox(self, align=QtCore.Qt.AlignCenter)
         self.current_widget = None
