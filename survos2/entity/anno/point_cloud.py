@@ -238,12 +238,7 @@ def chip_cluster(
 
     if plot_all:
         show_images_and_points(
-            [
-                img_sample,
-            ],
-            centroid_coords_woffset,
-            cc,
-            figsize=(12, 12),
+            [img_sample,], centroid_coords_woffset, cc, figsize=(12, 12),
         )
 
     clustered = np.zeros((cluster_centroids.shape[0], 4))

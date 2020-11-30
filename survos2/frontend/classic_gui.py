@@ -199,15 +199,15 @@ class MainWindow(QtWidgets.QMainWindow):
         print("MainWindow")
         super().__init__()
 
-        #self.p = Process(target=update_ui)
-        #self.p.start()
+        # self.p = Process(target=update_ui)
+        # self.p.start()
 
         material_font = resource("iconfont", "MaterialIcons-Regular.ttf")
         QtGui.QFontDatabase.addApplicationFont(material_font)
 
-        #qcs_path = resource("qcs", "survos.qcs")
-        #print(qcs_path)
-        #if os.path.isfile(qcs_path):
+        # qcs_path = resource("qcs", "survos.qcs")
+        # print(qcs_path)
+        # if os.path.isfile(qcs_path):
         #    with open(qcs_path, "r") as f:
         #        self.setStyleSheet(f.read())
 
@@ -230,10 +230,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if Launcher.g.connected:
             ModalManager.g.hide()
-        #with napari.gui_qt():
+        # with napari.gui_qt():
         #    viewer = napari.Viewer(title="SuRVoS", show=True)
         #    viewer.theme = "light"
         #    viewer.window._qt_window.setGeometry(100, 200, 1280, 720)
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.resized.emit()

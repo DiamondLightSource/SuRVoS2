@@ -213,15 +213,15 @@ class MainWidget(QtGui.QDialog):
         qcs_path = resource("qcs", "survos2.qcs")
         print(qcs_path)
         if os.path.isfile(qcs_path):
-           with open(qcs_path, "r") as f:
-               self.setStyleSheet(f.read())
+            with open(qcs_path, "r") as f:
+                self.setStyleSheet(f.read())
 
         self.setWindowTitle("SuRVoS")
 
         self._loaded_views = {}
         self._loaded_plugins = {}
         self._setup_layout()
-        self.setMinimumSize(378,378)
+        self.setMinimumSize(378, 378)
 
         if maximize:
             self.showMaximized()
@@ -255,8 +255,8 @@ class MainWidget(QtGui.QDialog):
 
         hbox = HBox(container)
 
-        #hbox.addWidget(self.iconContainer)
-        #hbox.addWidget(self.pluginContainer)
+        # hbox.addWidget(self.iconContainer)
+        # hbox.addWidget(self.pluginContainer)
         hbox.addWidget(self.viewContainer, 1)
 
         self.iconContainer.plugin_selected.connect(self.show_plugin)

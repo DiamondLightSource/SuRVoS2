@@ -15,7 +15,7 @@ from survos2.io import dataset_from_uri
 from loguru import logger
 
 __level_fill__ = 0
-__level_dtype__ = "uint8"
+__level_dtype__ = "uint32"
 __group_pattern__ = "annotations"
 
 
@@ -88,7 +88,7 @@ def add_label(workspace: String, level: String, full: SmartBoolean = False):
 
     ds = get_level(workspace, level, full)
     labels = ds.get_metadata("labels", {})
-    idx = max(0, (max(l for l in labels) if labels else 0)) + 1
+    idx = max(1, (max(l for l in labels) if labels else 1)) + 1  # change min label to 1
 
     if idx >= 16:
         existing_idx = set(labels.keys())

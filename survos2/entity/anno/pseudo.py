@@ -103,7 +103,7 @@ import h5py
 
 
 def make_pseudomasks(wf, acwe=False):
-    
+
     padding = (64, 64, 64)
     anno_masks, padded_vol = generate_anno(
         wf.vols[0],
@@ -137,5 +137,4 @@ def make_pseudomasks(wf, acwe=False):
         p.image_layers["total_mask"] = (anno_shell_gen > 0) * 1.0
         p = acwe(p, cfg["pipeline"])
 
-        
     return anno_masks, anno_all

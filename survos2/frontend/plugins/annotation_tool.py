@@ -232,7 +232,7 @@ class Annotator(ViewerExtension):
         return yy, xx
 
 
-# todo:adapt
+# classic gui annotation tool
 class AnnotationTool(Tool):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -315,7 +315,7 @@ class AnnotationTool(Tool):
         result = None
         level = self.selection["label"]["level"]
         params = dict(workspace=True, level=level)
-        if modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_Z:
+        if modifiers == QtCore.Qt.AltModifier and key == QtCore.Qt.Key_Z:
             result = Launcher.g.run("annotations", "annotate_undo", **params)
             if result:
                 self.viewer.update()

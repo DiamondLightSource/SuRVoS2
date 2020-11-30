@@ -279,7 +279,7 @@ class SliceViewer(QCSWidget):
         if result:
             image = decode_numpy(result)
             self.viewer.update_image(image)
-            
+
         self.slider.accept()
 
     def update(self):

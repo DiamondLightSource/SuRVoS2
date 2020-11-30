@@ -4,6 +4,7 @@ from skimage.morphology import disk
 from scipy.ndimage import binary_dilation
 from matplotlib.colors import ListedColormap
 from loguru import logger
+from scipy.ndimage import binary_dilation
 
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
@@ -14,8 +15,37 @@ from survos2.frontend.control.launcher import Launcher
 from survos2.server.config import cfg
 from survos2.model import DataModel
 
+from survos2.frontend.components.base import (
+    LazyComboBox,
+    LazyMultiComboBox,
+    HBox,
+    FAIcon,
+    PluginNotifier,
+    Slider,
+)
+from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
+from survos2.frontend.plugins.regions import RegionComboBox
 
 _AnnotationNotifier = PluginNotifier()
+
+
+# for nugui annotation tool
+def dilate_annotations(yy, xx, img_vol, line_width):
+    data = np.zeros_like(img_vol)
+    data[yy, xx] = True
+
+    r = np.ceil(line_width / 2)
+    ymin = int(max(0, yy.min() - r))
+    ymax = int(min(data.shape[0], yy.max() + 1 + r))
+    xmin = int(max(0, xx.min() - r))
+    xmax = int(min(data.shape[1], xx.max() + 1 + r))
+    mask = data[ymin:ymax, xmin:xmax]
+
+    mask = binary_dilation(mask, disk(line_width / 2).astype(np.bool))
+    yy, xx = np.where(mask)
+    yy += ymin
+    xx += xmin
+    return yy, xx
 
 
 class LevelComboBox(LazyComboBox):
@@ -56,10 +86,22 @@ class AnnotationPlugin(Plugin):
         self.btn_addlevel.clicked.connect(self.add_level)
         self.annotation_tool = AnnotationTool()
 
+        hbox = HBox(self, margin=7, spacing=5)
+        self.label = AnnotationComboBox()
+        self.region = RegionComboBox(header=(None, "Voxels"), full=True)
+        self.width = Slider(vmin=1, vmax=30)
+        hbox.addWidget(self.label)
+        hbox.addWidget(self.region)
+        hbox.addWidget(self.width)
+        hbox.addWidget(None, 1)
+
+        self.vbox.addLayout(hbox)
+
     def on_created(self):
-        self["slice_viewer"].add_tool(
-            "Annotations", self.__icon__, tool=self.annotation_tool
-        )
+        pass
+        # self["slice_viewer"].add_tool(
+        #    "Annotations", self.__icon__, tool=self.annotation_tool
+        # )
 
     def add_level(self):
         level = Launcher.g.run("annotations", "add_level", workspace=True)
@@ -124,6 +166,7 @@ class AnnotationLevel(Card):
     def card_add_item(self):
         params = dict(level=self.level_id, workspace=True)
         result = Launcher.g.run("annotations", "add_label", **params)
+        self.view_level()
         if result:
             self._add_label_widget(result)
             _AnnotationNotifier.notify()
@@ -165,10 +208,10 @@ class AnnotationLevel(Card):
             }
         )
 
-        cfg.timer.start()
+        # cfg.timer.start()
 
     def _add_view_btn(self):
-        btn_view = PushButton("3D View", accent=True)
+        btn_view = PushButton("View", accent=True)
         btn_view.clicked.connect(self.view_level)
         self.add_row(HWidgets(None, btn_view, Spacing(35)))
 

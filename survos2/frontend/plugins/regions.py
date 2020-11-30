@@ -119,7 +119,7 @@ class SupervoxelCard(Card):
         self.svcompactness = LineEdit(parse=float, default=20)
         self.svcompactness.setMaximumWidth(250)
         self.compute_btn = PushButton("Compute")
-        self.view_btn = PushButton("3D View", accent=True)
+        self.view_btn = PushButton("View", accent=True)
 
         self.add_row(HWidgets("Source:", self.svsource, stretch=1))
         self.add_row(HWidgets("Shape:", self.svshape, stretch=1))
@@ -146,6 +146,9 @@ class SupervoxelCard(Card):
 
     def view_supervoxels(self):
         logger.debug(f"Transferring supervoxels {self.svid} to viewer")
+        cfg.current_supervoxels = self.svid
+
+        print(f"Current Supervoxels: {cfg.current_supervoxels}")
         cfg.ppw.clientEvent.emit(
             {"source": "regions", "data": "view_supervoxels", "region_id": self.svid}
         )

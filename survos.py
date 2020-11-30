@@ -122,7 +122,7 @@ def classic_gui2(
     # from survos2.ui.qt import MainWindow
     # from survos2.ui.qt.control import Launcher
     from survos2.model import DataModel
-    from survos2.frontend.scratch_f2 import MainWidget
+    from survos2.frontend.slice_paint import MainWidget
     from survos2.frontend.control.launcher import Launcher
 
     DataModel.g.current_workspace = workspace

@@ -9,9 +9,10 @@ from qtpy.QtCore import QSize, Signal
 
 from survos2.frontend.model import ClientData
 from survos2.entity.entities import make_entity_df
+from survos2.server.config import cfg
 
 
-def setup_entity_table(entities_fullname):
+def setup_entity_table(entities_fullname, scale=1.0):
 
     entities_df = pd.read_csv(entities_fullname)
     entities_df.drop(
@@ -27,9 +28,9 @@ def setup_entity_table(entities_fullname):
     for i in range(len(entities_df)):
         entry = (
             i,
-            entities_df.iloc[i]["z"],
-            entities_df.iloc[i]["x"],
-            entities_df.iloc[i]["y"],
+            entities_df.iloc[i]["z"] * scale,
+            entities_df.iloc[i]["x"] * scale,
+            entities_df.iloc[i]["y"] * scale,
             entities_df.iloc[i]["class_code"],
         )
         tabledata.append(entry)
@@ -77,16 +78,14 @@ class TableWidget(QtWidgets.QGraphicsObject):
         self.w.doubleClicked.connect(self.double_clicked)
         self.w.selected_row = 0
 
-        stylesheet = (
-            "QHeaderView::section{Background-color:rgb(1,80,160);border-radius:14px;}"
-        )
+        stylesheet = "QHeaderView::section{Background-color:rgb(30,60,80)}"
         self.w.setStyleSheet(stylesheet)
 
     def set_data(self, data):
         self.w.setData(data)
 
     def double_clicked(self):
-        self.clientEvent.emit(
+        cfg.ppw.clientEvent.emit(
             {"source": "table", "data": "show_roi", "selected_roi": self.w.selected_row}
         )
 

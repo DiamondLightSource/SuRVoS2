@@ -53,7 +53,9 @@ from survos2.improc.regions.rag import create_rag
 # SuRVoS 2 imports
 #
 
-PRED_MIN = 0
+PRED_MIN = -1
+
+
 def obtain_classifier(clf_p):
 
     if clf_p["clf"] == "ensemble":
@@ -180,8 +182,12 @@ def _sr_prediction(
     if do_pca:
         proj = PCA(n_components="mle", whiten=True, random_state=20)
         proj = StandardScaler()
-        proj = SparseRandomProjection(n_components=X_train.shape[1], random_state=random_state)
-        proj = RBFSampler(n_components=max(X_train.shape[1], 50), random_state=random_state)
+        proj = SparseRandomProjection(
+            n_components=X_train.shape[1], random_state=random_state
+        )
+        proj = RBFSampler(
+            n_components=max(X_train.shape[1], 50), random_state=random_state
+        )
         X_train = proj.fit_transform(X_train)
 
     Y_train = Yr[i_train]
@@ -233,7 +239,6 @@ def sr_predict(
     )
     logger.info(f"Calculated MRF Refinement")
 
-
     return prob_map
 
 
@@ -255,10 +260,10 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
 
         mapping = np.zeros(pred.max() + 1, np.int32)
         mapping[labels] = np.arange(labels.size)
-        
+
         idx = np.where(pred > PRED_MIN)[0]
         col = mapping[pred[idx]]
-        unary[idx, col] = 0
+        unary[idx, col] = 1
 
         y_ref = refine(supervoxel_rag, unary, supervoxel_rag, lam, gamma=gamma)
         Rp_ref = invrmap(y_ref, supervoxel_vol)

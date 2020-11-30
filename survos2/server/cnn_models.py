@@ -58,11 +58,7 @@ def predict_and_agg(
         label=tio.Image(tensor=img_tens, label=tio.LABEL),
     )
 
-    img_dataset = tio.ImagesDataset(
-        [
-            one_subject,
-        ]
-    )
+    img_dataset = tio.ImagesDataset([one_subject,])
     img_sample = img_dataset[-1]
 
     grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)

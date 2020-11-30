@@ -110,8 +110,8 @@ class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
-        fig.patch.set_facecolor((0.0,0.0,0.0))
-        
+        fig.patch.set_facecolor((0.0, 0.0, 0.0))
+
         self.axes.set_facecolor((0.23, 0.23, 0.25))
         fig.subplots_adjust(bottom=0.1, top=0.95, left=0.1, right=0.9)
 
@@ -137,28 +137,27 @@ class MplCanvas(FigureCanvas):
 class SliceMplCanvas(MplCanvas):
     def __init__(self, axes_color="#121234", parent=None):
         self.axes_color = axes_color
-        
+
         super().__init__(parent=parent)
-        
 
     def compute_initial_figure(self):
         self.image = None
         self.axes.xaxis.label.set_color(self.axes_color)
         self.axes.yaxis.label.set_color(self.axes_color)
         self.axes.tick_params(colors=self.axes_color)
-        
+
     def replot_figure(self, image):
         self.axes.clear()
-        
+
         self.image = self.axes.imshow(image)
-        
+
         self.redraw()
 
     def update_figure(self, image):
         if self.image is None:
             return self.replot_figure(image)
         self.image.set_data(image)
-        
+
         self.redraw()
 
 

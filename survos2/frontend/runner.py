@@ -87,7 +87,7 @@ class ConfigEditor(QWidget):
         tabwidget.addTab(tab3, "Pipeline")
 
         create_workspace_button = QPushButton("Create workspace")
-        run_button = QPushButton("Run button")
+        run_button = QPushButton("Run")
 
         tab1.layout = QVBoxLayout()
         tab1.setLayout(tab1.layout)
@@ -243,7 +243,7 @@ if __name__ == "__main__":
         "server_ip": "127.0.0.1",
         "server_port": "8134",
         # "server_address": "172.23.5.231:8123",
-        "workspace_name": "test_hunt_d4",
+        "workspace_name": "test_hunt_d4b",
     }
     workspace_config = {
         "dataset_name": "dataset",

@@ -60,7 +60,7 @@ def update_annotation_gui():
     )
 
 
-@magicgui(call_button="Update", layout="vertical")
+@magicgui(call_button="Save to workspace", layout="vertical")
 def workspace_gui(Layer: layers.Image, Group: TransferOperation):
     logger.debug(f"Selected layer name: {Layer.name} and shape: {Layer.data.shape} ")
 
@@ -69,8 +69,37 @@ def workspace_gui(Layer: layers.Image, Group: TransferOperation):
     if Group.name == "features":
         result = Launcher.g.run("features", "create", **params)
     elif Group.name == "annotations":
+
         params = dict(level=Layer.name, workspace=True)
-        result = Launcher.g.run("annotations", "get_levels", **params)[0]
+        result = Launcher.g.run("annotations", "add_level", workspace=True)
+        # result = Launcher.g.run("annotations", "get_levels", **params)[0]
+        label_values = np.unique(Layer.data)
+        for v in label_values:
+            params = dict(
+                level=result["id"],
+                idx=int(v),
+                name=str(v),
+                color="#11FF11",
+                workspace=True,
+            )
+            label_result = Launcher.g.run("annotations", "add_label", **params)
+
+            print(label_result)
+
+        levels_result = Launcher.g.run("annotations", "get_levels", **params)[0]
+        print(levels_result)
+
+        for v in levels_result["labels"].keys():
+            print(v)
+            label_rgba = np.array(Layer.get_color(int(v)))
+            label_rgba = (255 * label_rgba).astype(np.uint8)
+            label_hex = "#{:02x}{:02x}{:02x}".format(*label_rgba)
+            label = dict(idx=int(v), name=str(v), color=label_hex,)
+            params = dict(level=result["id"], workspace=True)
+            label_result = Launcher.g.run(
+                "annotations", "update_label", **params, **label
+            )
+
     elif Group.name == "regions":
         result = Launcher.g.run("regions", "create", **params)
 
@@ -78,7 +107,7 @@ def workspace_gui(Layer: layers.Image, Group: TransferOperation):
         fid = result["id"]
         ftype = result["kind"]
         fname = result["name"]
-        logger.debug(f"Transferred to workspace {fid}, {ftype}, {fname}")
+        logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
 
         dst = DataModel.g.dataset_uri(fid, group=Group.name)
 
@@ -86,7 +115,7 @@ def workspace_gui(Layer: layers.Image, Group: TransferOperation):
             with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
                 DM.out[:] = Layer.data
         elif Group.name == "annotations":
-            with DatasetManager(dst, out=dst, dtype="uint16", fillvalue=0) as DM:
+            with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
                 DM.out[:] = Layer.data
         elif Group.name == "regions":
             with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:

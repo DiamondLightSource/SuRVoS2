@@ -59,8 +59,7 @@ def plot_slice_and_pts(
     plt.title(f"ZY, X:{x}")
     if pts is not None:
         plt.scatter(
-            pts[:, 2],
-            pts[:, 0],
+            pts[:, 2], pts[:, 0],
         )
 
 
@@ -101,10 +100,7 @@ def view_labels(img_vols, label_vol, name=""):
 
         viewer = napari.Viewer()
 
-        label_layer = viewer.add_labels(
-            label_vol,
-            name="segmentation",
-        )
+        label_layer = viewer.add_labels(label_vol, name="segmentation",)
 
         return viewer
 

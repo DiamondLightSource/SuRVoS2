@@ -62,7 +62,6 @@ QWidget {
 QDialog {
     background-color: #232329;
     border: 2px solid #0D47A1;
-    border-radius: 3px;
 }
 
 
@@ -78,7 +77,6 @@ QLabel {
 
 QPushButton, QLineEdit, QComboBox, QToolButton[combo=true] {
     min-height: 20px;
-    border-radius: 3px;
     padding: 3px;
 }
 
@@ -166,6 +164,13 @@ QLineEdit {
     selection-background-color: #7986CB;
 }
 
+QLineEdit3D {
+    color: #0D47A1;
+    background-color: #343434;
+    selection-background-color: #7986CB;
+}
+
+
 /*
  Scroll Area
  */
@@ -188,7 +193,6 @@ QScrollBar:vertical {
 
 QScrollBar::handle:vertical {
     margin: 2px;
-    border-radius: 5px;
     background: #0D47A1;
     min-height: 30px;
 }
@@ -225,8 +229,6 @@ QComboBox::drop-down, QPushButton::menu-indicator {
     border-left-width: 2px;
     border-left-color: #0D47A1;
     border-left-style: solid;
-    border-top-right-radius: 3px;
-    border-bottom-right-radius: 3px;
 
     background-color: #E3F2FD;
 }
@@ -284,7 +286,6 @@ QMenu[combo=true]::item {
 
 QWidget[card=true] {
     padding: 10px;
-    border-radius: 10px;
     border: 1px solid #4FC3F7;
     background-color: #B3E5FC;
 }
@@ -295,7 +296,7 @@ QWidget[card=true] QLineEdit {
 }
 
 QWidget[card=true] QWidget[header=true] QLineEdit {
-    color: white;
+    color: gray;
     background-color: #039BE5;
 }
 
@@ -312,7 +313,6 @@ QCheckBox {
 QCheckBox::indicator {
     min-width: 16px;
     min-height: 16px;
-    border-radius: 4px;
     border: 2px solid #0D47A1;
     background-color: #fefefe;
 }
@@ -356,7 +356,7 @@ QSlider::sub-page:horizontal {
 }
 
 QSlider::add-page:horizontal {
-    background: #fff;
+    background: #dff;
     border: 1px solid #777;
     height: 5px;
     border-radius: 2px;

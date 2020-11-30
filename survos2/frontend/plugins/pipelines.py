@@ -157,7 +157,7 @@ class PipelineCard(Card):
         self._add_annotations_source()
         self._add_regions_source()
 
-        self._add_param("lam", type="Float", default=1.0)
+        self._add_param("lam", type="Float", default=0.15)
 
         for pname, params in fparams.items():
             if pname not in ["src", "dst"]:
@@ -167,7 +167,7 @@ class PipelineCard(Card):
         self._add_view_btn()
 
     def _add_view_btn(self):
-        view_btn = PushButton("3D View", accent=True)
+        view_btn = PushButton("View", accent=True)
         view_btn.clicked.connect(self.view_pipeline)
         self.add_row(HWidgets(None, view_btn, Spacing(35)))
 

@@ -7,10 +7,10 @@ from survos2.frontend.plugins.base import *
 from survos2.frontend.components.base import *
 from survos2.model import DataModel
 from survos2.frontend.control import Launcher
-from survos2.server.config import cfg
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.improc.utils import DatasetManager
+from survos2.server.config import cfg
 
 from survos2.frontend.components.entity import (
     TableWidget,
@@ -66,7 +66,9 @@ class EntitysPlugin(Plugin):
 
         # vol1 = sample_roi(cData.vol_stack[0], tabledata, vol_size=(32, 32, 32))
         # logger.debug(f"Sampled ROI vol of shape {vol1.shape}")
-        # self.smallvol_control = SmallVolWidget(vol1)
+        self.smallvol_control = SmallVolWidget(np.zeros((32, 32, 32)))
+        cfg.smallvol_control = self.smallvol_control
+        self.entitys_layout.addWidget(self.smallvol_control.imv)
         # cfg.object_table = self.table_control
         # cfg.tabledata = tabledata
 
@@ -131,7 +133,7 @@ class EntitysCard(Card):
 
         self.entitysfullname.setMaximumWidth(250)
         self.compute_btn = PushButton("Compute")
-        self.view_btn = PushButton("3D View", accent=True)
+        self.view_btn = PushButton("View", accent=True)
         self.get_btn = PushButton("Get", accent=True)
 
         self.add_row(HWidgets("Source:", self.entitysfullname, stretch=1))
@@ -142,9 +144,12 @@ class EntitysCard(Card):
         self.get_btn.clicked.connect(self.get_entitys)
 
         self.table_control = TableWidget()
-        tabledata, _ = setup_entity_table(entitysfullname)
+        tabledata, _ = setup_entity_table(entitysfullname, scale=0.25)
+        cfg.tabledata = tabledata
         self.table_control.set_data(tabledata)
-        self.add_row(self.table_control.w)
+        cfg.entity_table = self.table_control
+        self.add_row(self.table_control.w, max_height=500)
+        self.setMinimumHeight(500)
 
     def card_deleted(self):
         params = dict(entitys_id=self.entitysid, workspace=True)
@@ -174,3 +179,7 @@ class EntitysCard(Card):
         params = dict(dst=dst, fullname=self.entitysfullname.value())
         logger.debug(f"Getting entities with params {params}")
         Launcher.g.run("entitys", "set_csv", **params)
+        tabledata, _ = setup_entity_table(self.entitysfullname.value(), scale=0.25)
+        cfg.tabledata = tabledata
+        print(f"Loaded tabledata {tabledata}")
+        self.table_control.set_data(tabledata)

@@ -48,7 +48,7 @@ class Layer(QCSWidget):
         self.cmap = cmap or CmapComboBox()
         self.slider = Slider(value=100, label=False, auto_accept=False)
         # self.checkbox = CheckBox(checked=True)
-        self.view_btn = PushButton("3D View")
+        self.view_btn = PushButton("View")
         self.commit_btn = PushButton("Commit")
 
         hbox = HBox(self, spacing=5, margin=(5, 0, 5, 0))

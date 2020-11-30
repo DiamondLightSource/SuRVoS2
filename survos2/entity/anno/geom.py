@@ -55,12 +55,8 @@ def prepare_points3d(img_vol_shape=[100, 100, 100], proj="hunt"):
             points3d = np.array(
                 list(
                     zip(
-                        np.random.random(
-                            (num_bb, 1),
-                        ),
-                        np.random.random(
-                            (num_bb, 1),
-                        ),
+                        np.random.random((num_bb, 1),),
+                        np.random.random((num_bb, 1),),
                         np.random.random((num_bb, 1)),
                     )
                 )
@@ -78,12 +74,8 @@ def prepare_points3d(img_vol_shape=[100, 100, 100], proj="hunt"):
             points3d = np.array(
                 list(
                     zip(
-                        np.random.random(
-                            (num_bb, 1),
-                        ),
-                        np.random.random(
-                            (num_bb, 1),
-                        ),
+                        np.random.random((num_bb, 1),),
+                        np.random.random((num_bb, 1),),
                         np.random.random((num_bb, 1)),
                     )
                 )

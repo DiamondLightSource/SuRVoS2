@@ -60,7 +60,7 @@ def superregion_segment(
     src = DataModel.g.dataset_uri(anno_id, group="annotations")
     with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
-        anno_image = src_dataset[:]
+        anno_image = src_dataset[:] & 15
 
     # get superregions
     src = DataModel.g.dataset_uri(region_id, group="regions")

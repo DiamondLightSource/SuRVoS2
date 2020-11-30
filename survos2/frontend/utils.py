@@ -8,6 +8,66 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 import time
+from PyQt5.QtCore import QThread, QTimer
+
+
+class WorkerThread(QThread):
+    def run(self):
+        def work():
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "update_annotation",
+                    "data": "update_annotation",
+                    "value": None,
+                }
+            )
+            cfg.ppw.clientEvent.emit(
+                {"source": "update_annotation", "data": "refresh", "value": None}
+            )
+            QThread.sleep(5)
+
+        timer = QTimer()
+        timer.timeout.connect(work)
+        timer.start(50000)
+        self.exec_()
+
+
+def coords_in_view(coords, image_shape):
+    if (
+        coords[0] >= 0
+        and coords[1] >= 0
+        and coords[0] < image_shape[0]
+        and coords[1] < image_shape[1]
+    ):
+        return True
+    else:
+        return False
+
+
+def hex_string_to_rgba(hex_string):
+    hex_value = hex_string.lstrip("#")
+    rgba_array = (
+        np.append(np.array([int(hex_value[i : i + 2], 16) for i in (0, 2, 4)]), 255.0)
+        / 255.0
+    )
+    return rgba_array
+
+
+def get_color_mapping(result):
+    for r in result:
+        level_name = r["name"]
+        if r["kind"] == "level":
+            cmapping = {}
+            print(r["labels"].items())
+            for ii, (k, v) in enumerate(r["labels"].items()):
+                # remapped_label = label_ids[ii]
+                remapped_label = int(k) - 1
+                print(remapped_label)
+                cmapping[remapped_label] = hex_string_to_rgba(v["color"])
+                cmapping[remapped_label + (remapped_label * 16)] = hex_string_to_rgba(
+                    v["color"]
+                )
+    return cmapping
 
 
 def resource(*args):
