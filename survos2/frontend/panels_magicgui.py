@@ -51,12 +51,12 @@ def roi_gui(z_st: int, z_end: int, x_st: int, x_end: int, y_st: int, y_end: int)
 
 
 @magicgui(call_button="Update annotation", layout="vertical")
-def update_annotation_gui():
+def save_annotation_gui():
     cfg.ppw.clientEvent.emit(
-        {"source": "update_annotation", "data": "update_annotation", "value": None}
+        {"source": "save_annotation", "data": "save_annotation", "value": None}
     )
     cfg.ppw.clientEvent.emit(
-        {"source": "update_annotation", "data": "refresh", "value": None}
+        {"source": "save_annotation", "data": "refresh", "value": None}
     )
 
 

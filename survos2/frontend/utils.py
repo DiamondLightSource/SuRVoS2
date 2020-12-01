@@ -16,13 +16,13 @@ class WorkerThread(QThread):
         def work():
             cfg.ppw.clientEvent.emit(
                 {
-                    "source": "update_annotation",
-                    "data": "update_annotation",
+                    "source": "save_annotation",
+                    "data": "save_annotation",
                     "value": None,
                 }
             )
             cfg.ppw.clientEvent.emit(
-                {"source": "update_annotation", "data": "refresh", "value": None}
+                {"source": "save_annotation", "data": "refresh", "value": None}
             )
             QThread.sleep(5)
 

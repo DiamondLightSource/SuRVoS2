@@ -26,7 +26,7 @@ from survos2.model import DataModel
 from survos2.frontend.control.launcher import Launcher
 from survos2.frontend.panels_magicgui import (
     workspace_gui,
-    update_annotation_gui,
+    save_annotation_gui,
 )
 from survos2.entity.entities import make_entity_df
 from survos2.entity.sampler import (
@@ -48,9 +48,9 @@ from skimage.morphology import disk
 from scipy.ndimage import binary_dilation
 
 
-def update_ui():
-    QtCore.QCoreApplication.processEvents()
-    time.sleep(0.1)
+# def update_ui():
+#     QtCore.QCoreApplication.processEvents()
+#     time.sleep(0.1)
 
 
 def frontend(cData):
@@ -415,7 +415,7 @@ def frontend(cData):
                     pts, size=[10] * len(pts), n_dimensional=True
                 )
 
-        def update_annotation(msg):
+        def save_annotation(msg):
             annotation_layer = [
                 v for v in viewer.layers if v.name == cfg.current_annotation
             ]
@@ -439,7 +439,7 @@ def frontend(cData):
                     ) as DM:
                         DM.out[:] = annotation_layer[0].data
             else:
-                logger.debug("update_annotation couldn't find annotation in viewer")
+                logger.debug("save_annotation couldn't find annotation in viewer")
 
         def show_roi(msg):
             selected_roi_idx = cfg.entity_table.w.selected_row
@@ -510,8 +510,8 @@ def frontend(cData):
             elif msg["data"] == "refresh":
                 logger.debug("Refreshing plugin panel")
                 viewer.dw.ppw.setup()
-            elif msg["data"] == "update_annotation":
-                update_annotation(msg)
+            elif msg["data"] == "save_annotation":
+                save_annotation(msg)
 
         #
         # Add widgets to viewer
@@ -566,16 +566,16 @@ def frontend(cData):
         )
         workspace_gui_widget.refresh_choices()
 
-        update_annotation_gui_widget = update_annotation_gui.Gui()
-        update_annotation_dockwidget = viewer.window.add_dock_widget(
-            update_annotation_gui_widget, area="right"
+        save_annotation_gui_widget = save_annotation_gui.Gui()
+        save_annotation_dockwidget = viewer.window.add_dock_widget(
+            save_annotation_gui_widget, area="right"
         )
         viewer.layers.events.changed.connect(
-            lambda x: update_annotation_gui_widget.refresh_choices()
+            lambda x: save_annotation_gui_widget.refresh_choices()
         )
-        update_annotation_gui_widget.refresh_choices()
-        update_annotation_dockwidget.setWindowTitle("Update annotation")
-        update_annotation_dockwidget.setVisible(False)
+        save_annotation_gui_widget.refresh_choices()
+        save_annotation_dockwidget.setWindowTitle("Update annotation")
+        save_annotation_dockwidget.setVisible(False)
 
         if use_entities:
             from survos2.entity.sampler import sample_region_at_pt
