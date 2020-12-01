@@ -15,6 +15,7 @@ from survos2.server.features import generate_features
 from skimage.data import binary_blobs
 
 
+@pytest.mark.skip(reason="todo")
 def test_feature_generation():
 
     img_vol = np.zeros((5, 5, 5))
