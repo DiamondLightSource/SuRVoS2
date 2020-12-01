@@ -53,7 +53,7 @@ def datamodel():
     with h5py.File(map_fullpath, "w") as hf:
         hf.create_dataset("data", data=testvol)
 
-    tmp_ws_name = "testworkspace_tmp"
+    tmp_ws_name = "testworkspace_tmp1"
 
     result = survos.run_command("workspace", "get", uri=None, workspace=tmp_ws_name)
 
