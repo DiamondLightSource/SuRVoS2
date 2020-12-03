@@ -66,7 +66,7 @@ def supervoxels(
         spacing=spacing,
         compactness=compactness,
         multichannel=False,
-        enforce_connectivity=False,
+        enforce_connectivity=True,
         stack=False,
         timeit=True,
         uses_gpu=True,
