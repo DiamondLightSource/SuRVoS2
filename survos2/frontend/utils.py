@@ -1,15 +1,19 @@
-import numpy as np
-from numpy import nonzero, zeros_like, zeros
-from numpy.random import permutation
-from napari import gui_qt
-from napari import Viewer as NapariViewer
-import napari
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 import time
-from PyQt5.QtCore import QThread, QTimer
 
+import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from numpy import nonzero, zeros
+from numpy.random import permutation
+from PyQt5.QtCore import QSettings, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import (QComboBox, QDialog,
+                             QDialogButtonBox, QFileDialog,
+                             QHBoxLayout, QLineEdit,
+                             QVBoxLayout, QWidget)
+
+DEFAULT_DIR_KEY = "default_dir"
+DEFAULT_DATA_KEY = "default_data_dir"
 
 class WorkerThread(QThread):
     def run(self):
@@ -109,3 +113,132 @@ def prepare_point_data(pts, patch_pos):
     offset_pts = np.stack([z, x, y, c], axis=1)
 
     return offset_pts
+
+class SComboBox(QComboBox):
+    def __init__(self, *args):
+        super(SComboBox, self).__init__(*args)
+
+class ComboDialog(QDialog):
+    def __init__(self, options=None, parent=None, title="Select option"):
+        super(ComboDialog, self).__init__(parent=parent)
+        self.setWindowTitle(title)
+        layout = QVBoxLayout(self)
+
+        self.combo = SComboBox()
+        for option in options:
+            self.combo.addItem(option)
+        layout.addWidget(self.combo)
+
+        # OK and Cancel buttons
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        self.setGeometry(300, 300, 300, 100)
+
+    @staticmethod
+    def getOption(options, parent=None, title="Select option"):
+        dialog = ComboDialog(options, parent=parent, title=title)
+        result = dialog.exec_()
+        option = dialog.combo.currentText()
+        return (option, result == QDialog.Accepted)
+
+    @staticmethod
+    def getOptionIdx(options, parent=None, title="Select option"):
+        dialog = ComboDialog(options, parent=parent, title=title)
+        result = dialog.exec_()
+        option = dialog.combo.currentIndex()
+        return (option, result == QDialog.Accepted)
+
+class MplCanvas(QWidget):
+
+    def __init__(self, orient=0, axisoff=True, autoscale=False, **kwargs):
+        super(MplCanvas, self).__init__()
+
+        self.orient = orient
+        self.setLayout(QVBoxLayout())
+
+        # Figure
+        self.fig, self.ax, self.canvas = self.figimage(axisoff=axisoff)
+        self.pressed = False
+        self.ax.autoscale(enable=autoscale)
+        self.layout().addWidget(self.canvas, 1)
+        self.canvas.mpl_connect('button_press_event',self.on_press)
+
+    def replot(self):
+        self.ax.clear()
+        self.ax.cla()
+
+    def redraw(self):
+        self.canvas.draw_idle()
+
+    def figimage(self, scale=1, dpi=None, axisoff=True):
+        fig = plt.figure(figsize=(10, 10))
+        canvas = FigureCanvasQTAgg(fig)
+        ax = fig.add_subplot(111)
+        ax.axes.xaxis.set_visible(False)
+        ax.axes.yaxis.set_visible(False)
+        if axisoff:
+            fig.subplots_adjust(left=0.03, bottom=0.05, right=0.97, top=0.99)
+        canvas.draw()
+        return fig, ax, canvas
+
+    def on_press(self, event):
+        self.setFocus()
+
+
+class FileWidget(QWidget):
+
+    path_updated = pyqtSignal(str)
+
+    def __init__(self, extensions='*.h5', home=None, folder=False, save=True, parent=None):
+        super(FileWidget, self).__init__(parent)
+        hbox = QHBoxLayout()
+        hbox.setContentsMargins(0,0,0,0)
+        self.setLayout(hbox)
+
+        self.extensions = extensions
+        self.folder = folder
+        self.save = save
+
+        if save and home == '~':
+            home = os.path.expanduser('~')
+        elif home is None:
+            home = 'Click to select Folder' if folder else 'Click to select File'
+
+        self.path = QLineEdit(home)
+        self.path.setReadOnly(True)
+        self.path.mousePressEvent = self.find_path
+        self.selected = False
+
+        hbox.addWidget(self.path)
+
+    def find_path(self, ev):
+        if ev.button() != 1:
+            return
+        self.open_dialog()
+
+    def open_dialog(self):
+        selected = False
+        path = None
+        settings = QSettings()
+        folder = settings.value(DEFAULT_DATA_KEY)
+        if not folder:
+            folder = settings.value(DEFAULT_DIR_KEY)
+            
+        path, _ = QFileDialog.getOpenFileName(self, "Select input source", folder,
+                                                        filter=self.extensions)
+        if path is not None and len(path) > 0:
+            selected = True
+            settings.setValue(DEFAULT_DATA_KEY, os.path.dirname(path))
+
+        if selected:
+            self.path.setText(path)
+            self.path_updated.emit(path)
+            self.selected = True
+
+    def value(self):
+        return self.path.text() if self.selected else None
+

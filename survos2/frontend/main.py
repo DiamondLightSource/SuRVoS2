@@ -15,6 +15,7 @@ from survos2 import survos
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
 from survos2.entity.sampler import crop_vol_and_pts_centered
+from survos2.model.workspace import WorkspaceException
 
 
 def preprocess(img_volume):
@@ -45,7 +46,11 @@ def init_ws(workspace_params):
         img_volume = img_volume[group_name]
     else:
         logger.info("Extracting dataset")
-        img_volume = original_data[dataset_name]
+        try:
+            img_volume = original_data[dataset_name]
+        except KeyError as e:
+            raise WorkspaceException(f"Internal HDF5 dataset: '{dataset_name}' does not exist!") from e
+        
 
     logger.info(f"Loaded vol of size {img_volume.shape}")
     img_volume = preprocess(img_volume)
@@ -84,7 +89,7 @@ def init_ws(workspace_params):
 
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
 
-    survos.run_command(
+    return survos.run_command(
         "workspace",
         "add_dataset",
         workspace=ws_name,
