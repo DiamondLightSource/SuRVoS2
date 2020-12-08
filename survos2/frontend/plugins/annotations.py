@@ -23,7 +23,7 @@ from survos2.frontend.components.base import (
     PluginNotifier,
     Slider,
 )
-from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
+from survos2.frontend.plugins.annotation_tool import AnnotationComboBox, _AnnotationNotifier
 from survos2.frontend.plugins.regions import RegionComboBox
 
 _AnnotationNotifier = PluginNotifier()
@@ -56,7 +56,6 @@ class LevelComboBox(LazyComboBox):
     def fill(self):
         params = dict(workspace=True, full=self.full)
 
-        # result = [{'kind': 'supervoxels'}, ]
         result = Launcher.g.run("annotations", "get_levels", **params)
         logger.debug(f"Result of regions existing: {result}")
 
@@ -89,13 +88,18 @@ class AnnotationPlugin(Plugin):
         hbox = HBox(self, margin=7, spacing=5)
         self.label = AnnotationComboBox()
         self.region = RegionComboBox(header=(None, "Voxels"), full=True)
-        self.width = Slider(vmin=1, vmax=30)
+        
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
-        hbox.addWidget(self.width)
-        hbox.addWidget(None, 1)
+
+        hbox2 = HBox(self, margin=7, spacing=5)
+        self.width = Slider(vmin=1, vmax=30)
+        hbox2.addWidget(self.width)
+        hbox2.addWidget(None, 1)
 
         self.vbox.addLayout(hbox)
+        self.vbox.addLayout(hbox2)
+        self._add_set_sv_btn(hbox2)
 
     def on_created(self):
         pass
@@ -137,6 +141,28 @@ class AnnotationPlugin(Plugin):
         for level in result:
             if level["id"] not in self.levels:
                 self._add_level_widget(level)
+    
+    def set_sv(self):
+        cfg.current_supervoxels = self.region.value()
+        cfg.label_value = self.label.value()
+        cfg.brush_size = self.width.value()
+        print(cfg.current_supervoxels, cfg.label_value)
+
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "annotations",
+                "data": "set_paint_params",
+                "paint_params" :  { "current_supervoxels": self.region.value(),
+                                    "label_value" : self.label.value(),
+                                    "brush_size" : self.width.value() }
+            }
+        )
+
+    def _add_set_sv_btn(self, layout):
+        btn_view = PushButton("Set", accent=True)
+        btn_view.clicked.connect(self.set_sv)
+        layout.addWidget(HWidgets(None, btn_view, Spacing(35)))
+
 
 
 class AnnotationLevel(Card):
@@ -156,8 +182,9 @@ class AnnotationLevel(Card):
         self.le_title = LineEdit(level["name"])
         self.le_title.setProperty("header", True)
         self.labels = {}
-        self._add_view_btn()
+
         self._populate_labels()
+        self._add_view_btn()
 
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
@@ -199,7 +226,9 @@ class AnnotationLevel(Card):
                     self._add_label_widget(label)
 
     def view_level(self):
-        logger.debug(f"View feature_id {self.level_id}")
+        #logger.debug(f"View feature_id {self.level_id}")
+        
+        #cfg.current_supervoxels = self.label.value
         cfg.ppw.clientEvent.emit(
             {
                 "source": "annotations",
@@ -208,13 +237,10 @@ class AnnotationLevel(Card):
             }
         )
 
-        # cfg.timer.start()
-
     def _add_view_btn(self):
         btn_view = PushButton("View", accent=True)
         btn_view.clicked.connect(self.view_level)
         self.add_row(HWidgets(None, btn_view, Spacing(35)))
-
 
 class AnnotationLabel(QCSWidget):
 

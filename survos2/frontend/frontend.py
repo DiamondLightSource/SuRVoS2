@@ -105,6 +105,19 @@ def frontend(cData):
                 "make_seg_cnn",
             ]
 
+        def set_paint_params(msg):
+            logger.debug(f"set_paint_params {msg['paint_params']}")
+            paint_params = msg['paint_params']
+            #logger.debug(paint_params)
+            anno_layer = viewer.layers.selected[0]
+            if anno_layer.dtype == 'uint32':
+                label_value = paint_params['label_value']
+                #label_value['idx'] = label_value['idx'] - 1
+                anno_layer.selected_label = int(label_value['idx']) - 1
+                cfg.label_value = label_value
+                anno_layer.brush_size = int(paint_params['brush_size'])
+                anno_layer.mode = 'paint'
+
         def paint_annotations(msg):
             logger.debug(f"view_annotation {msg['level_id']}")
 
@@ -126,7 +139,7 @@ def frontend(cData):
                 existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
 
                 sv_name = (
-                    "regions/" + cfg.current_supervoxels
+                    cfg.current_supervoxels
                 )  # e.g. "regions/001_supervoxels"
                 regions_dataset = DataModel.g.dataset_uri(sv_name)
 
@@ -198,7 +211,10 @@ def frontend(cData):
                             anno_layer = next(
                                 l for l in viewer.layers if l.name == layer_name
                             )
-                            label = anno_layer.selected_label
+                            sel_label = int(cfg.label_value['idx']) - 1
+                            anno_layer.selected_label = sel_label 
+                            anno_layer.brush_size = int(cfg.brush_size)
+
 
                             line_x = []
                             line_y = []
@@ -230,7 +246,7 @@ def frontend(cData):
 
                             print(f"Painted regions {all_regions}")
 
-                            params = dict(workspace=True, level=level, label=label)
+                            params = dict(workspace=True, level=level, label=sel_label)
                             region = DataModel.g.dataset_uri(sv_name)
 
                             params.update(
@@ -512,6 +528,8 @@ def frontend(cData):
                 viewer.dw.ppw.setup()
             elif msg["data"] == "save_annotation":
                 save_annotation(msg)
+            elif msg["data"] == "set_paint_params":
+                set_paint_params(msg)
 
         #
         # Add widgets to viewer

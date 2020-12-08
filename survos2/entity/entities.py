@@ -41,6 +41,7 @@ import numpy as np
 import pandas as pd
 from typing import NamedTuple
 import itertools
+from dataclasses import dataclass
 
 
 from scipy import ndimage
@@ -96,7 +97,6 @@ def calc_bounding_vols(main_bv):
     return main_bv
 
 
-from dataclasses import dataclass
 
 
 @dataclass

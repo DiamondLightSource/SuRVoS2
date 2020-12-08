@@ -146,8 +146,7 @@ class SupervoxelCard(Card):
 
     def view_supervoxels(self):
         logger.debug(f"Transferring supervoxels {self.svid} to viewer")
-        cfg.current_supervoxels = self.svid
-
+        
         print(f"Current Supervoxels: {cfg.current_supervoxels}")
         cfg.ppw.clientEvent.emit(
             {"source": "regions", "data": "view_supervoxels", "region_id": self.svid}
