@@ -38,10 +38,13 @@ def start_server(
 
     from survos2.model import DataModel
 
+    full_ws_path = os.path.join(Config["model.chroot"], workspace)
+    if not os.path.isdir(full_ws_path):
+        logger.error(f"No workspace can be found at {full_ws_path}, aborting.")
+        sys.exit(1)
+    logger.info(f"Full workspace path is {full_ws_path}")
     DataModel.g.current_workspace = workspace
-
-    logger.debug(f"Started server on port {port} with workspace {workspace}")
-
+    
     api, __plugins = init_api(return_plugins=True)
 
     session_store = InMemoryStore()
@@ -50,7 +53,7 @@ def start_server(
     )
     api.http.add_middleware(middleware)
     CORSMiddleware(api)
-
+    logger.debug(f"Starting server on port {port} with workspace {workspace}")
     api.http.serve(port=int(port), display_intro=False)
 
 
