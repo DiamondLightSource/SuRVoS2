@@ -70,7 +70,7 @@ def frontend(cData):
         use_entities = True
 
     # cfg.timer = WorkerThread()
-
+    cfg.current_supervoxels = None
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
 
@@ -78,8 +78,8 @@ def frontend(cData):
         viewer.window._qt_window.setGeometry(100, 200, 1280, 720)
 
         # remove in order to rearrange standard Napari layer widgets
-        viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerList)
-        viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerControls)
+        #viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerList)
+        #viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerControls)
         # viewer.window.qt_viewer.setVisible(False)
         # Load data into viewer
         viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])
@@ -138,28 +138,32 @@ def frontend(cData):
 
                 existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
 
-                sv_name = (
-                    cfg.current_supervoxels
-                )  # e.g. "regions/001_supervoxels"
-                regions_dataset = DataModel.g.dataset_uri(sv_name)
-
-                with DatasetManager(
-                    regions_dataset, out=None, dtype="uint32", fillvalue=0
-                ) as DM:
-                    src_dataset = DM.sources[0]
-                    sv_arr = src_dataset[:]
-
-                print(f"SV array shape {sv_arr.shape}")
-
+                
                 sel_label = 1
                 brush_size = 10
 
                 if len(existing_layer) > 0:
-                    # existing_layer[0].data = src_arr & 15
                     viewer.layers.remove(existing_layer[0])
                     sel_label = existing_layer[0].selected_label
                     brush_size = existing_layer[0].brush_size
                     print(f"Removed existing layer {existing_layer[0]}")
+
+
+                if cfg.current_supervoxels == None:
+                    pass
+                else:
+                    sv_name = (
+                        cfg.current_supervoxels
+                    )  # e.g. "regions/001_supervoxels"
+                    regions_dataset = DataModel.g.dataset_uri(sv_name)
+
+                    with DatasetManager(
+                        regions_dataset, out=None, dtype="uint32", fillvalue=0
+                    ) as DM:
+                        src_dataset = DM.sources[0]
+                        sv_arr = src_dataset[:]
+
+                    print(f"Loaded superregion array of shape {sv_arr.shape}")
 
                 label_layer = viewer.add_labels(
                     src_arr & 15, name=msg["level_id"], color=cmapping
@@ -240,24 +244,37 @@ def frontend(cData):
                                 viewer.layers[-1].brush_size,
                             )
 
-                            for x, y in zip(line_x, line_y):
-                                sv = sv_arr[z, x, y]
-                                all_regions |= set([sv])
+                            
 
-                            print(f"Painted regions {all_regions}")
+                            if cfg.current_supervoxels == None:
+                                params = dict(workspace=True, level=level, label=sel_label)
+                             
+                                xx,yy = list(line_y), list(line_x)
+                                yy = [int(e) for e in yy]
+                                xx = [int(e) for e in xx]
+                                params.update(slice_idx=int(z), yy=yy, xx=xx)
+                                print(params)
+                                result = Launcher.g.run("annotations", "annotate_voxels", **params)
+                                print(result)
+                            else:
+                                for x, y in zip(line_x, line_y):
+                                    sv = sv_arr[z, x, y]
+                                    all_regions |= set([sv])
 
-                            params = dict(workspace=True, level=level, label=sel_label)
-                            region = DataModel.g.dataset_uri(sv_name)
+                                print(f"Painted regions {all_regions}")
 
-                            params.update(
-                                region=region,
-                                r=list(map(int, all_regions)),
-                                modal=False,
-                            )
-                            result = Launcher.g.run(
-                                "annotations", "annotate_regions", **params
-                            )
+                                params = dict(workspace=True, level=level, label=sel_label)
+                                region = DataModel.g.dataset_uri(sv_name)
 
+                                params.update(
+                                    region=region,
+                                    r=list(map(int, all_regions)),
+                                    modal=False,
+                                )
+                                result = Launcher.g.run(
+                                    "annotations", "annotate_regions", **params
+                                )
+                            
                             cfg.ppw.clientEvent.emit(
                                 {
                                     "source": "annotations",
@@ -335,7 +352,8 @@ def frontend(cData):
                     from skimage.segmentation import find_boundaries
 
                     sv_image = find_boundaries(src_arr)
-                    viewer.add_image(sv_image, name=msg["region_id"])
+                    sv_layer = viewer.add_image(sv_image, name=msg["region_id"])
+                    sv_layer.opacity = 0.3
 
         def view_entitys(msg):
             logger.debug(f"view_entitys {msg['entitys_id']}")
@@ -352,9 +370,9 @@ def frontend(cData):
             centers = np.array(
                 [
                     [
-                        np.int(np.float(entities_df.iloc[i]["z"])),
-                        np.int(np.float(entities_df.iloc[i]["x"])),
-                        np.int(np.float(entities_df.iloc[i]["y"])),
+                        np.int(np.float(entities_df.iloc[i]["z"]) * 0.25),
+                        np.int(np.float(entities_df.iloc[i]["x"]) * 0.25),
+                        np.int(np.float(entities_df.iloc[i]["y"]) * 0.25),
                     ]
                     for i in range(sel_start, sel_end)
                 ]
@@ -374,62 +392,6 @@ def frontend(cData):
                 face_color=face_color_list,
                 n_dimensional=True,
             )
-
-        def spatial_cluster(msg):
-            logger.debug(f"spatial cluster")
-            layers_selected = [
-                viewer.layers[i].selected for i in range(len(viewer.layers))
-            ]
-            logger.info(f"Selected layers {layers_selected}")
-            selected_layer_idx = int(np.where(layers_selected)[0][0])
-            selected_layer = viewer.layers[selected_layer_idx]
-
-            if viewer.layers[selected_layer_idx]._type_string == "points":
-                pts = viewer.layers[selected_layer_idx].data
-
-                entities_pts = np.zeros((pts.shape[0], 4))
-                entities_pts[:, 0:3] = pts[:, 0:3]
-                cc = [0] * len(entities_pts)
-                entities_pts[:, 3] = cc
-
-                logger.debug(f"Added class code to bare pts producing {entities_pts}")
-
-                from survos2.entity.anno.point_cloud import chip_cluster
-
-                refined_entities = chip_cluster(
-                    entities_pts,
-                    cData.vol_stack[0].copy(),
-                    0,
-                    0,
-                    MIN_CLUSTER_SIZE=2,
-                    method="dbscan",
-                    debug_verbose=False,
-                    plot_all=False,
-                )
-
-                pts = np.array(refined_entities)
-                logger.info(
-                    f"Clustered with result of {refined_entities.shape} {refined_entities}"
-                )
-
-                cData.entities = make_entity_df(pts, flipxy=False)
-                entity_layer, tabledata = setup_entity_table(viewer, cData)
-
-        def flip_coords(msg):
-            logger.debug(f"flip coords {msg['axis']}")
-            layers_selected = [
-                viewer.layers[i].selected for i in range(len(viewer.layers))
-            ]
-            logger.info(f"Selected layers {layers_selected}")
-            selected_layer_idx = int(np.where(layers_selected)[0][0])
-            selected_layer = viewer.layers[selected_layer_idx]
-            if viewer.layers[selected_layer_idx]._type_string == "points":
-                pts = viewer.layers[selected_layer_idx].data
-
-                pts = pts[:, [0, 2, 1]]
-                entity_layer = viewer.add_points(
-                    pts, size=[10] * len(pts), n_dimensional=True
-                )
 
         def save_annotation(msg):
             annotation_layer = [
@@ -517,10 +479,6 @@ def frontend(cData):
                 view_supervoxels(msg)
             elif msg["data"] == "view_entitys":
                 view_entitys(msg)
-            elif msg["data"] == "flip_coords":
-                flip_coords(msg)
-            elif msg["data"] == "spatial_cluster":
-                spatial_cluster(msg)
             elif msg["data"] == "show_roi":
                 show_roi(msg)
             elif msg["data"] == "refresh":
@@ -541,35 +499,31 @@ def frontend(cData):
 
         from survos2.frontend.slice_paint import MainWidget
 
-        viewer.classic_widget = MainWidget()
+        #viewer.classic_widget = MainWidget()
         # viewer.window.qt_viewer.setFixedSize(200,200)
         # viewer.window.qt_viewer.setVisible(False)
-        viewer.dims.ndisplay = 3
+        #viewer.dims.ndisplay = 3 # start on 3d view
 
-        classic_dockwidget = viewer.window.add_dock_widget(
-            viewer.classic_widget, area="right"
-        )
-        classic_dockwidget.setVisible(False)
+        # classic_dockwidget = viewer.window.add_dock_widget(
+        #     viewer.classic_widget, area="right"
+        # )
+        # classic_dockwidget.setVisible(False)
 
-        # main_dockwidget = viewer.window.add_dock_widget(viewer.window.qt_viewer, area="right")
-        # viewer.dw.bpw = ButtonPanelWidget()
-        # bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='top')
-        # viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x)  )
-
+        
         #
         # Tabs
         #
         pluginwidget_dockwidget = viewer.window.add_dock_widget(
-            viewer.dw.ppw, area="left"
+            viewer.dw.ppw, area="right"
         )
         pluginwidget_dockwidget.setWindowTitle("Workspace")
 
-        viewer.window.add_dock_widget(
-            viewer.window.qt_viewer.dockLayerList, area="right"
-        )
-        viewer.window.add_dock_widget(
-            viewer.window.qt_viewer.dockLayerControls, area="right"
-        )
+        # viewer.window.add_dock_widget(
+        #     viewer.window.qt_viewer.dockLayerList, area="right"
+        # )
+        # viewer.window.add_dock_widget(
+        #     viewer.window.qt_viewer.dockLayerControls, area="right"
+        # )
         # viewer.window.qt_viewer.dockLayerControls.setVisible(False)
 
         workspace_gui_widget = workspace_gui.Gui()

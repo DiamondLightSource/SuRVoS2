@@ -6,7 +6,7 @@ from qtpy.QtCore import QSize, Signal
 
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
-from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
+from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
 from survos2.model import DataModel
 from survos2.frontend.model import ClientData
 from survos2.frontend.plugins.base import LazyComboBox, LazyMultiComboBox
@@ -158,6 +158,7 @@ class PipelineCard(Card):
         self._add_regions_source()
 
         self._add_param("lam", type="Float", default=0.15)
+        self._add_param("num_components", type="Int", default=0)
 
         for pname, params in fparams.items():
             if pname not in ["src", "dst"]:
@@ -202,11 +203,13 @@ class PipelineCard(Card):
 
         self.add_row(widget)
 
-    def _add_param(self, name, type="String", default=None):
+    def _add_param(self, name, title=None, type="String", default=None):
         if type == "Int":
             pipeline = LineEdit(default=default, parse=int)
         elif type == "Float":
-            pipeline = LineEdit(default=default, parse=float)
+            #pipeline = LineEdit(default=default, parse=float)
+            pipeline = RealSlider(value=default, vmax=1, vmin=0)
+            title = "Smoothing"
         elif type == "FloatOrVector":
             pipeline = LineEdit3D(default=default, parse=float)
         elif type == "IntOrVector":
@@ -214,9 +217,12 @@ class PipelineCard(Card):
         else:
             pipeline = None
 
+        if title is None:
+            title=name
+
         if pipeline:
             self.widgets[name] = pipeline
-            self.add_row(HWidgets(None, name, pipeline, Spacing(35)))
+            self.add_row(HWidgets(None, title, pipeline, Spacing(35)))
 
     def _add_compute_btn(self):
         compute_btn = PushButton("Compute", accent=True)

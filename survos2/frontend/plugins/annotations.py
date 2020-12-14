@@ -52,7 +52,7 @@ class LevelComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None):
         self.full = full
         super().__init__(header=header, parent=parent)
-
+        _AnnotationNotifier.listen(self.update)
     def fill(self):
         params = dict(workspace=True, full=self.full)
 
@@ -74,7 +74,7 @@ class AnnotationPlugin(Plugin):
     __icon__ = "fa.pencil"
     __pname__ = "annotations"
     __views__ = ["slice_viewer"]
-    __tab__ = "workspace"
+    __tab__ = "annotation"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -85,27 +85,22 @@ class AnnotationPlugin(Plugin):
         self.btn_addlevel.clicked.connect(self.add_level)
         self.annotation_tool = AnnotationTool()
 
-        hbox = HBox(self, margin=7, spacing=5)
+        hbox = HBox(self, margin=1, spacing=3)
         self.label = AnnotationComboBox()
         self.region = RegionComboBox(header=(None, "Voxels"), full=True)
         
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
 
-        hbox2 = HBox(self, margin=7, spacing=5)
-        self.width = Slider(vmin=1, vmax=30)
-        hbox2.addWidget(self.width)
-        hbox2.addWidget(None, 1)
+        self.width = Slider(vmin=1, vmax=30, step=2)
+        hbox.addWidget(self.width)
+        hbox.addWidget(None, 1)
 
         self.vbox.addLayout(hbox)
-        self.vbox.addLayout(hbox2)
-        self._add_set_sv_btn(hbox2)
+        self._add_set_sv_btn(hbox)
 
     def on_created(self):
         pass
-        # self["slice_viewer"].add_tool(
-        #    "Annotations", self.__icon__, tool=self.annotation_tool
-        # )
 
     def add_level(self):
         level = Launcher.g.run("annotations", "add_level", workspace=True)
@@ -127,16 +122,19 @@ class AnnotationPlugin(Plugin):
     def remove_level(self, level):
         if level in self.levels:
             self.levels.pop(level).setParent(None)
+        _AnnotationNotifier.notify()
 
     def setup(self):
         result = Launcher.g.run("annotations", "get_levels", workspace=True)
         if not result:
             return
+
         # Remove levels that no longer exist in the server
         rlevels = [r["id"] for r in result]
         for level in list(self.levels.keys()):
             if level not in rlevels:
                 self.remove_level(level)
+
         # Populate with new levels if any
         for level in result:
             if level["id"] not in self.levels:
@@ -144,6 +142,7 @@ class AnnotationPlugin(Plugin):
     
     def set_sv(self):
         cfg.current_supervoxels = self.region.value()
+        
         cfg.label_value = self.label.value()
         cfg.brush_size = self.width.value()
         print(cfg.current_supervoxels, cfg.label_value)
@@ -157,6 +156,16 @@ class AnnotationPlugin(Plugin):
                                     "brush_size" : self.width.value() }
             }
         )
+        print(self.levels)
+        cfg.ppw.clientEvent.emit(
+                                {
+                                    "source": "annotations",
+                                    "data": "view_annotations",
+                                    "level_id": list(self.levels.keys())[0],
+                                }
+                            )
+
+        _AnnotationNotifier.notify()
 
     def _add_set_sv_btn(self, layout):
         btn_view = PushButton("Set", accent=True)
@@ -184,7 +193,7 @@ class AnnotationLevel(Card):
         self.labels = {}
 
         self._populate_labels()
-        self._add_view_btn()
+        #self._add_view_btn()
 
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
@@ -226,9 +235,6 @@ class AnnotationLevel(Card):
                     self._add_label_widget(label)
 
     def view_level(self):
-        #logger.debug(f"View feature_id {self.level_id}")
-        
-        #cfg.current_supervoxels = self.label.value
         cfg.ppw.clientEvent.emit(
             {
                 "source": "annotations",

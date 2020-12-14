@@ -21,7 +21,6 @@ class FeatureComboBox(LazyComboBox):
         _FeatureNotifier.listen(self.update)
 
     def fill(self):
-
         _fill_features(self, full=self.full)
 
 

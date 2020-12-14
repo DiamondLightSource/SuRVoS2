@@ -97,11 +97,11 @@ def list_plugins():
 class PluginContainer(QCSWidget):
 
     view_requested = QtCore.Signal(str, dict)
-    __sidebar_width__ = 440
+    __sidebar_width__ = 550
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.setMinimumWidth(self.__sidebar_width__)
+        self.setMinimumWidth(self.__sidebar_width__ + 50)
 
         self.tabwidget = QTabWidget()
         vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
@@ -112,10 +112,10 @@ class PluginContainer(QCSWidget):
         tab3 = QWidget()
         tab4 = QWidget()
 
-        self.tabwidget.addTab(tab1, "Workspace")
-        self.tabwidget.addTab(tab2, "Segmentation")
-        self.tabwidget.addTab(tab3, "Objects")
-        self.tabwidget.addTab(tab4, "Analyze")
+        self.tabwidget.addTab(tab1, "Features")
+        self.tabwidget.addTab(tab2, "Annotations")
+        self.tabwidget.addTab(tab3, "Segmentations")
+        self.tabwidget.addTab(tab4, "Analyzer")
 
         tab1.layout = QVBoxLayout()
         tab1.setLayout(tab1.layout)
@@ -131,15 +131,15 @@ class PluginContainer(QCSWidget):
 
         self.title = Header("Plugin")
 
-        self.workspace_container = ScrollPane(parent=self)
+        self.workspace_container = ScrollPane(parent=self) 
+        self.annotation_container = ScrollPane(parent=self)
         self.segmentation_container = ScrollPane(parent=self)
-        self.entities_container = ScrollPane(parent=self)
-        self.analyze_container = ScrollPane(parent=self)
+        self.analyzer_container = ScrollPane(parent=self)
 
         tab1.layout.addWidget(self.workspace_container)
-        tab2.layout.addWidget(self.segmentation_container)
-        tab3.layout.addWidget(self.entities_container)
-        tab4.layout.addWidget(self.analyze_container)
+        tab2.layout.addWidget(self.annotation_container)
+        tab3.layout.addWidget(self.segmentation_container)
+        tab4.layout.addWidget(self.analyzer_container)
 
         self.plugins = {}
         self.selected_name = None
@@ -160,20 +160,17 @@ class PluginContainer(QCSWidget):
         if name in self.plugins:  # and name != self.selected_name:
             print(f"show_plugin: {name}")
 
-            # if self.selected is not None:
-            #    self.selected['widget'].setParent(None)
             self.selected_name = name
             self.selected = self.plugins[name]
             self.title.setText(self.selected["title"])
 
             if tab == "workspace":
                 self.workspace_container.addWidget(self.selected["widget"], 1)
+            elif tab == "annotation":
+                self.annotation_container.addWidget(self.selected["widget"], 1)       
             elif tab == "segmentation":
                 self.segmentation_container.addWidget(self.selected["widget"], 1)
-            elif tab == "entities":
-                self.entities_container.addWidget(self.selected["widget"], 1)
-
-            elif tab == "analyze":
-                self.analyze_container.addWidget(self.selected["widget"], 1)
+            elif tab == "analyzer":
+                self.analyzer_container.addWidget(self.selected["widget"], 1)
             if hasattr(self.selected["widget"], "setup"):
                 self.selected["widget"].setup()

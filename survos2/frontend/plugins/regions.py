@@ -36,7 +36,7 @@ class RegionsPlugin(Plugin):
     __icon__ = "fa.qrcode"
     __pname__ = "regions"
     __views__ = ["slice_viewer"]
-    __tab__ = "segmentation"
+    __tab__ = "annotation"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
