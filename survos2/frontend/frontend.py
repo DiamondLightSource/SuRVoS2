@@ -71,18 +71,26 @@ def frontend(cData):
 
     # cfg.timer = WorkerThread()
     cfg.current_supervoxels = None
+    cfg.current_mode = 'paint'
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
 
         viewer.theme = "dark"
         viewer.window._qt_window.setGeometry(100, 200, 1280, 720)
-
+        
+        # Napari ui modification
+        
+        #viewer.window.qt_viewer.layerButtons.hide() 
         # remove in order to rearrange standard Napari layer widgets
         #viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerList)
         #viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerControls)
         # viewer.window.qt_viewer.setVisible(False)
+        
+        
         # Load data into viewer
         viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])
+
+        # SuRVoS controls
 
         viewer.dw = AttrDict()
         # viewer.dw.bpw = ButtonPanelWidget()
@@ -111,12 +119,14 @@ def frontend(cData):
             #logger.debug(paint_params)
             anno_layer = viewer.layers.selected[0]
             if anno_layer.dtype == 'uint32':
+                anno_layer.mode = 'paint'
+                cfg.current_mode = 'paint'
+            
                 label_value = paint_params['label_value']
-                #label_value['idx'] = label_value['idx'] - 1
                 anno_layer.selected_label = int(label_value['idx']) - 1
                 cfg.label_value = label_value
                 anno_layer.brush_size = int(paint_params['brush_size'])
-                anno_layer.mode = 'paint'
+                 
 
         def paint_annotations(msg):
             logger.debug(f"view_annotation {msg['level_id']}")
@@ -137,7 +147,6 @@ def frontend(cData):
                 print(cmapping)
 
                 existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
-
                 
                 sel_label = 1
                 brush_size = 10
@@ -168,7 +177,8 @@ def frontend(cData):
                 label_layer = viewer.add_labels(
                     src_arr & 15, name=msg["level_id"], color=cmapping
                 )
-                label_layer.mode = "paint"
+
+                label_layer.mode = cfg.current_mode
                 label_layer.selected_label = sel_label
                 label_layer.brush_size = brush_size
 
@@ -198,7 +208,8 @@ def frontend(cData):
 
                     all_regions = set()
 
-                    if layer.mode == "paint":
+                    if layer.mode == "paint" or layer.mode == "erase":
+
                         while event.type == "mouse_move":
                             coords = np.round(layer.coordinates).astype(int)
                             drag_pt = [coords[0], coords[1], coords[2]]
@@ -209,16 +220,22 @@ def frontend(cData):
                         if dragged:
 
                             level = msg["level_id"]
-                            layer_name = viewer.layers[
-                                -1
-                            ].name  # get last added layer name
+                            layer_name = viewer.layers[-1].name  # get last added layer name
                             anno_layer = next(
                                 l for l in viewer.layers if l.name == layer_name
                             )
+
                             sel_label = int(cfg.label_value['idx']) - 1
+
+
+                            if layer.mode == 'erase':
+                                sel_label = 0
+                                cfg.current_mode = 'erase'
+                            else:
+                                cfg.current_mode = 'paint'
+
                             anno_layer.selected_label = sel_label 
                             anno_layer.brush_size = int(cfg.brush_size)
-
 
                             line_x = []
                             line_y = []

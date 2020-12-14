@@ -51,6 +51,7 @@ def superregion_segment(
     region_id: String,
     feature_ids: DataURIList,
     lam: float,
+    num_components: int,
     dst: DataURI,
 ):
     logger.debug(
@@ -87,7 +88,13 @@ def superregion_segment(
     # run predictions
     from survos2.server.superseg import sr_predict
 
-    segmentation = sr_predict(supervoxel_image, anno_image, features, lam)
+
+    if num_components > 0:
+        do_pca = True
+    else:
+        do_pca = False
+
+    segmentation = sr_predict(supervoxel_image, anno_image, features, lam, do_pca, num_components)
 
     # store in dst
     dst = DataModel.g.dataset_uri(dst, group="pipeline")

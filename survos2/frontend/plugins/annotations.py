@@ -92,7 +92,7 @@ class AnnotationPlugin(Plugin):
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
 
-        self.width = Slider(vmin=1, vmax=30, step=2)
+        self.width = Slider(value=8,vmin=2, vmax=50, step=2)
         hbox.addWidget(self.width)
         hbox.addWidget(None, 1)
 
@@ -193,8 +193,7 @@ class AnnotationLevel(Card):
         self.labels = {}
 
         self._populate_labels()
-        #self._add_view_btn()
-
+        
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
         return Launcher.g.run("annotations", "rename_level", **params)

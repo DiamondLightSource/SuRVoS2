@@ -127,7 +127,7 @@ class SupervoxelCard(Card):
         self.add_row(HWidgets("Compactness:", self.svcompactness, stretch=1))
         self.add_row(HWidgets(None, self.compute_btn))
 
-        self.add_row(HWidgets(None, self.view_btn, Spacing(35)))
+        self.add_row(HWidgets(None, self.view_btn))
 
         self.compute_btn.clicked.connect(self.compute_supervoxels)
         self.view_btn.clicked.connect(self.view_supervoxels)
