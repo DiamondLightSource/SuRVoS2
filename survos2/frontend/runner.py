@@ -106,7 +106,7 @@ class LoadDataDialog(QDialog):
         self.buttonBox.rejected.connect(self.reject)
         rvbox.addWidget(self.buttonBox)
         self.winput.path_updated.connect(self.load_data)
-        self.slider.valueChanged.connect(self.update_image)
+        self.slider.sliderReleased.connect(self.update_image)
 
     def load_data(self, path):
         if path is not None and len(path) > 0:
@@ -121,7 +121,7 @@ class LoadDataDialog(QDialog):
 
             self.data = self.volread(path=path)
             self.dataset = dataset
-            self.update_image(idx=None)
+            self.update_image(load=True)
     
     def volread(self, path=None):
         _, file_extension = os.path.splitext(path)
@@ -155,8 +155,11 @@ class LoadDataDialog(QDialog):
             datasets = self.scan_datasets_group(f, shape=shape, dtype=dtype)
         return datasets
 
-    def update_image(self, idx=None):
-        if idx is None:
+    @pyqtSlot()
+    def update_image(self, load=False):
+        slider = self.sender()
+        idx = slider.value()
+        if idx is None or load:
             data_shape = self.data[self.dataset].shape
             idx = data_shape[0]//2
             self.slider.blockSignals(True)
@@ -166,7 +169,7 @@ class LoadDataDialog(QDialog):
             self.slider.blockSignals(False)
             self.canvas.ax.set_ylim([data_shape[1] + 1, -1])
             self.canvas.ax.set_xlim([-1, data_shape[2] + 1])
-
+           
         img = self.data[self.dataset][idx]
         self.canvas.ax.imshow(img, 'gray')
         self.canvas.ax.grid(False)
