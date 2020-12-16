@@ -7,10 +7,10 @@ import sys
 from pathlib import Path
 
 import h5py as h5
-import numpy as np
 import pyqtgraph.parametertree.parameterTypes as pTypes
 import yaml
 from loguru import logger
+from numpy import clip, product
 from PyQt5.QtCore import Qt, QTimer, pyqtSlot
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QApplication, QDialog, QDialogButtonBox,
@@ -52,11 +52,11 @@ ptree_init2 = [
     },
 ]
 
-
 class LoadDataDialog(QDialog):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.data_limits = None
 
         self.setWindowTitle("Select Data to Load")
         main_layout = QVBoxLayout()
@@ -83,11 +83,23 @@ class LoadDataDialog(QDialog):
 
         lvbox.addWidget(QLabel('Preview Dataset'))
 
-
         self.slider = QSlider(1)
-        lvbox.addWidget(self.slider)
+        slider_vbox = QVBoxLayout()
+        slider_hbox = QHBoxLayout()
+        slider_hbox.setContentsMargins(0, 0, 0, 0)
+        slider_vbox.setContentsMargins(0, 0, 0, 0)
+        slider_vbox.setSpacing(0)
+        self.slider_min_label = QLabel(alignment=Qt.AlignLeft)
+        self.slider_max_label = QLabel(alignment=Qt.AlignRight)
+        slider_vbox.addWidget(self.slider)
+        slider_vbox.addLayout(slider_hbox)
+        slider_hbox.addWidget(self.slider_min_label, Qt.AlignLeft)
+        slider_hbox.addWidget(self.slider_max_label, Qt.AlignRight)
+        slider_vbox.addStretch()
+        lvbox.addLayout(slider_vbox)
 
         self.canvas = MplCanvas()
+        self.canvas.roi_updated.connect(self.on_roi_box_update)
         lvbox.addWidget(self.canvas)
 
          # INPUT
@@ -97,7 +109,47 @@ class LoadDataDialog(QDialog):
         rvbox.addWidget(QLabel('Internal HDF5 data path:'))
         self.int_h5_pth = QLabel('None selected')
         rvbox.addWidget(self.int_h5_pth)
+
+        apply_roi_button = QPushButton("Apply ROI")
+        reset_button = QPushButton("Reset ROI")
+        roi_fields = QGroupBox("Select Region of Interest:")
+        roi_layout = QGridLayout()
+        roi_layout.addWidget(QLabel("Drag a box in the image window or type manually"), 0, 0, 1, 3)
+        roi_layout.addWidget(QLabel("Axis"), 1, 0)
+        roi_layout.addWidget(QLabel("Start Value:"), 1, 1)
+        roi_layout.addWidget(QLabel("End Value:"), 1, 2)
+        roi_layout.addWidget(apply_roi_button, 1, 3)
+        roi_layout.addWidget(reset_button, 2, 3)
+        roi_layout.addWidget(QLabel("x:"), 2, 0)
+        self.xstart_linedt = QLineEdit("0")
+        roi_layout.addWidget(self.xstart_linedt, 2, 1)
+        self.xend_linedt = QLineEdit()
+        roi_layout.addWidget(self.xend_linedt, 2, 2)
+        roi_layout.addWidget(QLabel("y:"), 3, 0)
+        self.ystart_linedt = QLineEdit("0")
+        roi_layout.addWidget(self.ystart_linedt, 3, 1)
+        self.yend_linedt = QLineEdit()
+        roi_layout.addWidget(self.yend_linedt, 3, 2)
+        roi_layout.addWidget(QLabel("z:"), 4, 0)
+        self.zstart_linedt = QLineEdit("0")
+        roi_layout.addWidget(self.zstart_linedt, 4, 1)
+        self.zend_linedt = QLineEdit()
+        roi_layout.addWidget(self.zend_linedt, 4, 2)
+        roi_layout.addWidget(QLabel("Downsample Factor:"), 5, 0)
+        self.downsample_spinner = QSpinBox()
+        self.downsample_spinner.setRange(1, 10)
+        self.downsample_spinner.setSpecialValueText("None")
+        self.downsample_spinner.setMaximumWidth(60)
+        roi_layout.addWidget(self.downsample_spinner, 5, 1)
+        roi_layout.addWidget(QLabel("Estimated datasize (MB):"), 5, 3)
+        self.data_size_label = QLabel("0")
+        roi_layout.addWidget(self.data_size_label, 5, 4)
+        roi_fields.setLayout(roi_layout)
         rvbox.addWidget(QWidget(), 1)
+        rvbox.addWidget(roi_fields)
+
+        apply_roi_button.clicked.connect(self.on_roi_apply_clicked)
+        reset_button.clicked.connect(self.on_roi_reset_clicked)
 
         # Save | Cancel
         buttons = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
@@ -107,6 +159,31 @@ class LoadDataDialog(QDialog):
         rvbox.addWidget(self.buttonBox)
         self.winput.path_updated.connect(self.load_data)
         self.slider.sliderReleased.connect(self.update_image)
+
+    @pyqtSlot()
+    def on_slider_min_changed(self, value):
+        print(f"Changed to {value}")
+        self.slider_min_label.setText(value)
+
+    @pyqtSlot()
+    def on_roi_reset_clicked(self):
+        self.data_limits = None
+        self.reset_roi_fields()
+        self.update_image(load=True)
+
+    @pyqtSlot()
+    def on_roi_apply_clicked(self):
+        self.data_limits = self.get_roi_limits()
+        self.update_image()
+
+    def get_roi_limits(self):
+        x_start = int(self.xstart_linedt.text())
+        x_end = int(self.xend_linedt.text())
+        y_start = int(self.ystart_linedt.text())
+        y_end = int(self.yend_linedt.text())
+        z_start = int(self.zstart_linedt.text())
+        z_end = int(self.zend_linedt.text())
+        return x_start, x_end, y_start, y_end, z_start, z_end
 
     def load_data(self, path):
         if path is not None and len(path) > 0:
@@ -121,7 +198,30 @@ class LoadDataDialog(QDialog):
 
             self.data = self.volread(path=path)
             self.dataset = dataset
+            self.data_shape = self.data[self.dataset].shape
+            self.reset_roi_fields()
             self.update_image(load=True)
+
+    def reset_roi_fields(self):
+        self.xstart_linedt.setText("0")
+        self.xend_linedt.setText(str(self.data_shape[2]))
+        self.ystart_linedt.setText("0")
+        self.yend_linedt.setText(str(self.data_shape[1]))
+        self.zstart_linedt.setText("0")
+        self.zend_linedt.setText(str(self.data_shape[0]))
+
+    def on_roi_box_update(self, size_tuple):
+        x_start, x_end, y_start, y_end = self.clip_roi_box_vals(size_tuple)
+        self.xstart_linedt.setText(str(x_start))
+        self.xend_linedt.setText(str(x_end))
+        self.ystart_linedt.setText(str(y_start))
+        self.yend_linedt.setText(str(y_end))
+
+    def clip_roi_box_vals(self, vals):
+        x_start, x_end, y_start, y_end = map(round, vals)
+        x_start, x_end = clip([x_start, x_end], 0, self.data_shape[2])
+        y_start, y_end = clip([y_start, y_end], 0, self.data_shape[1])
+        return x_start, x_end, y_start, y_end
     
     def volread(self, path=None):
         _, file_extension = os.path.splitext(path)
@@ -148,7 +248,6 @@ class LoadDataDialog(QDialog):
                     datasets += extra
         return datasets
 
-
     def available_hdf5_datasets(self, path, shape=None, dtype=None):
         datasets = []
         with h5.File(path, 'r') as f:
@@ -157,23 +256,44 @@ class LoadDataDialog(QDialog):
 
     @pyqtSlot()
     def update_image(self, load=False):
-        slider = self.sender()
-        idx = slider.value()
+        # Only update index if called by slider
+        if isinstance(self.sender(), QSlider):
+            idx = self.sender().value()
+        else:
+            idx = None
+        # Set limits
+        if self.data_limits:
+            x_start, x_end, y_start, y_end, z_start, z_end = self.data_limits
+            x_size = x_end - x_start
+            y_size = y_end - y_start
+            z_size = z_end - z_start
+        else:
+            z_size, y_size, x_size = self.data_shape
+            x_start, x_end, y_start, y_end, z_start, z_end = (0, x_size, 0, y_size, 0, z_size)
+        # Show central slice if loading data or changing roi
         if idx is None or load:
-            data_shape = self.data[self.dataset].shape
-            idx = data_shape[0]//2
+            idx = z_size//2
             self.slider.blockSignals(True)
-            self.slider.setMinimum(0)
-            self.slider.setMaximum(data_shape[0] - 1)
+            self.slider.setMinimum(z_start)
+            self.slider_min_label.setNum(z_start)
+            self.slider.setMaximum(z_end - 1)
+            self.slider_max_label.setNum(z_end)
             self.slider.setValue(idx)
             self.slider.blockSignals(False)
-            self.canvas.ax.set_ylim([data_shape[1] + 1, -1])
-            self.canvas.ax.set_xlim([-1, data_shape[2] + 1])
-           
+            self.canvas.ax.set_ylim([y_size + 1, -1])
+            self.canvas.ax.set_xlim([-1, x_size + 1])
+
+        self.update_est_data_size(z_size, y_size, x_size)  
         img = self.data[self.dataset][idx]
-        self.canvas.ax.imshow(img, 'gray')
+        self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], 'gray')
         self.canvas.ax.grid(False)
         self.canvas.redraw()
+
+    def update_est_data_size(self, z_size, y_size, x_size):
+        data_size_tup = tuple(map(int, (z_size, y_size, x_size)))
+        est_data_size = (product(data_size_tup) * 4) / 10 **6
+        est_data_size /= self.downsample_spinner.value()
+        self.data_size_label.setText(f"{est_data_size:.3f}")
 
 
 class ConfigEditor(QWidget):
@@ -431,6 +551,7 @@ class ConfigEditor(QWidget):
         self.run_config['server_ip'] = self.server_ip_linedt.text()
         self.run_config['server_port'] = self.server_port_linedt.text()
 
+        
         self.server_process = subprocess.Popen(
             [
                 "python",
@@ -440,6 +561,11 @@ class ConfigEditor(QWidget):
                 self.run_config["server_port"],
             ]
         )
+        try:
+            outs, errs = self.server_process.communicate(timeout=10)
+            print(f"OUTS: {outs, errs}")
+        except subprocess.TimeoutExpired:
+            pass
 
         self.client_process = subprocess.Popen(
             [
