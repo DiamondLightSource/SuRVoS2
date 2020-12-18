@@ -478,8 +478,17 @@ class ConfigEditor(QWidget):
             self.downsample_spinner.setValue(down_factor)
             if dialog.roi_changed:
                 self.roi_fields.show()
+                self.update_roi_fields_from_dialog(dialog)
             else:
                 self.roi_fields.hide()
+
+    def update_roi_fields_from_dialog(self, dialog):
+        self.xstart_roi_val.setText(str(dialog.get_linedt_value(dialog.xstart_linedt)))
+        self.xend_roi_val.setText(str(dialog.get_linedt_value(dialog.xend_linedt)))
+        self.ystart_roi_val.setText(str(dialog.get_linedt_value(dialog.ystart_linedt)))
+        self.yend_roi_val.setText(str(dialog.get_linedt_value(dialog.yend_linedt)))
+        self.zstart_roi_val.setText(str(dialog.get_linedt_value(dialog.zstart_linedt)))
+        self.zend_roi_val.setText(str(dialog.get_linedt_value(dialog.zend_linedt)))
 
     @pyqtSlot()
     def toggle_advanced(self):
