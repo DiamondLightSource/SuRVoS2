@@ -57,6 +57,7 @@ class LoadDataDialog(QDialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.data_limits = None
+        self.roi_changed =  False
 
         self.setWindowTitle("Select Data to Load")
         main_layout = QVBoxLayout()
@@ -122,24 +123,31 @@ class LoadDataDialog(QDialog):
         roi_layout.addWidget(reset_button, 2, 3)
         roi_layout.addWidget(QLabel("x:"), 2, 0)
         self.xstart_linedt = QLineEdit("0")
+        self.xstart_linedt.textChanged.connect(self.on_roi_param_changed)
         roi_layout.addWidget(self.xstart_linedt, 2, 1)
-        self.xend_linedt = QLineEdit()
+        self.xend_linedt = QLineEdit("0")
+        self.xend_linedt.textChanged.connect(self.on_roi_param_changed)
         roi_layout.addWidget(self.xend_linedt, 2, 2)
         roi_layout.addWidget(QLabel("y:"), 3, 0)
         self.ystart_linedt = QLineEdit("0")
+        self.ystart_linedt.textChanged.connect(self.on_roi_param_changed)
         roi_layout.addWidget(self.ystart_linedt, 3, 1)
-        self.yend_linedt = QLineEdit()
+        self.yend_linedt = QLineEdit("0")
+        self.yend_linedt.textChanged.connect(self.on_roi_param_changed)
         roi_layout.addWidget(self.yend_linedt, 3, 2)
         roi_layout.addWidget(QLabel("z:"), 4, 0)
         self.zstart_linedt = QLineEdit("0")
+        self.zstart_linedt.textChanged.connect(self.on_roi_param_changed)
         roi_layout.addWidget(self.zstart_linedt, 4, 1)
-        self.zend_linedt = QLineEdit()
+        self.zend_linedt = QLineEdit("0")
+        self.zend_linedt.textChanged.connect(self.on_roi_param_changed)
         roi_layout.addWidget(self.zend_linedt, 4, 2)
         roi_layout.addWidget(QLabel("Downsample Factor:"), 5, 0)
         self.downsample_spinner = QSpinBox()
         self.downsample_spinner.setRange(1, 10)
         self.downsample_spinner.setSpecialValueText("None")
         self.downsample_spinner.setMaximumWidth(60)
+        self.downsample_spinner.valueChanged.connect(self.on_roi_param_changed)
         roi_layout.addWidget(self.downsample_spinner, 5, 1)
         roi_layout.addWidget(QLabel("Estimated datasize (MB):"), 5, 3)
         self.data_size_label = QLabel("0")
@@ -162,7 +170,6 @@ class LoadDataDialog(QDialog):
 
     @pyqtSlot()
     def on_slider_min_changed(self, value):
-        print(f"Changed to {value}")
         self.slider_min_label.setText(value)
 
     @pyqtSlot()
@@ -174,16 +181,31 @@ class LoadDataDialog(QDialog):
     @pyqtSlot()
     def on_roi_apply_clicked(self):
         self.data_limits = self.get_roi_limits()
+        self.roi_changed = self.check_if_roi_changed(self.data_limits)
         self.update_image()
 
+    @pyqtSlot()
+    def on_roi_param_changed(self):
+        limits = self.get_roi_limits()
+        x_start, x_end, y_start, y_end, z_start, z_end = self.clip_roi_box_vals(limits)
+        x_size = x_end - x_start
+        y_size = y_end - y_start
+        z_size = z_end - z_start
+        self.update_est_data_size(z_size, y_size, x_size)
+
     def get_roi_limits(self):
-        x_start = int(self.xstart_linedt.text())
-        x_end = int(self.xend_linedt.text())
-        y_start = int(self.ystart_linedt.text())
-        y_end = int(self.yend_linedt.text())
-        z_start = int(self.zstart_linedt.text())
-        z_end = int(self.zend_linedt.text())
+        x_start = self.get_linedt_value(self.xstart_linedt)
+        x_end = self.get_linedt_value(self.xend_linedt)
+        y_start = self.get_linedt_value(self.ystart_linedt)
+        y_end = self.get_linedt_value(self.yend_linedt)
+        z_start = self.get_linedt_value(self.zstart_linedt)
+        z_end = self.get_linedt_value(self.zend_linedt)
         return x_start, x_end, y_start, y_end, z_start, z_end
+
+    def get_linedt_value(self, linedt):
+        if linedt.text():
+            return int(linedt.text())
+        return 0
 
     def load_data(self, path):
         if path is not None and len(path) > 0:
@@ -209,19 +231,36 @@ class LoadDataDialog(QDialog):
         self.yend_linedt.setText(str(self.data_shape[1]))
         self.zstart_linedt.setText("0")
         self.zend_linedt.setText(str(self.data_shape[0]))
+        self.roi_changed = False
+
+    def check_if_roi_changed(self, roi_limits):
+        x_start, x_end, y_start, y_end, z_start, z_end = roi_limits
+        if not x_start == y_start == z_start == 0:
+            return True
+        if (x_end != self.data_shape[2]) or (y_end != self.data_shape[1]) or (z_end != self.data_shape[0]):
+            return True
+        return False
 
     def on_roi_box_update(self, size_tuple):
-        x_start, x_end, y_start, y_end = self.clip_roi_box_vals(size_tuple)
+        # Append the z values
+        z_start = int(self.zstart_linedt.text())
+        z_end = int(self.zend_linedt.text())
+        size_tuple += (z_start, z_end)
+        # Clip the values
+        x_start, x_end, y_start, y_end, z_start, z_end = self.clip_roi_box_vals(size_tuple)
         self.xstart_linedt.setText(str(x_start))
         self.xend_linedt.setText(str(x_end))
         self.ystart_linedt.setText(str(y_start))
         self.yend_linedt.setText(str(y_end))
+        self.zstart_linedt.setText(str(z_start))
+        self.zend_linedt.setText(str(z_end))
 
     def clip_roi_box_vals(self, vals):
-        x_start, x_end, y_start, y_end = map(round, vals)
+        x_start, x_end, y_start, y_end, z_start, z_end = map(round, vals)
         x_start, x_end = clip([x_start, x_end], 0, self.data_shape[2])
         y_start, y_end = clip([y_start, y_end], 0, self.data_shape[1])
-        return x_start, x_end, y_start, y_end
+        z_start, z_end = clip([z_start, z_end], 0, self.data_shape[0])
+        return x_start, x_end, y_start, y_end, z_start, z_end
     
     def volread(self, path=None):
         _, file_extension = os.path.splitext(path)
@@ -283,7 +322,7 @@ class LoadDataDialog(QDialog):
             self.canvas.ax.set_ylim([y_size + 1, -1])
             self.canvas.ax.set_xlim([-1, x_size + 1])
 
-        self.update_est_data_size(z_size, y_size, x_size)  
+        #self.update_est_data_size(z_size, y_size, x_size)  
         img = self.data[self.dataset][idx]
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], 'gray')
         self.canvas.ax.grid(False)
@@ -293,7 +332,7 @@ class LoadDataDialog(QDialog):
         data_size_tup = tuple(map(int, (z_size, y_size, x_size)))
         est_data_size = (product(data_size_tup) * 4) / 10 **6
         est_data_size /= self.downsample_spinner.value()
-        self.data_size_label.setText(f"{est_data_size:.3f}")
+        self.data_size_label.setText(f"{est_data_size:.2f}")
 
 
 class ConfigEditor(QWidget):
@@ -348,6 +387,34 @@ class ConfigEditor(QWidget):
         self.downsample_spinner.setMaximumWidth(60)
         self.downsample_spinner.setValue(int(self.workspace_config['downsample_by']))
         wf_layout.addWidget(self.downsample_spinner, 4, 1, 1, 1)
+        # ROI
+        self.roi_fields = QGroupBox("ROI:")
+        roi_fields_layout = QHBoxLayout()
+        # z
+        roi_fields_layout.addWidget(QLabel("z:"), 0)
+        self.zstart_roi_val = QLabel("0")
+        roi_fields_layout.addWidget(self.zstart_roi_val, 1)
+        roi_fields_layout.addWidget( QLabel("-"), 2)
+        self.zend_roi_val = QLabel("0")
+        roi_fields_layout.addWidget(self.zend_roi_val, 3)
+        # y
+        roi_fields_layout.addWidget(QLabel("y:"), 4)
+        self.ystart_roi_val = QLabel("0")
+        roi_fields_layout.addWidget(self.ystart_roi_val, 5)
+        roi_fields_layout.addWidget( QLabel("-"), 6)
+        self.yend_roi_val = QLabel("0")
+        roi_fields_layout.addWidget(self.yend_roi_val, 7)
+        # x
+        roi_fields_layout.addWidget(QLabel("x:"), 8)
+        self.xstart_roi_val = QLabel("0")
+        roi_fields_layout.addWidget(self.xstart_roi_val, 9)
+        roi_fields_layout.addWidget( QLabel("-"), 10)
+        self.xend_roi_val = QLabel("0")
+        roi_fields_layout.addWidget(self.xend_roi_val, 11)
+        
+        self.roi_fields.setLayout(roi_fields_layout)
+        wf_layout.addWidget(self.roi_fields, 4, 2, 1, 2)
+        self.roi_fields.hide()
         wf_layout.addWidget(self.create_workspace_button, 5, 0, 1, 3)
         workspace_fields.setLayout(wf_layout)
         tab1.layout.addWidget(workspace_fields)
@@ -404,9 +471,15 @@ class ConfigEditor(QWidget):
         if result == QDialog.Accepted:
             path = dialog.winput.path.text()
             int_h5_pth = dialog.int_h5_pth.text()
+            down_factor = dialog.downsample_spinner.value()
         if path and int_h5_pth:
             self.data_filepth_linedt.setText(path)
             self.h5_intpth_linedt.setText(int_h5_pth)
+            self.downsample_spinner.setValue(down_factor)
+            if dialog.roi_changed:
+                self.roi_fields.show()
+            else:
+                self.roi_fields.hide()
 
     @pyqtSlot()
     def toggle_advanced(self):
