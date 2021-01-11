@@ -7,13 +7,20 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from numpy import nonzero, zeros
 from numpy.random import permutation
 from PyQt5.QtCore import QSettings, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import (QComboBox, QDialog,
-                             QDialogButtonBox, QFileDialog,
-                             QHBoxLayout, QLineEdit,
-                             QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QHBoxLayout,
+    QLineEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 DEFAULT_DIR_KEY = "default_dir"
 DEFAULT_DATA_KEY = "default_data_dir"
+
 
 class WorkerThread(QThread):
     def run(self):
@@ -114,9 +121,11 @@ def prepare_point_data(pts, patch_pos):
 
     return offset_pts
 
+
 class SComboBox(QComboBox):
     def __init__(self, *args):
         super(SComboBox, self).__init__(*args)
+
 
 class ComboDialog(QDialog):
     def __init__(self, options=None, parent=None, title="Select option"):
@@ -131,8 +140,8 @@ class ComboDialog(QDialog):
 
         # OK and Cancel buttons
         buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
-            Qt.Horizontal, self)
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self
+        )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -152,8 +161,8 @@ class ComboDialog(QDialog):
         option = dialog.combo.currentIndex()
         return (option, result == QDialog.Accepted)
 
-class MplCanvas(QWidget):
 
+class MplCanvas(QWidget):
     def __init__(self, orient=0, axisoff=True, autoscale=False, **kwargs):
         super(MplCanvas, self).__init__()
 
@@ -165,7 +174,7 @@ class MplCanvas(QWidget):
         self.pressed = False
         self.ax.autoscale(enable=autoscale)
         self.layout().addWidget(self.canvas, 1)
-        self.canvas.mpl_connect('button_press_event',self.on_press)
+        self.canvas.mpl_connect("button_press_event", self.on_press)
 
     def replot(self):
         self.ax.clear()
@@ -193,20 +202,22 @@ class FileWidget(QWidget):
 
     path_updated = pyqtSignal(str)
 
-    def __init__(self, extensions='*.h5', home=None, folder=False, save=True, parent=None):
+    def __init__(
+        self, extensions="*.h5", home=None, folder=False, save=True, parent=None
+    ):
         super(FileWidget, self).__init__(parent)
         hbox = QHBoxLayout()
-        hbox.setContentsMargins(0,0,0,0)
+        hbox.setContentsMargins(0, 0, 0, 0)
         self.setLayout(hbox)
 
         self.extensions = extensions
         self.folder = folder
         self.save = save
 
-        if save and home == '~':
-            home = os.path.expanduser('~')
+        if save and home == "~":
+            home = os.path.expanduser("~")
         elif home is None:
-            home = 'Click to select Folder' if folder else 'Click to select File'
+            home = "Click to select Folder" if folder else "Click to select File"
 
         self.path = QLineEdit(home)
         self.path.setReadOnly(True)
@@ -227,9 +238,10 @@ class FileWidget(QWidget):
         folder = settings.value(DEFAULT_DATA_KEY)
         if not folder:
             folder = settings.value(DEFAULT_DIR_KEY)
-            
-        path, _ = QFileDialog.getOpenFileName(self, "Select input source", folder,
-                                                        filter=self.extensions)
+
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select input source", folder, filter=self.extensions
+        )
         if path is not None and len(path) > 0:
             selected = True
             settings.setValue(DEFAULT_DATA_KEY, os.path.dirname(path))
@@ -241,4 +253,3 @@ class FileWidget(QWidget):
 
     def value(self):
         return self.path.text() if self.selected else None
-

@@ -5,13 +5,9 @@ import napari
 import time
 from typing import List
 import seaborn as sns
+from loguru import logger
 
 from matplotlib.colors import Normalize
-from pyqtgraph.widgets.ProgressDialog import ProgressDialog
-from qtpy import QtCore
-from qtpy.QtWidgets import QTabWidget, QVBoxLayout, QWidget
-from qtpy.QtCore import QSize
-from loguru import logger
 
 from skimage import img_as_float, img_as_ubyte
 from scipy import ndimage
@@ -24,10 +20,12 @@ from survos2.frontend.components.entity import (
 from survos2.frontend.panels import ButtonPanelWidget, PluginPanelWidget
 from survos2.model import DataModel
 from survos2.frontend.control.launcher import Launcher
-from survos2.frontend.panels_magicgui import (
-    workspace_gui,
-    save_annotation_gui,
-)
+
+# from survos2.frontend.panels_magicgui import (
+#     workspace_gui,
+#     #save_annotation_gui,
+# )
+
 from survos2.entity.entities import make_entity_df
 from survos2.entity.sampler import (
     sample_roi,
@@ -35,22 +33,25 @@ from survos2.entity.sampler import (
 )
 from survos2.helpers import AttrDict
 from survos2.improc.utils import DatasetManager
-from survos2.server.config import cfg
+from survos2.server.state import cfg
 from survos2.helpers import simple_norm
 
 from survos2.frontend.utils import coords_in_view, hex_string_to_rgba, get_color_mapping
 
 import threading
-from PyQt5.QtCore import QThread, QTimer
-from PyQt5.QtWidgets import QApplication, QPushButton, QWidget
+from qtpy import QtCore
+
+from qtpy.QtCore import QThread, QTimer
+from qtpy.QtWidgets import QApplication, QPushButton, QWidget
+from pyqtgraph.widgets.ProgressDialog import ProgressDialog
+from qtpy import QtCore
+from qtpy.QtWidgets import QTabWidget, QVBoxLayout, QWidget
+from qtpy.QtCore import QSize
+
 from skimage.draw import line
 from skimage.morphology import disk
 from scipy.ndimage import binary_dilation
 
-
-# def update_ui():
-#     QtCore.QCoreApplication.processEvents()
-#     time.sleep(0.1)
 
 
 def frontend(cData):
@@ -59,51 +60,40 @@ def frontend(cData):
     )
     src = DataModel.g.dataset_uri("__data__")
 
+    # Entity loading
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         entity_fullname = src_dataset.get_metadata("entities_name")
     logger.info(f"entity_fullname {entity_fullname}")
-
     if entity_fullname is None:
         use_entities = False
     else:
         use_entities = True
 
-    # cfg.timer = WorkerThread()
+    #cfg.timer = WorkerThread()
     cfg.current_supervoxels = None
-    cfg.current_mode = 'paint'
+    cfg.current_mode = "paint"
+    
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
-
         viewer.theme = "dark"
         viewer.window._qt_window.setGeometry(100, 200, 1280, 720)
-        
-        # Napari ui modification
-        
-        #viewer.window.qt_viewer.layerButtons.hide() 
-        # remove in order to rearrange standard Napari layer widgets
-        #viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerList)
-        #viewer.window.remove_dock_widget(viewer.window.qt_viewer.dockLayerControls)
-        # viewer.window.qt_viewer.setVisible(False)
-        
-        
+
         # Load data into viewer
         viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])
 
         # SuRVoS controls
-
         viewer.dw = AttrDict()
-        # viewer.dw.bpw = ButtonPanelWidget()
         viewer.dw.ppw = PluginPanelWidget()
-        viewer.dw.ppw.setMinimumSize(QSize(400, 400))
+        viewer.dw.ppw.setMinimumSize(QSize(600, 500))
+        
+        # provide state variables to viewer for interactive debugging
         viewer.cfg = cfg
-        # attach workspace to viewer for interactive debugging
         from survos2.model import Workspace
-
         ws = Workspace(DataModel.g.current_workspace)
         viewer.dw.ws = ws
         viewer.dw.datamodel = DataModel.g
-
+        
         def setup_pipeline():
             pipeline_ops = [
                 "make_masks",
@@ -115,18 +105,17 @@ def frontend(cData):
 
         def set_paint_params(msg):
             logger.debug(f"set_paint_params {msg['paint_params']}")
-            paint_params = msg['paint_params']
-            #logger.debug(paint_params)
+            paint_params = msg["paint_params"]
+            # logger.debug(paint_params)
             anno_layer = viewer.layers.selected[0]
-            if anno_layer.dtype == 'uint32':
-                anno_layer.mode = 'paint'
-                cfg.current_mode = 'paint'
-            
-                label_value = paint_params['label_value']
-                anno_layer.selected_label = int(label_value['idx']) - 1
+            if anno_layer.dtype == "uint32":
+                anno_layer.mode = "paint"
+                cfg.current_mode = "paint"
+
+                label_value = paint_params["label_value"]
+                anno_layer.selected_label = int(label_value["idx"]) - 1
                 cfg.label_value = label_value
-                anno_layer.brush_size = int(paint_params['brush_size'])
-                 
+                anno_layer.brush_size = int(paint_params["brush_size"])
 
         def paint_annotations(msg):
             logger.debug(f"view_annotation {msg['level_id']}")
@@ -147,7 +136,7 @@ def frontend(cData):
                 print(cmapping)
 
                 existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
-                
+
                 sel_label = 1
                 brush_size = 10
 
@@ -157,13 +146,10 @@ def frontend(cData):
                     brush_size = existing_layer[0].brush_size
                     print(f"Removed existing layer {existing_layer[0]}")
 
-
                 if cfg.current_supervoxels == None:
                     pass
                 else:
-                    sv_name = (
-                        cfg.current_supervoxels
-                    )  # e.g. "regions/001_supervoxels"
+                    sv_name = cfg.current_supervoxels  # e.g. "regions/001_supervoxels"
                     regions_dataset = DataModel.g.dataset_uri(sv_name)
 
                     with DatasetManager(
@@ -220,21 +206,22 @@ def frontend(cData):
                         if dragged:
 
                             level = msg["level_id"]
-                            layer_name = viewer.layers[-1].name  # get last added layer name
+                            layer_name = viewer.layers[
+                                -1
+                            ].name  # get last added layer name
                             anno_layer = next(
                                 l for l in viewer.layers if l.name == layer_name
                             )
 
-                            sel_label = int(cfg.label_value['idx']) - 1
+                            sel_label = int(cfg.label_value["idx"]) - 1
 
-
-                            if layer.mode == 'erase':
+                            if layer.mode == "erase":
                                 sel_label = 0
-                                cfg.current_mode = 'erase'
+                                cfg.current_mode = "erase"
                             else:
-                                cfg.current_mode = 'paint'
+                                cfg.current_mode = "paint"
 
-                            anno_layer.selected_label = sel_label 
+                            anno_layer.selected_label = sel_label
                             anno_layer.brush_size = int(cfg.brush_size)
 
                             line_x = []
@@ -261,17 +248,19 @@ def frontend(cData):
                                 viewer.layers[-1].brush_size,
                             )
 
-                            
-
                             if cfg.current_supervoxels == None:
-                                params = dict(workspace=True, level=level, label=sel_label)
-                             
-                                xx,yy = list(line_y), list(line_x)
+                                params = dict(
+                                    workspace=True, level=level, label=sel_label
+                                )
+
+                                xx, yy = list(line_y), list(line_x)
                                 yy = [int(e) for e in yy]
                                 xx = [int(e) for e in xx]
                                 params.update(slice_idx=int(z), yy=yy, xx=xx)
                                 print(params)
-                                result = Launcher.g.run("annotations", "annotate_voxels", **params)
+                                result = Launcher.g.run(
+                                    "annotations", "annotate_voxels", **params
+                                )
                                 print(result)
                             else:
                                 for x, y in zip(line_x, line_y):
@@ -280,7 +269,9 @@ def frontend(cData):
 
                                 print(f"Painted regions {all_regions}")
 
-                                params = dict(workspace=True, level=level, label=sel_label)
+                                params = dict(
+                                    workspace=True, level=level, label=sel_label
+                                )
                                 region = DataModel.g.dataset_uri(sv_name)
 
                                 params.update(
@@ -291,7 +282,7 @@ def frontend(cData):
                                 result = Launcher.g.run(
                                     "annotations", "annotate_regions", **params
                                 )
-                            
+
                             cfg.ppw.clientEvent.emit(
                                 {
                                     "source": "annotations",
@@ -506,32 +497,39 @@ def frontend(cData):
             elif msg["data"] == "set_paint_params":
                 set_paint_params(msg)
 
-        #
-        # Add widgets to viewer
-        #
+        
+        #Add widgets to viewer
 
-        # Plugin Panel widget
+        #Plugin Panel widget
         viewer.dw.ppw.clientEvent.connect(lambda x: processEvents(x))
         cData.cfg.ppw = viewer.dw.ppw
 
-        from survos2.frontend.slice_paint import MainWidget
+        # classic widget
+        ##from survos2.frontend.slice_paint import MainWidget
+        #classic_dockwidget = viewer.window.add_dock_widget(
+        #    viewer.classic_widget, area="right"
+        #)
+        #classic_dockwidget.setVisible(False)
+        ##viewer.classic_widget = MainWidget()
 
-        #viewer.classic_widget = MainWidget()
-        # viewer.window.qt_viewer.setFixedSize(200,200)
-        # viewer.window.qt_viewer.setVisible(False)
+        #viewer.window.qt_viewer.setFixedSize(400,400)
+        #viewer.window.qt_viewer.setVisible(False)
         #viewer.dims.ndisplay = 3 # start on 3d view
 
-        # classic_dockwidget = viewer.window.add_dock_widget(
-        #     viewer.classic_widget, area="right"
-        # )
-        # classic_dockwidget.setVisible(False)
+        
+        smallvol_control = SmallVolWidget(np.zeros((32, 32, 32)))
+        cfg.smallvol_control = smallvol_control
+        smallvol_control_dockwidget = viewer.window.add_dock_widget(
+            smallvol_control.imv, area="right"
+        )
+        smallvol_control_dockwidget.setVisible(False)
+        smallvol_control_dockwidget.setWindowTitle("Patch viewer")
 
         
-        #
-        # Tabs
-        #
+        #Tabs
         pluginwidget_dockwidget = viewer.window.add_dock_widget(
-            viewer.dw.ppw, area="right"
+            viewer.dw.ppw,
+            area="right",
         )
         pluginwidget_dockwidget.setWindowTitle("Workspace")
 
@@ -541,30 +539,31 @@ def frontend(cData):
         # viewer.window.add_dock_widget(
         #     viewer.window.qt_viewer.dockLayerControls, area="right"
         # )
-        # viewer.window.qt_viewer.dockLayerControls.setVisible(False)
+        #viewer.window.qt_viewer.dockLayerControls.setVisible(False)
 
-        workspace_gui_widget = workspace_gui.Gui()
-        workspace_gui_dockwidget = viewer.window.add_dock_widget(
-            workspace_gui_widget, area="left"
-        )
-        workspace_gui_dockwidget.setVisible(False)
-        workspace_gui_dockwidget.setWindowTitle("Save to workspace")
+        # workspace_gui_widget = workspace_gui.Gui()
+        # workspace_gui_dockwidget = viewer.window.add_dock_widget(
+        #     workspace_gui_widget, area="left"
+        # )
+        # workspace_gui_dockwidget.setVisible(False)
+        # workspace_gui_dockwidget.setWindowTitle("Save to workspace")
 
-        viewer.layers.events.changed.connect(
-            lambda x: workspace_gui_widget.refresh_choices()
-        )
-        workspace_gui_widget.refresh_choices()
+        # viewer.layers.events.changed.connect(
+        #     lambda x: workspace_gui_widget.refresh_choices()
+        # )
+        # workspace_gui_widget.refresh_choices()
 
-        save_annotation_gui_widget = save_annotation_gui.Gui()
-        save_annotation_dockwidget = viewer.window.add_dock_widget(
-            save_annotation_gui_widget, area="right"
-        )
-        viewer.layers.events.changed.connect(
-            lambda x: save_annotation_gui_widget.refresh_choices()
-        )
-        save_annotation_gui_widget.refresh_choices()
-        save_annotation_dockwidget.setWindowTitle("Update annotation")
-        save_annotation_dockwidget.setVisible(False)
+        # save_annotation_gui_widget = save_annotation_gui.Gui()
+        # save_annotation_dockwidget = viewer.window.add_dock_widget(
+        #     save_annotation_gui_widget, area="right"
+        # )
+        # viewer.layers.events.changed.connect(
+        #     lambda x: save_annotation_gui_widget.refresh_choices()
+        # )
+
+        # save_annotation_gui_widget.refresh_choices()
+        # save_annotation_dockwidget.setWindowTitle("Update annotation")
+        # save_annotation_dockwidget.setVisible(False)
 
         if use_entities:
             from survos2.entity.sampler import sample_region_at_pt
@@ -582,3 +581,5 @@ def frontend(cData):
                     viewer.status = msg
                 else:
                     print("Coords out of view")
+
+    

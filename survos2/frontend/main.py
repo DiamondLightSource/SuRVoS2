@@ -49,8 +49,9 @@ def init_ws(workspace_params):
         try:
             img_volume = original_data[dataset_name]
         except KeyError as e:
-            raise WorkspaceException(f"Internal HDF5 dataset: '{dataset_name}' does not exist!") from e
-        
+            raise WorkspaceException(
+                f"Internal HDF5 dataset: '{dataset_name}' does not exist!"
+            ) from e
 
     logger.info(f"Loaded vol of size {img_volume.shape}")
     img_volume = preprocess(img_volume)
@@ -111,7 +112,7 @@ def init_client():
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
-        img_volume = src_dataset[:]
+        img_volume = src_dataset[:].copy()
 
     DataModel.g.current_workspace_shape = img_volume.shape
 
@@ -125,7 +126,7 @@ def init_client():
         1.0,
     ]
 
-    from survos2.server.config import cfg
+    from survos2.server.state import cfg
 
     clientData = ClientData(filtered_layers, layer_names, opacities, cfg)
     return clientData
@@ -133,7 +134,7 @@ def init_client():
 
 def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
     """
-    View a ROI from a big volume by creating a temp dataset from a crop. 
+    View a ROI from a big volume by creating a temp dataset from a crop.
     Crop both the volume and the associated entities.
     Used for big volumes tha never get loaded into viewer.
     """
@@ -165,8 +166,6 @@ def setup_ws(project_file=None):
 
 def start_client():
     clientData = init_client()
-    viewer = frontend(clientData)
+    #logger.info(f"Prepared clientdata {clientData}")
+    frontend(clientData)
 
-
-if __name__ == "__main__":
-    start_client()

@@ -11,7 +11,7 @@ from survos2.server.features import (
     features_factory,
 )
 from survos2.server.model import SRData, SRFeatures
-from survos2.server.config import cfg
+from survos2.server.state import cfg
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.frontend.control import Launcher
@@ -50,14 +50,14 @@ def roi_gui(z_st: int, z_end: int, x_st: int, x_end: int, y_st: int, y_end: int)
     cfg["roi_crop"] = (z_st, z_end, x_st, x_end, y_st, y_end)
 
 
-@magicgui(call_button="Update annotation", layout="vertical")
-def save_annotation_gui():
-    cfg.ppw.clientEvent.emit(
-        {"source": "save_annotation", "data": "save_annotation", "value": None}
-    )
-    cfg.ppw.clientEvent.emit(
-        {"source": "save_annotation", "data": "refresh", "value": None}
-    )
+# @magicgui(call_button="Update annotation", layout="vertical")
+# def save_annotation_gui():
+#     cfg.ppw.clientEvent.emit(
+#         {"source": "save_annotation", "data": "save_annotation", "value": None}
+#     )
+#     cfg.ppw.clientEvent.emit(
+#         {"source": "save_annotation", "data": "refresh", "value": None}
+#     )
 
 
 @magicgui(call_button="Save to workspace", layout="vertical")
@@ -94,7 +94,11 @@ def workspace_gui(Layer: layers.Image, Group: TransferOperation):
             label_rgba = np.array(Layer.get_color(int(v)))
             label_rgba = (255 * label_rgba).astype(np.uint8)
             label_hex = "#{:02x}{:02x}{:02x}".format(*label_rgba)
-            label = dict(idx=int(v), name=str(v), color=label_hex,)
+            label = dict(
+                idx=int(v),
+                name=str(v),
+                color=label_hex,
+            )
             params = dict(level=result["id"], workspace=True)
             label_result = Launcher.g.run(
                 "annotations", "update_label", **params, **label

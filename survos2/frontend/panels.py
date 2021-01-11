@@ -20,14 +20,6 @@ from vispy import scene
 from vispy.color import Colormap
 
 
-import pyqtgraph as pg
-from pyqtgraph.Qt import QtGui
-import pyqtgraph.parametertree.parameterTypes as pTypes
-from pyqtgraph.parametertree import Parameter, ParameterTree
-import pyqtgraph.parametertree.parameterTypes as pTypes
-from pyqtgraph.parametertree import Parameter, ParameterTree
-from pyqtgraph.widgets.MatplotlibWidget import MatplotlibWidget
-
 
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
@@ -146,5 +138,7 @@ class QtPlotWidget(QtWidgets.QWidget):
         self.layout().addWidget(self.canvas.native)
 
         _ = scene.visuals.Line(
-            pos=np.array([[0, 0], [700, 500]]), color="w", parent=self.canvas.scene,
+            pos=np.array([[0, 0], [700, 500]]),
+            color="w",
+            parent=self.canvas.scene,
         )
