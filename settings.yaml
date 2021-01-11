@@ -3,20 +3,19 @@ title: 'SuRVoS2: Super-Region Volume Segmentation Workbench'
 api:
   plugins:
     - workspace
-    - annotations
+    - render
     - features
     - regions
-    - render
+    - annotations
     - pipelines
     - entitys
+    - analyzer
 computing:
   chunks: true
   chunk_size: 32     # 1024 is 1 Gb
   chunk_padding : 8
-
 logging:
   level: info
-
 environments:
   ###########################################
   # Set with SURVOS_ENV environment variable
@@ -25,15 +24,65 @@ environments:
   test: # SURVOS_ENV=test
     api:
       renderer: mpl  
-
     computing:
       chunks: false      # Automatic chunking
       chunk_size: 10   # in MB
       chunk_size_sparse: 10
-
     model:
       chroot: temp       # will create a temporary directory
-
     logging:
       file: /tmp/survos.log
       level: debug
+
+filters:
+  superregions1:
+    plugin: superregions
+    feature: slic
+    params:
+      slic_feat_idx: -1
+      compactness: 20
+      postprocess: false
+      sp_shape:
+      - 18
+      - 18
+      - 18
+  filter1: 
+    plugin: features
+    feature: gaussian
+    params:
+        sigma: 2
+  filter2: 
+    plugin: features
+    feature: gaussian
+    params:
+        sigma: 2
+  filter3:
+    plugin: features
+    feature: tvdenoising3d
+    params:
+        lamda: 3.7
+  filter4:
+    plugin: features
+    feature: laplacian
+    params:
+        kernel_size: 3
+  filter5:
+    plugin: features
+    feature: gradient  
+    params:
+        sigma: 3
+
+pipeline:
+  calculate_features: true
+  calculate_supervoxels: true
+  load_pretrained_classifier: true
+  load_annotation: false
+  predict_params:
+    clf: ensemble
+    type: rf 
+    n_estimators: 10
+    proj: False
+    max_depth: 20
+    n_jobs: 1
+  mask_params:
+    mask_radius: 10 

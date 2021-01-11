@@ -10,7 +10,7 @@ from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.improc.utils import DatasetManager
-from survos2.server.config import cfg
+from survos2.server.state import cfg
 
 from survos2.frontend.components.entity import (
     TableWidget,
@@ -25,14 +25,14 @@ class EntitysPlugin(Plugin):
     __icon__ = "fa.picture-o"
     __pname__ = "entitys"
     __views__ = ["slice_viewer"]
-    __tab__ = "analyzer"
+    __tab__ = "entitys"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         vbox = VBox(self, spacing=10)
 
         self(
-            IconButton("fa.plus", "Add Entities", accent=True),
+            IconButton("fa.plus", "Add Objects", accent=True),
             connect=("clicked", self.add_entitys),
         )
 
@@ -42,7 +42,9 @@ class EntitysPlugin(Plugin):
 
     def add_entitys(self):
         params = dict(
-            order=1, workspace=True, fullname="survos2/entity/blank_entities.csv",
+            order=0,
+            workspace=True,
+            fullname="survos2/entity/blank_entities.csv",
         )
         result = Launcher.g.run("entitys", "create", **params)
 
@@ -63,14 +65,6 @@ class EntitysPlugin(Plugin):
         with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
             src_dataset = DM.sources[0]
             src_dataset.set_metadata("entities_fullname", entitysfullname)
-
-        # vol1 = sample_roi(cData.vol_stack[0], tabledata, vol_size=(32, 32, 32))
-        # logger.debug(f"Sampled ROI vol of shape {vol1.shape}")
-        self.smallvol_control = SmallVolWidget(np.zeros((32, 32, 32)))
-        cfg.smallvol_control = self.smallvol_control
-        self.entitys_layout.addWidget(self.smallvol_control.imv)
-        # cfg.object_table = self.table_control
-        # cfg.tabledata = tabledata
 
         self.existing_entitys[entitysid] = widget
         return widget
@@ -149,13 +143,14 @@ class EntitysCard(Card):
         self.table_control.set_data(tabledata)
         cfg.entity_table = self.table_control
         self.add_row(self.table_control.w, max_height=500)
-        self.setMinimumHeight(500)
+        # self.setMinimumHeight(500)
 
     def card_deleted(self):
         params = dict(entitys_id=self.entitysid, workspace=True)
         result = Launcher.g.run("entitys", "remove", **params)
         if result["done"]:
             self.setParent(None)
+        self.table_control = None
 
     def card_title_edited(self, newtitle):
         logger.debug(f"Edited entity title {newtitle}")

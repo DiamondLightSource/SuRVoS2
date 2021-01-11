@@ -14,7 +14,9 @@ from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.annotation_tool import MultiAnnotationComboBox
 from survos2.frontend.control import Launcher
-from survos2.server.config import cfg
+
+
+from survos2.server.state import cfg
 
 _PipelineNotifier = PluginNotifier()
 
@@ -50,7 +52,7 @@ class PipelinesPlugin(Plugin):
     __icon__ = "fa.picture-o"
     __pname__ = "pipelines"
     __views__ = ["slice_viewer"]
-    __tab__ = "segmentation"
+    __tab__ = "pipelines"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -77,7 +79,9 @@ class PipelinesPlugin(Plugin):
             result = {}
             result[0] = params
             self.pipeline_params["superregion_segment"] = {
-                "sr_params": {"type": "sr2",}
+                "sr_params": {
+                    "type": "sr2",
+                }
             }
         else:
             all_categories = sorted(set(p["category"] for p in result))
@@ -207,7 +211,7 @@ class PipelineCard(Card):
         if type == "Int":
             pipeline = LineEdit(default=default, parse=int)
         elif type == "Float":
-            #pipeline = LineEdit(default=default, parse=float)
+            # pipeline = LineEdit(default=default, parse=float)
             pipeline = RealSlider(value=default, vmax=1, vmin=0)
             title = "Smoothing"
         elif type == "FloatOrVector":
@@ -218,7 +222,7 @@ class PipelineCard(Card):
             pipeline = None
 
         if title is None:
-            title=name
+            title = name
 
         if pipeline:
             self.widgets[name] = pipeline
@@ -256,6 +260,7 @@ class PipelineCard(Card):
         )
 
     def compute_pipeline(self):
+
         src_grp = None if self.annotations_source.currentIndex() == 0 else "pipelines"
         src = DataModel.g.dataset_uri(self.annotations_source.value(), group=src_grp)
         logger.info(f"Setting src to {self.annotations_source.value()} ")
@@ -268,12 +273,9 @@ class PipelineCard(Card):
         all_params = dict(src=src, dst=dst, modal=False)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["region_id"] = str(self.regions_source.value().rsplit("/", 1)[-1])
-        all_params[
-            "feature_ids"
-        ] = feature_names_list  # ['002_gaussian_blur', '002_gaussian_blur']
+        all_params["feature_ids"] = feature_names_list
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         all_params["dst"] = self.pipeline_id
-
         all_params["lam"] = self.widgets["lam"]
 
         all_params.update({k: v.value() for k, v in self.widgets.items()})

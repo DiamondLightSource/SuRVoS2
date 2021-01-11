@@ -1,6 +1,5 @@
 import numpy as np
 import seaborn as sns
-import pyqtgraph as pg
 import pandas as pd
 from loguru import logger
 
@@ -9,7 +8,8 @@ from qtpy.QtCore import QSize, Signal
 
 from survos2.frontend.model import ClientData
 from survos2.entity.entities import make_entity_df
-from survos2.server.config import cfg
+from survos2.server.state import cfg
+import pyqtgraph as pg
 
 
 def setup_entity_table(entities_fullname, scale=1.0):

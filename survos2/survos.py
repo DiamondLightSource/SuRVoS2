@@ -101,6 +101,7 @@ def run_command(plugin, command, uri=None, **kwargs):
         logger.debug(f"Using client {client}")
 
         try:
+            logger.info(f"get request to client: {command}")
             response = client.get(command, **kwargs)
             logger.info(f"Local client gave response {response}")
 
@@ -112,6 +113,7 @@ def run_command(plugin, command, uri=None, **kwargs):
     else:
         client = remote_client(uri)
         logger.info(f"Connecting to remote client {client}")
+        logger.info('{}/{}'.format(plugin, command))
         response = client.get("{}/{}".format(plugin, command), **kwargs)
         logger.info(f"Received response {response}")
 

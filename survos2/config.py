@@ -8,7 +8,7 @@ class _Config(type):
     __data__ = {  # Defaults
         "title": "SuRVoS",
         "api": {
-            "host": "172.23.167.1",
+            # "host": "172.23.167.1",
             # "host": "172.23.5.231",
             "host": "127.0.0.1",
             "port": 8123,
@@ -17,16 +17,16 @@ class _Config(type):
         },
         "computing": {
             "chunks": True,
-            "chunk_size": 100,
+            "chunk_size": 64,
             "chunk_padding": 8,
             "chunk_size_sparse": 10,
             "scale": False,
             "stretch": False,
         },
         "model": {
-            "chroot": "/dls/science/groups/das/SuRVoS/s2/data/",  # full path, or can be 'tmp'
+            # "chroot": "/dls/science/groups/das/SuRVoS/s2/data/",  # full path, or can be 'tmp'
             # "chroot": "Y:/data",
-            #"chroot": "D:/datasets/chroot/",
+            "chroot": "D:/datasets/chroot/",
             "dbtype": "yaml",
         },
         "logging": {
@@ -37,6 +37,8 @@ class _Config(type):
             "file_format": "%(asctime)s - | %(levelname)8s | %(message)s",
         },
         "qtui": {"maximized": False, "menuKey": "\\"},
+        "filters": {},
+        "pipeline": {},
     }
 
     def __getitem__(self, key):

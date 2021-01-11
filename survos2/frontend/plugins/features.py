@@ -38,7 +38,7 @@ class FeaturesPlugin(Plugin):
     __icon__ = "fa.picture-o"
     __pname__ = "features"
     __views__ = ["slice_viewer"]
-    __tab__ = "workspace"
+    __tab__ = "features"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -129,6 +129,11 @@ class FeatureCard(Card):
         self.params = fparams
         self.widgets = dict()
 
+        from qtpy.QtWidgets import QProgressBar
+
+        self.pbar = QProgressBar(self)
+        self.add_row(self.pbar)
+
         self._add_source()
         for pname, params in fparams.items():
             if pname not in ["src", "dst"]:
@@ -162,12 +167,22 @@ class FeatureCard(Card):
     def _add_view_btn(self):
         view_btn = PushButton("View", accent=True)
         view_btn.clicked.connect(self.view_feature)
-        self.add_row(HWidgets(None, view_btn, Spacing(35)))
+        self.add_row(
+            HWidgets(
+                None,
+                view_btn,
+            )
+        )
 
     def _add_compute_btn(self):
         compute_btn = PushButton("Compute", accent=True)
         compute_btn.clicked.connect(self.compute_feature)
-        self.add_row(HWidgets(None, compute_btn, Spacing(35)))
+        self.add_row(
+            HWidgets(
+                None,
+                compute_btn,
+            )
+        )
 
     def update_params(self, params):
         src = params.pop("source", None)
@@ -186,7 +201,7 @@ class FeatureCard(Card):
 
     def view_feature(self):
         logger.debug(f"View feature_id {self.feature_id}")
-        from survos2.server.config import cfg
+        from survos2.server.state import cfg
 
         cfg.ppw.clientEvent.emit(
             {
@@ -197,12 +212,14 @@ class FeatureCard(Card):
         )
 
     def compute_feature(self):
+        self.pbar.setValue(25)
         src_grp = None if self.cmb_source.currentIndex() == 0 else "features"
 
         src = DataModel.g.dataset_uri(self.cmb_source.value(), group=src_grp)
         logger.info(f"Setting src: {self.cmb_source.value()} ")
 
         dst = DataModel.g.dataset_uri(self.feature_id, group="features")
+        self.pbar.setValue(50)
 
         logger.info(f"Setting dst: {self.feature_id}")
         logger.info(f"widgets.items() {self.widgets.items()}")
@@ -211,7 +228,12 @@ class FeatureCard(Card):
         all_params.update({k: v.value() for k, v in self.widgets.items()})
 
         logger.info(f"Computing features: {self.feature_type} {all_params}")
-        Launcher.g.run("features", self.feature_type, **all_params)
+        result = Launcher.g.run("features", self.feature_type, **all_params)
+
+        if result is not None:
+            self.pbar.setValue(100)
+
+        print(result)
 
     def card_title_edited(self, newtitle):
         params = dict(feature_id=self.feature_id, new_name=newtitle, workspace=True)

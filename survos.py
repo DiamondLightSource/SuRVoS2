@@ -39,12 +39,14 @@ def start_server(
     from survos2.model import DataModel
 
     full_ws_path = os.path.join(Config["model.chroot"], workspace)
+
     if not os.path.isdir(full_ws_path):
         logger.error(f"No workspace can be found at {full_ws_path}, aborting.")
         sys.exit(1)
     logger.info(f"Full workspace path is {full_ws_path}")
+
     DataModel.g.current_workspace = workspace
-    
+
     api, __plugins = init_api(return_plugins=True)
 
     session_store = InMemoryStore()
@@ -91,7 +93,7 @@ def run_server(
 def nu_gui(
     workspace: "Workspace path (full or chrooted) to load",
     server: "URI to the remote SuRVoS API Server",
-):  # =default_uri):
+):  
 
     from survos2.frontend import main
     from napari import gui_qt
@@ -110,6 +112,7 @@ def nu_gui(
 
     if Launcher.g.connected:
         main.start_client()
+    
 
 
 @begin.subcommand

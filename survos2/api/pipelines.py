@@ -28,7 +28,7 @@ from survos2.model import DataModel
 from survos2.api.utils import get_function_api, save_metadata, dataset_repr
 from typing import List
 
-from survos2.server.config import cfg
+from survos2.server.state import cfg
 
 
 __pipeline_group__ = "pipeline"
@@ -88,13 +88,14 @@ def superregion_segment(
     # run predictions
     from survos2.server.superseg import sr_predict
 
-
     if num_components > 0:
         do_pca = True
     else:
         do_pca = False
 
-    segmentation = sr_predict(supervoxel_image, anno_image, features, lam, do_pca, num_components)
+    segmentation = sr_predict(
+        supervoxel_image, anno_image, features, lam, do_pca, num_components
+    )
 
     # store in dst
     dst = DataModel.g.dataset_uri(dst, group="pipeline")

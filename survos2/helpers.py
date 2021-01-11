@@ -75,14 +75,14 @@ import napari
 
 def view_volume(imgvol, points=[], name=""):
     """Simple single-volume viewing with napari
-    
+
     Arguments:
         imgvol {numpy array} -- The image volume to view
-    
+
     Keyword Arguments:
         points {list} -- list of points to add to the scene (default: {[]})
         name {str} -- name of the layer to add (default: {""})
-    
+
     Returns:
         viewer object -- napari viewer object
     """
@@ -212,11 +212,11 @@ def plot_3d_data_in_2d(
     suptitle="3d data in 2d",
 ):
     """Plot 3d data as a 2d plot with variable point size
-    
+
     Arguments:
         data {np.ndarray} -- Numpy array with NRows x (X,Y)
         labels {np.ndarray} -- Array of integer labels of len NRows
-    
+
     Keyword Arguments:
         titles {list[str]} -- [description] (default: {['x', 'y', 'z']})
         xlim {Tuple[float, float]} -- X axis limits (default: {(-50, 50)})
@@ -257,11 +257,11 @@ def plot_3d_data(
     figsize=(10, 10),
 ):
     """Plot 3d data as points in a 3d plot
-    
+
     Arguments:
         data {np.ndarray} -- 3d numpy array
         labels {np.ndarray} -- 1d array with same number of elements as rows in data array
-    
+
     Keyword Arguments:
         titles {list[str]} -- Axis titles (default: {['x', 'y', 'z']})
         suptitle {str} -- Overall diagram title (default: {"3d data"})
@@ -303,11 +303,11 @@ def plot_3d_data(
 
 def plot_4d_data(data, labels, titles=["P", "Q", "R", "S"], suptitle="4d data"):
     """Plot 4d data as 3d data with variable point size
-    
+
     Arguments:
         data {np.ndarray} -- 4d numpy array
         labels {nd.ndarray} -- color values
-    
+
     Keyword Arguments:
         titles {list[str]} -- List of four strings for the titles (default: {['P', 'Q', 'R', 'S']})
         suptitle {str} -- Overall title for diagram (default: {"4d data"})

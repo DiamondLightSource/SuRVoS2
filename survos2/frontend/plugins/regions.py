@@ -7,7 +7,7 @@ from survos2.frontend.plugins.base import *
 from survos2.frontend.components.base import *
 from survos2.model import DataModel
 from survos2.frontend.control import Launcher
-from survos2.server.config import cfg
+from survos2.server.state import cfg
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.frontend.components.icon_buttons import IconButton
 
@@ -36,7 +36,7 @@ class RegionsPlugin(Plugin):
     __icon__ = "fa.qrcode"
     __pname__ = "regions"
     __views__ = ["slice_viewer"]
-    __tab__ = "annotation"
+    __tab__ = "regions"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -146,7 +146,7 @@ class SupervoxelCard(Card):
 
     def view_supervoxels(self):
         logger.debug(f"Transferring supervoxels {self.svid} to viewer")
-        
+
         print(f"Current Supervoxels: {cfg.current_supervoxels}")
         cfg.ppw.clientEvent.emit(
             {"source": "regions", "data": "view_supervoxels", "region_id": self.svid}

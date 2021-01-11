@@ -12,7 +12,7 @@ from survos2.frontend.plugins.base import register_plugin, Plugin
 from survos2.frontend.plugins.annotation_tool import AnnotationTool
 from survos2.frontend.components.icon_buttons import DelIconButton, IconButton
 from survos2.frontend.control.launcher import Launcher
-from survos2.server.config import cfg
+from survos2.server.state import cfg
 from survos2.model import DataModel
 
 from survos2.frontend.components.base import (
@@ -23,7 +23,10 @@ from survos2.frontend.components.base import (
     PluginNotifier,
     Slider,
 )
-from survos2.frontend.plugins.annotation_tool import AnnotationComboBox, _AnnotationNotifier
+from survos2.frontend.plugins.annotation_tool import (
+    AnnotationComboBox,
+    _AnnotationNotifier,
+)
 from survos2.frontend.plugins.regions import RegionComboBox
 
 _AnnotationNotifier = PluginNotifier()
@@ -53,6 +56,7 @@ class LevelComboBox(LazyComboBox):
         self.full = full
         super().__init__(header=header, parent=parent)
         _AnnotationNotifier.listen(self.update)
+
     def fill(self):
         params = dict(workspace=True, full=self.full)
 
@@ -74,7 +78,7 @@ class AnnotationPlugin(Plugin):
     __icon__ = "fa.pencil"
     __pname__ = "annotations"
     __views__ = ["slice_viewer"]
-    __tab__ = "annotation"
+    __tab__ = "annotations"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -88,16 +92,18 @@ class AnnotationPlugin(Plugin):
         hbox = HBox(self, margin=1, spacing=3)
         self.label = AnnotationComboBox()
         self.region = RegionComboBox(header=(None, "Voxels"), full=True)
-        
+
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
 
-        self.width = Slider(value=8,vmin=2, vmax=50, step=2)
+        self.width = Slider(value=8, vmin=2, vmax=50, step=2)
         hbox.addWidget(self.width)
         hbox.addWidget(None, 1)
 
         self.vbox.addLayout(hbox)
         self._add_set_sv_btn(hbox)
+
+        _AnnotationNotifier.listen(self.set_sv)
 
     def on_created(self):
         pass
@@ -139,10 +145,9 @@ class AnnotationPlugin(Plugin):
         for level in result:
             if level["id"] not in self.levels:
                 self._add_level_widget(level)
-    
+
     def set_sv(self):
         cfg.current_supervoxels = self.region.value()
-        
         cfg.label_value = self.label.value()
         cfg.brush_size = self.width.value()
         print(cfg.current_supervoxels, cfg.label_value)
@@ -151,27 +156,27 @@ class AnnotationPlugin(Plugin):
             {
                 "source": "annotations",
                 "data": "set_paint_params",
-                "paint_params" :  { "current_supervoxels": self.region.value(),
-                                    "label_value" : self.label.value(),
-                                    "brush_size" : self.width.value() }
+                "paint_params": {
+                    "current_supervoxels": self.region.value(),
+                    "label_value": self.label.value(),
+                    "brush_size": self.width.value(),
+                },
             }
         )
+
         print(self.levels)
         cfg.ppw.clientEvent.emit(
-                                {
-                                    "source": "annotations",
-                                    "data": "view_annotations",
-                                    "level_id": list(self.levels.keys())[0],
-                                }
-                            )
-
-        _AnnotationNotifier.notify()
+            {
+                "source": "annotations",
+                "data": "view_annotations",
+                "level_id": list(self.levels.keys())[0],
+            }
+        )
 
     def _add_set_sv_btn(self, layout):
         btn_view = PushButton("Set", accent=True)
         btn_view.clicked.connect(self.set_sv)
         layout.addWidget(HWidgets(None, btn_view, Spacing(35)))
-
 
 
 class AnnotationLevel(Card):
@@ -193,7 +198,7 @@ class AnnotationLevel(Card):
         self.labels = {}
 
         self._populate_labels()
-        
+
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
         return Launcher.g.run("annotations", "rename_level", **params)
@@ -246,6 +251,7 @@ class AnnotationLevel(Card):
         btn_view = PushButton("View", accent=True)
         btn_view.clicked.connect(self.view_level)
         self.add_row(HWidgets(None, btn_view, Spacing(35)))
+
 
 class AnnotationLabel(QCSWidget):
 

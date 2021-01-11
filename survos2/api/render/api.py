@@ -105,8 +105,7 @@ def render_workspace(
     png: SmartBoolean = False,
     **layers
 ):
-    """
-    """
+    """"""
 
     logger.info("render_workspace")
     database = request.context["session"]

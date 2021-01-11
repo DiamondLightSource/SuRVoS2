@@ -22,9 +22,8 @@ from qtpy import QtWidgets, QtCore, QtGui
 from vispy import scene
 from vispy.color import Colormap
 
-import pyqtgraph as pg
-
-import pyqtgraph.parametertree.parameterTypes as pTypes
+# import pyqtgraph as pg
+# import pyqtgraph.parametertree.parameterTypes as pTypes
 
 from survos2.frontend.components.base import *
 from survos2.frontend.components.base import QCSWidget
@@ -32,6 +31,8 @@ from survos2.frontend.components.base import QCSWidget
 from collections import OrderedDict
 
 __available_plugins__ = OrderedDict()
+
+from survos2.config import config
 
 
 class Plugin(QCSWidget):
@@ -107,39 +108,25 @@ class PluginContainer(QCSWidget):
         vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
         vbox.addWidget(self.tabwidget, 1)
 
-        tab1 = QWidget()
-        tab2 = QWidget()
-        tab3 = QWidget()
-        tab4 = QWidget()
+        self.tabs = [
+            (QWidget(), t)
+            for t in config["api"]["plugins"]
+            if (t != "workspace") and (t != "render")
+        ]
+        # 'workspace' and 'render' are internal plugins with no gui
 
-        self.tabwidget.addTab(tab1, "Features")
-        self.tabwidget.addTab(tab2, "Annotations")
-        self.tabwidget.addTab(tab3, "Segmentations")
-        self.tabwidget.addTab(tab4, "Analyzer")
-
-        tab1.layout = QVBoxLayout()
-        tab1.setLayout(tab1.layout)
-
-        tab2.layout = QVBoxLayout()
-        tab2.setLayout(tab2.layout)
-
-        tab3.layout = QVBoxLayout()
-        tab3.setLayout(tab3.layout)
-
-        tab4.layout = QVBoxLayout()
-        tab4.setLayout(tab4.layout)
+        for t in self.tabs:
+            self.tabwidget.addTab(t[0], t[1])
+            t[0].layout = QVBoxLayout()
+            t[0].setLayout(t[0].layout)
 
         self.title = Header("Plugin")
 
-        self.workspace_container = ScrollPane(parent=self) 
-        self.annotation_container = ScrollPane(parent=self)
-        self.segmentation_container = ScrollPane(parent=self)
-        self.analyzer_container = ScrollPane(parent=self)
-
-        tab1.layout.addWidget(self.workspace_container)
-        tab2.layout.addWidget(self.annotation_container)
-        tab3.layout.addWidget(self.segmentation_container)
-        tab4.layout.addWidget(self.analyzer_container)
+        self.containers = {}
+        for t in self.tabs:
+            pane = ScrollPane(parent=self)
+            t[0].layout.addWidget(pane)
+            self.containers[t[1]] = pane
 
         self.plugins = {}
         self.selected_name = None
@@ -162,15 +149,11 @@ class PluginContainer(QCSWidget):
 
             self.selected_name = name
             self.selected = self.plugins[name]
-            self.title.setText(self.selected["title"])
+            self.title.setText(self.selected["title"].capitalize())
 
-            if tab == "workspace":
-                self.workspace_container.addWidget(self.selected["widget"], 1)
-            elif tab == "annotation":
-                self.annotation_container.addWidget(self.selected["widget"], 1)       
-            elif tab == "segmentation":
-                self.segmentation_container.addWidget(self.selected["widget"], 1)
-            elif tab == "analyzer":
-                self.analyzer_container.addWidget(self.selected["widget"], 1)
+            for t in self.tabs:
+                if tab == t[1]:
+                    self.containers[t[1]].addWidget(self.selected["widget"], 1)
+
             if hasattr(self.selected["widget"], "setup"):
                 self.selected["widget"].setup()
