@@ -642,6 +642,7 @@ class FrontEndRunner(QWidget):
         int_h5_pth = None
         dialog = LoadDataDialog(self)
         result = dialog.exec_()
+        self.roi_limits = None
         if result == QDialog.Accepted:
             path = dialog.winput.path.text()
             int_h5_pth = dialog.int_h5_pth.text()
@@ -651,23 +652,22 @@ class FrontEndRunner(QWidget):
             self.h5_intpth_linedt.setText(int_h5_pth)
             self.downsample_spinner.setValue(down_factor)
             if dialog.roi_changed:
+                self.roi_limits = tuple(map(str, dialog.get_roi_limits()))
                 self.roi_fields.show()
-                self.update_roi_fields_from_dialog(dialog)
+                self.update_roi_fields_from_dialog()
             else:
                 self.roi_fields.hide()
 
-    def update_roi_fields_from_dialog(self, dialog):
-        """Retrieved the selected ROI dimensions from data lader dialog.
-
-        Args:
-            dialog (PyQt5.QWidgets.QDialog): The LoadDataDialog object.
+    def update_roi_fields_from_dialog(self):
+        """Updates the ROI fields in the main window.
         """
-        self.xstart_roi_val.setText(str(dialog.get_linedt_value(dialog.xstart_linedt)))
-        self.xend_roi_val.setText(str(dialog.get_linedt_value(dialog.xend_linedt)))
-        self.ystart_roi_val.setText(str(dialog.get_linedt_value(dialog.ystart_linedt)))
-        self.yend_roi_val.setText(str(dialog.get_linedt_value(dialog.yend_linedt)))
-        self.zstart_roi_val.setText(str(dialog.get_linedt_value(dialog.zstart_linedt)))
-        self.zend_roi_val.setText(str(dialog.get_linedt_value(dialog.zend_linedt)))
+        x_start, x_end, y_start, y_end, z_start, z_end = self.roi_limits
+        self.xstart_roi_val.setText(x_start)
+        self.xend_roi_val.setText( x_end)
+        self.ystart_roi_val.setText(y_start)
+        self.yend_roi_val.setText(y_end)
+        self.zstart_roi_val.setText(z_start)
+        self.zend_roi_val.setText(z_end)
 
     @pyqtSlot()
     def toggle_advanced(self):
@@ -770,6 +770,9 @@ class FrontEndRunner(QWidget):
             # Set the downsample factor
             ds_factor = self.downsample_spinner.value()
             self.workspace_config["downsample_by"] = ds_factor
+            # Set the ROI limits if they exist
+            if self.roi_limits:
+                self.workspace_config["roi_limits"] = self.roi_limits
             try:
                 response = init_ws(self.workspace_config)
                 _, error = response

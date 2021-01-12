@@ -68,8 +68,16 @@ def init_ws(workspace_params):
                 img_volume, entities_df, precrop_coords, precrop_vol_size
             )
 
+    if "roi_limits" in workspace_params:
+        x_start, x_end, y_start, y_end, z_start, z_end = map(int,
+                                                             workspace_params["roi_limits"])
+        logger.info(f"Cropping data to predefined ROI z:{z_start}-{z_end}," 
+                    f"y:{y_start}-{y_end}, x:{x_start}-{x_end}")
+        img_volume = img_volume[z_start:z_end, y_start:y_end, x_start:x_end]
+        
     if "downsample_by" in workspace_params:
         downby = int(workspace_params["downsample_by"])
+        logger.info(f"Downsampling data by a factor of {downby}")
         img_volume = img_volume[::downby, ::downby, ::downby]
 
     tmpvol_fullpath = "tmp\\tmpvol.h5"
