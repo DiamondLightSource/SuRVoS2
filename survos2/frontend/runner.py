@@ -135,6 +135,7 @@ class LoadDataDialog(QDialog):
         rvbox.addWidget(self.buttonBox)
         self.winput.path_updated.connect(self.load_data)
         self.slider.sliderReleased.connect(self.update_image)
+        self.slider.valueChanged.connect(self.update_slider_z_label)
 
     def setup_roi_fields(self):
         """Setup the dialog fields associated with ROI selection.
@@ -203,13 +204,21 @@ class LoadDataDialog(QDialog):
         slider_vbox.setContentsMargins(0, 0, 0, 0)
         slider_vbox.setSpacing(0)
         self.slider_min_label = QLabel(alignment=Qt.AlignLeft)
+        self.slider_z_label = QLabel(alignment=Qt.AlignCenter)
         self.slider_max_label = QLabel(alignment=Qt.AlignRight)
         slider_vbox.addWidget(self.slider)
         slider_vbox.addLayout(slider_hbox)
         slider_hbox.addWidget(self.slider_min_label, Qt.AlignLeft)
+        slider_hbox.addWidget(self.slider_z_label, Qt.AlignCenter)
         slider_hbox.addWidget(self.slider_max_label, Qt.AlignRight)
         slider_vbox.addStretch()
         return slider_vbox
+
+    @pyqtSlot()
+    def update_slider_z_label(self):
+        """Changes Z value label when slider moved."""
+        idx = self.sender().value()
+        self.slider_z_label.setNum(idx)
 
     @pyqtSlot()
     def on_roi_reset_clicked(self):
@@ -445,6 +454,7 @@ class LoadDataDialog(QDialog):
             self.slider.setMaximum(z_end - 1)
             self.slider_max_label.setNum(z_end)
             self.slider.setValue(idx)
+            self.slider_z_label.setNum(idx)
             self.slider.blockSignals(False)
             self.canvas.ax.set_ylim([y_size + 1, -1])
             self.canvas.ax.set_xlim([-1, x_size + 1])
