@@ -23,12 +23,12 @@ def test_feature_generation():
         "filter1": {
             "plugin": "features",
             "feature": "gaussian",
-            "params": {"sigma": 1},
+            "params": {"sigma": (1,1,1)},
         },
         "filter2": {
             "plugin": "features",
             "feature": "gaussian",
-            "params": {"sigma": 2},
+            "params": {"sigma": (2,2,2)},
         },
         "filter3": {
             "plugin": "features",
@@ -38,12 +38,12 @@ def test_feature_generation():
         "filter4": {
             "plugin": "features",
             "feature": "laplacian",
-            "params": {"kernel_size": 3},
+            "params": {"kernel_size": (3,3,3)},
         },
         "filter5": {
             "plugin": "features",
             "feature": "gradient",
-            "params": {"sigma": 3},
+            "params": {"sigma": (3,3,3)},
         },
     }
 

@@ -39,8 +39,8 @@ def make_gaussian_kernel(kernel_size, sigma, dim=3):
     if isinstance(kernel_size, numbers.Number):
         kernel_size = [kernel_size] * dim
 
-    # if isinstance(sigma, numbers.Number):
-    #    sigma = [sigma] * dim
+    if isinstance(sigma, numbers.Number):
+        sigma = [sigma] * dim
 
     kernel = 1
     meshgrids = torch.meshgrid(
