@@ -42,8 +42,15 @@ def structure_tensor_determinant(
 @save_metadata
 def hessian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
     from ..server.filtering.blob import compute_hessian_determinant
-
     map_blocks(compute_hessian_determinant, src, out=dst, sigma=sigma, normalize=True)
+
+
+
+# @hug.get()
+# @save_metadata
+# def frangi(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1, max_sigma : Float =2.0, sincr : Float =0.5, lamda : Float = 1.0) -> "BLOB":
+#     from ..server.filtering.blob import compute_frangi
+#     map_blocks(compute_frangi, src, out=dst, sigma=sigma, max_sigma=max_sigma, sincr=sincr, lamda=lamda, normalize=True)
 
 
 @hug.get()
