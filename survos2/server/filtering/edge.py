@@ -17,7 +17,7 @@ import kornia
 from loguru import logger
 
 from .blur import gaussian_blur_kornia
-
+from .base import rescale_denan
 
 #
 # Ndimage
@@ -78,11 +78,6 @@ def laplacian(img_gray: np.ndarray, kernel_size=5.0) -> np.ndarray:
 
     return rescale_denan(laplacian_img)
 
-def rescale_denan(img):
-    img = img - np.min(img)
-    img = img / np.max(img)
-    img = np.nan_to_num(img)
-    return img
 
 
 def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False):

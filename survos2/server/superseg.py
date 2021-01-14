@@ -272,7 +272,8 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
         unary[idx, col] = 1
 
         y_ref = refine(supervoxel_rag, unary, supervoxel_rag, lam, gamma=gamma)
-        Rp_ref = 3 - (invrmap(y_ref, supervoxel_vol) + 1)
+        logger.debug(f"Pred max {pred.max()}")
+        Rp_ref = (pred.max() + 1) - (invrmap(y_ref, supervoxel_vol) + 1)
 
         logger.debug(
             f"Calculated mrf refinement with lamda {lam} of shape: {Rp_ref.shape}"

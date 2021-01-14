@@ -47,23 +47,26 @@ def hessian_eigvals(data, sigma, correct=False):  # TODO: GPU THIS
     else:
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = H
 
-    logger.info("+ Computing Hessian Eigenvalues")
+    logger.info(f"+ Computing Hessian Eigenvalues with sigma {sigma}")
     from survos2.improc.features._symeigval import symmetric_eig
 
-    R = symmetric_eig(
+    response = symmetric_eig(
         Hxx.copy(order="C"),
         Hxy.copy(order="C"),
         Hxz.copy(order="C"),
         Hyy.copy(order="C"),
         Hyz.copy(order="C"),
         Hzz.copy(order="C"),
-    )
+    )[:,:,:,0]
+
+    logger.debug(f"Calculated hessian_eigvals reponse of shape {response.shape}")
     # img_t =  kornia.utils.image_to_tensor(np.array(Hxx)).float().unsqueeze(0).unsqueeze(0)
+    # response, eigvec = torch.symeig(img_t, eigenvectors=False)
+    # response: np.ndarray = kornia.tensor_to_image(response.float())
 
-    # R, eigvec = torch.symeig(img_t, eigenvectors=False)
-    # R: np.ndarray = kornia.tensor_to_image(R.float())
+    from .base import rescale_denan
 
-    return R
+    return rescale_denan(response)
 
 
 def make_gaussian_1d(sigma=1.0, size=None, order=0, trunc=3):
