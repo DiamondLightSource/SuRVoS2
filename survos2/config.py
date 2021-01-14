@@ -24,9 +24,9 @@ class _Config(type):
             "stretch": False,
         },
         "model": {
-            #"chroot": "/dls/science/groups/das/SuRVoS/s2/data/",  # full path, or can be 'tmp'
+            "chroot": "/dls/science/groups/das/SuRVoS/s2/data/",  # full path, or can be 'tmp'
             # "chroot": "Y:/data",
-            "chroot": "D:/datasets/chroot/",
+            #"chroot": "D:/datasets/chroot/",
             "dbtype": "yaml",
         },
         "logging": {
