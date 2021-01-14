@@ -44,7 +44,7 @@ from survos2.server.features import features_factory
 from survos2.server.model import SRData, SRPrediction
 from survos2.server.region_labeling import rlabels
 from survos2.server.supervoxels import invrmap, superregion_factory
-from survos2.server.config import cfg
+from survos2.server.state import cfg
 from survos2.improc.segmentation.appearance import refine
 from survos2.improc.segmentation.mappings import rmeans
 from survos2.improc.regions.rag import create_rag
@@ -53,7 +53,7 @@ from survos2.improc.regions.rag import create_rag
 # SuRVoS 2 imports
 #
 
-PRED_MIN = -1
+PRED_MIN = 0
 
 
 def obtain_classifier(clf_p):
@@ -150,7 +150,12 @@ def predict(X, clf, proj=None, label=True, probs=False, log=False):
 
 
 def _sr_prediction(
-    features_stack, annotation_volume, sr: SRData, predict_params, do_pca=False
+    features_stack,
+    annotation_volume,
+    sr: SRData,
+    predict_params,
+    do_pca=False,
+    num_components=0,
 ):
     """Prepare superregions and predict
 
@@ -173,22 +178,21 @@ def _sr_prediction(
 
     i_train = Yr > PRED_MIN
 
-    # logger.debug(f"i_train {i_train}")
-    # logger.debug(f"supervoxel_features: {sr.supervoxel_features}")
-    X_train = sr.supervoxel_features[i_train]
-
-    # Projection
-
+    X = sr.supervoxel_features
     if do_pca:
         proj = PCA(n_components="mle", whiten=True, random_state=20)
-        proj = StandardScaler()
-        proj = SparseRandomProjection(
-            n_components=X_train.shape[1], random_state=random_state
-        )
-        proj = RBFSampler(
-            n_components=max(X_train.shape[1], 50), random_state=random_state
-        )
-        X_train = proj.fit_transform(X_train)
+        # proj = StandardScaler()
+        # proj = SparseRandomProjection(
+        #    n_components=X.shape[1], random_state=random_state
+        # )
+        # proj = RBFSampler(
+        #    n_components=max(X.shape[1], 50), random_state=random_state
+        # )
+        X = proj.fit_transform(X)
+
+    X_train = X[i_train]
+
+    # Projection
 
     Y_train = Yr[i_train]
 
@@ -198,9 +202,7 @@ def _sr_prediction(
 
     logger.debug(f"Predicting with clf: {clf}")
 
-    P = predict(
-        sr.supervoxel_features, clf, label=True, probs=True
-    )  # , proj=predict_params['proj'])
+    P = predict(X, clf, label=True, probs=True)  # , proj=predict_params['proj'])
 
     prob_map = invrmap(P["class"], sr.supervoxel_vol)
     num_supervox = sr.supervoxel_vol.max() + 1
@@ -216,6 +218,8 @@ def sr_predict(
     anno_image: np.ndarray,
     feature_images: List[np.ndarray],
     lam: float,
+    do_pca: bool,
+    num_components: int,
 ) -> np.ndarray:
 
     feats = features_factory(feature_images)
@@ -229,6 +233,8 @@ def sr_predict(
         anno_image.astype(np.uint16),
         sr,
         cfg.pipeline["predict_params"],
+        do_pca=do_pca,
+        num_components=num_components,
     )
 
     prob_map = srprediction.prob_map
@@ -266,7 +272,8 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
         unary[idx, col] = 1
 
         y_ref = refine(supervoxel_rag, unary, supervoxel_rag, lam, gamma=gamma)
-        Rp_ref = invrmap(y_ref, supervoxel_vol)
+        logger.debug(f"Pred max {pred.max()}")
+        Rp_ref = (pred.max() + 1) - (invrmap(y_ref, supervoxel_vol) + 1)
 
         logger.debug(
             f"Calculated mrf refinement with lamda {lam} of shape: {Rp_ref.shape}"

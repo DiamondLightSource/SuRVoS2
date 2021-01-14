@@ -9,6 +9,7 @@ from survos2.model import DataModel
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.frontend.components.icon_buttons import IconButton
+from survos2.frontend.utils import FileWidget       
 from survos2.improc.utils import DatasetManager
 from survos2.server.state import cfg
 
@@ -122,15 +123,20 @@ class EntitysCard(Card):
         self.entitysid = entitysid
         self.entitysname = entitysname
 
-        self.entitysfullname = LineEdit(parse=str, default=50)
-        self.entitysfullname.setValue(entitysfullname)
+        #self.entitysfullname = LineEdit(parse=str, default=50)
+        #self.entitysfullname.setValue(entitysfullname)
+        self.entitysfullname = entitysfullname
 
-        self.entitysfullname.setMaximumWidth(250)
+        self.filewidget = FileWidget(extensions="*.csv", save=False)
+        self.add_row(self.filewidget)
+        self.filewidget.path_updated.connect(self.load_data)
+
+        #self.entitysfullname.setMaximumWidth(250)
         self.compute_btn = PushButton("Compute")
         self.view_btn = PushButton("View", accent=True)
         self.get_btn = PushButton("Get", accent=True)
 
-        self.add_row(HWidgets("Source:", self.entitysfullname, stretch=1))
+        #self.add_row(HWidgets("Source:", self.entitysfullname, stretch=1))
         self.add_row(HWidgets(None, self.view_btn, Spacing(35)))
         self.add_row(HWidgets(None, self.get_btn, Spacing(35)))
 
@@ -143,8 +149,11 @@ class EntitysCard(Card):
         self.table_control.set_data(tabledata)
         cfg.entity_table = self.table_control
         self.add_row(self.table_control.w, max_height=500)
-        # self.setMinimumHeight(500)
+        
 
+    def load_data(self, path):
+        self.entitysfullname = path
+        print(f"Setting entitiesfullname: {self.entitysfullname}")
     def card_deleted(self):
         params = dict(entitys_id=self.entitysid, workspace=True)
         result = Launcher.g.run("entitys", "remove", **params)
@@ -166,15 +175,15 @@ class EntitysCard(Card):
 
     def update_params(self, params):
         if "fullname" in params:
-            self.entitysfullname.setValue(params["fullname"])
-
+            self.entitysfullname = params["fullname"]
+        
     def get_entitys(self):
         dst = DataModel.g.dataset_uri(self.entitysid, group="entitys")
-
-        params = dict(dst=dst, fullname=self.entitysfullname.value())
-        logger.debug(f"Getting entities with params {params}")
+        print(f"entitysfullname: {self.entitysfullname}")
+        params = dict(dst=dst, fullname=self.entitysfullname)
+        logger.debug(f"Getting entitys with params {params}")
         Launcher.g.run("entitys", "set_csv", **params)
-        tabledata, _ = setup_entity_table(self.entitysfullname.value(), scale=0.25)
+        tabledata, _ = setup_entity_table(self.entitysfullname, scale=0.25)
         cfg.tabledata = tabledata
         print(f"Loaded tabledata {tabledata}")
         self.table_control.set_data(tabledata)

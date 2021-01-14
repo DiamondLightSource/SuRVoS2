@@ -1,5 +1,4 @@
 import os.path as op
-
 import numpy as np
 
 import pycuda.driver as cuda
@@ -111,10 +110,6 @@ def slic3d(
         )
 
     r = ccl3d(labels_gpu, remap=True)
-
-    # labels = labels_gpu.get()
-
-    # binlab = np.bincount(labels.ravel())
 
     binlab = np.bincount(r.ravel())
 

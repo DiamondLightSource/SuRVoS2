@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import hdbscan
 from collections import Counter
 from statistics import mode, StatisticsError
 import warnings
@@ -150,6 +149,8 @@ def chip_cluster(
     #
 
     if method == "hdbscan":
+        import hdbscan
+
         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size).fit(X_rescaled)
         label_code = clusterer.labels_
         num_clusters_found = len(np.unique(label_code))
@@ -238,7 +239,12 @@ def chip_cluster(
 
     if plot_all:
         show_images_and_points(
-            [img_sample,], centroid_coords_woffset, cc, figsize=(12, 12),
+            [
+                img_sample,
+            ],
+            centroid_coords_woffset,
+            cc,
+            figsize=(12, 12),
         )
 
     clustered = np.zeros((cluster_centroids.shape[0], 4))

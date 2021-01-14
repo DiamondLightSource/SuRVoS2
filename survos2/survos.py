@@ -113,7 +113,7 @@ def run_command(plugin, command, uri=None, **kwargs):
     else:
         client = remote_client(uri)
         logger.info(f"Connecting to remote client {client}")
-        logger.info('{}/{}'.format(plugin, command))
+        logger.info("{}/{}".format(plugin, command))
         response = client.get("{}/{}".format(plugin, command), **kwargs)
         logger.info(f"Received response {response}")
 

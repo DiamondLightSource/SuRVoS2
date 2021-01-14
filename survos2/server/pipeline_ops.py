@@ -69,7 +69,9 @@ def sphere_masks(patch: Patch, params: dict):
     )
     show_images(
         [total_mask[total_mask.shape[0] // 2, :]],
-        ["Sphere mask, radius: " + str(mask_radius),],
+        [
+            "Sphere mask, radius: " + str(mask_radius),
+        ],
     )
 
     patch.image_layers["generated"] = total_mask
@@ -94,7 +96,9 @@ def make_masks(patch: Patch, params: dict):
     geom[:, 2] = geom[:, 2] + padding[2]
 
     total_mask = generate_sphere_masks_fast(
-        patch.image_layers["Main"], geom, radius=mask_radius[0],
+        patch.image_layers["Main"],
+        geom,
+        radius=mask_radius[0],
     )
 
     core_mask = generate_sphere_masks_fast(
@@ -440,7 +444,11 @@ def predict_and_agg(
         label=tio.Image(tensor=img_tens, label=tio.LABEL),
     )
 
-    img_dataset = tio.ImagesDataset([one_subject,])
+    img_dataset = tio.ImagesDataset(
+        [
+            one_subject,
+        ]
+    )
     img_sample = img_dataset[-1]
 
     grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)

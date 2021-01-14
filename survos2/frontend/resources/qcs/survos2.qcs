@@ -259,7 +259,7 @@ QComboBox::item:checked, QMenu[combo=true]::item:checked {
 
 QComboBox::item:disabled, QMenu[combo=true]::item:disabled {
     background-color: #00838F;
-    color: #FAFAFA;
+    color: #AACAFF;
 }
 
 QComboBox::item:selected, QMenu[combo=true]::item:selected

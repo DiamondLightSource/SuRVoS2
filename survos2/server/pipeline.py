@@ -9,33 +9,9 @@ import itertools
 
 from dataclasses import dataclass
 
-from matplotlib import pyplot as plt
-import matplotlib.cm as cm
-from matplotlib.colors import Normalize
-import matplotlib.patches as mpatches
-import matplotlib.patheffects as PathEffects
-from matplotlib import offsetbox
-from skimage import img_as_ubyte
-from skimage import exposure
-from skimage.segmentation import mark_boundaries
-from scipy import ndimage
-
-import seaborn as sns
-import morphsnakes as ms
-from skimage import img_as_ubyte
-
 from tqdm import tqdm
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-import torch.optim as optim
-from torchvision import datasets, models, transforms
-
 from loguru import logger
-
-from survos2.frontend.nb_utils import show_images
 
 from survos2.server.model import SRFeatures
 

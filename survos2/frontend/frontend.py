@@ -53,7 +53,6 @@ from skimage.morphology import disk
 from scipy.ndimage import binary_dilation
 
 
-
 def frontend(cData):
     logger.info(
         f"Frontend loaded image volume of shape {DataModel.g.current_workspace_shape}"
@@ -70,10 +69,10 @@ def frontend(cData):
     else:
         use_entities = True
 
-    #cfg.timer = WorkerThread()
+    # cfg.timer = WorkerThread()
     cfg.current_supervoxels = None
     cfg.current_mode = "paint"
-    
+
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
         viewer.theme = "dark"
@@ -86,14 +85,15 @@ def frontend(cData):
         viewer.dw = AttrDict()
         viewer.dw.ppw = PluginPanelWidget()
         viewer.dw.ppw.setMinimumSize(QSize(600, 500))
-        
+
         # provide state variables to viewer for interactive debugging
         viewer.cfg = cfg
         from survos2.model import Workspace
+
         ws = Workspace(DataModel.g.current_workspace)
         viewer.dw.ws = ws
         viewer.dw.datamodel = DataModel.g
-        
+
         def setup_pipeline():
             pipeline_ops = [
                 "make_masks",
@@ -363,7 +363,7 @@ def frontend(cData):
                     sv_layer = viewer.add_image(sv_image, name=msg["region_id"])
                     sv_layer.opacity = 0.3
 
-        def view_entitys(msg):
+        def view_entitys(msg, scale=1.0):
             logger.debug(f"view_entitys {msg['entitys_id']}")
             dsname = "entitys\\" + msg["entitys_id"]
             ds = viewer.dw.ws.get_dataset(dsname)
@@ -378,9 +378,9 @@ def frontend(cData):
             centers = np.array(
                 [
                     [
-                        np.int(np.float(entities_df.iloc[i]["z"]) * 0.25),
-                        np.int(np.float(entities_df.iloc[i]["x"]) * 0.25),
-                        np.int(np.float(entities_df.iloc[i]["y"]) * 0.25),
+                        np.int(np.float(entities_df.iloc[i]["z"]) * scale),
+                        np.int(np.float(entities_df.iloc[i]["x"]) * scale),
+                        np.int(np.float(entities_df.iloc[i]["y"]) * scale),
                     ]
                     for i in range(sel_start, sel_end)
                 ]
@@ -497,26 +497,24 @@ def frontend(cData):
             elif msg["data"] == "set_paint_params":
                 set_paint_params(msg)
 
-        
-        #Add widgets to viewer
+        # Add widgets to viewer
 
-        #Plugin Panel widget
+        # Plugin Panel widget
         viewer.dw.ppw.clientEvent.connect(lambda x: processEvents(x))
         cData.cfg.ppw = viewer.dw.ppw
 
         # classic widget
         ##from survos2.frontend.slice_paint import MainWidget
-        #classic_dockwidget = viewer.window.add_dock_widget(
+        # classic_dockwidget = viewer.window.add_dock_widget(
         #    viewer.classic_widget, area="right"
-        #)
-        #classic_dockwidget.setVisible(False)
+        # )
+        # classic_dockwidget.setVisible(False)
         ##viewer.classic_widget = MainWidget()
 
-        #viewer.window.qt_viewer.setFixedSize(400,400)
-        #viewer.window.qt_viewer.setVisible(False)
-        #viewer.dims.ndisplay = 3 # start on 3d view
+        # viewer.window.qt_viewer.setFixedSize(400,400)
+        # viewer.window.qt_viewer.setVisible(False)
+        # viewer.dims.ndisplay = 3 # start on 3d view
 
-        
         smallvol_control = SmallVolWidget(np.zeros((32, 32, 32)))
         cfg.smallvol_control = smallvol_control
         smallvol_control_dockwidget = viewer.window.add_dock_widget(
@@ -525,8 +523,7 @@ def frontend(cData):
         smallvol_control_dockwidget.setVisible(False)
         smallvol_control_dockwidget.setWindowTitle("Patch viewer")
 
-        
-        #Tabs
+        # Tabs
         pluginwidget_dockwidget = viewer.window.add_dock_widget(
             viewer.dw.ppw,
             area="right",
@@ -539,7 +536,7 @@ def frontend(cData):
         # viewer.window.add_dock_widget(
         #     viewer.window.qt_viewer.dockLayerControls, area="right"
         # )
-        #viewer.window.qt_viewer.dockLayerControls.setVisible(False)
+        # viewer.window.qt_viewer.dockLayerControls.setVisible(False)
 
         # workspace_gui_widget = workspace_gui.Gui()
         # workspace_gui_dockwidget = viewer.window.add_dock_widget(
@@ -581,5 +578,3 @@ def frontend(cData):
                     viewer.status = msg
                 else:
                     print("Coords out of view")
-
-    

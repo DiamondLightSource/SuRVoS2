@@ -590,10 +590,27 @@ class ComboBox(QtWidgets.QComboBox, AbstractLazyWrapper):
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.currentIndexChanged.connect(self.clearFocus)
 
+        self.setStyleSheet(
+            """
+            QComboBox::item:disabled, QMenu[combo=true]::item:disabled {
+                background-color: #00838F;
+                color: #AACAFF;
+            }
+
+            QComboBox::item:selected, QMenu[combo=true]::item:selected
+            {
+                background-color: #B2EBF2;
+            }
+
+        """
+        )
+
         if select is not None:
             self.blockSignals(True)
             self.setCurrentIndex(select)
             self.blockSignals(False)
+
+
 
     def addCategory(self, item):
         n = self.count()

@@ -13,6 +13,7 @@ def configuration(parent_package="", top_path=None):
 
     config.add_subpackage("segmentation")
     config.add_subpackage("regions")
+    config.add_subpackage("features")
 
     return config
 
