@@ -2,10 +2,9 @@ import numpy as np
 from torch.testing import assert_allclose
 import pytest
 
-from survos2.server.filtering import gaussian_blur, simple_invert
 from survos2.server.config import cfg
 from survos2.server.filtering import (
-    gaussian_blur,
+    gaussian_blur_kornia,
     simple_invert,
     laplacian,
     spatial_gradient_3d,
@@ -49,8 +48,8 @@ def test_feature_generation():
     }
 
     feature_params = [
-        [gaussian_blur, filter_cfg["filter1"]["params"]],
-        [gaussian_blur, filter_cfg["filter2"]["params"]],
+        [gaussian_blur_kornia, filter_cfg["filter1"]["params"]],
+        [gaussian_blur_kornia, filter_cfg["filter2"]["params"]],
         [laplacian, filter_cfg["filter4"]["params"]],
     ]
 

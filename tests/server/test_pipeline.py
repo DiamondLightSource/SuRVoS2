@@ -3,7 +3,6 @@ import pytest
 import h5py
 import numpy as np
 
-from survos2 import survos
 from survos2.improc.utils import DatasetManager
 import survos2.frontend.control
 from survos2.frontend.control import Launcher
