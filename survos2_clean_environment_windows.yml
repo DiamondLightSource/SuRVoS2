@@ -58,7 +58,6 @@ dependencies:
   - jpeg
   - jxrlib
   - kiwisolver
-  - kornia
   - lcms2
   - libaec
   - libffi
@@ -165,6 +164,7 @@ dependencies:
     - jedi
     - jupyter-client
     - jupyter-core
+    - kornia
     - mako
     - more-itertools
     - morphsnakes
