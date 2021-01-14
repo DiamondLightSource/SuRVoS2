@@ -22,9 +22,6 @@ from qtpy import QtWidgets, QtCore, QtGui
 from vispy import scene
 from vispy.color import Colormap
 
-# import pyqtgraph as pg
-# import pyqtgraph.parametertree.parameterTypes as pTypes
-
 from survos2.frontend.components.base import *
 from survos2.frontend.components.base import QCSWidget
 
@@ -116,7 +113,7 @@ class PluginContainer(QCSWidget):
         # 'workspace' and 'render' are internal plugins with no gui
 
         for t in self.tabs:
-            self.tabwidget.addTab(t[0], t[1])
+            self.tabwidget.addTab(t[0], t[1].capitalize())
             t[0].layout = QVBoxLayout()
             t[0].setLayout(t[0].layout)
 

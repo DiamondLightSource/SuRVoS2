@@ -97,8 +97,6 @@ def calc_bounding_vols(main_bv):
     return main_bv
 
 
-
-
 @dataclass
 class EntityWorkflow:
     vols: List[np.ndarray]
@@ -107,7 +105,9 @@ class EntityWorkflow:
     params: dict
 
 
-def init_entity_workflow(project_file,):
+def init_entity_workflow(
+    project_file,
+):
     with open(project_file) as project_file:
         wparams = json.load(project_file)
 

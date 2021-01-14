@@ -11,7 +11,6 @@ import math
 from numba import jit
 import random
 
-import hdbscan
 from collections import Counter
 from statistics import mode, StatisticsError
 import warnings
@@ -58,7 +57,7 @@ from survos2.entity.anno.geom import centroid_3d, rescale_3d
 from survos2.entity.anno.point_cloud import chip_cluster
 from skimage.segmentation import mark_boundaries
 from survos2.server.pipeline import Pipeline, Patch
-from survos2.server.config import cfg
+from survos2.server.state import cfg
 
 
 def generate_anno(

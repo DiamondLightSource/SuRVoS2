@@ -1,7 +1,6 @@
 from survos2 import survos
 from napari import layers
 
-survos.init_api()
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -24,8 +23,6 @@ from torch.nn import init
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from torchio import IMAGE, LOCATION
-from torchio.data.inference import GridSampler, GridAggregator
 import os
 import h5py
 import ast
@@ -80,7 +77,7 @@ from survos2.server.pipeline_ops import (
 )
 from survos2.entity.detect.proposal_agg import predict_and_agg
 from survos2.server.pipeline import Pipeline, Patch
-from survos2.server.config import cfg
+from survos2.server.state import cfg
 
 from survos2.server.filtering import (
     gaussian_blur,

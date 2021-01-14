@@ -25,13 +25,44 @@ def pass_through(x):
 
 @hug.get()
 @save_metadata
-def raw(src: DataURI, dst: DataURI) -> "Simple":
+def structure_tensor_determinant(
+    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
+) -> "BLOB":
+    """
+    API wrapper around `survos2.improc.features.blob.compute_structure_tensor_determinant`.
+    """
+    from ..server.filtering.blob import compute_structure_tensor_determinant
+
+    map_blocks(
+        compute_structure_tensor_determinant, src, out=dst, sigma=sigma, normalize=True
+    )
+
+
+@hug.get()
+@save_metadata
+def hessian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
+    from ..server.filtering.blob import compute_hessian_determinant
+
+    map_blocks(compute_hessian_determinant, src, out=dst, sigma=sigma, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def hessian_eigvals(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
+    from ..server.filtering.blob import hessian_eigvals
+
+    map_blocks(hessian_eigvals, src, out=dst, sigma=sigma, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def raw(src: DataURI, dst: DataURI) -> "BASE":
     map_blocks(pass_through, src, out=dst, normalize=True)
 
 
 @hug.get()
 @save_metadata
-def simple_invert(src: DataURI, dst: DataURI) -> "Simple":
+def simple_invert(src: DataURI, dst: DataURI) -> "BASE":
     from ..server.filtering import simple_invert
 
     map_blocks(simple_invert, src, out=dst, normalize=True)
@@ -39,9 +70,33 @@ def simple_invert(src: DataURI, dst: DataURI) -> "Simple":
 
 @hug.get()
 @save_metadata
+def gamma_correct(src: DataURI, dst: DataURI, gamma: Float = 1.0) -> "BASE":
+    from ..server.filtering import gamma_correct
+
+    map_blocks(gamma_correct, src, gamma=gamma, out=dst, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def dilation(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
+    from ..server.filtering import dilate
+
+    map_blocks(dilate, src, num_iter=num_iter, out=dst, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def erosion(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
+    from ..server.filtering import erode
+
+    map_blocks(erode, src, num_iter=num_iter, out=dst, normalize=True)
+
+
+@hug.get()
+@save_metadata
 def total_variation(
     src: DataURI, dst: DataURI, lamda: Float = 10, max_iter: Int = 100
-) -> "Denoising":
+) -> "DENOISING":
     """
     API wrapper around `survos2.improc.features.tv.tvdenoising3d`.
     """
@@ -54,23 +109,40 @@ def total_variation(
 
 @hug.get()
 @save_metadata
-def spatial_gradient_3d(src: DataURI, dst: DataURI) -> "Edges":
+def spatial_gradient_3d(src: DataURI, dst: DataURI, dim: Int = 0) -> "EDGES":
     from ..server.filtering import spatial_gradient_3d
 
-    map_blocks(spatial_gradient_3d, src, out=dst, normalize=True)
+    map_blocks(spatial_gradient_3d, src, out=dst, dim=dim, normalize=True)
 
 
 @hug.get()
 @save_metadata
-def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "Denoising":
-    from ..server.filtering import gaussian_blur
+def difference_of_gaussians(
+    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1, sigma_ratio: Float = 1
+) -> "EDGES":
+    from ..server.filtering.edge import compute_difference_gaussians
 
-    map_blocks(gaussian_blur, src, out=dst, sigma=sigma, pad=4, normalize=True)
+    map_blocks(
+        compute_difference_gaussians,
+        src,
+        out=dst,
+        sigma=sigma,
+        sigma_ratio=sigma_ratio,
+        normalize=True,
+    )
 
 
 @hug.get()
 @save_metadata
-def gaussian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "Denoising":
+def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
+    from ..server.filtering import gaussian_blur_kornia
+
+    map_blocks(gaussian_blur_kornia, src, out=dst, sigma=sigma, pad=4, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def gaussian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
     """
     API wrapper around `survos2.improc.features.gauss.gaussian`.
     """
@@ -81,7 +153,7 @@ def gaussian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "Denoising
 
 @hug.get()
 @save_metadata
-def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "Edges":
+def ndimage_laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "EDGES":
     from ..server.filtering import ndimage_laplacian
 
     map_blocks(ndimage_laplacian, src, out=dst, kernel_size=kernel_size, normalize=True)
@@ -89,9 +161,17 @@ def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "Ed
 
 @hug.get()
 @save_metadata
-def gaussian_center(
+def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "EDGES":
+    from ..server.filtering.edge import laplacian
+
+    map_blocks(laplacian, src, out=dst, kernel_size=kernel_size, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def gaussian_center2(
     src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
-) -> "Denoising":
+) -> "DENOISING":
     """
     API wrapper around `survos2.improc.features.gauss.gaussian_center`.
     """
@@ -102,13 +182,71 @@ def gaussian_center(
 
 @hug.get()
 @save_metadata
-def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "Denoising":
+def gaussian_norm2(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
     """
     API wrapper around `survos2.improc.features.gauss.gaussian_norm`.
     """
     from ..improc.features.gauss import gaussian_norm
 
     map_blocks(gaussian_norm, src, out=dst, sigma=sigma, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
+    """
+    API wrapper around `survos2.improc.features.gauss.gaussian_norm`.
+    """
+    from ..server.filtering.blur import gaussian_norm
+
+    map_blocks(gaussian_norm, src, out=dst, sigma=sigma, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def gaussian_center(
+    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
+) -> "DENOISING":
+    """
+    API wrapper around `survos2.improc.features.gauss.gaussian_center`.
+    """
+    from ..server.filtering.blur import gaussian_center
+
+    map_blocks(gaussian_center, src, out=dst, sigma=sigma, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def median(
+    src: DataURI, dst: DataURI, median_size=1.0, num_iter: Int = 1
+) -> "DENOISING":
+    from ..server.filtering import median
+
+    map_blocks(
+        median, src, median_size=median_size, num_iter=num_iter, out=dst, normalize=True
+    )
+
+
+@hug.get()
+@save_metadata
+def local_mean(src: DataURI, dst: DataURI, radius: FloatOrVector = 1) -> "LOCAL":
+    """
+    API wrapper around `survos2.improc.features.gauss.gaussian_norm`.
+    """
+    from ..improc.features.local import compute_local_mean
+
+    map_blocks(compute_local_mean, src, out=dst, radius=radius, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def local_std(src: DataURI, dst: DataURI, radius: FloatOrVector = 1) -> "LOCAL":
+    """
+    API wrapper around `survos2.improc.features.gauss.gaussian_norm`.
+    """
+    from ..improc.features.local import compute_local_std
+
+    map_blocks(compute_local_std, src, out=dst, radius=radius, normalize=True)
 
 
 @hug.get()

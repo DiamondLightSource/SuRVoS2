@@ -20,7 +20,6 @@ from vispy import scene
 from vispy.color import Colormap
 
 
-
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.regions import *
