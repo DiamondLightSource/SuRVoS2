@@ -135,52 +135,52 @@ def compute_structure_tensor_eigvals(data, params):
     return R  # R[..., params['Eigen Value']].copy()
 
 
-# def compute_frangi(data=None, sigma=1.0, max_sigma=2.0, sincr=0.5, lamda = 1.0, dark_response=False):
-#     logger.info("+ Computing frangi")
-#     result = None
-#     sigma = sigma[0]
-#     while sigma < max_sigma:
-#         R = hessian_eigvals(data, sigma, correct=True)
-#         e1 = R[..., 0]
-#         e2 = R[..., 1]
-#         e3 = R[..., 2]
+def compute_frangi(data=None, sigma=1.0, max_sigma=2.0, sincr=0.5, lamda = 1.0, dark_response=False):
+    logger.info("+ Computing frangi")
+    result = None
+    sigma = sigma[0]
+    while sigma < max_sigma:
+        R = hessian_eigvals(data, sigma, correct=True)
+        e1 = R[..., 0]
+        e2 = R[..., 1]
+        e3 = R[..., 2]
 
-#         ae1 = np.abs(e1)
-#         ae2 = np.abs(e2)
-#         ae3 = np.abs(e3)
+        ae1 = np.abs(e1)
+        ae2 = np.abs(e2)
+        ae3 = np.abs(e3)
 
-#         ae1sq = ae1 * ae1
-#         ae2sq = ae2 * ae2
-#         ae3sq = ae3 * ae3
+        ae1sq = ae1 * ae1
+        ae2sq = ae2 * ae2
+        ae3sq = ae3 * ae3
 
-#         Ra = ae2sq / ae3sq
-#         Rb = ae1sq / (ae2 * ae3)
-#         S = ae1sq + ae2sq + ae3sq
+        Ra = ae2sq / ae3sq
+        Rb = ae1sq / (ae2 * ae3)
+        S = ae1sq + ae2sq + ae3sq
 
-#         A = B = 2 * (lamda ** 2)
-#         C = 2 * S.max()
+        A = B = 2 * (lamda ** 2)
+        C = 2 * S.max()
 
-#         expRa = 1 - np.exp(-Ra / A)
-#         expRb = np.exp(-Rb / B)
-#         expS = 1 - np.exp(-S / C)
+        expRa = 1 - np.exp(-Ra / A)
+        expRb = np.exp(-Rb / B)
+        expS = 1 - np.exp(-S / C)
 
-#         tmp = expRa * expRb * expS
+        tmp = expRa * expRb * expS
 
-#         if dark_response:
-#             tmp[e2 < 0] = 0
-#             tmp[e3 < 0] = 0
-#         else:
-#             tmp[e2 > 0] = 0
-#             tmp[e3 > 0] = 0
+        if dark_response:
+            tmp[e2 < 0] = 0
+            tmp[e3 < 0] = 0
+        else:
+            tmp[e2 > 0] = 0
+            tmp[e3 > 0] = 0
 
-#         tmp = np.nan_to_num(tmp)
+        tmp = np.nan_to_num(tmp)
 
-#         if result is None:
-#             result = tmp
-#         else:
-#             np.maximum(result, tmp, out=result)
+        if result is None:
+            result = tmp
+        else:
+            np.maximum(result, tmp, out=result)
 
-#         sigma += sincr
+        sigma += sincr
 
-#     logger.debug(f"Output frangi result of shape {result.shape}")
-#     return result
+    logger.debug(f"Output frangi result of shape {result.shape}")
+    return result
