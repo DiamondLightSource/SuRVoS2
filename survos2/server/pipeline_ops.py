@@ -10,35 +10,34 @@ from torchio.data.inference import GridSampler, GridAggregator
 from torchio import IMAGE, LOCATION
 from torch.utils.data import DataLoader
 from torchvision import datasets, models, transforms
+
+from skimage import img_as_ubyte
 from tqdm import tqdm
+from loguru import logger
 
-from survos2.entity.entities import make_entity_df
-from survos2.server.superseg import sr_predict
-from survos2.entity.anno.masks import generate_sphere_masks_fast
-from survos2.server.supervoxels import generate_supervoxels
 
-from survos2.server.model import SRData, SRPrediction, SRFeatures
-from survos2.entity.sampler import crop_vol_and_pts_centered
+from survos2.frontend.nb_utils import show_images
 from survos2.helpers import AttrDict
 from survos2.entity.anno import geom
 from survos2.frontend.model import ClientData
 from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-from survos2.entity.saliency import filter_proposal_mask
-from survos2.entity.saliency import measure_big_blobs
-from survos2.entity.sampler import centroid_to_bvol, viz_bvols
+from survos2.server.superseg import sr_predict
+from survos2.server.supervoxels import generate_supervoxels
+from survos2.server.model import SRData, SRPrediction, SRFeatures
 from survos2.server.pipeline import Patch
-from loguru import logger
-from survos2.frontend.nb_utils import show_images
-
-
 from survos2.server.features import (
     features_factory,
     generate_features,
 )
 from survos2.server.superseg import _sr_prediction
 from survos2.server.supervoxels import superregion_factory
-from skimage import img_as_ubyte
 from survos2.server.superseg import mrf_refinement
+from survos2.entity.saliency import filter_proposal_mask
+from survos2.entity.saliency import measure_big_blobs
+from survos2.entity.sampler import centroid_to_bvol, viz_bvols
+from survos2.entity.anno.masks import generate_sphere_masks_fast
+from survos2.entity.sampler import crop_vol_and_pts_centered
+from survos2.entity.entities import make_entity_df
 
 
 def save_model(filename, model, optimizer, torch_models_fullpath):
@@ -155,7 +154,6 @@ def make_sr(patch: Patch, params: dict):
     # logger.debug("Making superregions for sample")
 
     filtered_layers = [patch.image_layers[k] for k in params["feature_params"].keys()]
-
     features = features_factory(filtered_layers)
     superregions = generate_supervoxels(
         np.array(features.dataset_feats),
@@ -319,7 +317,6 @@ def predict_sr2(patch: Patch, params: dict):
     predicted = img_as_ubyte(predicted / np.max(predicted))
     predicted = predicted - np.min(predicted)
     predicted = predicted / np.max(predicted)
-
     patch.image_layers["segmentation"] = predicted
 
     return patch
@@ -337,7 +334,6 @@ def clean_segmentation(patch: Patch, params: dict):
     predicted_cl = img_as_ubyte(ndimage.median_filter(predicted_cl, size=4))
     predicted_cl = img_as_ubyte(ndimage.median_filter(predicted_cl, size=4))
     predicted_cl = img_as_ubyte(ndimage.median_filter(predicted_cl, size=4))
-
     patch.image_layers["prediction_cleaned"] = predicted_cl
 
     return patch
@@ -461,9 +457,6 @@ def predict_and_agg(
     with torch.no_grad():
         for patches_batch in tqdm(patch_loader):
 
-            # input_tensor = patches_batch[IMAGE]
-            # locations = patches_batch[LOCATION]
-
             input_tensor = patches_batch["img"]["data"]
             location = patches_batch[LOCATION]
 
@@ -484,10 +477,7 @@ def predict_and_agg(
 
             pred = model(inputs_t)
             # pred = torch.sigmoid(pred[0])
-            # pred = torch.sigmoid(pred[0])
             pred = 1.0 - pred[0].data.cpu()
-
-            # pred = pred.data.cpu()
             print(f"pred: {pred.shape}")
 
             if extra_unsqueeze:

@@ -241,13 +241,7 @@ def frontend(cData):
                                 dilate_annotations,
                             )
 
-                            line_y, line_x = dilate_annotations(
-                                line_y,
-                                line_x,
-                                src_arr[0, :],
-                                viewer.layers[-1].brush_size,
-                            )
-
+                            
                             if cfg.current_supervoxels == None:
                                 params = dict(
                                     workspace=True, level=level, label=sel_label
@@ -257,12 +251,17 @@ def frontend(cData):
                                 yy = [int(e) for e in yy]
                                 xx = [int(e) for e in xx]
                                 params.update(slice_idx=int(z), yy=yy, xx=xx)
-                                print(params)
                                 result = Launcher.g.run(
                                     "annotations", "annotate_voxels", **params
                                 )
-                                print(result)
+                                
                             else:
+                                line_y, line_x = dilate_annotations(
+                                line_y,
+                                line_x,
+                                src_arr[0, :],
+                                viewer.layers[-1].brush_size,)
+
                                 for x, y in zip(line_x, line_y):
                                     sv = sv_arr[z, x, y]
                                     all_regions |= set([sv])
