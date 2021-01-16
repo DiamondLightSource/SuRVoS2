@@ -156,7 +156,7 @@ def difference_of_gaussians(
 
 @hug.get()
 @save_metadata
-def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
+def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = (1,1,1)) -> "DENOISING":
     from ..server.filtering import gaussian_blur_kornia
 
     map_blocks(gaussian_blur_kornia, src, out=dst, sigma=sigma, pad=max(4,int((max(sigma)+1)/2)), normalize=True)
