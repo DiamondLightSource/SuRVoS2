@@ -38,7 +38,7 @@ def test_feature_generation():
         "filter4": {
             "plugin": "features",
             "feature": "laplacian",
-            "params": {"kernel_size": (3, 3, 3)},
+            "params": {"kernel_size": 3},
         },
         "filter5": {
             "plugin": "features",
