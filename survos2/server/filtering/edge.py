@@ -22,14 +22,29 @@ from .base import rescale_denan
 #
 # Ndimage
 #
-def ndimage_laplacian(I, kernel_size=1.0):
+def ndimage_laplacian(img, kernel_size=1.0):
+    """Laplacian filter
+    Uses ndimage implementation
+
+    Parameters
+    ----------
+    I : np.array (D,H,W)
+        Input image
+    kernel_size : float, optional
+        Kernel size, by default 1.0
+
+    Returns
+    -------
+    np.array (D,H,W)
+        Filtered image
+    """
     logger.info("+ Computing ndimage laplacian")
-    locNaNs = np.isnan(I)
-    I = np.nan_to_num(I)
-    I = ndimage.laplace(gaussian(I, kernel_size))
-    I = I - np.min(I)
-    I = I / np.max(I)
-    return I
+    locNaNs = np.isnan(img)
+    img = np.nan_to_num(img)
+    img = ndimage.laplace(gaussian(img, kernel_size))
+    img = img - np.min(img)
+    img = img / np.max(img)
+    return img
 
 
 #
@@ -61,33 +76,56 @@ def spatial_gradient_3d(vol_gray: np.ndarray, dim=0) -> np.ndarray:
     return result_arr
 
 
-def laplacian(img_gray: np.ndarray, kernel_size=5.0) -> np.ndarray:
+def laplacian(img: np.ndarray, kernel_size) -> np.ndarray:
     """Laplacian filter a numpy array
 
-    Arguments:s
-        img_gray {np.ndarray} --
+    Arguments: np.ndarray (D,H,W)
+        Input image
 
     Returns:
         np.ndarray -- filtered array
     """
-    logger.info("+ Calculating laplacian")
-    float_img_gray = img_as_float(np.clip(img_gray, 0.0, 1.0))
-    t_gray = kornia.utils.image_to_tensor(np.array(float_img_gray)).float().unsqueeze(0)
-    laplacian: torch.Tensor = kornia.laplacian(t_gray, kernel_size=int(kernel_size[0]))
-    laplacian_img: np.ndarray = kornia.tensor_to_image(laplacian.float())
+    img_clean = rescale_denan(img_as_float(np.clip(img, 0.0, 1.0)))
+    img_clean_t = kornia.utils.image_to_tensor(np.array(img_clean)).float().unsqueeze(0)
+    kernel_size = int(kernel_size)
+    if kernel_size % 2 == 0:
+        kernel_size += 1
+    logger.info(
+        f"+ Calculating laplacian on tensor image of shape {img_clean_t.shape} with kernel size {kernel_size}"
+    )
 
+    laplacian: torch.Tensor = kornia.laplacian(img_clean_t, kernel_size=kernel_size)
+    laplacian_img: np.ndarray = kornia.tensor_to_image(laplacian.float())
     return rescale_denan(laplacian_img)
 
 
+def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False, dark_response=False):
+    """Difference of Gaussians (DoG) filter
 
-def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False):
+    Parameters
+    ----------
+    data : np.array (D,H,W)
+        Input image
+    sigma : Vector of 3 floats
+        Kernel size
+    sigma_ratio : Float
+        Ratio between the kernel of the two gaussian filters
+    threshold : bool, optional
+        Threshold removal of values less than 0, by default False
+    dark_response:
+        Use the negative of the input data
+    Returns
+    -------
+    np.array (D,H,W)
+        Filtered array
+    """
     sigma = np.asarray(sigma)
     sigma2 = np.asarray(sigma) * sigma_ratio
 
     logger.info("+ Computing difference of Gaussians with {sigma} {sigma_ratio}")
 
-    # if 'Response' in params and params['Response'] == 'Dark':
-    #    data *= -1
+    if dark_response:
+        data *= -1
 
     g1 = gaussian_blur_kornia(data, sigma)
     g2 = gaussian_blur_kornia(data, sigma2)
@@ -101,30 +139,3 @@ def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False):
 
     return response
 
-
-# def compute_laplacian_gaussian(data=None, params=None):
-#     sz, sy, sx = params['Sigma']
-#     out = np.zeros_like(data)
-
-#     for i, (oz, oy, ox) in enumerate([(2,0,0),(0,2,0),(0,0,2)]):
-#         kz = make_gaussian_1d(sz, order=oz, trunc=3)
-#         ky = make_gaussian_1d(sy, order=oy, trunc=3)
-#         kx = make_gaussian_1d(sx, order=ox, trunc=3)
-
-#         if 'Response' in params and params['Response'] == 'Bright':
-#             if i == 0: kz *= -1
-#             if i == 1: ky *= -1
-#             if i == 2: kx *= -1
-
-#         log.info('+ Padding data')
-#         d, h, w = kz.size//2, ky.size//2, kx.size//2
-#         tmp = np.pad(data, ((d,d),(h,h),(w,w)), mode='reflect')
-
-#         log.info('   - Computing convolutions (radius={})'.format((d, h, w)))
-#         gauss = gconvssh(tmp, kz, ky, kx, gpu=DM.selected_gpu)
-#         out += gauss
-
-#     if 'Threshold' in params and params['Threshold']:
-#         out[out < 0] = 0
-
-#     return out

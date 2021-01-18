@@ -62,17 +62,18 @@ def make_gaussian_kernel(kernel_size, sigma, dim=3):
     return kernel
 
 
-
 def gaussian_blur_t(img_t: torch.Tensor, sigma):
-    kernel_size = 3 # min size, expands to sigma if sigma is larger 
+    kernel_size = 3  # min size, expands to sigma if sigma is larger
     # kernel = torch.ones(1, 3, 3, 3) # example kernel
     kernel = make_gaussian_kernel(kernel_size, sigma, dim=3)
     from kornia.filters import filter3D
-    p = int((kernel_size-1)/ 2)
+
+    p = int((kernel_size - 1) / 2)
     padded_img_t = F.pad(img_t, (p, p, p, p, p, p))
     output_t = filter3D(padded_img_t, kernel)
-    output_t = output_t[:,:,p:-p,p:-p,p:-p]
+    output_t = output_t[:, :, p:-p, p:-p, p:-p]
     return output_t
+
 
 def gaussian_blur_kornia(img: np.ndarray, sigma):
     """Gaussian blur using Kornia Filter3D
@@ -95,7 +96,7 @@ def gaussian_blur_kornia(img: np.ndarray, sigma):
     )
     output = gaussian_blur_t(img_t, sigma)
     output: np.ndarray = kornia.tensor_to_image(output.squeeze(0).squeeze(0).float())
-    
+
     return output
 
 
@@ -201,73 +202,67 @@ import torch.nn as nn
 # adapted from kornia.losses.TotalVariation
 class TotalVariation(nn.Module):
     r"""Computes the Total Variation according to [1].
-    
-    TODO Adapt DOC:
 
     Shape:
-        - Input: :math:`(N, , H, W)` or :math:`(C, H, W)` where C = number of classes.
-        - Output: :math:`(N,)` or :math:`()`
-    Examples:
-        >>> total_variation(torch.ones(3, 4, 4))
-        tensor(0.)
-        >>> tv = TotalVariation()
-        >>> output = tv(torch.ones((2, 3, 4, 4), requires_grad=True))
-        >>> output.data
-        tensor([0., 0.])
-        >>> output.sum().backward()  # grad can be implicitly created only for scalar outputs
-    Reference:
-        [1] https://en.wikipedia.org/wiki/Total_variation
+        - Input: :math:`(N, D, H, W)`.
+        - Output: :math:`(N, D, H, W)`.
     """
 
     def __init__(self) -> None:
         super(TotalVariation, self).__init__()
 
-    def forward(  # type: ignore
-            self, img) -> torch.Tensor:
+    def forward(self, img) -> torch.Tensor:  # type: ignore
         return total_variation(img)
 
 
 def total_variation(img: torch.Tensor) -> torch.Tensor:
     r"""Function that computes Total Variation.
-    See :class:`~kornia.losses.TotalVariation` for details.
+    Adapted from :class:`~kornia.losses.TotalVariation`.
     """
     if not torch.is_tensor(img):
         raise TypeError(f"Input type is not a torch.Tensor. Got {type(img)}")
     img_shape = img.shape
     if len(img_shape) == 3 or len(img_shape) == 4:
         pixel_dif1 = img[..., :, 1:, :] - img[..., :, :-1, :]
-        pixel_dif2 = img[..., :,:, 1:] - img[..., :, :, :-1]
-        pixel_dif3 = img[..., 1:,:, :] - img[..., :-1, :, :]
-        
-        #reduce_axes = (-3, -2, -1)
-        reduce_axes = list(range(1,4))
+        pixel_dif2 = img[..., :, :, 1:] - img[..., :, :, :-1]
+        pixel_dif3 = img[..., 1:, :, :] - img[..., :-1, :, :]
+
+        # reduce_axes = (-3, -2, -1)
+        reduce_axes = list(range(1, 4))
     else:
-        raise ValueError("Expected input tensor to be of ndim 3 or 4, but got " + str(len(img_shape)))
+        raise ValueError(
+            "Expected input tensor to be of ndim 3 or 4, but got " + str(len(img_shape))
+        )
 
-    return pixel_dif1.abs().sum(dim=reduce_axes) + pixel_dif2.abs().sum(dim=reduce_axes) + pixel_dif3.abs().sum(dim=reduce_axes)
-
+    return (
+        pixel_dif1.abs().sum(dim=reduce_axes)
+        + pixel_dif2.abs().sum(dim=reduce_axes)
+        + pixel_dif3.abs().sum(dim=reduce_axes)
+    )
 
 
 class TVDenoise(torch.nn.Module):
     def __init__(self, noisy_image, regularization_amount=0.001):
         super(TVDenoise, self).__init__()
-        self.l2_term = torch.nn.MSELoss(reduction='mean')
+        self.l2_term = torch.nn.MSELoss(reduction="mean")
         self.regularization_term = TotalVariation()
-        self.clean_image = torch.nn.Parameter(data=noisy_image.clone(), requires_grad=True)
+        self.denoised_image = torch.nn.Parameter(
+            data=noisy_image.clone(), requires_grad=True
+        )
         self.noisy_image = noisy_image
         self.regularization_amount = regularization_amount
 
     def forward(self):
-        return self.l2_term(self.clean_image, self.noisy_image) + self.regularization_amount * self.regularization_term(self.clean_image)
+        return self.l2_term(
+            self.denoised_image, self.noisy_image
+        ) + self.regularization_amount * self.regularization_term(self.denoised_image)
 
-    def get_clean_image(self):
-        return self.clean_image
+    def get_denoised_image(self):
+        return self.denoised_image
 
-    
+
 def tvdenoise_kornia(img, regularization_amount=0.001, max_iter=50):
-    img_t = (
-        kornia.utils.image_to_tensor(np.array(img)).float().unsqueeze(0)
-    )
+    img_t = kornia.utils.image_to_tensor(np.array(img)).float().unsqueeze(0)
     tv_denoiser = TVDenoise(img_t, regularization_amount)
     optimizer = torch.optim.SGD(tv_denoiser.parameters(), lr=0.1, momentum=0.9)
 
@@ -275,9 +270,11 @@ def tvdenoise_kornia(img, regularization_amount=0.001, max_iter=50):
         optimizer.zero_grad()
         loss = tv_denoiser()
         if i % 25 == 0:
-            logger.debug("Loss in iteration {} of {}: {:.3f}".format(i, max_iter, loss.item()))   
+            logger.debug(
+                "Loss in iteration {} of {}: {:.3f}".format(i, max_iter, loss.item())
+            )
         loss.backward()
         optimizer.step()
-    
-    img_clean: np.ndarray = kornia.tensor_to_image(tv_denoiser.get_clean_image())
+
+    img_clean: np.ndarray = kornia.tensor_to_image(tv_denoiser.get_denoised_image())
     return img_clean

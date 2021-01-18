@@ -2,7 +2,7 @@ from .blur import gaussian_blur_kornia
 
 from .edge import spatial_gradient_3d, laplacian, ndimage_laplacian
 
-from .base import simple_invert, median_filter, gamma_correct
+from .base import simple_invert, median_filter, gamma_adjust
 
 from .morph import dilate, erode, median
 

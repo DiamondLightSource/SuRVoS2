@@ -10,8 +10,8 @@ cimport numpy as np
 from cpython cimport bool
 from libcpp cimport bool
 from libc.math cimport sqrt, acos, cos, M_PI
-
-
+import torch
+import kornia
 
 def symmetric_eig(float[:, :, ::1] Hzz, float[:, :, ::1] Hzy, float[:, :, ::1] Hzx,
                   float[:, :, ::1] Hyy, float[:, :, ::1] Hyx, float[:, :, ::1] Hxx):
@@ -42,6 +42,41 @@ def symmetric_eig(float[:, :, ::1] Hzz, float[:, :, ::1] Hzy, float[:, :, ::1] H
 
                 result[k, i, j, :] = eigvalues3S(tmp)
 
+          
+
+    return result
+
+
+def symmetric_eig_pytorch(float[:, :, ::1] Hzz, float[:, :, ::1] Hzy, float[:, :, ::1] Hzx,
+                  float[:, :, ::1] Hyy, float[:, :, ::1] Hyx, float[:, :, ::1] Hxx):
+
+    cdef int depth = Hzz.shape[0]
+    cdef int height = Hzz.shape[1]
+    cdef int width = Hzz.shape[2]
+    cdef int k, i, j
+
+    cdef float[:, ::1] tmp = np.zeros((3,3), np.float32)
+    cdef np.ndarray[np.float32_t, ndim=4, mode='c'] result
+    result = np.zeros((depth, height, width, 3), np.float32)
+
+    for k in range(depth):
+        for i in range(height):
+            for j in range(width):
+                tmp[0, 0] = Hzz[k, i, j]
+                tmp[0, 1] = Hzy[k, i, j]
+                tmp[0, 2] = Hzx[k, i, j]
+
+                tmp[1, 0] = Hzy[k, i, j]
+                tmp[1, 1] = Hyy[k, i, j]
+                tmp[1, 2] = Hyx[k, i, j]
+
+                tmp[2, 0] = Hzx[k, i, j]
+                tmp[2, 1] = Hyx[k, i, j]
+                tmp[2, 2] = Hxx[k, i, j]
+
+                img_t =  kornia.utils.image_to_tensor(np.array(tmp)).float().unsqueeze(0).unsqueeze(0)
+                result[k, i, j, :], eigvec = torch.symeig(img_t, eigenvectors=False)
+    
     return result
 
 

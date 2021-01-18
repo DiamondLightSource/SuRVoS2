@@ -100,6 +100,5 @@ class Tests(object):
         assert dst_arr.shape == (4, 4, 4)
 
 
-
 if __name__ == "__main__":
     pytest.main()
