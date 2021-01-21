@@ -132,6 +132,7 @@ def init_entity_workflow(
         fname = wparams["vol_fname"]
         original_data = h5py.File(os.path.join(wparams["datasets_dir"], fname), "r")
         img_volume = original_data["data"][:]
+        wf1 = img_volume
 
     workflow_name = wparams["workflow_name"]
     input_dir = wparams["input_dir"]
@@ -144,10 +145,12 @@ def init_entity_workflow(
     datasets_dir = wparams["datasets_dir"]
     entities_offset = wparams["entities_offset"]
     offset = wparams["entities_offset"]
-    main_bv_vf = wparams["main_bv_vf"]
     entity_meta = wparams["entity_meta"]
     model_file = wparams["saliency_model_file"]
     roi_name = wparams["main_bv_name"]
+
+    main_bv = wparams["main_bv"]
+    
 
     img_volume -= np.min(img_volume)
     img_volume = img_volume / np.max(img_volume)
@@ -166,11 +169,7 @@ def init_entity_workflow(
     entity_pts[:, 1] = (entity_pts[:, 1] * scale_x) + offset[1]
     entity_pts[:, 2] = (entity_pts[:, 2] * scale_y) + offset[2]
 
-    if proj == "vf":
-        main_bv = main_bv_vf
-    elif proj == "hunt":
-        main_bv = main_bv_hunt
-
+    
     main_bv = calc_bounding_vols(main_bv)
     bb = main_bv[roi_name]["bb"]
     roi_name = "_".join(map(str, bb))

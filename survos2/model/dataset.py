@@ -456,7 +456,7 @@ class Dataset(BaseDataset):
         return tuple(map(int, np.ravel_multi_index(idx, self.chunk_grid)))
 
     def _process_slices(self, slices, squeeze=False):
-        logger.debug(f"_process_slices {slices}")
+        #logger.debug(f"_process_slices {slices}")
         if type(slices) in [slice, int]:
             slices = [slices]
         elif slices is Ellipsis:

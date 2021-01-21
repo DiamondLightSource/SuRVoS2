@@ -228,7 +228,7 @@ class FeatureCard(Card):
         all_params.update({k: v.value() for k, v in self.widgets.items()})
 
         logger.info(f"Computing features: {self.feature_type} {all_params}")
-        result = Launcher.g.run("features", self.feature_type, **all_params)
+        result = Launcher.g.run("features", self.feature_type,  **all_params)
 
         if result is not None:
             self.pbar.setValue(100)

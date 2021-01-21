@@ -93,7 +93,7 @@ def run_server(
 def nu_gui(
     workspace: "Workspace path (full or chrooted) to load",
     server: "URI to the remote SuRVoS API Server",
-):  
+):
 
     from survos2.frontend import main
     from napari import gui_qt
@@ -112,7 +112,6 @@ def nu_gui(
 
     if Launcher.g.connected:
         main.start_client()
-    
 
 
 @begin.subcommand

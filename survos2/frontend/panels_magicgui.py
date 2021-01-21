@@ -31,36 +31,12 @@ class TransferOperation(enum.Enum):
     annotations = "annotations"
 
 
-@magicgui(auto_call=True)  # call_button="Set Pipeline")
-def pipeline_gui(pipeline_option: Operation):
-    cfg["pipeline_option"] = pipeline_option.value
+# @magicgui(auto_call=True)  # call_button="Set Pipeline")
+# def pipeline_gui(pipeline_option: Operation):
+#     cfg["pipeline_option"] = pipeline_option.value
 
 
-@magicgui(
-    call_button="Assign ROI",
-    layout="horizontal",
-    x_st={"maximum": 5000},
-    y_st={"maximum": 5000},
-    z_st={"maximum": 5000},
-    x_end={"maximum": 5000},
-    y_end={"maximum": 5000},
-    z_end={"maximum": 5000},
-)
-def roi_gui(z_st: int, z_end: int, x_st: int, x_end: int, y_st: int, y_end: int):
-    cfg["roi_crop"] = (z_st, z_end, x_st, x_end, y_st, y_end)
-
-
-# @magicgui(call_button="Update annotation", layout="vertical")
-# def save_annotation_gui():
-#     cfg.ppw.clientEvent.emit(
-#         {"source": "save_annotation", "data": "save_annotation", "value": None}
-#     )
-#     cfg.ppw.clientEvent.emit(
-#         {"source": "save_annotation", "data": "refresh", "value": None}
-#     )
-
-
-@magicgui(call_button="Save to workspace", layout="vertical")
+@magicgui(call_button="Save to workspace")
 def workspace_gui(Layer: layers.Image, Group: TransferOperation):
     logger.debug(f"Selected layer name: {Layer.name} and shape: {Layer.data.shape} ")
 
@@ -128,3 +104,15 @@ def workspace_gui(Layer: layers.Image, Group: TransferOperation):
         cfg.ppw.clientEvent.emit(
             {"source": "workspace_gui", "data": "refresh", "value": None}
         )
+
+
+
+
+# @magicgui(call_button="Update annotation", layout="vertical")
+# def save_annotation_gui():
+#     cfg.ppw.clientEvent.emit(
+#         {"source": "save_annotation", "data": "save_annotation", "value": None}
+#     )
+#     cfg.ppw.clientEvent.emit(
+#         {"source": "save_annotation", "data": "refresh", "value": None}
+#     )

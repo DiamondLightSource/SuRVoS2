@@ -5,6 +5,7 @@ from .blur import gaussian_blur_kornia
 import torch
 import kornia
 import numbers
+from .base import rescale_denan
 
 
 def compute_hessian(data, sigma):
@@ -111,8 +112,7 @@ def hessian_eigvals_cython(data, sigma, correct=False):
     )
 
     logger.debug(f"Calculated hessian_eigvals reponse of shape {response.shape}")
-    from .base import rescale_denan
-
+    
     return rescale_denan(response)
 
 
@@ -156,8 +156,7 @@ def hessian_eigvals(data, sigma, correct=False):
 
     logger.debug(f"Calculated hessian_eigvals reponse of shape {img.shape}")
 
-    from .base import rescale_denan
-
+    
     return rescale_denan(img)
 
 
@@ -204,8 +203,7 @@ def hessian_eigvals_image(data, sigma, correct=False):
 
     img = img[:,:,:,0] # return primay eigenvalue
 
-    from .base import rescale_denan
-
+    
     return rescale_denan(img)
 
 
@@ -252,8 +250,7 @@ def hessian_eigvals_p(data, sigma, correct=False):
 
     logger.debug(f"Calculated hessian_eigvals reponse of shape {response.shape}")
 
-    from .base import rescale_denan
-
+    
     return rescale_denan(response)
 
 
@@ -314,7 +311,10 @@ def compute_structure_tensor_determinant(data, sigma=1):
         - Sxy * (Sxy * Szz - Syz * Sxz)
         + Sxz * (Sxy * Syz - Syy * Sxz)
     )
+    
+    
     return rescale_denan(determinant)
+
 
 
 def compute_structure_tensor_eigvals(data, sigma):
@@ -365,7 +365,7 @@ def compute_frangi(
 ):
     """Frangi filter for pulling out elongated structures
 
-    Iteratively calculates hessian eigenvalues for a range of sigma values and takes the max eigenval.
+    Iteratively calculates hessian eigenvalues for a range of sigma values and takes the max eigenvalue per voxel.
 
     Frangi, A. F., Niessen, W. J., Vincken, K. L., & Viergever, M. A. (1998, October). Multiscale vessel enhancement filtering.
 

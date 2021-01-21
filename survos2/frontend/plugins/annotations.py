@@ -33,9 +33,9 @@ _AnnotationNotifier = PluginNotifier()
 
 
 # for nugui annotation tool
-def dilate_annotations(yy, xx, img_vol, line_width):
-    data = np.zeros_like(img_vol)
-    data[yy, xx] = True
+def dilate_annotations(yy, xx, img_shape, line_width):
+    data = np.zeros(img_shape)
+    data[xx,yy] = True
 
     r = np.ceil(line_width / 2)
     ymin = int(max(0, yy.min() - r))
@@ -168,7 +168,7 @@ class AnnotationPlugin(Plugin):
         cfg.ppw.clientEvent.emit(
             {
                 "source": "annotations",
-                "data": "view_annotations",
+                "data": "paint_annotations",
                 "level_id": list(self.levels.keys())[0],
             }
         )
@@ -242,7 +242,7 @@ class AnnotationLevel(Card):
         cfg.ppw.clientEvent.emit(
             {
                 "source": "annotations",
-                "data": "view_annotations",
+                "data": "paint_annotations",
                 "level_id": self.level_id,
             }
         )

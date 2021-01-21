@@ -42,22 +42,54 @@ def structure_tensor_determinant(
 @save_metadata
 def hessian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
     from ..server.filtering.blob import compute_hessian_determinant
+
     map_blocks(compute_hessian_determinant, src, out=dst, sigma=sigma, normalize=True)
 
 
 @hug.get()
 @save_metadata
-def frangi(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1, max_sigma : Float =2.0, sincr : Float =0.5, lamda : Float = 1.0) -> "BLOB":
+def frangi(
+    src: DataURI,
+    dst: DataURI,
+    scale_min: Float = 1.0,
+    scale_max: Float = 4.0,
+    scale_step: Float = 1.0,
+    alpha: Float = 0.5,
+    beta: Float = 0.5,
+    gamma=15,
+) -> "BLOB":
     from ..server.filtering.blob import compute_frangi
-    map_blocks(compute_frangi, src, out=dst, sigma=sigma, max_sigma=max_sigma, sincr=sincr, lamda=lamda, normalize=True)
+
+    map_blocks(
+        compute_frangi,
+        src,
+        out=dst,
+        scale_range=(scale_min, scale_max),
+        scale_step=1.0,
+        alpha=0.5,
+        beta=0.5,
+        gamma=15,
+        dark_response=True,
+        normalize=True,
+    )
 
 
 @hug.get()
 @save_metadata
 def hessian_eigvals(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
-    from ..server.filtering.blob import hessian_eigvals
+    from ..server.filtering.blob import hessian_eigvals_image
 
-    map_blocks(hessian_eigvals, src, out=dst, sigma=sigma, normalize=True)
+    map_blocks(hessian_eigvals_image, src, out=dst, sigma=sigma, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def hessian_eigvals_cython(
+    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
+) -> "BLOB":
+    from ..server.filtering.blob import hessian_eigvals_cython
+
+    map_blocks(hessian_eigvals_cython, src, out=dst, sigma=sigma, normalize=True)
 
 
 @hug.get()
@@ -77,9 +109,9 @@ def simple_invert(src: DataURI, dst: DataURI) -> "BASE":
 @hug.get()
 @save_metadata
 def gamma_correct(src: DataURI, dst: DataURI, gamma: Float = 1.0) -> "BASE":
-    from ..server.filtering import gamma_correct
+    from ..server.filtering import gamma_adjust
 
-    map_blocks(gamma_correct, src, gamma=gamma, out=dst, normalize=True)
+    map_blocks(gamma_adjust, src, gamma=gamma, out=dst, normalize=True)
 
 
 @hug.get()
@@ -113,11 +145,14 @@ def total_variation(
     )
 
 
-
 @hug.get()
 @save_metadata
 def tvdenoise_kornia(
-    src: DataURI, dst: DataURI,regularization_amount: Float = 0.001, pad : Int = 8,max_iter: Int = 100
+    src: DataURI,
+    dst: DataURI,
+    regularization_amount: Float = 0.001,
+    pad: Int = 8,
+    max_iter: Int = 100,
 ) -> "DENOISING":
     """
     API wrapper around `survos2.improc.features.tv.tvdenoising3d`.
@@ -125,7 +160,13 @@ def tvdenoise_kornia(
     from ..server.filtering.blur import tvdenoise_kornia
 
     map_blocks(
-        tvdenoise_kornia, src, out=dst, regularization_amount=regularization_amount, max_iter=max_iter, pad=pad, normalize=True
+        tvdenoise_kornia,
+        src,
+        out=dst,
+        regularization_amount=regularization_amount,
+        max_iter=max_iter,
+        pad=pad,
+        normalize=True,
     )
 
 
@@ -156,10 +197,17 @@ def difference_of_gaussians(
 
 @hug.get()
 @save_metadata
-def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = (1,1,1)) -> "DENOISING":
+def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
     from ..server.filtering import gaussian_blur_kornia
 
-    map_blocks(gaussian_blur_kornia, src, out=dst, sigma=sigma, pad=max(4,int((max(sigma)+1)/2)), normalize=True)
+    map_blocks(
+        gaussian_blur_kornia,
+        src,
+        out=dst,
+        sigma=sigma,
+        pad=max(4, int((max(sigma) + 1) / 2)),
+        normalize=True,
+    )
 
 
 @hug.get()
@@ -175,42 +223,34 @@ def gaussian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING
 
 @hug.get()
 @save_metadata
-def ndimage_laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "EDGES":
+def ndimage_laplacian(
+    src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1
+) -> "EDGES":
     from ..server.filtering import ndimage_laplacian
 
-    map_blocks(ndimage_laplacian, src, out=dst, kernel_size=kernel_size, pad=max(4,int((max(kernel_size)+1)/2)), normalize=True)
+    map_blocks(
+        ndimage_laplacian,
+        src,
+        out=dst,
+        kernel_size=kernel_size,
+        pad=max(4, int((max(kernel_size) + 1) / 2)),
+        normalize=True,
+    )
 
 
 @hug.get()
 @save_metadata
-def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "EDGES":
+def laplacian(src: DataURI, dst: DataURI, kernel_size: Float = 2.0) -> "EDGES":
     from ..server.filtering.edge import laplacian
 
-    map_blocks(laplacian, src, out=dst, kernel_size=kernel_size, pad=max(4,int((max(kernel_size)+1)/2)), normalize=True)
-
-
-@hug.get()
-@save_metadata
-def gaussian_center2(
-    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
-) -> "DENOISING":
-    """
-    API wrapper around `survos2.improc.features.gauss.gaussian_center`.
-    """
-    from ..improc.features.gauss import gaussian_center
-
-    map_blocks(gaussian_center, src, out=dst, pad=max(4,int((max(kernel_size)+1)/2)), normalize=True)
-
-
-@hug.get()
-@save_metadata
-def gaussian_norm2(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
-    """
-    API wrapper around `survos2.improc.features.gauss.gaussian_norm`.
-    """
-    from ..improc.features.gauss import gaussian_norm
-
-    map_blocks(gaussian_norm, src, out=dst, sigma=sigma, pad=max(4,int((max(sigma)+1)/2)), normalize=True)
+    map_blocks(
+        laplacian,
+        src,
+        out=dst,
+        kernel_size=kernel_size,
+        pad=max(4, int(kernel_size) + 1 / 2),
+        normalize=True,
+    )
 
 
 @hug.get()
@@ -221,7 +261,14 @@ def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
     """
     from ..server.filtering.blur import gaussian_norm
 
-    map_blocks(gaussian_norm, src, out=dst, sigma=sigma, pad=max(4,int((max(sigma)+1)/2)), normalize=True)
+    map_blocks(
+        gaussian_norm,
+        src,
+        out=dst,
+        sigma=sigma,
+        pad=max(4, int((max(sigma) + 1) / 2)),
+        normalize=True,
+    )
 
 
 @hug.get()
@@ -234,18 +281,31 @@ def gaussian_center(
     """
     from ..server.filtering.blur import gaussian_center
 
-    map_blocks(gaussian_center, src, out=dst, sigma=sigma, pad=max(4,int((max(kernel_size)+1)/2)),normalize=True)
+    map_blocks(
+        gaussian_center,
+        src,
+        out=dst,
+        sigma=sigma,
+        pad=max(4, int((max(kernel_size) + 1) / 2)),
+        normalize=True,
+    )
 
 
 @hug.get()
 @save_metadata
 def median(
-    src: DataURI, dst: DataURI, median_size : Float = 1, num_iter: Int = 1
+    src: DataURI, dst: DataURI, median_size: Float = 1, num_iter: Int = 1
 ) -> "DENOISING":
     from ..server.filtering import median
 
     map_blocks(
-        median, src, median_size=median_size, num_iter=num_iter, out=dst, pad=max(4,int((max(median_size)+1)/2)),normalize=True
+        median,
+        src,
+        median_size=median_size,
+        num_iter=num_iter,
+        out=dst,
+        pad=max(4, int((median_size + 1) / 2)),
+        normalize=True,
     )
 
 
@@ -257,7 +317,14 @@ def local_mean(src: DataURI, dst: DataURI, radius: FloatOrVector = 1) -> "LOCAL"
     """
     from ..improc.features.local import compute_local_mean
 
-    map_blocks(compute_local_mean, src, out=dst, radius=radius, pad=max(4,int((max(radius)+1)/2)), normalize=True)
+    map_blocks(
+        compute_local_mean,
+        src,
+        out=dst,
+        radius=radius,
+        pad=max(4, int((max(radius) + 1) / 2)),
+        normalize=True,
+    )
 
 
 @hug.get()
@@ -268,7 +335,14 @@ def local_std(src: DataURI, dst: DataURI, radius: FloatOrVector = 1) -> "LOCAL":
     """
     from ..improc.features.local import compute_local_std
 
-    map_blocks(compute_local_std, src, out=dst, radius=radius, pad=max(4,int((max(radius)+1)/2)),normalize=True)
+    map_blocks(
+        compute_local_std,
+        src,
+        out=dst,
+        radius=radius,
+        pad=max(4, int((max(radius) + 1) / 2)),
+        normalize=True,
+    )
 
 
 @hug.get()

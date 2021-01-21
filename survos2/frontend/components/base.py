@@ -610,8 +610,6 @@ class ComboBox(QtWidgets.QComboBox, AbstractLazyWrapper):
             self.setCurrentIndex(select)
             self.blockSignals(False)
 
-
-
     def addCategory(self, item):
         n = self.count()
         self.addItem(item)

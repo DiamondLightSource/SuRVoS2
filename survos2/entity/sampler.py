@@ -58,10 +58,6 @@ def offset_points(pts, offset, scale=32, random_offset=False):
 
     if random_offset:
 
-        trans_pts[:, 0] = pts[:, 0] + padding[0]
-        trans_pts[:, 1] = pts[:, 1] + padding[1]
-        trans_pts[:, 2] = pts[:, 2] + padding[2]
-
         offset_rand = np.random.random(trans_pts.shape) * scale
         offset_rand[:, 3] = np.zeros((len(trans_pts)))
 
@@ -70,20 +66,36 @@ def offset_points(pts, offset, scale=32, random_offset=False):
     return trans_pts
 
 
-def centroid_to_bvol(cents, bvol_dim=(10, 10, 10), flipxy=False):
+def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
+    """Centroid to bounding volume
+
+    Parameters
+    ----------
+    centers : np.ndarray, (nx3)
+        3d coordinates of the point to use as the centroid of the bounding box
+    bvol_dim : tuple, optional
+        Dimensions of the bounding volume centered at the points given by centers, by default (10, 10, 10)
+    flipxy : bool, optional
+        Flip x and y coordinates, by default False
+
+    Returns
+    -------
+    np.ndarray, (nx6)
+        (z_start, x_start, y_start, z_fin, x_fin, y_fin)
+    """
     bd, bw, bh = bvol_dim
     if flipxy:
         bvols = np.array(
             [
                 (cz - bd, cx - bw, cy - bh, cz + bd, cx + bw, cy + bh)
-                for cz, cx, cy, _ in cents
+                for cz, cx, cy, _ in centers
             ]
         )
     else:
         bvols = np.array(
             [
                 (cz - bd, cx - bw, cy - bh, cz + bd, cx + bw, cy + bh)
-                for cz, cy, cx, _ in cents
+                for cz, cy, cx, _ in centers
             ]
         )
 
@@ -156,7 +168,7 @@ def get_vol_in_cent_box(img_volume, z_st, z_end, x, y, w, h):
 def sample_roi(img_vol, tabledata, i=0, vol_size=(32, 32, 32)):
     # Sampling ROI from an entity table
     print(f"Sampling from vol of shape {img_vol.shape}")
-    pad_slice, pad_x, pad_y = np.array(vol_size) // 2
+    pad_slice, pad_y, pad_x = np.array(vol_size) // 2
 
     z, x, y = tabledata["z"][i], tabledata["x"][i], tabledata["y"][i]
     logger.info(f"Sampling location {z} {x} {y}")

@@ -27,16 +27,21 @@ from survos2.frontend.plugins.features import *
 from survos2.frontend.plugins.annotations import *
 
 
+from survos2.frontend.components.base import Slider
+
 class ButtonPanelWidget(QtWidgets.QWidget):
     clientEvent = Signal(object)
 
     def __init__(self, *args, **kwargs):
         QtWidgets.QWidget.__init__(self, *args, **kwargs)
 
-        button1 = QPushButton("Spatial cluster", self)
-        button1.clicked.connect(self.button1_clicked)
-
-        button2 = QPushButton("View ROI", self)
+        self.slider = Slider(value=100)
+        self.slider.setMinimumWidth(150)
+        self.slider.valueChanged.connect(self._params_updated)
+        
+        #button1 = QPushButton("Jump", self)
+        #button1.clicked.connect(self.button1_clicked)
+        button2 = QPushButton("Slice mode", self)
         button2.clicked.connect(self.button2_clicked)
         self._selected_entity_idx = 0
 
@@ -51,32 +56,39 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self._check1_checked = False
         check1.clicked.connect(self.check1_checked)
 
-        hbox_layout1 = QtWidgets.QHBoxLayout()
+        hbox_layout0 = QtWidgets.QHBoxLayout()
         hbox_layout2 = QtWidgets.QHBoxLayout()
-
-        hbox_layout1.addWidget(button1)
+        hbox_layout1 = QtWidgets.QHBoxLayout()
+        
+        hbox_layout0.addWidget(self.slider)
+        
+        #hbox_layout1.addWidget(button1)
         hbox_layout1.addWidget(button2)
 
         vbox = VBox(self, margin=(1, 0, 0, 0), spacing=5)
 
+        vbox.addLayout(hbox_layout0)
         vbox.addLayout(hbox_layout1)
-        vbox.addLayout(hbox_layout2)
+        #vbox.addLayout(hbox_layout2)
 
-        label_flip = QtWidgets.QLabel("Flip coords:")
-        hbox_layout2.addWidget(label_flip)
-        hbox_layout2.addWidget(check1, 0)
-        hbox_layout2.addWidget(check2, 1)
-        hbox_layout2.addWidget(check3, 2)
+        #label_flip = QtWidgets.QLabel("Flip coords:")
+        #hbox_layout2.addWidget(label_flip)
+        #hbox_layout2.addWidget(check1, 0)
+        #hbox_layout2.addWidget(check2, 1)
+        #hbox_layout2.addWidget(check3, 2)
+
+    def _params_updated(self):
+        self.clientEvent.emit({"source": "slider", "data": "jump_around", "frame" : self.slider.value()})
+
 
     def button1_clicked(self):
-        self.clientEvent.emit({"source": "button1", "data": "spatial_cluster"})
+        self.clientEvent.emit({"source": "button1", "data": "jump_around"})
 
     def button2_clicked(self):
         self.clientEvent.emit(
             {
                 "source": "button2",
-                "data": "show_roi",
-                "selected_roi": self._selected_entity_idx,
+                "data": "slice_mode",
             }
         )
 

@@ -109,7 +109,7 @@ def annotate_regions(dataset, region, r=None, label=0):
         mask = mask[reg_chunk]
 
         if not np.any(mask):
-            print("no mask")
+            #print("no mask")
             modified[i] = (modified[i] << 1) & mbit
             continue
 

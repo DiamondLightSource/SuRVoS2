@@ -10,6 +10,8 @@ from loguru import logger
 from matplotlib.colors import Normalize
 
 from skimage import img_as_float, img_as_ubyte
+from skimage.segmentation import find_boundaries
+
 from scipy import ndimage
 
 from survos2.frontend.components.entity import (
@@ -72,6 +74,20 @@ def frontend(cData):
     # cfg.timer = WorkerThread()
     cfg.current_supervoxels = None
     cfg.current_mode = "paint"
+    cfg.label_ids = [0,]
+    cfg.slice_mode = False
+    cfg.current_slice = 0
+    cfg.current_orientation = 0
+    cfg.current_feature_name = None
+    cfg.current_annotation_name = None
+    cfg.current_pipeline_name = None
+    cfg.current_regions_name = None    
+    cfg.supervoxels_cache = None
+    cfg.supervoxels_cached = False
+    cfg.current_regions_dataset = None
+
+
+
 
     with napari.gui_qt():
         viewer = napari.Viewer(title="SuRVoS")
@@ -81,9 +97,12 @@ def frontend(cData):
         # Load data into viewer
         viewer.add_image(cData.vol_stack[0], name=cData.layer_names[0])
 
+        cfg.main_image_shape = cData.vol_stack[0].shape
         # SuRVoS controls
         viewer.dw = AttrDict()
         viewer.dw.ppw = PluginPanelWidget()
+        viewer.dw.bpw = ButtonPanelWidget()
+        
         viewer.dw.ppw.setMinimumSize(QSize(600, 500))
 
         # provide state variables to viewer for interactive debugging
@@ -102,12 +121,57 @@ def frontend(cData):
                 "make_seg_sr",
                 "make_seg_cnn",
             ]
+        
+        def update_napari():
+            pass
+        def view_feature(msg):
+            logger.debug(f"view_feature {msg['feature_id']}")
+
+            # use DatasetManager to load feature from workspace as array and then add it to viewer
+            src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
+            
+            cfg.current_feature_name = msg["feature_id"]
+            
+            with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+                src_dataset = DM.sources[0]
+ 
+                src_arr = get_array_from_dataset(src_dataset)
+                
+                existing_layer = [
+                    v for v in viewer.layers if v.name == msg["feature_id"]
+                ]
+
+                if len(existing_layer) > 0:
+                    existing_layer[0].data = src_arr
+                else:
+                    viewer.add_image(src_arr, name=msg["feature_id"])
+
+        def view_supervoxels(msg):
+            logger.debug(f"view_feature {msg['region_id']}")
+            src = DataModel.g.dataset_uri(msg["region_id"], group="regions")
+            cfg.current_regions_name = msg["region_id"]    
+            with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
+                src_dataset = DM.sources[0]
+                
+                src_arr = get_array_from_dataset(src_dataset)
+                existing_layer = [
+                    v for v in viewer.layers if v.name == msg["region_id"]
+                ]
+                
+                
+                if len(existing_layer) > 0:
+                    existing_layer[0].data = src_arr
+                else:
+                    
+                    sv_image = find_boundaries(src_arr)
+                    sv_layer = viewer.add_image(sv_image, name=msg["region_id"])
+                    sv_layer.opacity = 0.3
 
         def set_paint_params(msg):
             logger.debug(f"set_paint_params {msg['paint_params']}")
             paint_params = msg["paint_params"]
-            # logger.debug(paint_params)
             anno_layer = viewer.layers.selected[0]
+            cfg.label_ids = list(np.unique(anno_layer))
             if anno_layer.dtype == "uint32":
                 anno_layer.mode = "paint"
                 cfg.current_mode = "paint"
@@ -116,185 +180,258 @@ def frontend(cData):
                 anno_layer.selected_label = int(label_value["idx"]) - 1
                 cfg.label_value = label_value
                 anno_layer.brush_size = int(paint_params["brush_size"])
-
-        def paint_annotations(msg):
-            logger.debug(f"view_annotation {msg['level_id']}")
+        
+        def update_annotations(msg):
+            logger.debug(f"refresh_annotation {msg['level_id']}")
 
             ws = Workspace(DataModel.g.current_workspace)
             dataset_name = "annotations\\" + msg["level_id"]
+            cfg.current_annotation_name = msg["level_id"]
             ds = ws.get_dataset(dataset_name)
-            src_arr = ds[:]
+            src_arr = get_array_from_dataset(ds)
+
+            existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
+            
+            if len(existing_layer) > 0:
+                existing_layer[0].data = src_arr & 15
+            
+        
+        def refresh_annotations(msg):
+            logger.debug(f"refresh_annotation {msg['level_id']}")
+
+            ws = Workspace(DataModel.g.current_workspace)
+            dataset_name = "annotations\\" + msg["level_id"]
+            cfg.current_annotation_name = msg["level_id"]
+
+            ds = ws.get_dataset(dataset_name)
+            src_arr = get_array_from_dataset(ds)
 
             result = Launcher.g.run(
                 "annotations", "get_levels", workspace=DataModel.g.current_workspace
             )
-            label_ids = list(np.unique(src_arr))
-            print(label_ids)
-
+            
+            if cfg.label_ids is not None:
+                label_ids = cfg.label_ids
+            else:
+                label_ids = list(np.unique(src_arr))
             if result:
                 cmapping = get_color_mapping(result)
-                print(cmapping)
-
+                    
                 existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
-
                 sel_label = 1
                 brush_size = 10
 
                 if len(existing_layer) > 0:
+                    #existing_layer[0].data = src_arr & 15
                     viewer.layers.remove(existing_layer[0])
                     sel_label = existing_layer[0].selected_label
                     brush_size = existing_layer[0].brush_size
                     print(f"Removed existing layer {existing_layer[0]}")
-
-                if cfg.current_supervoxels == None:
-                    pass
+                    label_layer = viewer.add_labels(
+                        src_arr & 15, name=msg["level_id"], color=cmapping
+                    )
                 else:
-                    sv_name = cfg.current_supervoxels  # e.g. "regions/001_supervoxels"
-                    regions_dataset = DataModel.g.dataset_uri(sv_name)
-
-                    with DatasetManager(
-                        regions_dataset, out=None, dtype="uint32", fillvalue=0
-                    ) as DM:
-                        src_dataset = DM.sources[0]
-                        sv_arr = src_dataset[:]
-
-                    print(f"Loaded superregion array of shape {sv_arr.shape}")
-
-                label_layer = viewer.add_labels(
-                    src_arr & 15, name=msg["level_id"], color=cmapping
-                )
+                    label_layer = viewer.add_labels(
+                        src_arr & 15, name=msg["level_id"], color=cmapping
+                    )
 
                 label_layer.mode = cfg.current_mode
                 label_layer.selected_label = sel_label
                 label_layer.brush_size = brush_size
+            
+                return label_layer, ds
 
-                @label_layer.bind_key("Control-Z")
-                def undo(v):
-                    level = cfg.current_annotation
-                    params = dict(workspace=True, level=level)
-                    result = Launcher.g.run("annotations", "annotate_undo", **params)
-                    cfg.ppw.clientEvent.emit(
-                        {
-                            "source": "annotations",
-                            "data": "view_annotations",
-                            "level_id": level,
-                        }
-                    )
+        def paint_annotations(msg):
+            logger.debug(f"view_annotation {msg['level_id']}")
 
-                # viewer.layers[-1].corner_pixels
-                @label_layer.mouse_drag_callbacks.append
-                def view_location(layer, event):
-                    dragged = False
+            label_layer, current_annotation_ds = refresh_annotations(msg)
+            
+            @label_layer.bind_key("Control-Z", overwrite=True)
+            def undo(v):
+                level = cfg.current_annotation
+                params = dict(workspace=True, level=level)
+                result = Launcher.g.run("annotations", "annotate_undo", **params)
+                cfg.ppw.clientEvent.emit(
+                    {
+                        "source": "annotations",
+                        "data": "update_annotations",
+                        "level_id": level,
+                    }
+                )
 
-                    drag_pts = []
-                    coords = np.round(layer.coordinates).astype(int)
+            # viewer.layers[-1].corner_pixels
+            
+            @label_layer.mouse_drag_callbacks.append
+            def view_location(layer, event):
+                dragged = False
+
+                drag_pts = []
+                coords = np.round(layer.coordinates).astype(int)
+
+                if cfg.slice_mode:
+                    drag_pt = [coords[0], coords[1]]
+                else:
                     drag_pt = [coords[0], coords[1], coords[2]]
-                    drag_pts.append(drag_pt)
-                    yield
+                drag_pts.append(drag_pt)
+                yield
 
-                    all_regions = set()
+                all_regions = set()
 
-                    if layer.mode == "paint" or layer.mode == "erase":
+                if layer.mode == "paint" or layer.mode == "erase":
 
-                        while event.type == "mouse_move":
-                            coords = np.round(layer.coordinates).astype(int)
+                    while event.type == "mouse_move":
+                        coords = np.round(layer.coordinates).astype(int)
+
+                        if cfg.slice_mode:
+                            drag_pt = [coords[0], coords[1]]
+                        else:
                             drag_pt = [coords[0], coords[1], coords[2]]
-                            drag_pts.append(drag_pt)
-                            dragged = True
-                            yield
 
-                        if dragged:
+                        drag_pts.append(drag_pt)
+                        dragged = True
+                        yield
 
-                            level = msg["level_id"]
-                            layer_name = viewer.layers[
-                                -1
-                            ].name  # get last added layer name
-                            anno_layer = next(
-                                l for l in viewer.layers if l.name == layer_name
-                            )
+                    if dragged:
 
-                            sel_label = int(cfg.label_value["idx"]) - 1
+                        level = msg["level_id"]
+                        layer_name = viewer.layers[
+                            -1
+                        ].name  # get last added layer name
+                        anno_layer = next(
+                            l for l in viewer.layers if l.name == layer_name
+                        )
 
-                            if layer.mode == "erase":
-                                sel_label = 0
-                                cfg.current_mode = "erase"
-                            else:
-                                cfg.current_mode = "paint"
+                        sel_label = int(cfg.label_value["idx"]) - 1
 
-                            anno_layer.selected_label = sel_label
-                            anno_layer.brush_size = int(cfg.brush_size)
+                        if layer.mode == "erase":
+                            sel_label = 0
+                            cfg.current_mode = "erase"
+                        else:
+                            cfg.current_mode = "paint"
 
-                            line_x = []
-                            line_y = []
+                        anno_layer.selected_label = sel_label
+                        anno_layer.brush_size = int(cfg.brush_size)
+
+                        line_x = []
+                        line_y = []
+
+                        if cfg.slice_mode:
+                            px, py = drag_pts[0]
+                            z = cfg.current_slice
+                        else:
                             z, px, py = drag_pts[0]
-
-                            for _, x, y in drag_pts[1:]:
+                        
+                        
+                        if cfg.slice_mode:
+                            for x, y in drag_pts[1:]:
+                                yy, xx = line(py, px, y, x)
+                                line_x.extend(xx)
+                                line_y.extend(yy)
+                                py, px = y, x
+                        else:
+                            for _,x, y in drag_pts[1:]:
                                 yy, xx = line(py, px, y, x)
                                 line_x.extend(xx)
                                 line_y.extend(yy)
                                 py, px = y, x
 
-                            line_y = np.array(line_y)
-                            line_x = np.array(line_x)
 
-                            from survos2.frontend.plugins.annotations import (
-                                dilate_annotations,
-                            )
 
-                            
-                            if cfg.current_supervoxels == None:
-                                params = dict(
-                                    workspace=True, level=level, label=sel_label
-                                )
+                        line_y = np.array(line_y)
+                        line_x = np.array(line_x)
 
-                                xx, yy = list(line_y), list(line_x)
-                                yy = [int(e) for e in yy]
-                                xx = [int(e) for e in xx]
-                                params.update(slice_idx=int(z), yy=yy, xx=xx)
-                                result = Launcher.g.run(
-                                    "annotations", "annotate_voxels", **params
-                                )
-                                
-                            else:
-                                line_y, line_x = dilate_annotations(
+                        from survos2.frontend.plugins.annotations import (
+                            dilate_annotations,
+                        )
+
+                        if cfg.current_supervoxels == None:
+                            line_y, line_x = dilate_annotations(
                                 line_y,
                                 line_x,
-                                src_arr[0, :],
-                                viewer.layers[-1].brush_size,)
+                                (cfg.main_image_shape[1], cfg.main_image_shape[2]),
+                                viewer.layers[-1].brush_size,
+                            )
 
-                                for x, y in zip(line_x, line_y):
-                                    sv = sv_arr[z, x, y]
-                                    all_regions |= set([sv])
+                            params = dict(
+                                workspace=True, level=level, label=sel_label
+                            )
 
-                                print(f"Painted regions {all_regions}")
+                            xx, yy = list(line_y), list(line_x)
+                            yy = [int(e) for e in yy]
+                            xx = [int(e) for e in xx]
 
-                                params = dict(
-                                    workspace=True, level=level, label=sel_label
-                                )
-                                region = DataModel.g.dataset_uri(sv_name)
-
-                                params.update(
-                                    region=region,
-                                    r=list(map(int, all_regions)),
-                                    modal=False,
-                                )
-                                result = Launcher.g.run(
-                                    "annotations", "annotate_regions", **params
-                                )
-
-                            cfg.ppw.clientEvent.emit(
-                                {
-                                    "source": "annotations",
-                                    "data": "view_annotations",
-                                    "level_id": level,
-                                }
+                        
+                            params.update(slice_idx=int(z), yy=yy, xx=xx)
+                            result = Launcher.g.run(
+                                "annotations", "annotate_voxels", **params
                             )
 
                         else:
-                            print("single click")
+                            if cfg.supervoxels_cached == False:
+                                sv_name = cfg.current_supervoxels  # e.g. "regions/001_supervoxels"
+                                regions_dataset = DataModel.g.dataset_uri(sv_name)
+
+                                with DatasetManager(
+                                    regions_dataset, out=None, dtype="uint32", fillvalue=0
+                                ) as DM:
+                                    src_dataset = DM.sources[0]
+                                    sv_arr = src_dataset[:]
+
+                                print(f"Loaded superregion array of shape {sv_arr.shape}")
+                                cfg.supervoxels_cache = sv_arr
+                                cfg.supervoxels_cached = True
+                                cfg.current_regions_dataset = regions_dataset
+                            else:
+                                sv_arr = cfg.supervoxels_cache
+                                
+                                print(f"Used cached supervoxels of shape {sv_arr.shape}")
+
+                            for x, y in zip(line_x, line_y):
+                                sv = sv_arr[z, x, y]
+                                all_regions |= set([sv])
+
+                            print(f"Painted regions {all_regions}")
+
+                            params = dict(
+                                workspace=True, level=level, label=sel_label
+                            )
+                            #region = DataModel.g.dataset_uri(sv_name)
+
+                            params.update(
+                                region=cfg.current_regions_dataset,
+                                r=list(map(int, all_regions)),
+                                modal=False,
+                            )
+                            result = Launcher.g.run(
+                                "annotations", "annotate_regions", **params
+                            )
+
+                            src_arr = get_array_from_dataset(current_annotation_ds) 
+                            existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
+                            existing_layer[0].data = src_arr & 15
+
+                        # cfg.ppw.clientEvent.emit(
+                        #    {
+                        #        "source": "annotations",
+                        #        "data": "paint_annotations",
+                        #        "level_id": level,
+                        #    }
+                        # )
+
+                    else:
+                        print("single click")
+
+
+        def get_array_from_dataset(src_dataset):
+            if cfg.slice_mode:
+                src_arr = src_dataset[cfg.current_slice,:,:]
+            else:
+                src_arr = src_dataset[:]
+                
+            return src_arr
 
         def view_pipeline(msg):
-            logger.debug(f"view_annotation {msg['pipeline_id']}")
+            logger.debug(f"view_pipeline {msg['pipeline_id']}")
 
             result = Launcher.g.run(
                 "annotations", "get_levels", workspace=DataModel.g.current_workspace
@@ -305,10 +442,11 @@ def frontend(cData):
                 print(cmapping)
 
             src = DataModel.g.dataset_uri(msg["pipeline_id"], group="pipeline")
-
+            cfg.current_pipeline_name = msg["pipeline_id"] 
+                
             with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
                 src_dataset = DM.sources[0]
-                src_arr = src_dataset[:]
+                src_arr = get_array_from_dataset(src_dataset)
 
                 existing_layer = [
                     v for v in viewer.layers if v.name == msg["pipeline_id"]
@@ -324,44 +462,7 @@ def frontend(cData):
                 else:
                     viewer.add_labels(src_arr, name=msg["pipeline_id"], color=cmapping)
 
-        def view_feature(msg):
-            logger.debug(f"view_feature {msg['feature_id']}")
-
-            # use DatasetManager to load feature from workspace as array and then add it to viewer
-            src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
-            with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-                src_dataset = DM.sources[0]
-                src_arr = src_dataset[:]
-
-                existing_layer = [
-                    v for v in viewer.layers if v.name == msg["feature_id"]
-                ]
-
-                if len(existing_layer) > 0:
-                    existing_layer[0].data = src_arr
-                else:
-                    viewer.add_image(src_arr, name=msg["feature_id"])
-
-        def view_supervoxels(msg):
-            logger.debug(f"view_feature {msg['region_id']}")
-            src = DataModel.g.dataset_uri(msg["region_id"], group="regions")
-
-            with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
-                src_dataset = DM.sources[0]
-                src_arr = src_dataset[:]
-
-                existing_layer = [
-                    v for v in viewer.layers if v.name == msg["region_id"]
-                ]
-                if len(existing_layer) > 0:
-                    existing_layer[0].data = src_arr
-                else:
-                    from skimage.segmentation import find_boundaries
-
-                    sv_image = find_boundaries(src_arr)
-                    sv_layer = viewer.add_image(sv_image, name=msg["region_id"])
-                    sv_layer.opacity = 0.3
-
+        
         def view_entitys(msg, scale=1.0):
             logger.debug(f"view_entitys {msg['entitys_id']}")
             dsname = "entitys\\" + msg["entitys_id"]
@@ -475,11 +576,81 @@ def frontend(cData):
 
             return patch
 
+        def jump_around(msg):
+            if cfg.slice_mode:
+                cfg.current_slice = int(msg['frame'])
+                logger.info(f"Jump around to {cfg.current_slice}, msg {msg['frame']}")
+        
+                src = DataModel.g.dataset_uri("__data__")
+    
+                with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+                    src_dataset = DM.sources[0]
+                    src_arr = get_array_from_dataset(src_dataset)
+
+                    existing_layer = [
+                        v for v in viewer.layers if v.name == 'Main'
+                    ]
+
+                    if len(existing_layer) > 0:
+                        existing_layer[0].data = src_arr.copy()
+                    #else:
+                    #    viewer.add_image(src_arr, name='Main')
+
+                existing_feature_layer = [
+                        v for v in viewer.layers if v.name == cfg.current_feature_name
+                    ]
+                if len(existing_feature_layer) > 0:                    
+                    src = DataModel.g.dataset_uri(cfg.current_feature_name, group="features")
+                
+                    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+                        src_feature_dataset = DM.sources[0]
+                        src_arr = get_array_from_dataset(src_feature_dataset)
+                        existing_feature_layer[0].data = src_arr.copy()
+
+                existing_regions_layer = [
+                        v for v in viewer.layers if v.name == cfg.current_regions_name
+                    ]
+                if len(existing_regions_layer) > 0:                    
+                    src = DataModel.g.dataset_uri(cfg.current_regions_name, group="regions")
+                    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+                        src_regions_dataset = DM.sources[0]
+                        src_arr = get_array_from_dataset(src_regions_dataset)
+                        src_arr = find_boundaries(src_arr) * 1.0
+                        existing_regions_layer[0].data = src_arr.copy()
+                        existing_regions_layer[0].opacity = 0.3
+
+                existing_annotation_layer = [
+                        v for v in viewer.layers if v.name == cfg.current_annotation_name
+                    ]
+                if len(existing_annotation_layer) > 0:                    
+                    src = DataModel.g.dataset_uri(cfg.current_annotation_name, group="annotations")
+                    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+                        src_annotations_dataset = DM.sources[0]
+                        src_arr = get_array_from_dataset(src_annotations_dataset)
+                        existing_annotation_layer[0].data = src_arr.copy()
+                 
+                existing_pipeline_layer = [
+                        v for v in viewer.layers if v.name == cfg.current_pipeline_name
+                    ]
+                if len(existing_pipeline_layer) > 0:                    
+                    src = DataModel.g.dataset_uri(cfg.current_pipeline_name, group="pipeline")
+                    logger.debug(f"Getting pipeline: {src}")
+                    with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
+                        src_dataset = DM.sources[0]
+                        src_arr = get_array_from_dataset(src_dataset)
+                        existing_pipeline_layer[0].data = src_arr.copy()
+            else:
+                pass
+        
         def processEvents(msg):
             if msg["data"] == "view_pipeline":
                 view_pipeline(msg)
-            elif msg["data"] == "view_annotations":
+            elif msg["data"] == "refesh_annotations":
+                refresh_annotations(msg)
+            elif msg["data"] == "paint_annotations":
                 paint_annotations(msg)
+            elif msg["data"] == "update_annotations":
+                update_annotations(msg)
             elif msg["data"] == "view_feature":
                 view_feature(msg)
             elif msg["data"] == "view_supervoxels":
@@ -495,20 +666,28 @@ def frontend(cData):
                 save_annotation(msg)
             elif msg["data"] == "set_paint_params":
                 set_paint_params(msg)
-
+            elif msg["data"] == "jump_around":
+                jump_around(msg)
+            elif msg["data"] == "slice_mode":
+                cfg.slice_mode = not cfg.slice_mode
+                logger.debug(f"Slice mode: {cfg.slice_mode}")
+        
+        
+        #
         # Add widgets to viewer
-
+        #
         # Plugin Panel widget
         viewer.dw.ppw.clientEvent.connect(lambda x: processEvents(x))
         cData.cfg.ppw = viewer.dw.ppw
 
         # classic widget
-        ##from survos2.frontend.slice_paint import MainWidget
+        # from survos2.frontend.slice_paint import MainWidget
+        # viewer.classic_widget = MainWidget()        
         # classic_dockwidget = viewer.window.add_dock_widget(
-        #    viewer.classic_widget, area="right"
-        # )
+        #     viewer.classic_widget, area="right"
+        #  )
         # classic_dockwidget.setVisible(False)
-        ##viewer.classic_widget = MainWidget()
+
 
         # viewer.window.qt_viewer.setFixedSize(400,400)
         # viewer.window.qt_viewer.setVisible(False)
@@ -528,6 +707,8 @@ def frontend(cData):
             area="right",
         )
         pluginwidget_dockwidget.setWindowTitle("Workspace")
+
+
 
         # viewer.window.add_dock_widget(
         #     viewer.window.qt_viewer.dockLayerList, area="right"
@@ -560,6 +741,10 @@ def frontend(cData):
         # save_annotation_gui_widget.refresh_choices()
         # save_annotation_dockwidget.setWindowTitle("Update annotation")
         # save_annotation_dockwidget.setVisible(False)
+
+        bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')
+        viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x))
+        bpw_control_widget.setVisible(False)
 
         if use_entities:
             from survos2.entity.sampler import sample_region_at_pt
