@@ -1,4 +1,5 @@
 import argparse
+import getpass
 import json
 import os
 import signal
@@ -617,6 +618,32 @@ class FrontEndRunner(QWidget):
         adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
         self.server_port_linedt = QLineEdit(self.run_config["server_port"])
         adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
+        # SSH Info
+        self.ssh_button = QRadioButton("Use SSH")
+        self.ssh_button.setAutoExclusive(False)
+        adv_run_layout.addWidget(self.ssh_button, 0, 2)
+        ssh_flag = self.run_config.get("use_ssh", False)
+        if ssh_flag:
+            self.ssh_button.setChecked(True)
+        self.ssh_button.toggled.connect(self.toggle_ssh)
+
+        self.adv_ssh_fields = QGroupBox("SSH Settings:")
+        adv_ssh_layout = QGridLayout()
+        adv_ssh_layout.setColumnStretch(2, 2)
+        ssh_host_label = QLabel("Host")
+        self.ssh_host_linedt = QLineEdit(self.run_config.get("ssh_host", ""))
+        adv_ssh_layout.addWidget(ssh_host_label, 0, 0)
+        adv_ssh_layout.addWidget(self.ssh_host_linedt, 0, 1, 1, 2)
+        ssh_user_label = QLabel("Username")
+        self.ssh_username_linedt = QLineEdit(self.get_login_username())
+        adv_ssh_layout.addWidget(ssh_user_label, 1, 0)
+        adv_ssh_layout.addWidget(self.ssh_username_linedt, 1, 1, 1, 2)
+        ssh_port_label = QLabel("Port")
+        self.ssh_port_linedt = QLineEdit(self.run_config.get("ssh_port", ""))
+        adv_ssh_layout.addWidget(ssh_port_label, 2, 0)
+        adv_ssh_layout.addWidget(self.ssh_port_linedt, 2, 1, 1, 2)
+        self.adv_ssh_fields.setLayout(adv_ssh_layout)
+        adv_run_layout.addWidget(self.adv_ssh_fields, 1, 2, 2, 5)
         self.adv_run_fields.setLayout(adv_run_layout)
 
     def get_run_fields(self):
@@ -632,10 +659,10 @@ class FrontEndRunner(QWidget):
         run_layout = QGridLayout()
         run_layout.addWidget(QLabel("Workspace Name:"), 0, 0)
         self.ws_name_linedt_2 = QLineEdit(self.workspace_config["workspace_name"])
+        self.ws_name_linedt_2.setAlignment(Qt.AlignLeft)
         run_layout.addWidget(self.ws_name_linedt_2, 0, 1)
-        run_layout.addItem(QSpacerItem(80, 20), 0, 2)
         run_layout.addWidget(advanced_button, 1, 0)
-        run_layout.addWidget(self.adv_run_fields, 2, 0)
+        run_layout.addWidget(self.adv_run_fields, 2, 1)
         run_layout.addWidget(run_button, 3, 0, 1, 3)
         run_fields.setLayout(run_layout)
 
@@ -643,6 +670,13 @@ class FrontEndRunner(QWidget):
         run_button.clicked.connect(self.run_clicked)
 
         return run_fields
+
+    def get_login_username(self):
+        try:
+            user = getpass.getuser()
+        except Exception:
+            user =""
+        return user
 
     @pyqtSlot()
     def launch_data_loader(self):
@@ -688,6 +722,16 @@ class FrontEndRunner(QWidget):
             self.adv_run_fields.show()
         else:
             self.adv_run_fields.hide()
+
+    @pyqtSlot()
+    def toggle_ssh(self):
+        """Controls displaying/hiding the SSH fields on radio button toggle.
+        """
+        rbutton = self.sender()
+        if rbutton.isChecked():
+            self.adv_ssh_fields.show()
+        else:
+            self.adv_ssh_fields.hide()
 
     def setup_ptree_params(self, p, config_dict):
         def parameter_tree_change(param, changes):
@@ -844,6 +888,9 @@ class FrontEndRunner(QWidget):
                 self.pipeline_config, outfile, default_flow_style=False, sort_keys=False
             )
 
+    def start_server_over_ssh(self):
+        pass
+
     @pyqtSlot()
     def run_clicked(self):
         """Starts SuRVoS2 server and client as subprocesses when 'Run' button pressed.
@@ -855,12 +902,15 @@ class FrontEndRunner(QWidget):
         script_fullname = os.path.join(command_dir, "survos.py")
         if not os.path.isfile(script_fullname):
             raise Exception("{}: Script not found".format(script_fullname))
-        # Retrieve the parameters from the fields
+        # Retrieve the parameters from the fields TODO: Put some error checking in
         self.run_config["workspace_name"] = self.ws_name_linedt_2.text()
         self.run_config["server_ip"] = self.server_ip_linedt.text()
         self.run_config["server_port"] = self.server_port_linedt.text()
-
-        self.server_process = subprocess.Popen(
+        # Try some fancy SSH stuff here
+        if self.ssh_button.isChecked():
+            self.start_server_over_ssh()
+        else:
+             self.server_process = subprocess.Popen(
             [
                 "python",
                 script_fullname,
@@ -868,12 +918,12 @@ class FrontEndRunner(QWidget):
                 self.run_config["workspace_name"],
                 self.run_config["server_port"],
             ]
-        )
-        try:
-            outs, errs = self.server_process.communicate(timeout=10)
-            print(f"OUTS: {outs, errs}")
-        except subprocess.TimeoutExpired:
-            pass
+            )
+            try:
+                outs, errs = self.server_process.communicate(timeout=10)
+                print(f"OUTS: {outs, errs}")
+            except subprocess.TimeoutExpired:
+                pass
 
         self.client_process = subprocess.Popen(
             [
@@ -895,6 +945,9 @@ if __name__ == "__main__":
         "server_ip": "127.0.0.1",
         "server_port": "8134",
         "workspace_name": "test_hunt_d4b",
+        "use_ssh": "true",
+        "ssh_host": "ws168.diamond.ac.uk",
+        "ssh_port": "22"
     }
 
     workspace_config = {
