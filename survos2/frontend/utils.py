@@ -69,20 +69,20 @@ def hex_string_to_rgba(hex_string):
 
 
 def get_color_mapping(result):
+    labels = []
     for r in result:
         level_name = r["name"]
         if r["kind"] == "level":
             cmapping = {}
-            print(r["labels"].items())
             for ii, (k, v) in enumerate(r["labels"].items()):
+                labels.append(ii)
                 # remapped_label = label_ids[ii]
                 remapped_label = int(k) - 1
-                print(remapped_label)
                 cmapping[remapped_label] = hex_string_to_rgba(v["color"])
                 cmapping[remapped_label + (remapped_label * 16)] = hex_string_to_rgba(
                     v["color"]
                 )
-    return cmapping
+    return cmapping, labels
 
 
 def resource(*args):

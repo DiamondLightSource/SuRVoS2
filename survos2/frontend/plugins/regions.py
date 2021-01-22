@@ -130,7 +130,7 @@ class SupervoxelCard(Card):
         self.add_row(HWidgets(None, self.view_btn))
 
         self.compute_btn.clicked.connect(self.compute_supervoxels)
-        self.view_btn.clicked.connect(self.view_supervoxels)
+        self.view_btn.clicked.connect(self.view_regions)
 
     def card_deleted(self):
         params = dict(region_id=self.svid, workspace=True)
@@ -144,12 +144,12 @@ class SupervoxelCard(Card):
         result = Launcher.g.run("regions", "rename", **params)
         return result["done"]
 
-    def view_supervoxels(self):
+    def view_regions(self):
         logger.debug(f"Transferring supervoxels {self.svid} to viewer")
 
         print(f"Current Supervoxels: {cfg.current_supervoxels}")
         cfg.ppw.clientEvent.emit(
-            {"source": "regions", "data": "view_supervoxels", "region_id": self.svid}
+            {"source": "regions", "data": "view_regions", "region_id": self.svid}
         )
 
     def compute_supervoxels(self):

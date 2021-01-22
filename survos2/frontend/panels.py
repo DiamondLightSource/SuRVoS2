@@ -34,10 +34,11 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
     def __init__(self, *args, **kwargs):
         QtWidgets.QWidget.__init__(self, *args, **kwargs)
+        self.slice_mode = False
 
         self.slider = Slider(value=100)
         self.slider.setMinimumWidth(150)
-        self.slider.valueChanged.connect(self._params_updated)
+        self.slider.sliderReleased.connect(self._params_updated)
         
         #button1 = QPushButton("Jump", self)
         #button1.clicked.connect(self.button1_clicked)
@@ -56,18 +57,19 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self._check1_checked = False
         check1.clicked.connect(self.check1_checked)
 
-        hbox_layout0 = QtWidgets.QHBoxLayout()
-        hbox_layout2 = QtWidgets.QHBoxLayout()
+        self.hbox_layout0 = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
+        hbox_layout2 = QtWidgets.QHBoxLayout()
         
-        hbox_layout0.addWidget(self.slider)
-        
+        self.hbox_layout0.addWidget(self.slider)
+        self.slider.hide()
+           
         #hbox_layout1.addWidget(button1)
         hbox_layout1.addWidget(button2)
 
         vbox = VBox(self, margin=(1, 0, 0, 0), spacing=5)
 
-        vbox.addLayout(hbox_layout0)
+        vbox.addLayout(self.hbox_layout0)
         vbox.addLayout(hbox_layout1)
         #vbox.addLayout(hbox_layout2)
 
@@ -85,6 +87,14 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.clientEvent.emit({"source": "button1", "data": "jump_around"})
 
     def button2_clicked(self):
+        if self.slice_mode:
+            self.slider.hide()
+        else:
+            self.slider.show()
+
+        self.slice_mode = not self.slice_mode
+
+        
         self.clientEvent.emit(
             {
                 "source": "button2",

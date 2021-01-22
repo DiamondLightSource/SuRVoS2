@@ -72,7 +72,7 @@ def frontend(cData):
         use_entities = True
 
     # cfg.timer = WorkerThread()
-    cfg.current_supervoxels = None
+    
     cfg.current_mode = "paint"
     cfg.label_ids = [0,]
     cfg.slice_mode = False
@@ -81,7 +81,9 @@ def frontend(cData):
     cfg.current_feature_name = None
     cfg.current_annotation_name = None
     cfg.current_pipeline_name = None
-    cfg.current_regions_name = None    
+    
+    cfg.current_regions_name = None
+    cfg.current_supervoxels = None 
     cfg.supervoxels_cache = None
     cfg.supervoxels_cached = False
     cfg.current_regions_dataset = None
@@ -124,13 +126,26 @@ def frontend(cData):
         
         def update_napari():
             pass
+
+        def remove_layer(layer_name):
+            logger.debug(f"Removing layer {layer_name}")
+            existing_layer = [
+                    v for v in viewer.layers if v.name == layer_name
+                ]
+            if len(existing_layer) > 0:
+                viewer.layers.remove(existing_layer[0])
+            
+            
+
         def view_feature(msg):
             logger.debug(f"view_feature {msg['feature_id']}")
 
             # use DatasetManager to load feature from workspace as array and then add it to viewer
             src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
             
-            cfg.current_feature_name = msg["feature_id"]
+            remove_layer(cfg.current_feature_name)
+            cfg.current_feature_name = msg["feature_id"]    
+            
             
             with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
                 src_dataset = DM.sources[0]
@@ -140,38 +155,48 @@ def frontend(cData):
                 existing_layer = [
                     v for v in viewer.layers if v.name == msg["feature_id"]
                 ]
-
+                cfg.supervoxels_cache = src_arr
+                cfg.supervoxels_cached = True
+                                
                 if len(existing_layer) > 0:
                     existing_layer[0].data = src_arr
                 else:
                     viewer.add_image(src_arr, name=msg["feature_id"])
 
-        def view_supervoxels(msg):
-            logger.debug(f"view_feature {msg['region_id']}")
-            src = DataModel.g.dataset_uri(msg["region_id"], group="regions")
-            cfg.current_regions_name = msg["region_id"]    
+        def update_regions(region_name):
+            logger.debug(f"update regions {region_name}")
+            src = DataModel.g.dataset_uri(region_name, group="regions")
+            
+            remove_layer(cfg.current_regions_name)
+
             with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
                 src_dataset = DM.sources[0]
                 
                 src_arr = get_array_from_dataset(src_dataset)
                 existing_layer = [
-                    v for v in viewer.layers if v.name == msg["region_id"]
+                    v for v in viewer.layers if v.name == region_name
                 ]
-                
-                
+                      
                 if len(existing_layer) > 0:
                     existing_layer[0].data = src_arr
                 else:
                     
                     sv_image = find_boundaries(src_arr)
-                    sv_layer = viewer.add_image(sv_image, name=msg["region_id"])
+                    sv_layer = viewer.add_image(sv_image, name=region_name)
                     sv_layer.opacity = 0.3
+            cfg.current_regions_name = region_name    
+            cfg.supervoxels_cached = False
+
+        def view_regions(msg):
+            logger.debug(f"view_feature {msg['region_id']}")
+            update_regions(msg["region_id"])
 
         def set_paint_params(msg):
             logger.debug(f"set_paint_params {msg['paint_params']}")
             paint_params = msg["paint_params"]
             anno_layer = viewer.layers.selected[0]
             cfg.label_ids = list(np.unique(anno_layer))
+            
             if anno_layer.dtype == "uint32":
                 anno_layer.mode = "paint"
                 cfg.current_mode = "paint"
@@ -180,31 +205,47 @@ def frontend(cData):
                 anno_layer.selected_label = int(label_value["idx"]) - 1
                 cfg.label_value = label_value
                 anno_layer.brush_size = int(paint_params["brush_size"])
-        
-        def update_annotations(msg):
-            logger.debug(f"refresh_annotation {msg['level_id']}")
 
-            ws = Workspace(DataModel.g.current_workspace)
-            dataset_name = "annotations\\" + msg["level_id"]
-            cfg.current_annotation_name = msg["level_id"]
-            ds = ws.get_dataset(dataset_name)
-            src_arr = get_array_from_dataset(ds)
-
-            existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
-            
+                import ntpath
+                
+                update_regions(ntpath.basename(paint_params["current_supervoxels"]))
+                
+                cfg.supervoxels_cached = False
+                
+        def update_layer(layer_name, src_arr):
+            existing_layer = [v for v in viewer.layers if v.name == layer_name]
             if len(existing_layer) > 0:
                 existing_layer[0].data = src_arr & 15
             
+        def update_annotations(msg):
+            logger.debug(f"refresh_annotation {msg['level_id']}")
+
+            src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
+            with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+                src_annotations_dataset = DM.sources[0]
+            src_arr = get_array_from_dataset(src_annotations_dataset)
+
+            # ws = Workspace(DataModel.g.current_workspace)
+            # dataset_name = "annotations\\" + msg["level_id"]
+            # cfg.current_annotation_name = msg["level_id"]
+            # ds = ws.get_dataset(dataset_name)
+            # src_arr = get_array_from_dataset(ds)
+
+            update_layer(msg['level_id'], src_arr)
         
         def refresh_annotations(msg):
             logger.debug(f"refresh_annotation {msg['level_id']}")
 
-            ws = Workspace(DataModel.g.current_workspace)
-            dataset_name = "annotations\\" + msg["level_id"]
-            cfg.current_annotation_name = msg["level_id"]
+            #ws = Workspace(DataModel.g.current_workspace)
+            #dataset_name = "annotations//" + msg["level_id"]
+            #cfg.current_annotation_name = msg["level_id"]
+            #ds = ws.get_dataset(dataset_name)
 
-            ds = ws.get_dataset(dataset_name)
-            src_arr = get_array_from_dataset(ds)
+            cfg.current_annotation_name = msg["level_id"]
+            src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
+            with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+                src_annotations_dataset = DM.sources[0]
+            src_arr = get_array_from_dataset(src_annotations_dataset)
 
             result = Launcher.g.run(
                 "annotations", "get_levels", workspace=DataModel.g.current_workspace
@@ -212,11 +253,14 @@ def frontend(cData):
             
             if cfg.label_ids is not None:
                 label_ids = cfg.label_ids
-            else:
-                label_ids = list(np.unique(src_arr))
+            #else:
+            
             if result:
-                cmapping = get_color_mapping(result)
-                    
+                #label_ids = list(np.unique(src_arr))
+                cmapping, label_ids = get_color_mapping(result)
+                logger.debug(f"Label ids {label_ids}")
+                cfg.label_ids = label_ids    
+                   
                 existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
                 sel_label = 1
                 brush_size = 10
@@ -236,14 +280,14 @@ def frontend(cData):
                     )
 
                 label_layer.mode = cfg.current_mode
-                label_layer.selected_label = sel_label
+                label_layer.selected_label = int(cfg.label_value["idx"]) - 1
                 label_layer.brush_size = brush_size
             
-                return label_layer, ds
+                return label_layer, src_annotations_dataset
 
         def paint_annotations(msg):
             logger.debug(f"view_annotation {msg['level_id']}")
-
+            cfg.current_annotation_name = msg["level_id"]
             label_layer, current_annotation_ds = refresh_annotations(msg)
             
             @label_layer.bind_key("Control-Z", overwrite=True)
@@ -259,8 +303,6 @@ def frontend(cData):
                     }
                 )
 
-            # viewer.layers[-1].corner_pixels
-            
             @label_layer.mouse_drag_callbacks.append
             def view_location(layer, event):
                 dragged = False
@@ -321,7 +363,7 @@ def frontend(cData):
                         else:
                             z, px, py = drag_pts[0]
                         
-                        
+                        # depending on the slice mode we need to handle either 2 or 3 coordinates
                         if cfg.slice_mode:
                             for x, y in drag_pts[1:]:
                                 yy, xx = line(py, px, y, x)
@@ -343,13 +385,13 @@ def frontend(cData):
                         from survos2.frontend.plugins.annotations import (
                             dilate_annotations,
                         )
-
+                        # Check if we are painting using supervoxels, if not, annotate voxels
                         if cfg.current_supervoxels == None:
                             line_y, line_x = dilate_annotations(
                                 line_y,
                                 line_x,
                                 (cfg.main_image_shape[1], cfg.main_image_shape[2]),
-                                viewer.layers[-1].brush_size,
+                                viewer.layers[-1].brush_size * 2,
                             )
 
                             params = dict(
@@ -365,12 +407,12 @@ def frontend(cData):
                             result = Launcher.g.run(
                                 "annotations", "annotate_voxels", **params
                             )
-
+                        # we are painting with supervoxels, so check if we have a current supervoxel cache
+                        # if not, get the supervoxels from the server
                         else:
                             if cfg.supervoxels_cached == False:
-                                sv_name = cfg.current_supervoxels  # e.g. "regions/001_supervoxels"
-                                regions_dataset = DataModel.g.dataset_uri(sv_name)
-
+                                regions_dataset= DataModel.g.dataset_uri(cfg.current_regions_name, group="regions")
+            
                                 with DatasetManager(
                                     regions_dataset, out=None, dtype="uint32", fillvalue=0
                                 ) as DM:
@@ -392,11 +434,11 @@ def frontend(cData):
 
                             print(f"Painted regions {all_regions}")
 
+                            # Commit annotation to server
                             params = dict(
                                 workspace=True, level=level, label=sel_label
                             )
-                            #region = DataModel.g.dataset_uri(sv_name)
-
+                            
                             params.update(
                                 region=cfg.current_regions_dataset,
                                 r=list(map(int, all_regions)),
@@ -406,17 +448,12 @@ def frontend(cData):
                                 "annotations", "annotate_regions", **params
                             )
 
-                            src_arr = get_array_from_dataset(current_annotation_ds) 
-                            existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
-                            existing_layer[0].data = src_arr & 15
+                        # Update client annotation
+                        src_arr = get_array_from_dataset(current_annotation_ds) 
+                        
+                        update_layer(msg["level_id"], src_arr)
+                        
 
-                        # cfg.ppw.clientEvent.emit(
-                        #    {
-                        #        "source": "annotations",
-                        #        "data": "paint_annotations",
-                        #        "level_id": level,
-                        #    }
-                        # )
 
                     else:
                         print("single click")
@@ -438,7 +475,7 @@ def frontend(cData):
             )
             logger.debug(f"Result of annotations get_levels: {result}")
             if result:
-                cmapping = get_color_mapping(result)
+                cmapping,_ = get_color_mapping(result)
                 print(cmapping)
 
             src = DataModel.g.dataset_uri(msg["pipeline_id"], group="pipeline")
@@ -619,15 +656,16 @@ def frontend(cData):
                         existing_regions_layer[0].data = src_arr.copy()
                         existing_regions_layer[0].opacity = 0.3
 
-                existing_annotation_layer = [
-                        v for v in viewer.layers if v.name == cfg.current_annotation_name
-                    ]
-                if len(existing_annotation_layer) > 0:                    
-                    src = DataModel.g.dataset_uri(cfg.current_annotation_name, group="annotations")
-                    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-                        src_annotations_dataset = DM.sources[0]
-                        src_arr = get_array_from_dataset(src_annotations_dataset)
-                        existing_annotation_layer[0].data = src_arr.copy()
+                refresh_annotations(cfg.current_annotation_name)
+                # existing_annotation_layer = [
+                #         v for v in viewer.layers if v.name == cfg.current_annotation_name
+                #     ]
+                # if len(existing_annotation_layer) > 0:                    
+                #     src = DataModel.g.dataset_uri(cfg.current_annotation_name, group="annotations")
+                #     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+                #         src_annotations_dataset = DM.sources[0]
+                #         src_arr = get_array_from_dataset(src_annotations_dataset)
+                #         existing_annotation_layer[0].data = src_arr.copy()
                  
                 existing_pipeline_layer = [
                         v for v in viewer.layers if v.name == cfg.current_pipeline_name
@@ -653,8 +691,8 @@ def frontend(cData):
                 update_annotations(msg)
             elif msg["data"] == "view_feature":
                 view_feature(msg)
-            elif msg["data"] == "view_supervoxels":
-                view_supervoxels(msg)
+            elif msg["data"] == "view_regions":
+                view_regions(msg)
             elif msg["data"] == "view_entitys":
                 view_entitys(msg)
             elif msg["data"] == "show_roi":

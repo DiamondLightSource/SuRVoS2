@@ -12,7 +12,7 @@ api:
     - analyzer
 computing:
   chunks: true
-  chunk_size: 96     # 1024 is 1 Gb
+  chunk_size: 128     # 1024 is 1 Gb
   chunk_padding : 8
 logging:
   level: info

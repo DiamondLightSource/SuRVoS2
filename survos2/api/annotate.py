@@ -118,8 +118,7 @@ def annotate_regions(dataset, region, r=None, label=0):
         data_chunk[mask] = (data_chunk[mask] & _MaskPrev) | label
         dataset[chunk_slices] = data_chunk
         modified[i] = (modified[i] << 1) & mbit | 1
-        print(modified)
-
+        
     dataset.set_attr("modified", modified)
 
 
