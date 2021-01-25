@@ -130,7 +130,6 @@ class FeatureCard(Card):
         self.widgets = dict()
 
         from qtpy.QtWidgets import QProgressBar
-
         self.pbar = QProgressBar(self)
         self.add_row(self.pbar)
 
@@ -224,7 +223,7 @@ class FeatureCard(Card):
         logger.info(f"Setting dst: {self.feature_id}")
         logger.info(f"widgets.items() {self.widgets.items()}")
 
-        all_params = dict(src=src, dst=dst, modal=False)
+        all_params = dict(src=src, dst=dst, modal=True)
         all_params.update({k: v.value() for k, v in self.widgets.items()})
 
         logger.info(f"Computing features: {self.feature_type} {all_params}")

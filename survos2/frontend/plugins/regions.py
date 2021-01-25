@@ -110,7 +110,12 @@ class SupervoxelCard(Card):
         self.svid = svid
         self.svname = svname
 
-        self.svsource = MultiSourceComboBox()
+        from qtpy.QtWidgets import QProgressBar
+        self.pbar = QProgressBar(self)
+        self.add_row(self.pbar)
+
+        from survos2.frontend.plugins.features import FeatureComboBox
+        self.svsource = FeatureComboBox()
         self.svsource.setMaximumWidth(250)
         self.svshape = LineEdit(parse=int, default=10)
         self.svshape.setMaximumWidth(250)
@@ -153,10 +158,11 @@ class SupervoxelCard(Card):
         )
 
     def compute_supervoxels(self):
-        src = [DataModel.g.dataset_uri(s) for s in self.svsource.value()]
+        self.pbar.setValue(10)
+        src = [DataModel.g.dataset_uri('features/' + s) for s in [self.svsource.value()]]
         dst = DataModel.g.dataset_uri(self.svid, group="regions")
         logger.debug(f"Compute sv: Src {src} Dst {dst}")
-
+        
         from survos2.model import Workspace
 
         ws = Workspace(DataModel.g.current_workspace)
@@ -165,7 +171,7 @@ class SupervoxelCard(Card):
         logger.debug(
             f"Using chunk_size {chunk_size} to compute number of supervoxel segments for num_chunks: {num_chunks}."
         )
-
+        
         n_segments = int(np.prod(chunk_size) // (self.svshape.value() ** 3))
 
         params = dict(
@@ -175,10 +181,15 @@ class SupervoxelCard(Card):
             shape=self.svshape.value(),
             n_segments=n_segments,
             spacing=self.svspacing.value(),
-            modal=False,  # todo: fix multiprocessing issue for running in background
+            modal=True,  
         )
         logger.debug(f"Compute supervoxels with params {params}")
-        Launcher.g.run("regions", "supervoxels", **params)
+        
+        self.pbar.setValue(20)
+
+        result = Launcher.g.run("regions", "supervoxels", **params)
+        if result is not None:
+            self.pbar.setValue(100)
 
     def update_params(self, params):
         if "shape" in params:

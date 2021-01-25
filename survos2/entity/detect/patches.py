@@ -83,7 +83,7 @@ from survos2.server.pipeline import Pipeline, Patch
 from survos2.server.state import cfg
 
 from survos2.server.filtering import (
-    gaussian_blur,
+    gaussian_blur_kornia,
     spatial_gradient_3d,
     ndimage_laplacian,
 )

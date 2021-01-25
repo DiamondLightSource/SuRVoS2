@@ -336,7 +336,7 @@ def _apply(
     logger.info(f"Applying {func} to datasets of shape {datasets} with stack: {stack}")
 
     if chunk == True:
-        kwargs.setdefault("dtype", out.dtype if out else datasets[0].dtype)
+        kwargs.setdefault("dtype", out.dtype if type(out)=='np.ndarray' else datasets[0].dtype)
         kwargs.setdefault("drop_axis", 0 if stack else None)
         logger.debug(f"Chunking dataset[0]: {datasets[0].shape}")
 

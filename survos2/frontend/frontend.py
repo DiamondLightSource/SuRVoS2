@@ -218,7 +218,7 @@ def frontend(cData):
                 existing_layer[0].data = src_arr & 15
             
         def update_annotations(msg):
-            logger.debug(f"refresh_annotation {msg['level_id']}")
+            logger.debug(f"refresh_annotation {msg}")
 
             src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
             with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:

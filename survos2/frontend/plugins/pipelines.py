@@ -270,7 +270,7 @@ class PipelineCard(Card):
             n.rsplit("/", 1)[-1] for n in self.features_source.value()
         ]
 
-        all_params = dict(src=src, dst=dst, modal=False)
+        all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["region_id"] = str(self.regions_source.value().rsplit("/", 1)[-1])
         all_params["feature_ids"] = feature_names_list

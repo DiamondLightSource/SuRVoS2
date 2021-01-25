@@ -24,6 +24,19 @@ logger = get_logger()
 from survos2.survos import run_command
 
 
+def _run_command(plugin, command, client, uri=None, out=None, **kwargs):
+        # if uri is None:
+        #    return run_command(plugin, command, uri=None, **kwargs)
+        # else:
+        # remote client, send (plugin, command)
+        response = client.get("{}/{}".format(plugin, command), **kwargs)
+        result = parse_response(plugin, command, response, log=False)
+        if out is not None:
+            out.put(result)
+        else:
+            return result
+
+
 @Singleton
 class Launcher(QtCore.QObject):
     def __init__(self):
@@ -100,7 +113,7 @@ class Launcher(QtCore.QObject):
         kwargs.update(out=queue)
 
         p = multiprocessing.Process(
-            target=self._run_command, args=[plugin, command], kwargs=kwargs
+            target=_run_command, args=[plugin, command, self.client], kwargs=kwargs
         )
         p.daemon = True
         p.start()
