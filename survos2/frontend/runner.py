@@ -7,9 +7,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+from paramiko.client import SSHClient, WarningPolicy
+from paramiko.ssh_exception import AuthenticationException
 import h5py as h5
 import pyqtgraph.parametertree.parameterTypes as pTypes
 import yaml
+import time
+from datetime import date
 from loguru import logger
 from numpy import clip, product
 from PyQt5.QtCore import Qt, QTimer, pyqtSlot
@@ -21,6 +25,7 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
+    QInputDialog, 
     QLabel,
     QLineEdit,
     QPushButton,
@@ -652,7 +657,7 @@ class FrontEndRunner(QWidget):
         Returns:
             PyQt5.QWidgets.GroupBox: GroupBox with run fields. 
         """
-        run_button = QPushButton("Run SuRVoS")
+        self.run_button = QPushButton("Run SuRVoS")
         advanced_button = QRadioButton("Advanced")
 
         run_fields = QGroupBox("Run SuRVoS:")
@@ -663,11 +668,11 @@ class FrontEndRunner(QWidget):
         run_layout.addWidget(self.ws_name_linedt_2, 0, 1)
         run_layout.addWidget(advanced_button, 1, 0)
         run_layout.addWidget(self.adv_run_fields, 2, 1)
-        run_layout.addWidget(run_button, 3, 0, 1, 3)
+        run_layout.addWidget(self.run_button, 3, 0, 1, 3)
         run_fields.setLayout(run_layout)
 
         advanced_button.toggled.connect(self.toggle_advanced)
-        run_button.clicked.connect(self.run_clicked)
+        self.run_button.clicked.connect(self.run_clicked)
 
         return run_fields
 
@@ -888,8 +893,89 @@ class FrontEndRunner(QWidget):
                 self.pipeline_config, outfile, default_flow_style=False, sort_keys=False
             )
 
+    def get_ssh_params(self):
+        ssh_host = self.ssh_host_linedt.text()
+        ssh_user = self.ssh_username_linedt.text()
+        ssh_port = int(self.ssh_port_linedt.text())
+        return ssh_host, ssh_user, ssh_port
+
     def start_server_over_ssh(self):
-        pass
+        params = self.get_ssh_params()
+        if not all(params):
+            logger.error("Not all SSH parameters given! Not connecting to SSH.")
+            pass
+        ssh_host, ssh_user, ssh_port = params
+        # Pop up dialog to ask for password
+        text, ok = QInputDialog.getText(None, "Login", f"Password for {ssh_user}@{ssh_host}", 
+                                    QLineEdit.Password)
+        if ok and text:
+            try:
+                client = SSHClient()
+                client.load_system_host_keys()
+                client.set_missing_host_key_policy(WarningPolicy())
+                client.connect(ssh_host, port=ssh_port, username=ssh_user, password=text)
+                transport = client.get_transport()
+                ip, _ = transport.getpeername()
+                if ip:
+                    self.server_ip_linedt.setText(ip)
+                    logger.info(f"IP for {ssh_host} detected as {ip}.")
+                ws_name = self.run_config["workspace_name"]
+                server_port = self.run_config["server_port"]
+                # TODO Check if the server port is already in use
+                command = ("nohup /dls_sw/apps/SuRVoS2/s2_conda/bin/python -u "
+                           "/dls/science/groups/das/SuRVoS/s2/s2_dec/SuRVoS2/survos.py "
+                          f"start_server {ws_name} {server_port} > {date.today()}_survos2.log &\n")
+                logger.info(f'Running command on remote machine: {command}')
+                self.button_feedback_response(
+                    "Please Wait!", self.run_button, "yellow"
+                )
+                session = transport.open_session()
+                session.setblocking(0) # Set to non-blocking mode
+                session.get_pty()
+                session.invoke_shell()
+
+                # Send command
+                session.send(command)
+
+                # Loop for 15 seconds
+                start = time.time()    
+                while time.time() - start < 15:
+                    if session.recv_ready():
+                        data = session.recv(512)
+
+                        print(data.decode(), flush=True)
+                        #sys.stdout.flush() # Flushing is important!
+
+                    time.sleep(0.01) # Yield CPU so we don't take up 100% usage...
+
+                # After 10 seconds, send ^Z and then close
+                session.send(f'tail {date.today()}_survos2.log\n')
+                time.sleep(1)
+                if session.recv_ready():
+                        data = session.recv(512).decode()
+                        print(data)
+                        if "No workspace can be found" in data:
+                            err_msg = f"Workspace {ws_name} does not appear to exist!"
+                            logger.error(err_msg)
+                            self.button_feedback_response(
+                                                    err_msg, self.run_button, "maroon"
+                                                    )
+                            session.close()
+                            return True
+            
+                session.close()
+             
+            except AuthenticationException:
+                logger.error("SSH Authentication failed!")
+                self.button_feedback_response(
+                    "Incorrect Password!", self.run_button, "maroon"
+                )
+                return True
+
+            finally:
+                client.close()
+
+            
 
     @pyqtSlot()
     def run_clicked(self):
@@ -898,44 +984,46 @@ class FrontEndRunner(QWidget):
         Raises:
             Exception: If survos.py not found.
         """
+        error = None
         command_dir = os.getcwd()
         script_fullname = os.path.join(command_dir, "survos.py")
         if not os.path.isfile(script_fullname):
             raise Exception("{}: Script not found".format(script_fullname))
         # Retrieve the parameters from the fields TODO: Put some error checking in
         self.run_config["workspace_name"] = self.ws_name_linedt_2.text()
-        self.run_config["server_ip"] = self.server_ip_linedt.text()
-        self.run_config["server_port"] = self.server_port_linedt.text()
+        self.run_config["server_port"] = self.server_port_linedt.text() 
         # Try some fancy SSH stuff here
         if self.ssh_button.isChecked():
-            self.start_server_over_ssh()
+            error = self.start_server_over_ssh()
         else:
-             self.server_process = subprocess.Popen(
+            self.server_process = subprocess.Popen(
             [
                 "python",
                 script_fullname,
                 "start_server",
                 self.run_config["workspace_name"],
-                self.run_config["server_port"],
-            ]
-            )
+                self.run_config["server_port"]
+            ])
+
             try:
                 outs, errs = self.server_process.communicate(timeout=10)
                 print(f"OUTS: {outs, errs}")
             except subprocess.TimeoutExpired:
                 pass
+        if not error:
+            self.run_config["server_ip"] = self.server_ip_linedt.text()         
 
-        self.client_process = subprocess.Popen(
-            [
-                "python",
-                script_fullname,
-                "nu_gui",
-                self.run_config["workspace_name"],
-                str(self.run_config["server_ip"])
-                + ":"
-                + str(self.run_config["server_port"]),
-            ]
-        )
+            self.client_process = subprocess.Popen(
+                [
+                    "python",
+                    script_fullname,
+                    "nu_gui",
+                    self.run_config["workspace_name"],
+                    str(self.run_config["server_ip"])
+                    + ":"
+                    + str(self.run_config["server_port"]),
+                ]
+            )
 
 
 if __name__ == "__main__":
@@ -963,8 +1051,8 @@ if __name__ == "__main__":
     pipeline_config = dict(cfg)
 
     os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     app = QApplication([])
-    app.setAttribute(Qt.AA_EnableHighDpiScaling)
     app.setOrganizationName("DLS")
     app.setApplicationName("SuRVoS2")
     front_end_runner = FrontEndRunner(run_config, workspace_config, pipeline_config)
