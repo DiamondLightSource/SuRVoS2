@@ -656,7 +656,7 @@ def frontend(cData):
                         existing_regions_layer[0].data = src_arr.copy()
                         existing_regions_layer[0].opacity = 0.3
 
-                refresh_annotations(cfg.current_annotation_name)
+                refresh_annotations({'level_id' : cfg.current_annotation_name})
                 # existing_annotation_layer = [
                 #         v for v in viewer.layers if v.name == cfg.current_annotation_name
                 #     ]
