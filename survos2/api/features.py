@@ -200,7 +200,7 @@ def difference_of_gaussians(
 def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1 ) -> "DENOISING":
     from ..server.filtering import gaussian_blur_kornia
 
-    if len(sigma) == 1:
+    if isinstance(sigma, numbers.Number):
         sigma = (sigma, sigma, sigma)
     map_blocks(
         gaussian_blur_kornia,
