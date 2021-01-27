@@ -27,7 +27,7 @@ def dilate(I, num_iter, thresh=0.5):
 
 def median(I, median_size, num_iter, thresh=0.5):
     logger.info(f"+ Computing median with size {median_size} and num_iter {num_iter}")
-    I = (I >= thresh) * 1.0
+    I = I * 1.0
 
     for i in range(num_iter):
         I = ndimage.median_filter(I, median_size).astype(I.dtype)

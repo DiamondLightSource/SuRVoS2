@@ -177,6 +177,7 @@ def dask_relabel_chunks(A):
         return a + block_index_global[bid - 1]
 
     relabel = A.map_blocks(relabel, dtype=np.int64)
+    
     return relabel
 
 
