@@ -294,7 +294,7 @@ def gaussian_center(
 @hug.get()
 @save_metadata
 def median(
-    src: DataURI, dst: DataURI, median_size: Float = 1, num_iter: Int = 1
+    src: DataURI, dst: DataURI, median_size: Int = 1, num_iter: Int = 1
 ) -> "DENOISING":
     from ..server.filtering import median
 

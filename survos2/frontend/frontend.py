@@ -656,7 +656,7 @@ def frontend(cData):
                         existing_regions_layer[0].data = src_arr.copy()
                         existing_regions_layer[0].opacity = 0.3
 
-                refresh_annotations({'level_id' : cfg.current_annotation_name})
+                paint_annotations({'level_id' : cfg.current_annotation_name})
                 # existing_annotation_layer = [
                 #         v for v in viewer.layers if v.name == cfg.current_annotation_name
                 #     ]
@@ -782,7 +782,7 @@ def frontend(cData):
 
         bpw_control_widget = viewer.window.add_dock_widget(viewer.dw.bpw, area='left')
         viewer.dw.bpw.clientEvent.connect(lambda x: processEvents(x))
-        bpw_control_widget.setVisible(False)
+        #bpw_control_widget.setVisible(False)
 
         if use_entities:
             from survos2.entity.sampler import sample_region_at_pt

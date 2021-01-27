@@ -1,7 +1,7 @@
 xsy37748@ws168's password: 
-[32m2021-01-22 13:16:09.060[0m | [1mINFO    [0m | [36msurvos2.model.workspace[0m:[36m<module>[0m:[36m25[0m - [1mCHROOT is /dls/science/groups/das/SuRVoS/s2/data/[0m
+[32m2021-01-26 13:27:39.383[0m | [1mINFO    [0m | [36msurvos2.model.workspace[0m:[36m<module>[0m:[36m25[0m - [1mCHROOT is /dls/science/groups/das/SuRVoS/s2/data/[0m
  [32m__main__[0m - [1mINFO - Full workspace path is /dls/science/groups/das/SuRVoS/s2/data/pl_mito_c250[0m
- [32msurvos2.survos[0m - [34m[1mDEBUG - API: <hug.api.API object at 0x7f435b4d9f70>
+ [32msurvos2.survos[0m - [34m[1mDEBUG - API: <hug.api.API object at 0x7f0f17b1af70>
 [0m
  [32msurvos2.survos[0m - [1mINFO - Config plugins: ['workspace', 'render', 'features', 'regions', 'annotations', 'pipelines', 'entitys', 'analyzer'][0m
  [32msurvos2.survos[0m - [1mINFO - Configuring api plugins[0m
@@ -13,152 +13,84 @@ xsy37748@ws168's password:
  [32msurvos2.survos[0m - [34m[1mDEBUG - Loading plugin pipelines[0m
  [32msurvos2.survos[0m - [34m[1mDEBUG - Loading plugin entitys[0m
  [32msurvos2.survos[0m - [34m[1mDEBUG - Loading plugin analyzer[0m
- [32m__main__[0m - [34m[1mDEBUG - Starting server on port 8001 with workspace pl_mito_c250[0m
-Serving on :8001...
-172.23.7.109 - - [22/Jan/2021 13:16:34] "GET /features/available HTTP/1.1" 200 4932
+ [32m__main__[0m - [34m[1mDEBUG - Starting server on port 8000 with workspace pl_mito_c250[0m
+Serving on :8000...
+172.23.7.109 - - [26/Jan/2021 13:28:00] "GET /features/available HTTP/1.1" 200 4932
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:34] "GET /features/existing HTTP/1.1" 200 541
+172.23.7.109 - - [26/Jan/2021 13:28:01] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:35] "GET /features/existing HTTP/1.1" 200 541
+172.23.7.109 - - [26/Jan/2021 13:28:01] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:35] "GET /features/existing HTTP/1.1" 200 541
+172.23.7.109 - - [26/Jan/2021 13:28:01] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:35] "GET /features/existing HTTP/1.1" 200 541
+172.23.7.109 - - [26/Jan/2021 13:28:01] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:35] "GET /features/existing HTTP/1.1" 200 541
+172.23.7.109 - - [26/Jan/2021 13:28:01] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:35] "GET /features/existing HTTP/1.1" 200 541
+172.23.7.109 - - [26/Jan/2021 13:28:01] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:35] "GET /features/existing HTTP/1.1" 200 541
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:35] "GET /regions/existing HTTP/1.1" 200 668
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /regions/existing HTTP/1.1" 200 668
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:35] "GET /features/existing HTTP/1.1" 200 568
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:35] "GET /features/existing HTTP/1.1" 200 568
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /features/existing HTTP/1.1" 200 568
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /features/existing HTTP/1.1" 200 541
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /annotations/get_levels HTTP/1.1" 200 496
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /annotations/get_levels HTTP/1.1" 200 497
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /regions/existing HTTP/1.1" 200 692
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /regions/existing HTTP/1.1" 200 692
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /annotations/get_levels HTTP/1.1" 200 496
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /annotations/get_levels HTTP/1.1" 200 497
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /regions/existing HTTP/1.1" 200 692
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /regions/existing HTTP/1.1" 200 692
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /annotations/get_levels HTTP/1.1" 200 496
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /annotations/get_levels HTTP/1.1" 200 497
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /annotations/get_labels HTTP/1.1" 200 381
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /pipelines/available HTTP/1.1" 200 438
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /annotations/get_labels HTTP/1.1" 200 381
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /pipelines/available HTTP/1.1" 200 438
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /pipelines/existing HTTP/1.1" 200 154
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /pipelines/existing HTTP/1.1" 200 154
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /features/existing HTTP/1.1" 200 568
+172.23.7.109 - - [26/Jan/2021 13:28:02] "GET /features/existing HTTP/1.1" 200 568
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /features/existing HTTP/1.1" 200 568
+172.23.7.109 - - [26/Jan/2021 13:28:03] "GET /features/existing HTTP/1.1" 200 568
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /annotations/get_levels HTTP/1.1" 200 508
+172.23.7.109 - - [26/Jan/2021 13:28:03] "GET /annotations/get_levels HTTP/1.1" 200 509
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /annotations/get_levels HTTP/1.1" 200 508
+172.23.7.109 - - [26/Jan/2021 13:28:03] "GET /annotations/get_levels HTTP/1.1" 200 509
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /regions/existing HTTP/1.1" 200 692
+172.23.7.109 - - [26/Jan/2021 13:28:03] "GET /regions/existing HTTP/1.1" 200 692
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /regions/existing HTTP/1.1" 200 692
+172.23.7.109 - - [26/Jan/2021 13:28:03] "GET /regions/existing HTTP/1.1" 200 692
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
  [32msurvos2.model.workspace[0m - [34m[1mDEBUG - path is not a directory[0m
-172.23.7.109 - - [22/Jan/2021 13:16:36] "GET /entitys/existing HTTP/1.1" 200 28
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:23:28] "GET /annotations/get_levels HTTP/1.1" 200 496
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:23:30] "GET /annotations/get_levels HTTP/1.1" 200 496
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:23:35] "GET /annotations/get_levels HTTP/1.1" 200 496
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:23:37] "GET /regions/existing HTTP/1.1" 200 692
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:23:43] "GET /annotations/get_levels HTTP/1.1" 200 496
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.io[0m - [1mINFO - running survos_from_uri on survos:// uri[0m
- [32msurvos2.io[0m - [34m[1mDEBUG - Calling Workspace() Init with workspace name: pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:24:06] "GET /annotations/annotate_regions HTTP/1.1" 200 40
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:24:09] "GET /annotations/get_levels HTTP/1.1" 200 496
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:24:16] "GET /annotations/get_levels HTTP/1.1" 200 496
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.io[0m - [1mINFO - running survos_from_uri on survos:// uri[0m
- [32msurvos2.io[0m - [34m[1mDEBUG - Calling Workspace() Init with workspace name: pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:24:26] "GET /annotations/annotate_regions HTTP/1.1" 200 40
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:24:29] "GET /regions/existing HTTP/1.1" 200 692
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:24:38] "GET /annotations/get_levels HTTP/1.1" 200 496
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.io[0m - [1mINFO - running survos_from_uri on survos:// uri[0m
- [32msurvos2.io[0m - [34m[1mDEBUG - Calling Workspace() Init with workspace name: pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:24:46] "GET /annotations/annotate_regions HTTP/1.1" 200 40
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.io[0m - [1mINFO - running survos_from_uri on survos:// uri[0m
- [32msurvos2.io[0m - [34m[1mDEBUG - Calling Workspace() Init with workspace name: pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:24:49] "GET /annotations/annotate_regions HTTP/1.1" 200 40
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.io[0m - [1mINFO - running survos_from_uri on survos:// uri[0m
- [32msurvos2.io[0m - [34m[1mDEBUG - Calling Workspace() Init with workspace name: pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:25:05] "GET /annotations/annotate_regions HTTP/1.1" 200 40
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-[224, 224, 32, 96, 16, 16, 16, 31]
-Undoing annotation
-Finished undo
-172.23.7.109 - - [22/Jan/2021 13:25:21] "GET /annotations/annotate_undo HTTP/1.1" 200 40
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:25:28] "GET /regions/existing HTTP/1.1" 200 692
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
- [32msurvos2.model.workspace[0m - [34m[1mDEBUG - INIT workspace at pl_mito_c250[0m
-172.23.7.109 - - [22/Jan/2021 13:25:33] "GET /annotations/get_levels HTTP/1.1" 200 500
+172.23.7.109 - - [26/Jan/2021 13:28:03] "GET /entitys/existing HTTP/1.1" 200 28
+^CConnection to ws168 closed.

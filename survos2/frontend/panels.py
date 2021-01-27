@@ -46,16 +46,16 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         button2.clicked.connect(self.button2_clicked)
         self._selected_entity_idx = 0
 
-        check1 = QCheckBox("Z", self)
-        check2 = QCheckBox("X", self)
-        check3 = QCheckBox("Y", self)
+        #check1 = QCheckBox("Z", self)
+        #check2 = QCheckBox("X", self)
+        #check3 = QCheckBox("Y", self)
 
-        check1.setText("Z")
-        check2.setText("X")
-        check3.setText("Y")
+        #check1.setText("Z")
+        #check2.setText("X")
+        #check3.setText("Y")
 
-        self._check1_checked = False
-        check1.clicked.connect(self.check1_checked)
+        #self._check1_checked = False
+        #check1.clicked.connect(self.check1_checked)
 
         self.hbox_layout0 = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()

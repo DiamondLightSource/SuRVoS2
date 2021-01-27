@@ -158,7 +158,7 @@ def dask_relabel_chunks(A):
         Dask array of the same shape, with chunks relabelled.
     """
     inds = tuple(range(A.ndim))
-    max_per_block = da.atop(
+    max_per_block = da.blockwise(
         np.max,
         inds,
         A,
@@ -168,7 +168,7 @@ def dask_relabel_chunks(A):
         dtype=A.dtype,
         adjust_chunks={i: 1 for i in inds},
     )
-    block_index_global = da.cumsum(max_per_block.ravel() + 1)
+    block_index_global = da.cumsum(max_per_block.ravel() * 2)
 
     def relabel(a, block_id=None):
         bid = int(np.ravel_multi_index(block_id, A.numblocks))
@@ -176,7 +176,8 @@ def dask_relabel_chunks(A):
             return a
         return a + block_index_global[bid - 1]
 
-    return A.map_blocks(relabel, dtype=np.float64)
+    relabel = A.map_blocks(relabel, dtype=np.int64)
+    return relabel
 
 
 def _chunk_datasets(datasets, chunk=CHUNK, chunk_size=CHUNK_SIZE, stack=False):
