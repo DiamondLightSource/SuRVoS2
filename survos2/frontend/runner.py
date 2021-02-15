@@ -9,6 +9,7 @@ from pathlib import Path
 
 from paramiko.client import SSHClient, WarningPolicy
 from paramiko.ssh_exception import AuthenticationException
+import socket
 import h5py as h5
 import pyqtgraph.parametertree.parameterTypes as pTypes
 import yaml
@@ -16,7 +17,8 @@ import time
 from datetime import date
 from loguru import logger
 from numpy import clip, product
-from PyQt5.QtCore import Qt, QTimer, pyqtSlot, QObject, pyqtSignal, QThread
+from PyQt5.QtCore import (Qt, QTimer, pyqtSlot, QObject, pyqtSignal, QThread,
+                         QProcess)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QApplication,
@@ -25,7 +27,8 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
-    QInputDialog, 
+    QInputDialog,
+    QMessageBox, 
     QLabel,
     QLineEdit,
     QPushButton,
@@ -46,6 +49,7 @@ from pyqtgraph.parametertree import (
 from survos2.frontend.main import init_ws
 from survos2.frontend.utils import ComboDialog, FileWidget, MplCanvas
 from survos2.model.workspace import WorkspaceException
+from survos2.config import Config
 
 # example set of params for testing
 ptree_init2 = [
@@ -511,7 +515,20 @@ class SSHWorker(QObject):
                 ws_name = self.run_config["workspace_name"]
                 server_port = self.run_config["server_port"]
                 # TODO Check if the server port is already in use
-                command = ("nohup /dls_sw/apps/SuRVoS2/s2_conda/bin/python -u "
+                logger.info(f"Checking if server port: {server_port} at ip: {ip} is already in use.")
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                result = sock.connect_ex((ip, int(server_port)))
+                if result == 0:
+                    logger.error(f"Port {server_port} is already open.")
+                    self.button_message_signal.emit([f"Port: {server_port} at ip: {ip} is already in use!", "maroon", 3])
+                    self.error_signal.emit()
+                    sock.close()
+                    client.close()
+                    return
+                else:
+                    logger.info(f"Port {server_port} is not open.")
+                sock.close()
+                command = ("/dls_sw/apps/SuRVoS2/s2_conda/bin/python -u "
                            "/dls/science/groups/das/SuRVoS/s2/s2_dec/SuRVoS2/survos.py "
                           f"start_server {ws_name} {server_port} > {date.today()}_survos2.log &\n")
                 logger.info(f'Running command on remote machine: {command}')
@@ -520,43 +537,22 @@ class SSHWorker(QObject):
                 session.setblocking(0) # Set to non-blocking mode
                 session.get_pty()
                 session.invoke_shell()
-
                 # Send command
                 session.send(command)
-
                 # Loop for 15 seconds
                 self.button_message_signal.emit([f"Starting server on {self.ssh_host}. Please Wait!", "navy", 14])
                 start = time.time()    
-                while time.time() - start < 14:
+                while time.time() - start < 15:
                     if session.recv_ready():
                         data = session.recv(512)
-
                         print(data.decode(), flush=True)
-                        #sys.stdout.flush() # Flushing is important!
-
-                    time.sleep(0.01) # Yield CPU so we don't take up 100% usage...
-
-                session.send(f'tail -n 50 {date.today()}_survos2.log\n')
-                time.sleep(1)
-                if session.recv_ready():
-                        data = session.recv(512).decode()
-                        print(data)
-                        if "No workspace can be found" in data:
-                            err_msg = f"Workspace {ws_name} does not appear to exist!"
-                            logger.error(err_msg)
-                            self.button_message_signal.emit([err_msg, "maroon", 3])
-                            session.close()
-                            self.error_signal.emit()
-                session.close()
-             
+                    time.sleep(1) # Yield CPU so we don't take up 100% usage...
+                self.finished.emit()
+                
         except AuthenticationException:
             logger.error("SSH Authentication failed!")
             self.button_message_signal.emit(["Incorrect Password!", "maroon", 3])
             self.error_signal.emit()
-
-        finally:
-            client.close()
-            self.finished.emit()
 
 
 class FrontEndRunner(QWidget):
@@ -994,6 +990,15 @@ class FrontEndRunner(QWidget):
             self.ssh_worker.update_ip_linedt_signal.connect(self.update_ip_linedt)
             self.ssh_thread.started.connect(self.ssh_worker.start_server_over_ssh)
             self.ssh_thread.start()
+    
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Quit', 'Are you sure you want to quit? '\
+            'The server will be stopped.',
+        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
     @pyqtSlot()
     def on_ssh_error(self):
@@ -1021,7 +1026,17 @@ class FrontEndRunner(QWidget):
             raise Exception("{}: Script not found".format(self.script_fullname))
         # Retrieve the parameters from the fields TODO: Put some error checking in
         self.run_config["workspace_name"] = self.ws_name_linedt_2.text()
-        self.run_config["server_port"] = self.server_port_linedt.text() 
+        self.run_config["server_port"] = self.server_port_linedt.text()
+        # Temporary measure to check whether the workspace exists or not
+        full_ws_path = os.path.join(Config["model.chroot"], self.run_config["workspace_name"])
+        if not os.path.isdir(full_ws_path):
+            logger.error(f"No workspace can be found at {full_ws_path}, Not starting SuRVoS.")
+            self.button_feedback_response(
+                        f"Workspace {self.run_config['workspace_name']} does not appear to exist!",
+                        self.run_button,
+                        "maroon",
+                    )
+            return
         # Try some fancy SSH stuff here
         if self.ssh_button.isChecked():
             self.start_server_over_ssh()
@@ -1044,20 +1059,15 @@ class FrontEndRunner(QWidget):
 
     def start_client(self):
         if not self.ssh_error:
-            self.button_feedback_response("Starting Client.", self.run_button, "green", 5)
-            self.run_config["server_ip"] = self.server_ip_linedt.text()         
-
-            self.client_process = subprocess.Popen(
-                [
-                    "python",
-                    self.script_fullname,
+            self.button_feedback_response("Starting Client.", self.run_button, "green", 7)
+            self.run_config["server_ip"] = self.server_ip_linedt.text()
+            self.client_process = QProcess()
+            self.client_process.start("python", [self.script_fullname,
                     "nu_gui",
                     self.run_config["workspace_name"],
                     str(self.run_config["server_ip"])
                     + ":"
-                    + str(self.run_config["server_port"]),
-                ]
-            )
+                    + str(self.run_config["server_port"])])
 
 
 if __name__ == "__main__":
@@ -1073,10 +1083,10 @@ if __name__ == "__main__":
     }
 
     workspace_config = {
-        "dataset_name": "mydata",
-        "datasets_dir": "C:\Work\Data",
-        "vol_fname": "afile.h5",
-        "workspace_name": "test_brain2",
+        "dataset_name": "data",
+        "datasets_dir": "/path/to/my/data/dir",
+        "vol_fname": "myfile.h5",
+        "workspace_name": "my_survos_workspace",
         "downsample_by": "1",
     }
 
