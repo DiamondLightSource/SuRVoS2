@@ -17,8 +17,7 @@ import time
 from datetime import date
 from loguru import logger
 from numpy import clip, product
-from PyQt5.QtCore import (Qt, QTimer, pyqtSlot, QObject, pyqtSignal, QThread,
-                         QProcess)
+from PyQt5.QtCore import Qt, QTimer, pyqtSlot, QObject, pyqtSignal, QThread
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QApplication,
@@ -1061,14 +1060,17 @@ class FrontEndRunner(QWidget):
         if not self.ssh_error:
             self.button_feedback_response("Starting Client.", self.run_button, "green", 7)
             self.run_config["server_ip"] = self.server_ip_linedt.text()
-            self.client_process = QProcess()
-            self.client_process.start("python", [self.script_fullname,
+            self.client_process = subprocess.Popen(
+                [
+                    "python",
+                    self.script_fullname,
                     "nu_gui",
                     self.run_config["workspace_name"],
                     str(self.run_config["server_ip"])
                     + ":"
-                    + str(self.run_config["server_port"])])
-
+                    + str(self.run_config["server_port"]),
+                ]
+            )
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL)
