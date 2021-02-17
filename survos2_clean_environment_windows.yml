@@ -91,6 +91,7 @@ dependencies:
   - openssl
   - packaging
   - pandas
+  - paramiko
   - partd
   - pathlib
   - pcre
