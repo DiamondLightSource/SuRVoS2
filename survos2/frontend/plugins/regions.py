@@ -111,10 +111,12 @@ class SupervoxelCard(Card):
         self.svname = svname
 
         from qtpy.QtWidgets import QProgressBar
+
         self.pbar = QProgressBar(self)
         self.add_row(self.pbar)
 
         from survos2.frontend.plugins.features import FeatureComboBox
+
         self.svsource = FeatureComboBox()
         self.svsource.setMaximumWidth(250)
         self.svshape = LineEdit(parse=int, default=10)
@@ -143,6 +145,14 @@ class SupervoxelCard(Card):
         if result["done"]:
             self.setParent(None)
 
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "regions",
+                "data": "remove_layer",
+                "layer_name": self.svid,
+            }
+        )
+
     def card_title_edited(self, newtitle):
         logger.debug(f"Edited region title {newtitle}")
         params = dict(region_id=self.svid, new_name=newtitle, workspace=True)
@@ -159,10 +169,12 @@ class SupervoxelCard(Card):
 
     def compute_supervoxels(self):
         self.pbar.setValue(10)
-        src = [DataModel.g.dataset_uri('features/' + s) for s in [self.svsource.value()]]
+        src = [
+            DataModel.g.dataset_uri("features/" + s) for s in [self.svsource.value()]
+        ]
         dst = DataModel.g.dataset_uri(self.svid, group="regions")
         logger.debug(f"Compute sv: Src {src} Dst {dst}")
-        
+
         from survos2.model import Workspace
 
         ws = Workspace(DataModel.g.current_workspace)
@@ -171,20 +183,20 @@ class SupervoxelCard(Card):
         logger.debug(
             f"Using chunk_size {chunk_size} to compute number of supervoxel segments for num_chunks: {num_chunks}."
         )
-        
+
         n_segments = int(np.prod(chunk_size) // (self.svshape.value() ** 3))
 
         params = dict(
             src=src,
             dst=dst,
             compactness=round(self.svcompactness.value() / 100, 3),
-            shape=self.svshape.value(),
+            #shape=self.svshape.value(),
             n_segments=n_segments,
             spacing=self.svspacing.value(),
-            modal=True,  
+            modal=False,
         )
         logger.debug(f"Compute supervoxels with params {params}")
-        
+
         self.pbar.setValue(20)
 
         result = Launcher.g.run("regions", "supervoxels", **params)

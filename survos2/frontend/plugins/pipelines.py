@@ -9,7 +9,7 @@ from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
 from survos2.model import DataModel
 from survos2.frontend.model import ClientData
-from survos2.frontend.plugins.base import LazyComboBox, LazyMultiComboBox
+from survos2.frontend.plugins.base import LazyComboBox, LazyMultiComboBox, ComboBox
 from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.annotation_tool import MultiAnnotationComboBox
@@ -160,6 +160,9 @@ class PipelineCard(Card):
         self._add_features_source()
         self._add_annotations_source()
         self._add_regions_source()
+        self._add_classifier_choice()
+        self._add_projection_choice()
+
 
         self._add_param("lam", type="Float", default=0.15)
         self._add_param("num_components", type="Int", default=0)
@@ -175,6 +178,24 @@ class PipelineCard(Card):
         view_btn = PushButton("View", accent=True)
         view_btn.clicked.connect(self.view_pipeline)
         self.add_row(HWidgets(None, view_btn, Spacing(35)))
+
+    def _add_classifier_choice(self):
+        self.classifier_type = ComboBox()
+        self.classifier_type.addItem(key="Random Forest")
+        self.classifier_type.addItem(key="SVM")
+        widget = HWidgets("Classifier:", self.classifier_type, Spacing(35), stretch=0)
+        self.add_row(widget)
+
+    def _add_projection_choice(self):
+        self.projection_type = ComboBox()
+        self.projection_type.addItem(key="None")
+        self.projection_type.addItem(key="pca")
+        self.projection_type.addItem(key="rbp")
+        self.projection_type.addItem(key="rproj")
+        self.projection_type.addItem(key="std")
+        widget = HWidgets("Projection:", self.projection_type, Spacing(35), stretch=0)
+        self.add_row(widget)
+
 
     def _add_features_source(self):
 
@@ -249,6 +270,14 @@ class PipelineCard(Card):
             self.setParent(None)
             _PipelineNotifier.notify()
 
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "pipelines",
+                "data": "remove_layer",
+                "layer_name": self.pipeline_id,
+            }
+        )
+
     def view_pipeline(self):
         logger.debug(f"View pipeline_id {self.pipeline_id}")
         cfg.ppw.clientEvent.emit(
@@ -277,7 +306,8 @@ class PipelineCard(Card):
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         all_params["dst"] = self.pipeline_id
         all_params["lam"] = self.widgets["lam"]
-
+        all_params["classifier_type"] = self.classifier_type.value()
+        all_params["projection_type"] = self.projection_type.value()
         all_params.update({k: v.value() for k, v in self.widgets.items()})
 
         logger.info(f"Computing pipelines {self.pipeline_type} {all_params}")

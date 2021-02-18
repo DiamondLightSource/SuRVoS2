@@ -8,7 +8,8 @@ from loguru import logger
 from survos2.utils import encode_numpy
 from survos2.io import dataset_from_uri
 from survos2.improc import map_blocks
-from survos2.api.utils import save_metadata, dataset_repr
+from survos2.api.utils import get_function_api, save_metadata, dataset_repr
+
 from survos2.api.types import (
     DataURI,
     Float,
@@ -23,22 +24,70 @@ from survos2.api.types import (
 from survos2.api import workspace as ws
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
-
+import ntpath
 
 __analyzer_fill__ = 0
 __analyzer_dtype__ = "uint32"
 __analyzer_group__ = "analyzer"
-__analyzer_names__ = ["histogram", "stats"]
+__analyzer_names__ = ["object_analyzer", "simple_stats"]
 
+from survos2.frontend.nb_utils import summary_stats
 
 @hug.get()
-@save_metadata
 def simple_stats(
     workspace: String,
     feature_ids: DataURIList,
+    
     dst: DataURI,
-):
-    print(f"Calculating stats on {feature_id}")
+) -> 'STATS':
+    logger.debug(f"Calculating stats on features: {feature_ids}")
+    src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
+    logger.debug(f"Getting features {src}")
+
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        logger.debug(f"summary_stats {src_dataset[:]}")
+
+
+@hug.get()
+def object_analyzer(
+    workspace: String,
+    object_id: DataURI,
+    feature_ids : DataURIList,
+    dst: DataURI,
+)->'OBJECTS':
+    logger.debug(f"Calculating stats on objects: {object_id}")
+    logger.debug(f"With features: {feature_ids}")
+
+    src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
+    logger.debug(f"Getting features {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        ds_feature = DM.sources[0]
+        #logger.debug(f"summary_stats {src_dataset[:]}")
+
+    src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
+    logger.debug(f"Getting objects {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        ds_objects = DM.sources[0]
+
+    entities_fullname = ds_objects.get_metadata("fullname")
+    logger.info(f"Viewing entities {entities_fullname}")
+    tabledata, entities_df = setup_entity_table(entities_fullname)
+
+    scale = 1.0
+    centers = np.array(
+        [
+            [
+                np.int(np.float(entities_df.iloc[i]["z"]) * scale),
+                np.int(np.float(entities_df.iloc[i]["x"]) * scale),
+                np.int(np.float(entities_df.iloc[i]["y"]) * scale),
+            ]
+            for i in range(sel_start, sel_end)
+        ]
+    )
+
+    for c in centers:
+        logger.debug(ds_feature[c[0], c[1],c[2]])
 
 
 @hug.get()
@@ -78,3 +127,19 @@ def remove(workspace: String, analyzer_id: String):
 @hug.get()
 def rename(workspace: String, analyzer_id: String, new_name: String):
     ws.rename_dataset(workspace, analyzer_id, __analyzer_group__, new_name)
+
+
+@hug.get()
+def available():
+    h = hug.API(__name__)
+    all_features = []
+    for name, method in h.http.routes[""].items():
+        if name[1:] in ["available", "create", "existing", "remove", "rename", "group"]:
+            continue
+        name = name[1:]
+        func = method["GET"][None].interface.spec
+        desc = get_function_api(func)
+        category = desc["returns"] or "Others"
+        desc = dict(name=name, params=desc["params"], category=category)
+        all_features.append(desc)
+    return all_features

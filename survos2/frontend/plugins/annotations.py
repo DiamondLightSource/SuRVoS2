@@ -35,7 +35,7 @@ _AnnotationNotifier = PluginNotifier()
 # for nugui annotation tool
 def dilate_annotations(yy, xx, img_shape, line_width):
     data = np.zeros(img_shape)
-    data[xx,yy] = True
+    data[yy,xx] = True
 
     r = np.ceil(line_width / 2)
     ymin = int(max(0, yy.min() - r))
@@ -61,8 +61,7 @@ class LevelComboBox(LazyComboBox):
         params = dict(workspace=True, full=self.full)
 
         result = Launcher.g.run("annotations", "get_levels", **params)
-        logger.debug(f"Result of regions existing: {result}")
-
+        
         if result:
             self.addCategory("Annotations")
             for r in result:
@@ -92,11 +91,14 @@ class AnnotationPlugin(Plugin):
         hbox = HBox(self, margin=1, spacing=3)
         self.label = AnnotationComboBox()
         self.region = RegionComboBox(header=(None, "Voxels"), full=True)
-
+        self.label.currentIndexChanged.connect(self.set_sv)
+        
+        self.region.currentIndexChanged.connect(self.set_sv)
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
 
         self.width = Slider(value=8, vmin=2, vmax=50, step=2)
+        self.width.valueChanged.connect(self.set_sv)
         hbox.addWidget(self.width)
         hbox.addWidget(None, 1)
 
@@ -267,6 +269,12 @@ class AnnotationLabel(QCSWidget):
         self.label_name = label["name"]
         self.label_visible = label["visible"]
 
+        #parent_level=-1
+        #parent_label=-1        
+        #self.parent_level = parent_level
+        #self.parent_label = parent_label
+
+
         self.btn_del = DelIconButton(secondary=True)
         self.txt_label_name = LineEdit(label["name"])
         self.btn_label_color = ColorButton(label["color"])
@@ -288,6 +296,12 @@ class AnnotationLabel(QCSWidget):
                 stretch=2,
             )
         )
+    
+    def parent_levels(self, level):
+        return [label.parent_level for label in self._levels[level].values()]
+
+    def parent_labels(self, level):
+        return [label.parent_label for label in self._levels[level].values()]
 
     def update_label(self):
         label = dict(

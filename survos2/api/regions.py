@@ -31,6 +31,14 @@ __region_names__ = [None, "supervoxels"]  # , 'megavoxels']
 
 
 @hug.get()
+def get_volume(src: DataURI):
+    logger.debug("Getting region volume")
+    ds = dataset_from_uri(src, mode="r")
+    data = ds[:]
+    return encode_numpy(data)
+
+
+@hug.get()
 def get_slice(src: DataURI, slice_idx: Int):
     ds = dataset_from_uri(src, mode="r")
     data = ds[slice_idx]
@@ -42,7 +50,7 @@ def get_slice(src: DataURI, slice_idx: Int):
 def supervoxels(
     src: DataURIList,
     dst: DataURI,
-    shape: Int,
+    #shape: IntList = [10, 10, 10],
     n_segments: Int = 10,
     compactness: Float = 20,
     spacing: FloatList = [1, 1, 1],
@@ -71,6 +79,42 @@ def supervoxels(
         timeit=True,
         uses_gpu=True,
         relabel=True,
+    )
+
+
+@hug.get()
+@save_metadata
+def supervoxels_pytorch(
+    src: DataURIList,
+    dst: DataURI,
+    n_segments: Int = 100,
+    compactness: Float = 20,
+    spacing: FloatList = [1, 1, 1],
+    multichannel: SmartBoolean = False,
+    enforce_connectivity: SmartBoolean = False,
+):
+    """
+    API wrapper for `cuda-slic`.
+    """
+    from survos2.server.slic_pytorch import slic_pytorch
+
+    logger.info(
+        f"Calling slic-pytorch with src: {src} dst: {dst}\n n_segments {n_segments} Compactness {compactness} Spacing {spacing}"
+    )
+    # import pdb; pdb.set_trace()
+    map_blocks(
+        slic_pytorch,
+        *src,
+        out=dst,
+        n_segments=n_segments,
+        spacing=spacing,
+        compactness=compactness,
+        multichannel=False,
+        enforce_connectivity=True,
+        stack=False,
+        timeit=False,
+        uses_gpu=False,
+        relabel=False,
     )
 
 

@@ -7,34 +7,23 @@ from hug.use import HTTP, Local
 
 from survos2.model import DataModel
 from survos2.model.singleton import Singleton
-
-# from survos2.ui.qt.qtcompat import QtCore, QtWidgets
 from survos2.frontend.modal import ModalManager
-from survos2.utils import format_yaml, get_logger, Timer
+from survos2.utils import format_yaml, Timer
 from survos2.survos import remote_client, parse_response, init_api
-
-# from survos2.config import Config
 from survos2.api.utils import APIException, handle_exceptions, handle_api_exceptions
-
 from importlib import import_module
-import logging
 
-logger = get_logger()
-
+from loguru import logger
 from survos2.survos import run_command
 
 
 def _run_command(plugin, command, client, uri=None, out=None, **kwargs):
-        # if uri is None:
-        #    return run_command(plugin, command, uri=None, **kwargs)
-        # else:
-        # remote client, send (plugin, command)
-        response = client.get("{}/{}".format(plugin, command), **kwargs)
-        result = parse_response(plugin, command, response, log=False)
-        if out is not None:
-            out.put(result)
-        else:
-            return result
+    response = client.get("{}/{}".format(plugin, command), **kwargs)
+    result = parse_response(plugin, command, response, log=False)
+    if out is not None:
+        out.put(result)
+    else:
+        return result
 
 
 @Singleton
@@ -43,6 +32,7 @@ class Launcher(QtCore.QObject):
         super().__init__()
         self.connected = True
         self.terminated = False
+        self.queue = None
 
     def set_remote(self, uri):
         self.client = remote_client(uri)
@@ -59,7 +49,7 @@ class Launcher(QtCore.QObject):
 
         # use default workspace or instead use the passed in workspace
         workspace = kwargs.pop("workspace", None)
-        logger.info(f"Running using workspace {workspace}")
+        logger.debug(f"Running using workspace {workspace}")
         if workspace == True:
             if DataModel.g.current_workspace:
                 kwargs["workspace"] = DataModel.g.current_workspace
@@ -126,13 +116,14 @@ class Launcher(QtCore.QObject):
         try:
             params = dict(workspace=DataModel.g.current_workspace)
             self._run_command("workspace", "list_datasets", **params)
+            
         except (ConnectTimeout, ConnectionError):
             pass
         else:
             self.connected = True
 
     def setup(self, caption):
-        logger.info("### {} ###".format(caption))
+        logger.debug("### {} ###".format(caption))
         # if self.modal:
         #    ModalManager.g.show_loading(caption)
 

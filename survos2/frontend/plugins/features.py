@@ -10,6 +10,7 @@ from survos2.frontend.plugins.base import *
 from survos2.model import DataModel
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.plugins_components import SourceComboBox
+from survos2.server.state import cfg
 
 _FeatureNotifier = PluginNotifier()
 
@@ -25,7 +26,12 @@ class FeatureComboBox(LazyComboBox):
 
 
 def _fill_features(combo, full=False, filter=True, ignore=None):
-    params = dict(workspace=True, full=full, filter=filter)
+    params = dict(
+        workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
+        full=full,
+        filter=filter,
+    )
+    logger.debug(f"Filling features from session: {params}")
     result = Launcher.g.run("features", "existing", **params)
     if result:
         for fid in result:
@@ -90,9 +96,10 @@ class FeaturesPlugin(Plugin):
         return widget
 
     def setup(self):
-        params = dict(workspace=True)
+        params = dict(
+            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
+        )
         result = Launcher.g.run("features", "existing", **params)
-
         logger.debug(f"Feature result {result}")
 
         if result:
@@ -130,6 +137,7 @@ class FeatureCard(Card):
         self.widgets = dict()
 
         from qtpy.QtWidgets import QProgressBar
+
         self.pbar = QProgressBar(self)
         self.add_row(self.pbar)
 
@@ -198,9 +206,16 @@ class FeatureCard(Card):
             self.setParent(None)
             _FeatureNotifier.notify()
 
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "features",
+                "data": "remove_layer",
+                "layer_name": self.feature_id,
+            }
+        )
+
     def view_feature(self):
         logger.debug(f"View feature_id {self.feature_id}")
-        from survos2.server.state import cfg
 
         cfg.ppw.clientEvent.emit(
             {
@@ -227,7 +242,7 @@ class FeatureCard(Card):
         all_params.update({k: v.value() for k, v in self.widgets.items()})
 
         logger.info(f"Computing features: {self.feature_type} {all_params}")
-        result = Launcher.g.run("features", self.feature_type,  **all_params)
+        result = Launcher.g.run("features", self.feature_type, **all_params)
 
         if result is not None:
             self.pbar.setValue(100)

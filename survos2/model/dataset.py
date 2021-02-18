@@ -17,7 +17,8 @@ import itertools
 import numbers
 
 from survos2.config import Config
-from survos2.utils import AttributeDB, get_logger
+from survos2.utils import AttributeDB
+
 from survos2.improc.utils import optimal_chunksize
 
 
@@ -385,7 +386,7 @@ class Dataset(BaseDataset):
             output[gslice] = self.get_chunk_data(idx, slices=cslice)
 
         if len(squeeze_axis) > 0:
-            print(f"Squeeze axis {squeeze_axis}")
+            logger.debug(f"Squeeze axis {squeeze_axis}")
             output = np.squeeze(
                 output, axis=squeeze_axis[0]
             )  # np.squeeze now wants an integer, rather than a list containing an int

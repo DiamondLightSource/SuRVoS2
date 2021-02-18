@@ -11,7 +11,7 @@ from survos2.api import workspace as ws
 from survos2.config import Config
 from survos2.improc import map_blocks
 from survos2.io import dataset_from_uri
-
+from survos2.utils import encode_numpy
 from loguru import logger
 
 __level_fill__ = 0
@@ -27,6 +27,21 @@ def to_label(idx=0, name="Label", color="#000000", visible=True, **kwargs):
 
 
 @hug.get()
+def get_volume(src: DataURI):
+    logger.debug("Getting annotation volume")
+    ds = dataset_from_uri(src, mode="r")
+    data = ds[:]
+    return encode_numpy(data)
+
+
+@hug.get()
+def get_slice(src: DataURI, slice_idx: Int):
+    ds = dataset_from_uri(src, mode="r")
+    data = ds[slice_idx]
+    return encode_numpy(data)
+
+
+@hug.get()
 def add_level(workspace: String):
     ds = ws.auto_create_dataset(
         workspace,
@@ -36,7 +51,7 @@ def add_level(workspace: String):
         fill=__level_fill__,
         chunks=CHUNK_SIZE,
     )
-    print(ds, type(ds))
+    logger.debug(ds, type(ds))
     ds.set_attr("kind", "level")
     ds.set_attr("modified", [0] * ds.total_chunks)
 

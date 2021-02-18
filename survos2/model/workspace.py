@@ -4,7 +4,7 @@ import shutil
 
 import numpy as np
 import tempfile
-import logging as log
+#import logging as log
 
 from survos2.config import Config
 from survos2.utils import check_relpath
@@ -120,12 +120,10 @@ class Workspace(object):
 
         # path = self.genpath()
         path = self._path
-        # logger.debug(f"available sessions, path: {path}")
-
+        
         return [sess for sess in os.listdir(path) if self.has_session(sess)]
 
     def available_datasets(self, session="default", group=None):
-        # logger.debug(f"Checking available datasets for Session: {session} Group: {group}")
         if not self.has_session(session):
             return []
 
@@ -145,7 +143,6 @@ class Workspace(object):
     # Data
     def has_data(self):
         path = self.genpath(self.__dsname__)
-        # logger.debug(f"has_data: {path}")
         return Dataset.exists(path)
 
     def metadata(self):
@@ -169,6 +166,7 @@ class Workspace(object):
             raise WorkspaceException("Session '%s' already exists." % (session))
         elif session == self.__dsname__:
             raise WorkspaceException("Invalid session name: '%s'" % session)
+        
         # Update filesystem
         path = self.genpath(session)
         if not os.path.isdir(path):

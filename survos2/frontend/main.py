@@ -118,27 +118,25 @@ def init_client():
     # ds = ws.get_dataset(dataset_name)
     # img_volume = ds[:]
     # logger.debug(f"Image volume loaded: {img_volume.shape}")
+    # src = DataModel.g.dataset_uri("__data__")
+    # with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+    #     src_dataset = DM.sources[0]
+    #     img_volume = src_dataset[:].copy()
 
-    src = DataModel.g.dataset_uri("__data__")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        img_volume = src_dataset[:].copy()
+    # DataModel.g.current_workspace_shape = img_volume.shape
 
-    DataModel.g.current_workspace_shape = img_volume.shape
+    # logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")
 
-    logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")
-
-    filtered_layers = [np.array(img_volume).astype(np.float32)]
-    layer_names = [
-        "Main",
-    ]
-    opacities = [
-        1.0,
-    ]
+    # filtered_layers = [np.array(img_volume).astype(np.float32)]
+    # layer_names = [
+    #     "Main",
+    # ]
+    # opacities = [
+    #     1.0,
+    # ]
 
     from survos2.server.state import cfg
-
-    clientData = ClientData(filtered_layers, layer_names, opacities, cfg)
+    clientData = ClientData(cfg)
     return clientData
 
 

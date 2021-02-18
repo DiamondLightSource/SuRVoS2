@@ -19,8 +19,9 @@ import numpy as np
 import numba
 import math
 
+from loguru import logger
 
-logger = get_logger()
+#logger = get_logger()
 
 
 class ViewContainer(QCSWidget):

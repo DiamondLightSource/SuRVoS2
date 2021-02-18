@@ -6,10 +6,11 @@ import os.path as op
 from functools import wraps
 from survos2.io import dataset_from_uri
 from survos2.config import Config
-from survos2.utils import get_logger
 
+from loguru import logger
 
-logger = get_logger()
+#from survos2.utils import get_logger
+#logger = get_logger()
 
 
 CHUNK = Config["computing.chunks"]
@@ -92,7 +93,7 @@ def APISession(interface=None, request=None, **kwargs):
     if interface == hug.interface.HTTP:
         session = hug.directives.session(request=request)
         if session is None:
-            logger.warn("HTTP Session does not exist.")
+            logger.warning("HTTP Session does not exist.")
             return __session
         return session
     return __session

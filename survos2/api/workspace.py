@@ -4,13 +4,10 @@ import os.path as op
 
 from survos2.api.utils import APIException
 from survos2.api.types import String, Int, IntOrNone
-
-from survos2.utils import get_logger
+#from survos2.utils import get_logger
 from survos2.io import dataset_from_uri
 from survos2.config import Config
 from survos2.model import Workspace, Dataset
-
-
 from loguru import logger
 
 ### Workspace
@@ -57,9 +54,7 @@ def add_data(workspace: String, data_fname: String):
         data = da.from_array(data, chunks=chunk_size)
         data -= da.min(data)
         data /= da.max(data)
-
         ds = ws.add_data(data)
-
         # ds.set_attr("chunk_size", chunk_size)
     return ds
 
@@ -206,6 +201,8 @@ def rename_dataset(
 def parse_workspace(workspace: String):
     if "@" in workspace:
         session, workspace = workspace.split("@")
+        logger.debug(f"Using session {session}")
+
         return workspace, session
     else:
         return workspace, "default"

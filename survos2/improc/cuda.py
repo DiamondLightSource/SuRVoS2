@@ -1,4 +1,4 @@
-import logging
+#import logging
 import numpy as np
 import atexit
 
@@ -82,7 +82,7 @@ def asgpuarray(data, dtype=None):
             )
         return data
     if np.dtype(data.dtype) != np.dtype(dtype):
-        logging.warn(
+        logger.warn(
             "Probably unsafe type casting to CUDA array: {} to {}".format(
                 np.dtype(data.dtype).name, np.dtype(dtype).name
             )

@@ -6,8 +6,9 @@ from survos2.api import workspace as ws
 from survos2.api.utils import get_function_api, save_metadata, dataset_repr
 from survos2.api.types import DataURI, String, Int, Float, FloatOrVector, SmartBoolean
 
+from survos2.utils import encode_numpy
 from survos2.io import dataset_from_uri
-from survos2.utils import get_logger
+#from survos2.utils import get_logger
 from survos2.improc import map_blocks
 
 
@@ -22,6 +23,23 @@ from loguru import logger
 
 def pass_through(x):
     return x
+
+
+@hug.get()
+def get_volume(src: DataURI):
+    logger.debug("Getting feature volume")
+    ds = dataset_from_uri(src, mode="r")
+    data = ds[:]
+    return encode_numpy(data)
+
+
+
+@hug.get()
+def get_slice(src: DataURI, slice_idx: Int):
+    logger.debug("Getting feature slice")
+    ds = dataset_from_uri(src, mode="r")
+    data = ds[slice_idx]
+    return encode_numpy(data)
 
 
 @hug.get()
@@ -198,7 +216,7 @@ def difference_of_gaussians(
 
 @hug.get()
 @save_metadata
-def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1 ) -> "DENOISING":
+def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
     from ..server.filtering import gaussian_blur_kornia
 
     if isinstance(sigma, numbers.Number):
@@ -237,7 +255,7 @@ def ndimage_laplacian(
         out=dst,
         kernel_size=kernel_size,
         pad=max(4, int((max(kernel_size) + 1) / 2)),
-        normalize=True,
+        normalize=False,
     )
 
 
@@ -252,7 +270,7 @@ def laplacian(src: DataURI, dst: DataURI, kernel_size: Float = 2.0) -> "EDGES":
         out=dst,
         kernel_size=kernel_size,
         pad=max(4, int(kernel_size) + 1 / 2),
-        normalize=True,
+        normalize=False,
     )
 
 

@@ -262,7 +262,7 @@ def grid_of_images_and_clicks(
 
 # plotting the selected grid around the click points
 def grid_of_images2(
-    image_list, n_rows, n_cols, image_titles="", bigtitle="", figsize=(20, 20)
+    image_list, n_rows, n_cols, image_titles="", bigtitle="", figsize=(20, 20), color='black'
 ):
     images = [image_list[i] for i in range(n_rows * n_cols)]
 
@@ -274,9 +274,10 @@ def grid_of_images2(
     for i in range(n_rows):
         for j in range(n_cols):
             axarr[i, j].imshow(images[i * n_cols + j], cmap="gray")
-            axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10)
-            axarr[i, j].tick_params(labeltop=False, labelleft=False, labelbottom=False)
-    f.suptitle(bigtitle)
+            axarr[i, j].grid(False)
+            #axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10, color=color)
+            axarr[i, j].tick_params(labeltop=False, labelleft=False, labelbottom=False, labelright=False)
+    f.suptitle(bigtitle, color=color)
 
 
 def grid_of_images(image_list, n_rows, n_cols, image_titles="", figsize=(20, 20)):

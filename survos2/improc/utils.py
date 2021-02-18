@@ -3,14 +3,12 @@ import time
 from math import ceil
 from itertools import product
 from functools import wraps, partial
-
 import yaml
 import numpy as np
 import dask.array as da
 from dask.array.core import slices_from_chunks
-
 from ..config import Config
-from ..utils import format_yaml, parse_params, get_logger
+from ..utils import format_yaml, parse_params
 
 CHUNK = Config["computing.chunks"]
 CHUNK_SIZE = Config["computing.chunk_size"]
@@ -168,7 +166,7 @@ def dask_relabel_chunks(A):
         dtype=A.dtype,
         adjust_chunks={i: 1 for i in inds},
     )
-    block_index_global = da.cumsum(max_per_block.ravel() * 2)
+    block_index_global = da.cumsum(max_per_block.ravel()) * 2
 
     def relabel(a, block_id=None):
         bid = int(np.ravel_multi_index(block_id, A.numblocks))
@@ -177,7 +175,7 @@ def dask_relabel_chunks(A):
         return a + block_index_global[bid - 1]
 
     relabel = A.map_blocks(relabel, dtype=np.int64)
-    
+
     return relabel
 
 
@@ -302,7 +300,7 @@ def _apply(
     datasets: list of numpy array-like
         Input datasets.
     chunk: boolean
-        If `True` then input datasets will be assumed tobe `Dask.Array`s and
+        If `True` then input datasets will be assumed to be `Dask.Array`s and
         the function will be mapped across arrays blocks.
     pad: None, int or iterable
         The padding to apply (only if `chunk = True`). If `pad != None` then
@@ -338,7 +336,9 @@ def _apply(
     logger.info(f"Applying {func} to datasets of shape {datasets} with stack: {stack}")
 
     if chunk == True:
-        kwargs.setdefault("dtype", out.dtype if type(out)=='np.ndarray' else datasets[0].dtype)
+        kwargs.setdefault(
+            "dtype", out.dtype if type(out) == "np.ndarray" else datasets[0].dtype
+        )
         kwargs.setdefault("drop_axis", 0 if stack else None)
         logger.debug(f"Chunking dataset[0]: {datasets[0].shape}")
 
@@ -452,7 +452,7 @@ def map_blocks(
         single input functions. Default: None
     compute: bool
         If `True` the result of the dask computation (if `chunk=True`) will be
-        calculted. If `False` the corresponding lazy Dask array will be returned.
+        calculated. If `False` the corresponding lazy Dask array will be returned.
         Default: True
     out: numpy-like array
         if `out` is given, the result of the computation will be stored on it. If

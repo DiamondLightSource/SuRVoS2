@@ -9,7 +9,7 @@ from .control import Launcher
 from multiprocessing import Process
 from vispy.color import Colormap
 
-from survos2.utils import get_logger
+#from survos2.utils import get_logger
 from survos2.config import Config
 import time
 
@@ -29,8 +29,9 @@ from survos2.frontend.components.base import (
     ScrollPane,
 )
 
-logger = get_logger()
+#logger = get_logger()
 
+from loguru import logger
 
 def resource(*args):
     rdir = os.path.dirname(__file__)

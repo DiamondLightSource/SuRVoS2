@@ -1,5 +1,5 @@
 import numpy as np
-
+from loguru import logger
 
 _MaskSize = 4  # 4 bits per history label
 _MaskCopy = 15  # 0000 1111
@@ -97,7 +97,7 @@ def annotate_regions(dataset, region, r=None, label=0):
 
     rmax = np.max(r)
     modified = dataset.get_attr("modified")
-
+    logger.debug(f"Annotating {dataset.total_chunks}")
     for i in range(dataset.total_chunks):
 
         idx = dataset.unravel_chunk_index(i)
@@ -109,7 +109,6 @@ def annotate_regions(dataset, region, r=None, label=0):
         mask = mask[reg_chunk]
 
         if not np.any(mask):
-            #print("no mask")
             modified[i] = (modified[i] << 1) & mbit
             continue
 
@@ -118,7 +117,7 @@ def annotate_regions(dataset, region, r=None, label=0):
         data_chunk[mask] = (data_chunk[mask] & _MaskPrev) | label
         dataset[chunk_slices] = data_chunk
         modified[i] = (modified[i] << 1) & mbit | 1
-        
+
     dataset.set_attr("modified", modified)
 
 
