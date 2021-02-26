@@ -527,6 +527,7 @@ class SSHWorker(QObject):
                 else:
                     logger.info(f"Port {server_port} is not open.")
                 sock.close()
+                cuda_command = ("module load cuda/10.1\n")
                 command = ("/dls_sw/apps/SuRVoS2/s2_conda/bin/python -u "
                            "/dls/science/groups/das/SuRVoS/s2/s2_dec/SuRVoS2/survos.py "
                           f"start_server {ws_name} {server_port} > {date.today()}_survos2.log &\n")
@@ -536,7 +537,8 @@ class SSHWorker(QObject):
                 session.setblocking(0) # Set to non-blocking mode
                 session.get_pty()
                 session.invoke_shell()
-                # Send command
+                # Send commands
+                session.send(cuda_command)
                 session.send(command)
                 # Loop for 15 seconds
                 self.button_message_signal.emit([f"Starting server on {self.ssh_host}. Please Wait!", "navy", 14])
