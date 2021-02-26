@@ -15,19 +15,14 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy.QtCore import QSize, Signal
 from qtpy.QtWidgets import QCheckBox
-
 from vispy import scene
 from vispy.color import Colormap
-
-
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.regions import *
 from survos2.frontend.plugins.features import *
 from survos2.frontend.plugins.annotations import *
-
 from survos2.frontend.plugins.base import ComboBox
-
 from survos2.frontend.components.base import Slider, HWidgets
 from survos2.server.state import cfg
 
@@ -43,11 +38,10 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.slider.setMinimumWidth(150)
         self.slider.sliderReleased.connect(self._params_updated)
 
-        button1 = QPushButton("Reload", self)
-        button1.clicked.connect(self.button1_clicked)
+        #button1 = QPushButton("Reload", self)
+        #button1.clicked.connect(self.button1_clicked)
         self.button2 = QPushButton("Slice mode", self)
         self.button2.clicked.connect(self.button2_clicked)
-        
         
         #button3 = QPushButton("Run workflow", self)
         #button3.clicked.connect(self.button3_clicked)
@@ -67,9 +61,9 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.slider.hide()
         
         
-        vbox = VBox(self, margin=(1, 0, 0, 0), spacing=5)
+        vbox = VBox(self, margin=(1, 1, 1, 1), spacing=2)
 
-        hbox_layout1.addWidget(button1)
+        #hbox_layout1.addWidget(button1)
         hbox_layout1.addWidget(self.button2)
         #hbox_layout2.addWidget(button3)
         #hbox_layout3.addWidget(session_widget)
@@ -82,7 +76,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
     def _params_updated(self):
         self.clientEvent.emit(
-            {"source": "slider", "data": "jump_around", "frame": self.slider.value()}
+            {"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()}
         )
 
 
@@ -101,7 +95,10 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             self.slider.hide()
             self.button2.setText("Slice Mode")
         else:
+            self.slider.vmax = cfg.slice_max - 1
+            self.slider.setRange(0, cfg.slice_max - 1)
             self.slider.show()
+            
             self.button2.setText("Volume Mode")
 
         self.slice_mode = not self.slice_mode

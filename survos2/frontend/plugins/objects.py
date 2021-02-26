@@ -32,7 +32,7 @@ class ObjectComboBox(LazyComboBox):
         result = Launcher.g.run("objects", "existing", **params)
         logger.debug(f"Result of objects existing: {result}")
         if result:
-            self.addCategory("Points")
+            #self.addCategory("Points")
             for fid in result:
                 if result[fid]["kind"] == "points":
                     self.addItem(fid, result[fid]["name"])
@@ -82,7 +82,12 @@ class ObjectsPlugin(Plugin):
                     self.objects_combo.addItem(f["name"])
 
 
-    def add_objects(self):
+    def add_objects(self,idx):
+        if idx == 0:
+            return
+        pipeline_type = self.objects_combo.itemText(idx)
+        self.objects_combo.setCurrentIndex(0)
+
         params = dict(
             order=0,
             workspace=True,
@@ -117,7 +122,7 @@ class ObjectsPlugin(Plugin):
         logger.debug(f"objects result {result}")
 
         if result:
-            # Remove objectss that no longer exist in the server
+            # Remove objects that no longer exist in the server
             for objects in list(self.existing_objects.keys()):
                 if objects not in result:
                     self.existing_objects.pop(obs).setParent(None)

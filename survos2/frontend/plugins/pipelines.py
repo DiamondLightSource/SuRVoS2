@@ -8,7 +8,7 @@ from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
 from survos2.model import DataModel
-from survos2.frontend.model import ClientData
+
 from survos2.frontend.plugins.base import LazyComboBox, LazyMultiComboBox, ComboBox
 from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox

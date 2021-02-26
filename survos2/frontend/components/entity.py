@@ -6,7 +6,7 @@ from loguru import logger
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
 
-from survos2.frontend.model import ClientData
+
 from survos2.entity.entities import make_entity_df
 from survos2.server.state import cfg
 import pyqtgraph as pg

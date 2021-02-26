@@ -39,8 +39,9 @@ def get_volume(src: DataURI):
 
 
 @hug.get()
-def get_slice(src: DataURI, slice_idx: Int):
-    ds = dataset_from_uri(src, mode="r")
+def get_slice(src: DataURI, slice_idx: Int, order : tuple):
+    ds = dataset_from_uri(src, mode="r")[:]
+    ds = np.transpose(ds, order)
     data = ds[slice_idx]
     return encode_numpy(data)
 
@@ -81,41 +82,6 @@ def supervoxels(
         relabel=True,
     )
 
-
-@hug.get()
-@save_metadata
-def supervoxels_pytorch(
-    src: DataURIList,
-    dst: DataURI,
-    n_segments: Int = 100,
-    compactness: Float = 20,
-    spacing: FloatList = [1, 1, 1],
-    multichannel: SmartBoolean = False,
-    enforce_connectivity: SmartBoolean = False,
-):
-    """
-    API wrapper for `cuda-slic`.
-    """
-    from survos2.server.slic_pytorch import slic_pytorch
-
-    logger.info(
-        f"Calling slic-pytorch with src: {src} dst: {dst}\n n_segments {n_segments} Compactness {compactness} Spacing {spacing}"
-    )
-    # import pdb; pdb.set_trace()
-    map_blocks(
-        slic_pytorch,
-        *src,
-        out=dst,
-        n_segments=n_segments,
-        spacing=spacing,
-        compactness=compactness,
-        multichannel=False,
-        enforce_connectivity=True,
-        stack=False,
-        timeit=False,
-        uses_gpu=False,
-        relabel=False,
-    )
 
 
 @hug.get()

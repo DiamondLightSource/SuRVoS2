@@ -8,6 +8,8 @@ from scipy.ndimage import binary_dilation
 
 from survos2.frontend.components.base import *
 from survos2.frontend.plugins.base import *
+from survos2.frontend.plugins.base import ColorButton, ParentButton
+
 from survos2.frontend.plugins.base import register_plugin, Plugin
 from survos2.frontend.plugins.annotation_tool import AnnotationTool
 from survos2.frontend.components.icon_buttons import DelIconButton, IconButton
@@ -59,9 +61,7 @@ class LevelComboBox(LazyComboBox):
 
     def fill(self):
         params = dict(workspace=True, full=self.full)
-
         result = Launcher.g.run("annotations", "get_levels", **params)
-        
         if result:
             self.addCategory("Annotations")
             for r in result:
@@ -154,6 +154,7 @@ class AnnotationPlugin(Plugin):
         cfg.brush_size = self.width.value()
         print(cfg.current_supervoxels, cfg.label_value)
 
+        #'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
         cfg.ppw.clientEvent.emit(
             {
                 "source": "annotations",
@@ -269,40 +270,59 @@ class AnnotationLabel(QCSWidget):
         self.label_name = label["name"]
         self.label_visible = label["visible"]
 
-        #parent_level=-1
-        #parent_label=-1        
-        #self.parent_level = parent_level
-        #self.parent_label = parent_label
-
-
+        parent_level=-1
+        parent_label=-1        
+        self.parent_level = parent_level
+        self.parent_label = parent_label
+        
         self.btn_del = DelIconButton(secondary=True)
         self.txt_label_name = LineEdit(label["name"])
         self.btn_label_color = ColorButton(label["color"])
-        self.btn_select = Spacing(35)
+        self.btn_label_parent_color = ParentButton(color=None)
+        #self.btn_select = IconButton("fa.pencil", "", accent=True)
+
         self.setMinimumHeight(self.__height__)
         self.setFixedHeight(self.__height__)
-
         self.txt_label_name.editingFinished.connect(self.update_label)
         self.btn_label_color.colorChanged.connect(self.update_label)
         self.btn_del.clicked.connect(self.delete)
+        #self.btn_select.clicked.connect(self.set_label)
 
         hbox = HBox(self)
         hbox.addWidget(
             HWidgets(
                 self.btn_del,
                 self.btn_label_color,
+                self.btn_label_parent_color,
                 self.txt_label_name,
-                self.btn_select,
-                stretch=2,
+                #self.btn_select,
+                stretch=3,
             )
         )
     
+    def set_label(self):
+        logger.debug(f"Setting label to {self.label_idx}")        
+        label_value = {'level': self.level_dataset, 'idx': self.label_idx, 'color': self.label_color}
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "annotations",
+                "data": "set_paint_params",
+                "paint_params": {
+                    "current_supervoxels": cfg.current_supervoxels,
+                    "label_value": label_value,
+                    "brush_size": cfg.brush_size,
+                },
+            }
+        )
+
     def parent_levels(self, level):
-        return [label.parent_level for label in self._levels[level].values()]
-
+    #     return [label.parent_level for label in self._levels[level].values()]
+        result = Launcher.g.run("annotations", "", **params)
+        
     def parent_labels(self, level):
-        return [label.parent_label for label in self._levels[level].values()]
-
+    #     return [label.parent_label for label in self._levels[level].values()]
+        result = Launcher.g.run("annotations", "", **params)
+        
     def update_label(self):
         label = dict(
             idx=self.label_idx,
@@ -312,6 +332,7 @@ class AnnotationLabel(QCSWidget):
         )
         params = dict(level=self.level_dataset, workspace=True)
         result = Launcher.g.run("annotations", "update_label", **params, **label)
+        
         if result:
             self.label_name = result["name"]
             self.label_color = result["color"]

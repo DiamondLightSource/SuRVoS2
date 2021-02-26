@@ -1,7 +1,7 @@
 import hug
 import numbers
 import os.path as op
-
+import numpy as np
 from survos2.api import workspace as ws
 from survos2.api.utils import get_function_api, save_metadata, dataset_repr
 from survos2.api.types import DataURI, String, Int, Float, FloatOrVector, SmartBoolean
@@ -35,11 +35,14 @@ def get_volume(src: DataURI):
 
 
 @hug.get()
-def get_slice(src: DataURI, slice_idx: Int):
-    logger.debug("Getting feature slice")
-    ds = dataset_from_uri(src, mode="r")
+def get_slice(src: DataURI, slice_idx: Int, order: tuple):
+    order = np.array(order)
+    print(order)
+    ds = dataset_from_uri(src, mode="r")[:]
+    print(ds.shape)
+    ds = np.transpose(ds, order).astype(np.float32)
     data = ds[slice_idx]
-    return encode_numpy(data)
+    return encode_numpy(data.astype(np.float32))
 
 
 @hug.get()

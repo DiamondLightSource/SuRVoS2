@@ -342,7 +342,7 @@ class ColorButton(QtWidgets.QPushButton):
             self.clicked.connect(self.on_click)
 
     def setColor(self, color):
-        color = str(QtGui.QColor(color).name())
+        
         if color is None:
             self.setStyleSheet(
                 """
@@ -374,7 +374,7 @@ class ColorButton(QtWidgets.QPushButton):
             """
                 % (color, color)
             )
-
+        color = str(QtGui.QColor(color).name())
         self.color = color
 
     def on_click(self):
@@ -386,6 +386,67 @@ class ColorButton(QtWidgets.QPushButton):
 
     def value(self):
         return self.color
+
+
+
+
+class ParentButton(QtWidgets.QPushButton):
+
+    colorChanged = Signal(str)
+
+    def __init__(self, color="#000000", clickable=True, **kwargs):
+        super().__init__(**kwargs)
+        self.setColor(color)
+        if clickable:
+            self.clicked.connect(self.on_click)
+
+    def setColor(self, color):
+        
+        if color is None:
+            self.setStyleSheet(
+                """
+                QPushButton, QPushButton:hover {
+                    background-color:
+                        qlineargradient(
+                            x1:0, y1:0, x2:1, y2:1,
+                            stop: 0 white, stop: 0.15 white,
+                            stop: 0.2 red,
+                            stop: 0.25 white, stop: 0.45 white,
+                            stop: 0.5 red,
+                            stop: 0.55 white, stop: 0.75 white,
+                            stop: 0.8 red, stop: 0.85 white
+                        );
+                }
+            """
+            )
+        else:
+            self.setStyleSheet(
+                """
+                QPushButton { background-color: %s; }
+                QPushButton:hover {
+                    background-color:
+                        qlineargradient(
+                            x1:0, y1:0, x2:0.5, y2:1,
+                            stop: 0 white, stop: 1 %s
+                        );
+                    }
+            """
+                % (color, color)
+            )
+        color = str(QtGui.QColor(color).name())
+        self.color = color
+
+    def on_click(self):
+        c = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color), self.parent())
+        if not c.isValid():
+            return
+        self.setColor(str(c.name()))
+        self.colorChanged.emit(self.color)
+
+    def value(self):
+        return self.color
+
+
 
 
 class Card(QCSWidget):

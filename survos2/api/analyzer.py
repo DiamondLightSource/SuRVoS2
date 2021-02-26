@@ -32,7 +32,7 @@ __analyzer_group__ = "analyzer"
 __analyzer_names__ = ["object_analyzer", "simple_stats"]
 
 from survos2.frontend.nb_utils import summary_stats
-
+from survos2.frontend.components.entity import setup_entity_table
 @hug.get()
 def simple_stats(
     workspace: String,
@@ -62,7 +62,7 @@ def object_analyzer(
     src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
     logger.debug(f"Getting features {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        ds_feature = DM.sources[0]
+        ds_feature = DM.sources[0][:]
         #logger.debug(f"summary_stats {src_dataset[:]}")
 
     src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
@@ -71,10 +71,13 @@ def object_analyzer(
         ds_objects = DM.sources[0]
 
     entities_fullname = ds_objects.get_metadata("fullname")
-    logger.info(f"Viewing entities {entities_fullname}")
     tabledata, entities_df = setup_entity_table(entities_fullname)
+    sel_start, sel_end = 0, len(entities_df)
 
+    logger.info(f"Viewing entities {entities_fullname} from {sel_start} to {sel_end}")
+    
     scale = 1.0
+    
     centers = np.array(
         [
             [
@@ -85,9 +88,12 @@ def object_analyzer(
             for i in range(sel_start, sel_end)
         ]
     )
+    print(centers)
 
-    for c in centers:
-        logger.debug(ds_feature[c[0], c[1],c[2]])
+    point_features = [(ds_feature[c[0], c[2], c[1]]) for c in centers]
+    return point_features
+
+
 
 
 @hug.get()

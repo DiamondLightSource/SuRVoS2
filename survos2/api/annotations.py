@@ -35,8 +35,9 @@ def get_volume(src: DataURI):
 
 
 @hug.get()
-def get_slice(src: DataURI, slice_idx: Int):
-    ds = dataset_from_uri(src, mode="r")
+def get_slice(src: DataURI, slice_idx: Int, order : tuple):
+    ds = dataset_from_uri(src, mode="r")[:]
+    ds = np.transpose(ds, order)
     data = ds[slice_idx]
     return encode_numpy(data)
 
@@ -51,7 +52,7 @@ def add_level(workspace: String):
         fill=__level_fill__,
         chunks=CHUNK_SIZE,
     )
-    logger.debug(ds, type(ds))
+    logger.debug(ds)
     ds.set_attr("kind", "level")
     ds.set_attr("modified", [0] * ds.total_chunks)
 

@@ -9,7 +9,7 @@ from typing import List, Dict
 from attrdict import AttrDict
 
 from survos2.frontend.frontend import frontend
-from survos2.frontend.model import ClientData
+
 from survos2.entity.entities import make_entity_df
 from survos2 import survos
 from survos2.model import DataModel
@@ -21,7 +21,6 @@ from survos2.model.workspace import WorkspaceException
 def preprocess(img_volume):
     img_volume = np.array(img_volume).astype(np.float32)
     img_volume = np.nan_to_num(img_volume)
-
     img_volume = img_volume - np.min(img_volume)
     img_volume = img_volume / np.max(img_volume)
 
@@ -109,37 +108,6 @@ def init_ws(workspace_params):
     )
 
 
-def init_client():
-    survos.init_api()
-    from survos2.model import Workspace
-
-    # ws = Workspace(DataModel.g.current_workspace)
-    # dataset_name = "__data__"
-    # ds = ws.get_dataset(dataset_name)
-    # img_volume = ds[:]
-    # logger.debug(f"Image volume loaded: {img_volume.shape}")
-    # src = DataModel.g.dataset_uri("__data__")
-    # with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-    #     src_dataset = DM.sources[0]
-    #     img_volume = src_dataset[:].copy()
-
-    # DataModel.g.current_workspace_shape = img_volume.shape
-
-    # logger.debug(f"DatasetManager loaded volume of shape {img_volume.shape}")
-
-    # filtered_layers = [np.array(img_volume).astype(np.float32)]
-    # layer_names = [
-    #     "Main",
-    # ]
-    # opacities = [
-    #     1.0,
-    # ]
-
-    from survos2.server.state import cfg
-    clientData = ClientData(cfg)
-    return clientData
-
-
 def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
     """
     View a ROI from a big volume by creating a temp dataset from a crop.
@@ -148,7 +116,6 @@ def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
     """
 
     logger.info(f"Preprocess cropping at {precrop_coord} to {precrop_vol_size}")
-
     img_volume, precropped_pts = crop_vol_and_pts_centered(
         img_volume,
         np.array(entities_df),
@@ -159,20 +126,7 @@ def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
     )
 
     entities_df = make_entity_df(precropped_pts, flipxy=False)
-
     return img_volume, entities_df
 
-
-def setup_ws(project_file=None):
-    with open(project_file) as project_file:
-        workspace_params = json.load(project_file)
-        workspace_params = AttrDict(workspace_params)
-        clientData = init_client(workspace_params)
-
-    return clientData
-
-
 def start_client():
-    clientData = init_client()
-    # logger.info(f"Prepared clientdata {clientData}")
-    frontend(clientData)
+    frontend()
