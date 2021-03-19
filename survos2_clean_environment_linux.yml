@@ -22,6 +22,7 @@ dependencies:
   - charls
   - click
   - cloudpickle
+  - conda
   - coverage
   - cryptography
   - cudatoolkit
