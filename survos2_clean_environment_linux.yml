@@ -185,7 +185,7 @@ dependencies:
     - prompt-toolkit
     - ptyprocess
     - py
-    - pycuda
+    - pycuda==2020.1
     - pydantic
     - pygments
     - pyopengl
