@@ -1,8 +1,7 @@
 import sys
 import torch
 import torch.nn as nn
-import torchvision.models as models
-import torchvision.transforms as transforms
+
 import warnings
 
 from PIL import Image
@@ -25,7 +24,8 @@ class CNNFeatures:
     def __init__(
         self, cuda=False, layer="default", model="resnet-18", layer_output_size=512
     ):
-
+        import torchvision.models as models
+        import torchvision.transforms as transforms
         self.device = torch.device("cuda" if cuda else "cpu")
         self.layer_output_size = layer_output_size
         self.model_name = model

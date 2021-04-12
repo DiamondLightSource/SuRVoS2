@@ -3,13 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
-from torchvision import datasets, models, transforms
 
 from loguru import logger
 
-import torchio as tio
-from torchio import IMAGE, LOCATION
-from torchio.data.inference import GridSampler, GridAggregator
 
 
 def setup_cnn_model():
@@ -48,6 +44,11 @@ def predict_and_agg(
     Stacked CNN Predict and Aggregate
     Uses torchio
     """
+    import torchio as tio
+    from torchio import IMAGE, LOCATION
+    from torchio.data.inference import GridSampler, GridAggregator
+    from torchvision import datasets, models, transforms
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     img_tens = torch.FloatTensor(input_array)
     logger.debug(img_tens.shape)

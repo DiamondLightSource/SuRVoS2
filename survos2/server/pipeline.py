@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import torchio as tio
+
 import yaml
 from loguru import logger
 from matplotlib import pyplot as plt
@@ -150,6 +150,7 @@ def gridsampler_pipeline(
     patch_overlap=(0, 0, 0),
     batch_size=1,
 ):
+    import torchio as tio
     from torchio import IMAGE, LOCATION
     from torchio.data.inference import GridAggregator, GridSampler
 

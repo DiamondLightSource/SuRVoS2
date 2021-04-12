@@ -27,20 +27,17 @@ from skimage import data, measure
 
 
 import torch
-import torchvision.utils
+
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset
 import torch.nn.functional as F
 from torch.nn import init
 from torch.utils.data import DataLoader
-from torchvision import transforms
+
 from sklearn.model_selection import train_test_split
 
 from tqdm import tqdm
-
-from torchio import IMAGE, LOCATION
-from torchio.data.inference import GridSampler, GridAggregator
 
 
 from survos2.entity.sampler import sample_bvol
@@ -126,6 +123,10 @@ def make_patches(
     get_biggest_cc=False,
 ):
     # make bg mask
+    from torchio import IMAGE, LOCATION
+    from torchio.data.inference import GridSampler, GridAggregator
+    import torchvision.utils
+    from torchvision import transforms
 
     target_cents = np.array(wf.locs)[:, 0:4]
     target_cents = target_cents[:, [0, 2, 1, 3]]

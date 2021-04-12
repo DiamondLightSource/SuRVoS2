@@ -14,7 +14,7 @@ from torch.optim import SGD, Adam, LBFGS, AdamW
 from torch.optim import lr_scheduler
 from torch.optim.lr_scheduler import StepLR, MultiStepLR
 from torch import optim
-import torchvision.utils
+
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset
@@ -100,7 +100,7 @@ import h5py
 
 
 def make_pseudomasks(wf, acwe=False):
-
+    import torchvision.utils
     padding = (64, 64, 64)
     anno_masks, padded_vol = generate_anno(
         wf.vols[0],

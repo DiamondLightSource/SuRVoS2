@@ -5,11 +5,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import torch.optim as optim
-from torchvision import datasets, models, transforms
-
-import torchio as tio
-from torchio import IMAGE, LOCATION
-from torchio.data.inference import GridSampler, GridAggregator
 
 from survos2.entity.sampler import crop_vol_and_pts_centered
 from survos2.server.pipeline import Pipeline, Patch
@@ -55,6 +50,13 @@ def gridsampler_pipeline(
     patch_overlap=(0, 0, 0),
     batch_size=1,
 ):
+
+    import torchio as tio
+    from torchio import IMAGE, LOCATION
+    from torchio.data.inference import GridSampler, GridAggregator
+    from torchvision import datasets, models, transforms
+
+
     logger.debug("Starting up gridsampler pipeline...")
     input_tensors = []
     output_tensors = []

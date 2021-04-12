@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import torchio as tio
+
 from loguru import logger
 from skimage import img_as_ubyte
 from survos2.entity.anno import geom
@@ -25,9 +25,7 @@ from survos2.server.pipeline import Patch
 from survos2.server.superseg import mrf_refinement, sr_predict
 from survos2.server.supervoxels import generate_supervoxels, superregion_factory
 from torch.utils.data import DataLoader
-from torchio import IMAGE, LOCATION
-from torchio.data.inference import GridAggregator, GridSampler
-from torchvision import datasets, models, transforms
+
 from tqdm import tqdm
 
 
@@ -433,6 +431,11 @@ def predict_and_agg(
     extra_unsqueeze=True,
     device=0,
 ):
+
+    import torchio as tio
+    from torchio import IMAGE, LOCATION
+    from torchio.data.inference import GridAggregator, GridSampler
+    from torchvision import datasets, models, transforms
 
     device = torch.device(device)
     img_tens = torch.FloatTensor(input_array)
