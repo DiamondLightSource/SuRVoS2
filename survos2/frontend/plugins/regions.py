@@ -1,15 +1,14 @@
 import numpy as np
-
 from qtpy import QtWidgets
-from qtpy.QtWidgets import QRadioButton, QPushButton
+from qtpy.QtWidgets import QPushButton, QRadioButton
 
-from survos2.frontend.plugins.base import *
 from survos2.frontend.components.base import *
-from survos2.model import DataModel
-from survos2.frontend.control import Launcher
-from survos2.server.state import cfg
-from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.frontend.components.icon_buttons import IconButton
+from survos2.frontend.control import Launcher
+from survos2.frontend.plugins.base import *
+from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
+from survos2.model import DataModel
+from survos2.server.state import cfg
 
 
 class RegionComboBox(LazyComboBox):
@@ -146,11 +145,7 @@ class SupervoxelCard(Card):
             self.setParent(None)
 
         cfg.ppw.clientEvent.emit(
-            {
-                "source": "regions",
-                "data": "remove_layer",
-                "layer_name": self.svid,
-            }
+            {"source": "regions", "data": "remove_layer", "layer_name": self.svid,}
         )
 
     def card_title_edited(self, newtitle):
@@ -190,7 +185,7 @@ class SupervoxelCard(Card):
             src=src,
             dst=dst,
             compactness=round(self.svcompactness.value() / 100, 3),
-            #shape=self.svshape.value(),
+            # shape=self.svshape.value(),
             n_segments=n_segments,
             spacing=self.svspacing.value(),
             modal=False,

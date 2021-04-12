@@ -1,30 +1,33 @@
 """
-Imanol's components
-
-
-
+Base components
 """
-
-from qtpy import QtWidgets
-from qtpy.QtWidgets import QRadioButton, QPushButton
-from qtpy.QtCore import QSize
-from qtpy import QtCore
-from qtpy.QtCore import QSize, Signal
-from qtpy import QtGui
-
-from loguru import logger
-import re
-import numpy as np
 import os
+import re
 from collections import defaultdict
-import qtawesome as qta
 
-from survos2.frontend.utils import resource
+import numpy as np
+import qtawesome as qta
+from loguru import logger
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtCore import QSize, Signal
+from qtpy.QtWidgets import (
+    QApplication,
+    QDialog,
+    QDialogButtonBox,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QRadioButton,
+    QVBoxLayout,
+)
+
 from survos2.frontend.components.icon_buttons import (
+    AddIconButton,
     DelIconButton,
     ViewIconButton,
-    AddIconButton,
 )
+from survos2.frontend.utils import resource
 
 
 class Label(QtWidgets.QLabel):
@@ -240,6 +243,42 @@ class HWidgets(QtWidgets.QWidget):
         self.setStyleSheet(style)
 
 
+class ComboDialog(QtWidgets.QDialog):
+    def __init__(self, options=None, parent=None):
+        super(ComboDialog, self).__init__(parent=parent)
+
+        layout = QtWidgets.QVBoxLayout(self)
+
+        self.combo = ComboBox()
+        for option in options:
+            self.combo.addItem(option)
+        layout.addWidget(self.combo)
+
+        # OK and Cancel buttons
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            QtCore.Qt.Horizontal,
+            self,
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    @staticmethod
+    def getOption(options, parent=None):
+        dialog = ComboDialog(options, parent=parent)
+        result = dialog.exec_()
+        option = dialog.combo.currentText()
+        return (option, result == QtWidgets.QDialog.Accepted)
+
+    @staticmethod
+    def getOptionIdx(options, parent=None):
+        dialog = ComboDialog(options, parent=parent)
+        result = dialog.exec_()
+        option = dialog.combo.currentIndex()
+        return (option, result == QtWidgets.QDialog.Accepted)
+
+
 class LineEdit(QtWidgets.QLineEdit):
     def __init__(self, text=None, default="", parse=str, fontsize=None, **kwargs):
         super().__init__(text, **kwargs)
@@ -342,7 +381,7 @@ class ColorButton(QtWidgets.QPushButton):
             self.clicked.connect(self.on_click)
 
     def setColor(self, color):
-        
+
         if color is None:
             self.setStyleSheet(
                 """
@@ -388,20 +427,39 @@ class ColorButton(QtWidgets.QPushButton):
         return self.color
 
 
+class ParentDialog(QDialog):
+    def __init__(self, parent=None, source_level="001_level"):
+        super().__init__(parent=parent)
+        self.setWindowTitle("Label parent")
+        QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        self.layout = QVBoxLayout()
+        message = QLabel("Choose label parent")
+        self.layout.addWidget(message)
+        self.source_level = source_level
+        from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
+
+        self.label_combobox = AnnotationComboBox(exclude_from_fill=self.source_level)
+        self.layout.addWidget(self.label_combobox)
+        self.layout.addWidget(self.buttonBox)
+        self.setLayout(self.layout)
 
 
 class ParentButton(QtWidgets.QPushButton):
-
     colorChanged = Signal(str)
 
-    def __init__(self, color="#000000", clickable=True, **kwargs):
+    def __init__(self, color="#000000", clickable=True, source_level="001_level",**kwargs):
         super().__init__(**kwargs)
         self.setColor(color)
         if clickable:
             self.clicked.connect(self.on_click)
+        self.parent_level = -1
+        self.parent_label = -1
+        self.source_level = source_level
 
     def setColor(self, color):
-        
         if color is None:
             self.setStyleSheet(
                 """
@@ -437,16 +495,24 @@ class ParentButton(QtWidgets.QPushButton):
         self.color = color
 
     def on_click(self):
-        c = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color), self.parent())
-        if not c.isValid():
-            return
-        self.setColor(str(c.name()))
-        self.colorChanged.emit(self.color)
+        dlg = ParentDialog(source_level=self.source_level)
+        if dlg.exec_():
+            selected_label = dlg.label_combobox.value()
+            print(selected_label)
+            self.setColor(selected_label["color"])
+            self.parent_level = selected_label["level"]
+            self.parent_label = selected_label["idx"] - 1
+            self.colorChanged.emit(selected_label["color"])
+        else:
+            print("Canceled adding label parent.")
+
+        # c = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color), self.parent())
+        # if not c.isValid():
+        #    return
+        # self.setColor(str(c.name()))
 
     def value(self):
         return self.color
-
-
 
 
 class Card(QCSWidget):

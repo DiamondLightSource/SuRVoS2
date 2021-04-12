@@ -22,30 +22,42 @@ from survos2.model.model import DataModel
 
 from survos2.utils import decode_numpy
 
+from loguru import logger
+
 _AnnotationNotifier = PluginNotifier()
 
+
+def _fill_level(combo, level):
+    combo.addCategory(level["name"])
+    if not "labels" in level:
+        return
+    for label in level["labels"].values():
+        icon = FAIcon("fa.square", color=label["color"])
+        lidx = "{}:{}".format(level["id"], label["idx"])
+        data = dict(level=level["id"], idx=label["idx"], color=label["color"])
+        combo.addItem(lidx, label["name"], icon=icon, data=data)
 
 def _fill_annotations(combo, full=False):
     params = dict(workspace=True, full=full)
     levels = Launcher.g.run("annotations", "get_levels", **params)
     if levels:
         for level in levels:
-            combo.addCategory(level["name"])
-            if not "labels" in level:
-                continue
-            for label in level["labels"].values():
-                icon = FAIcon("fa.square", color=label["color"])
-                lidx = "{}:{}".format(level["id"], label["idx"])
-                data = dict(level=level["id"], idx=label["idx"], color=label["color"])
-                combo.addItem(lidx, label["name"], icon=icon, data=data)
-
+            if combo.exclude_from_fill is not None:
+                logger.debug(f"Excluding level {combo.exclude_from_fill} {level}")
+                if level["id"] != combo.exclude_from_fill:
+                    _fill_level(combo, level)
+            else:
+                _fill_level(combo, level)
+                
 
 class AnnotationComboBox(LazyComboBox):
-    def __init__(self, full=False, parent=None):
+    def __init__(self, full=False, parent=None, exclude_from_fill=None):
         self.full = full
+        self.exclude_from_fill=exclude_from_fill
+
         super().__init__(parent=parent, header=(None, "Select Label"))
         _AnnotationNotifier.listen(self.update)
-
+        
     def fill(self):
         _fill_annotations(self, full=self.full)
 

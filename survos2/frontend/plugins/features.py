@@ -174,22 +174,12 @@ class FeatureCard(Card):
     def _add_view_btn(self):
         view_btn = PushButton("View", accent=True)
         view_btn.clicked.connect(self.view_feature)
-        self.add_row(
-            HWidgets(
-                None,
-                view_btn,
-            )
-        )
+        self.add_row(HWidgets(None, view_btn,))
 
     def _add_compute_btn(self):
         compute_btn = PushButton("Compute", accent=True)
         compute_btn.clicked.connect(self.compute_feature)
-        self.add_row(
-            HWidgets(
-                None,
-                compute_btn,
-            )
-        )
+        self.add_row(HWidgets(None, compute_btn,))
 
     def update_params(self, params):
         src = params.pop("source", None)

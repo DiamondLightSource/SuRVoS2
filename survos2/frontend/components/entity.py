@@ -1,39 +1,69 @@
 import numpy as np
-import seaborn as sns
 import pandas as pd
+import pyqtgraph as pg
+import seaborn as sns
 from loguru import logger
-
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
 
-
 from survos2.entity.entities import make_entity_df
 from survos2.server.state import cfg
-import pyqtgraph as pg
 
 
-def setup_entity_table(entities_fullname, scale=1.0):
-
+def setup_entity_table(entities_fullname, scale=1.0, offset=(0, 0, 0)):
     entities_df = pd.read_csv(entities_fullname)
+    index_column = len([col for col in entities_df.columns if "index" in col]) > 0
+    print(index_column)
     entities_df.drop(
         entities_df.columns[entities_df.columns.str.contains("unnamed", case=False)],
         axis=1,
         inplace=True,
     )
+    entities_df.drop(
+        entities_df.columns[entities_df.columns.str.contains("index", case=False)],
+        axis=1,
+        inplace=True,
+    )
+    class_code_column = (
+        len([col for col in entities_df.columns if "class_code" in col]) > 0
+    )
+    if not class_code_column:
+        entities_df["class_code"] = 0
+
     entities_df = make_entity_df(np.array(entities_df), flipxy=True)
-    logger.debug(f"Loaded entities {entities_df.shape}")
-
+    logger.debug(
+        f"Loaded entities {entities_df.shape} applying scale {scale} and offset {offset}"
+    )
     tabledata = []
+    entities_df["z"] = (entities_df["z"] * scale) + offset[0]
+    entities_df["x"] = (entities_df["x"] * scale) + offset[1]
+    entities_df["y"] = (entities_df["y"] * scale) + offset[2]
 
-    for i in range(len(entities_df)):
-        entry = (
-            i,
-            entities_df.iloc[i]["z"] * scale,
-            entities_df.iloc[i]["x"] * scale,
-            entities_df.iloc[i]["y"] * scale,
-            entities_df.iloc[i]["class_code"],
-        )
-        tabledata.append(entry)
+    print("-" * 100)
+
+    if index_column:
+        logger.debug("Loading pts")
+        for i in range(len(entities_df)):
+            entry = (
+                i,  # entities_df.iloc[i]["index"],
+                entities_df.iloc[i]["z"],
+                entities_df.iloc[i]["x"],
+                entities_df.iloc[i]["y"],
+                0,
+            )
+            tabledata.append(entry)
+
+    else:
+        logger.debug("Loading entities")
+        for i in range(len(entities_df)):
+            entry = (
+                i,
+                entities_df.iloc[i]["z"],
+                entities_df.iloc[i]["x"],
+                entities_df.iloc[i]["y"],
+                entities_df.iloc[i]["class_code"],
+            )
+            tabledata.append(entry)
 
     tabledata = np.array(
         tabledata,
@@ -47,7 +77,6 @@ def setup_entity_table(entities_fullname, scale=1.0):
     )
 
     logger.debug(f"Loaded {len(tabledata)} entities.")
-
     return tabledata, entities_df
 
 

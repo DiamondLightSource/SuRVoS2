@@ -21,20 +21,31 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from survos2.server.state import cfg
+from loguru import logger
 
 DEFAULT_DIR_KEY = "default_dir"
 DEFAULT_DATA_KEY = "default_data_dir"
+
+
+def get_array_from_dataset(src_dataset, axis=0):
+
+    if cfg.retrieval_mode == 'slice':
+        print(f"src_dataset shape {src_dataset.shape}")
+        dataset = src_dataset.copy(order="C")
+        dataset = np.transpose(dataset, np.array(cfg.order)).astype(np.float32)
+        src_arr = dataset[cfg.current_slice, :, :]
+    elif cfg.retrieval_mode == 'volume':
+        src_arr = src_dataset[:]
+
+    return src_arr
 
 
 class WorkerThread(QThread):
     def run(self):
         def work():
             cfg.ppw.clientEvent.emit(
-                {
-                    "source": "save_annotation",
-                    "data": "save_annotation",
-                    "value": None,
-                }
+                {"source": "save_annotation", "data": "save_annotation", "value": None,}
             )
             cfg.ppw.clientEvent.emit(
                 {"source": "save_annotation", "data": "refresh", "value": None}
@@ -68,21 +79,21 @@ def hex_string_to_rgba(hex_string):
     return rgba_array
 
 
-def get_color_mapping(result):
+def get_color_mapping(result, level_id="001_level"):
+    logger.debug(f"Getting color mapping for level {level_id}")
     labels = []
     for r in result:
-        level_name = r["name"]
         if r["kind"] == "level":
-            cmapping = {}
-            for ii, (k, v) in enumerate(r["labels"].items()):
-                labels.append(ii)
-                # remapped_label = label_ids[ii]
-                remapped_label = int(k) - 1
-                cmapping[remapped_label] = hex_string_to_rgba(v["color"])
-                cmapping[remapped_label + (remapped_label * 16)] = hex_string_to_rgba(
-                    v["color"]
-                )
-    return cmapping, labels
+            if r["id"] == level_id:
+                cmapping = {}
+                for ii, (k, v) in enumerate(r["labels"].items()):
+                    labels.append(ii)
+                    remapped_label = int(k) - 1
+                    cmapping[remapped_label] = hex_string_to_rgba(v["color"])
+                    cmapping[
+                        remapped_label + (remapped_label * 16)
+                    ] = hex_string_to_rgba(v["color"])
+                return cmapping, labels
 
 
 def resource(*args):

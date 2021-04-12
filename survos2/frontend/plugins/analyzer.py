@@ -1,17 +1,19 @@
 import numpy as np
-
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 from qtpy import QtWidgets
-from qtpy.QtWidgets import QRadioButton, QPushButton
+from qtpy.QtWidgets import QPushButton, QRadioButton
 
-from survos2.frontend.plugins.base import *
 from survos2.frontend.components.base import *
-from survos2.model import DataModel
-from survos2.frontend.control import Launcher
-from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.frontend.components.icon_buttons import IconButton
-from survos2.improc.utils import DatasetManager
-from survos2.server.state import cfg
+from survos2.frontend.control import Launcher
+from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.objects import ObjectComboBox
+from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
+from survos2.improc.utils import DatasetManager
+from survos2.model import DataModel
+from survos2.server.state import cfg
+from survos2.utils import decode_numpy
 
 
 def _fill_analyzers(combo, full=False, filter=True, ignore=None):
@@ -22,6 +24,7 @@ def _fill_analyzers(combo, full=False, filter=True, ignore=None):
         for fid in result:
             if fid != ignore:
                 combo.addItem(fid, result[fid]["name"])
+
 
 class AnalyzersComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None):
@@ -38,6 +41,7 @@ class AnalyzersComboBox(LazyComboBox):
                 if result[fid]["kind"] == "analyzer":
                     self.addItem(fid, result[fid]["name"])
 
+
 @register_plugin
 class AnalyzerPlugin(Plugin):
 
@@ -52,13 +56,11 @@ class AnalyzerPlugin(Plugin):
         vbox = VBox(self, spacing=10)
         vbox.addWidget(self.analyzers_combo)
         self.analyzers_combo.currentIndexChanged.connect(self.add_analyzer)
-        self.existing_analyzers = {}
+        self.existing_analyzer = {}
         self.analyzers_layout = VBox(margin=0, spacing=5)
-        
         vbox.addLayout(self.analyzers_layout)
-
         self._populate_analyzers()
-        
+
     def _populate_analyzers(self):
         self.analyzer_params = {}
         self.analyzers_combo.clear()
@@ -70,7 +72,7 @@ class AnalyzerPlugin(Plugin):
         if not result:
             logger.debug("No analyzers")
             params = {}
-            params["category"] = "analyzer"
+            params["category"] = "IMAGE"
             params["name"] = "s0"
             params["type"] = "simple_stats"
             result = {}
@@ -79,7 +81,7 @@ class AnalyzerPlugin(Plugin):
 
             all_categories = sorted(set(p["category"] for p in result))
 
-            logger.debug(f"Analyzers {result}")
+            logger.debug(f"Analyzer {result}")
             for i, category in enumerate(all_categories):
                 self.analyzers_combo.addItem(category)
                 self.analyzers_combo.model().item(
@@ -91,27 +93,25 @@ class AnalyzerPlugin(Plugin):
                     self.analyzers_combo.addItem(f["name"])
 
     def add_analyzer(self, idx):
-        #if idx == 0:
-        #    return
-        logger.debug(f"Adding analyzer {idx}")
-        analyzer_type = self.analyzers_combo.itemText(idx)
-        self.analyzers_combo.setCurrentIndex(0)
+        if idx != 0:
+            logger.debug(f"Adding analyzer {idx}")
+            analyzer_type = self.analyzers_combo.itemText(idx)
+            self.analyzers_combo.setCurrentIndex(0)
 
-        params = dict(analyzer_type=analyzer_type, workspace=True)
-        result = Launcher.g.run("analyzer", "create", **params)
+            params = dict(analyzer_type=analyzer_type, workspace=True)
+            result = Launcher.g.run("analyzer", "create", **params)
 
-        if result:
-            analyzer_id = result["id"]
-            analyzername = result["name"]
-
-            self._add_analyzer_widget(analyzer_id, analyzername, True)
+            if result:
+                analyzer_id = result["id"]
+                analyzername = result["name"]
+                self._add_analyzer_widget(analyzer_id, analyzername, True)
 
     def _add_analyzer_widget(self, analyzer_id, analyzername, expand=False):
         widget = AnalyzerCard(analyzer_id, analyzername)
         widget.showContent(expand)
         self.analyzers_layout.addWidget(widget)
 
-        self.existing_analyzers[analyzer_id] = widget
+        self.existing_analyzer[analyzer_id] = widget
         return widget
 
     def setup(self):
@@ -119,12 +119,15 @@ class AnalyzerPlugin(Plugin):
 
         params["id"] = 0
         params["name"] = "analysis1"
-        params["kind"] = "analyzer"
-        result = {}
-        result[0] = params
+        params["kind"] = "simple_stats"
+        
+        #result = {}
+        #result[0] = params
 
         result = Launcher.g.run("analyzer", "existing", **params)
+        
         if result:
+            logger.debug("Populating analyzer widgets with {result}")
             # Remove analyzer that no longer exist in the server
             for analyzer in list(self.existing_analyzer.keys()):
                 if analyzer not in result:
@@ -132,7 +135,6 @@ class AnalyzerPlugin(Plugin):
 
             # Populate with new analyzer if any
             for analyzer in sorted(result):
-
                 if analyzer in self.existing_analyzer:
                     continue
                 params = result[analyzer]
@@ -151,6 +153,13 @@ class AnalyzerPlugin(Plugin):
                     )
 
 
+class MplCanvas(FigureCanvasQTAgg):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
+
+
 class AnalyzerCard(Card):
     def __init__(self, analyzer_id, analyzername, parent=None):
         super().__init__(
@@ -167,12 +176,14 @@ class AnalyzerCard(Card):
         self._add_objects_source()
 
         self.calc_btn = PushButton("Compute")
+        self.plot_btn = PushButton("Plot")
         self.add_row(HWidgets(None, self.calc_btn, Spacing(35)))
+        self.add_row(HWidgets(None, self.plot_btn, Spacing(35)))
         self.calc_btn.clicked.connect(self.calculate_analyzer)
-    
-    
+        self.plot_btn.clicked.connect(self.clustering_plot)
+
     def _add_objects_source(self):
-        self.objects_source = ObjectComboBox(full=True) 
+        self.objects_source = ObjectComboBox(full=True)
         self.objects_source.fill()
         self.objects_source.setMaximumWidth(250)
 
@@ -209,6 +220,29 @@ class AnalyzerCard(Card):
         all_params = dict(src=src, dst=dst, modal=False)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_ids"] = str(self.features_source.value()[-1])
-        all_params["object_id"] = str(self.objects_source.value()[-1])
+        all_params["object_id"] = str(self.objects_source.value())
         logger.debug(f"Running analyzer with params {all_params}")
-        Launcher.g.run("analyzer", "simple_stats", **all_params)
+        result = Launcher.g.run("analyzer", "simple_stats", **all_params)
+
+        if result:
+            src_arr = decode_numpy(result)
+            sc = MplCanvas(self, width=5, height=4, dpi=100)
+            sc.axes.imshow(src_arr)
+            # sc.axes.plot([0,1,2,3,4], [10,1,20,3,40])
+            self.add_row(sc, max_height=300)
+
+    def clustering_plot(self):
+        src = DataModel.g.dataset_uri(self.features_source.value())
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_ids"] = str(self.features_source.value()[-1])
+        all_params["object_id"] = str(self.objects_source.value())
+        logger.debug(f"Running analyzer with params {all_params}")
+        result = Launcher.g.run("analyzer", "simple_stats", **all_params)
+        if result:
+            src_arr = decode_numpy(result)
+            sc = MplCanvas(self, width=5, height=4, dpi=100)
+            sc.axes.imshow(src_arr)
+            # sc.axes.plot([0,1,2,3,4], [10,1,20,3,40])
+            self.add_row(sc, max_height=300)

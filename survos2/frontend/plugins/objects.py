@@ -1,24 +1,21 @@
 import numpy as np
-
 from qtpy import QtWidgets
-from qtpy.QtWidgets import QRadioButton, QPushButton
+from qtpy.QtWidgets import QPushButton, QRadioButton
 
-from survos2.frontend.plugins.base import *
 from survos2.frontend.components.base import *
-from survos2.model import DataModel
-from survos2.frontend.control import Launcher
-from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
-from survos2.frontend.components.icon_buttons import IconButton
-from survos2.frontend.utils import FileWidget
-from survos2.improc.utils import DatasetManager
-from survos2.server.state import cfg
-
 from survos2.frontend.components.entity import (
-    TableWidget,
     SmallVolWidget,
+    TableWidget,
     setup_entity_table,
 )
-
+from survos2.frontend.components.icon_buttons import IconButton
+from survos2.frontend.control import Launcher
+from survos2.frontend.plugins.base import *
+from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
+from survos2.frontend.utils import FileWidget
+from survos2.improc.utils import DatasetManager
+from survos2.model import DataModel
+from survos2.server.state import cfg
 
 
 class ObjectComboBox(LazyComboBox):
@@ -32,11 +29,10 @@ class ObjectComboBox(LazyComboBox):
         result = Launcher.g.run("objects", "existing", **params)
         logger.debug(f"Result of objects existing: {result}")
         if result:
-            #self.addCategory("Points")
+            # self.addCategory("Points")
             for fid in result:
                 if result[fid]["kind"] == "points":
                     self.addItem(fid, result[fid]["name"])
-
 
 
 @register_plugin
@@ -56,9 +52,10 @@ class ObjectsPlugin(Plugin):
         self.existing_objects = {}
         self.objects_layout = VBox(margin=0, spacing=5)
         self.objects_combo.currentIndexChanged.connect(self.add_objects)
-        
+
         self.vbox.addLayout(self.objects_layout)
         self._populate_objects()
+
     def _populate_objects(self):
         self.objects_params = {}
         self.objects_combo.clear()
@@ -81,17 +78,14 @@ class ObjectsPlugin(Plugin):
                     self.objects_params[f["name"]] = f["params"]
                     self.objects_combo.addItem(f["name"])
 
-
-    def add_objects(self,idx):
+    def add_objects(self, idx):
         if idx == 0:
             return
         pipeline_type = self.objects_combo.itemText(idx)
         self.objects_combo.setCurrentIndex(0)
 
         params = dict(
-            order=0,
-            workspace=True,
-            fullname="survos2/entity/blank_entities.csv",
+            order=0, workspace=True, fullname="survos2/entity/blank_entities.csv",
         )
         result = Launcher.g.run("objects", "create", **params)
 
@@ -116,6 +110,7 @@ class ObjectsPlugin(Plugin):
         self.existing_objects[objectsid] = widget
 
         return widget
+
     def setup(self):
         params = dict(workspace=True)
         result = Launcher.g.run("objects", "existing", **params)
@@ -127,7 +122,7 @@ class ObjectsPlugin(Plugin):
                 if objects not in result:
                     self.existing_objects.pop(obs).setParent(None)
 
-        # Populate with new entity if any
+            # Populate with new entity if any
             for entity in sorted(result):
                 if entity in self.existing_objects:
                     continue
@@ -149,7 +144,6 @@ class ObjectsPlugin(Plugin):
                         )
                     )
 
-
     def setup2(self):
         params = dict(order=0, workspace=True)
 
@@ -157,7 +151,7 @@ class ObjectsPlugin(Plugin):
         params["name"] = "points1"
         params["kind"] = "objects"
         params["fullname"] = "a.csv"
-        
+
         result = {}
         result[0] = params
 
@@ -203,37 +197,55 @@ class ObjectsCard(Card):
         )
         self.objectsid = objectsid
         self.objectsname = objectsname
+        self.object_scale = 1.0
 
-        # self.objectsfullname = LineEdit(parse=str, default=50)
-        # self.objectsfullname.setValue(objectsfullname)
         self.objectsfullname = objectsfullname
-
+        self.widgets = {}
         self.filewidget = FileWidget(extensions="*.csv", save=False)
         self.add_row(self.filewidget)
         self.filewidget.path_updated.connect(self.load_data)
 
-        # self.objectsfullname.setMaximumWidth(250)
         self.compute_btn = PushButton("Compute")
         self.view_btn = PushButton("View", accent=True)
         self.get_btn = PushButton("Get", accent=True)
 
-        # self.add_row(HWidgets("Source:", self.objectsfullname, stretch=1))
-        self.add_row(HWidgets(None, self.view_btn, Spacing(35)))
-        self.add_row(HWidgets(None, self.get_btn, Spacing(35)))
+        self._add_param("scale", title="Scale: ", type="Float", default=0)
+        self._add_param("offset", title="Offset: ", type="FloatOrVector", default=0)
+
+        self.add_row(HWidgets(None, self.view_btn, self.get_btn, Spacing(35)))
 
         self.view_btn.clicked.connect(self.view_objects)
         self.get_btn.clicked.connect(self.get_objects)
 
+        cfg.object_scale = self.widgets["scale"].value()
         self.table_control = TableWidget()
-        tabledata, _ = setup_entity_table(objectsfullname, scale=0.25)
+        self.add_row(self.table_control.w, max_height=500)
+
+        tabledata, _ = setup_entity_table(objectsfullname, scale=cfg.object_scale)
         cfg.tabledata = tabledata
         self.table_control.set_data(tabledata)
         cfg.entity_table = self.table_control
-        self.add_row(self.table_control.w, max_height=500)
+        
+    def _add_param(self, name, title=None, type="String", default=None):
+        if type == "Int":
+            p = LineEdit(default=default, parse=int)
+        elif type == "Float":
+            p = LineEdit(default=default, parse=float)
+        elif type == "FloatOrVector":
+            p = LineEdit3D(default=default, parse=float)
+        elif type == "IntOrVector":
+            p = LineEdit3D(default=default, parse=int)
+        else:
+            p = None
+        if title is None:
+            title = name
+        if p:
+            self.widgets[name] = p
+            self.add_row(HWidgets(None, title, p, Spacing(35)))
 
     def load_data(self, path):
         self.objectsfullname = path
-        print(f"Setting entitiesfullname: {self.objectsfullname}")
+        print(f"Setting objectsfullname: {self.objectsfullname}")
 
     def card_deleted(self):
         params = dict(objects_id=self.objectsid, workspace=True)
@@ -264,7 +276,14 @@ class ObjectsCard(Card):
         params = dict(dst=dst, fullname=self.objectsfullname)
         logger.debug(f"Getting objects with params {params}")
         Launcher.g.run("objects", "points", **params)
-        tabledata, _ = setup_entity_table(self.objectsfullname, scale=0.25)
+        cfg.object_scale = self.widgets["scale"].value()
+        cfg.object_offset = self.widgets["offset"].value()
+
+        tabledata, _ = setup_entity_table(
+            self.objectsfullname, scale=cfg.object_scale, offset=cfg.object_offset
+        )
         cfg.tabledata = tabledata
         print(f"Loaded tabledata {tabledata}")
         self.table_control.set_data(tabledata)
+        self.collapse()
+        self.expand()

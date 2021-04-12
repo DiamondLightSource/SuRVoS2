@@ -95,7 +95,7 @@ def list_plugins():
 class PluginContainer(QCSWidget):
 
     view_requested = QtCore.Signal(str, dict)
-    __sidebar_width__ = 550
+    __sidebar_width__ = 400
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
