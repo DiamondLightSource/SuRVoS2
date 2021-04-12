@@ -10,12 +10,16 @@ crashes if an overly detailed image is used as the source image.
 
 
 """
-import os
 import copy
+import os
 from typing import List
+
 import numpy as np
 import scipy
+from cuda_slic import slic
 from loguru import logger
+
+import survos2.api.workspace as ws
 
 #
 # SuRVoS 2 imports
@@ -24,13 +28,10 @@ from survos2.improc import map_blocks
 
 # from survos2.improc.features import gaussian, tvdenoising3d
 from survos2.improc.regions.rag import create_rag
-from cuda_slic import slic
 from survos2.improc.segmentation import _qpbo as qpbo
-from survos2.improc.segmentation.appearance import train, predict, refine, invrmap
-from survos2.improc.segmentation.mappings import rmeans
+from survos2.improc.segmentation.appearance import invrmap, predict, refine, train
+from survos2.improc.segmentation.mappings import rmeans, rstats
 from survos2.io import dataset_from_uri
-
-import survos2.api.workspace as ws
 from survos2.server.model import SRData
 
 
@@ -95,12 +96,22 @@ def generate_supervoxels(
 
 
 def superregion_factory(
-    supervoxel_vol: np.ndarray, features_stack: np.ndarray
+    supervoxel_vol: np.ndarray, features_stack: np.ndarray, desc_type="Mean",
 ) -> SRData:
+
     supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32, copy=True)
-    supervoxel_features = rmeans(features_stack, supervoxel_vol)
+
+    if desc_type == "Mean":
+        descriptors = rmeans(features_stack, supervoxel_vol.astype(np.uint32))
+    elif desc_type == "Covar":
+        descriptors = rstats(features_stack, supervoxel_vol, mode="add", norm=None)
+    elif desc_type == "Sigma Set":
+        descriptors = rstats(
+            features_stack, supervoxel_vol, mode="add", sigmaset=True, norm=None
+        )
+
     logger.info(
-        f"Finished rmeans with supervoxel_features of shape {supervoxel_features.shape}"
+        f"Finished calculating superregion descriptors of shape {descriptors.shape}"
     )
 
     supervoxel_rag = create_rag(np.array(supervoxel_vol), connectivity=6)
@@ -108,7 +119,7 @@ def superregion_factory(
         "MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol))
     )
 
-    superregions = SRData(supervoxel_vol, supervoxel_features, supervoxel_rag)
+    superregions = SRData(supervoxel_vol, descriptors, supervoxel_rag)
 
     return superregions
 

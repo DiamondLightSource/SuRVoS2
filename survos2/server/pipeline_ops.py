@@ -2,42 +2,33 @@ import os
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-
+import torch.optim as optim
 import torchio as tio
-from torchio.data.inference import GridSampler, GridAggregator
-from torchio import IMAGE, LOCATION
-from torch.utils.data import DataLoader
-from torchvision import datasets, models, transforms
-
-from skimage import img_as_ubyte
-from tqdm import tqdm
 from loguru import logger
-
-
+from skimage import img_as_ubyte
+from survos2.entity.anno import geom
+from survos2.entity.anno.masks import generate_sphere_masks_fast
+from survos2.entity.entities import make_entity_df
+from survos2.entity.saliency import filter_proposal_mask, measure_big_blobs
+from survos2.entity.sampler import (
+    centroid_to_bvol,
+    crop_vol_and_pts_centered,
+    viz_bvols,
+)
 from survos2.frontend.nb_utils import show_images
 from survos2.helpers import AttrDict
-from survos2.entity.anno import geom
-from survos2.frontend.model import ClientData
-from survos2.improc.features import gaussian, tvdenoising3d, gaussian_norm
-from survos2.server.superseg import sr_predict
-from survos2.server.supervoxels import generate_supervoxels
-from survos2.server.model import SRData, SRPrediction, SRFeatures
+from survos2.improc.features import gaussian, gaussian_norm, tvdenoising3d
+from survos2.server.features import features_factory, generate_features
+from survos2.server.model import SRData, SRFeatures, SRPrediction
 from survos2.server.pipeline import Patch
-from survos2.server.features import (
-    features_factory,
-    generate_features,
-)
-from survos2.server.superseg import _sr_prediction
-from survos2.server.supervoxels import superregion_factory
-from survos2.server.superseg import mrf_refinement
-from survos2.entity.saliency import filter_proposal_mask
-from survos2.entity.saliency import measure_big_blobs
-from survos2.entity.sampler import centroid_to_bvol, viz_bvols
-from survos2.entity.anno.masks import generate_sphere_masks_fast
-from survos2.entity.sampler import crop_vol_and_pts_centered
-from survos2.entity.entities import make_entity_df
+from survos2.server.superseg import mrf_refinement, sr_predict
+from survos2.server.supervoxels import generate_supervoxels, superregion_factory
+from torch.utils.data import DataLoader
+from torchio import IMAGE, LOCATION
+from torchio.data.inference import GridAggregator, GridSampler
+from torchvision import datasets, models, transforms
+from tqdm import tqdm
 
 
 def save_model(filename, model, optimizer, torch_models_fullpath):
@@ -68,9 +59,7 @@ def sphere_masks(patch: Patch, params: dict):
     )
     show_images(
         [total_mask[total_mask.shape[0] // 2, :]],
-        [
-            "Sphere mask, radius: " + str(mask_radius),
-        ],
+        ["Sphere mask, radius: " + str(mask_radius),],
     )
 
     patch.image_layers["generated"] = total_mask
@@ -95,9 +84,7 @@ def make_masks(patch: Patch, params: dict):
     geom[:, 2] = geom[:, 2] + padding[2]
 
     total_mask = generate_sphere_masks_fast(
-        patch.image_layers["Main"],
-        geom,
-        radius=mask_radius[0],
+        patch.image_layers["Main"], geom, radius=mask_radius[0],
     )
 
     core_mask = generate_sphere_masks_fast(
@@ -107,7 +94,8 @@ def make_masks(patch: Patch, params: dict):
     )
 
     show_images(
-        [total_mask[total_mask.shape[0] // 2, :], core_mask[core_mask.shape[0] // 2, :]]
+        [total_mask[total_mask.shape[0] // 2, :], core_mask[core_mask.shape[0] // 2, :]],
+        figsize=(4,4)
     )
 
     patch.image_layers["total_mask"] = total_mask
@@ -122,10 +110,9 @@ def make_features(patch: Patch, params: dict):
 
     """
 
-    # logger.info("Calculating features")
+    logger.debug("Calculating features")
 
     cropped_vol = patch.image_layers["Main"]
-    print(cropped_vol.shape)
 
     roi_crop = [
         0,
@@ -135,10 +122,10 @@ def make_features(patch: Patch, params: dict):
         0,
         cropped_vol.shape[2],
     ]
-    print(f"Roi crop: {roi_crop}")
+    logger.debug(f"Roi crop: {roi_crop}")
 
     for feature_name, v in params["feature_params"].items():
-        print(feature_name, v)
+        logger.debug(feature_name, v)
         features = generate_features(cropped_vol, v, roi_crop, 1.0)
 
         for i, layer in enumerate(features.filtered_layers):
@@ -234,7 +221,7 @@ def make_features2(patch: Patch, params: dict):
     return patch
 
 
-def acwe(patch: Patch, params: dict):
+def make_acwe(patch: Patch, params: dict):
     """
     Active Contour
 
@@ -407,7 +394,6 @@ def cnn_predict_2d_3chan(patch: Patch, params: dict):
     )
     logger.info(f"inputs_t: {inputs_t.shape}")
     pred = model(stacked_t)
-    # pred, feats = model.forward_(stacked_t)
     pred = F.sigmoid(pred)
     pred = pred.data.cpu()
     output = pred.unsqueeze(1)
@@ -418,7 +404,100 @@ def cnn_predict_2d_3chan(patch: Patch, params: dict):
     return patch
 
 
+def predict_2d_3chan(model, input_tensor, device):
+    device = torch.device(device)
+    inputs_t = input_tensor.squeeze(1)
+    inputs_t = inputs_t.to(device)
+    stacked_t = torch.stack(
+        [inputs_t[:, 0, :, :], inputs_t[:, 0, :, :], inputs_t[:, 0, :, :]], axis=1
+    )
+    print(f"inputs_t: {inputs_t.shape}")
+    pred = model(stacked_t)
+    # pred, feats = model.forward_(stacked_t)
+    pred = F.sigmoid(pred)
+    pred = pred.data.cpu()
+
+    # output = pred.unsqueeze(1)
+    print(f"pred: {pred.shape}")
+
+    return pred
+
+
 def predict_and_agg(
+    model,
+    input_array,
+    patch_size=(1, 224, 224),
+    patch_overlap=(0, 16, 16),
+    batch_size=1,
+    stacked_3chan=False,
+    extra_unsqueeze=True,
+    device=0,
+):
+
+    device = torch.device(device)
+    img_tens = torch.FloatTensor(input_array)
+
+    one_subject = tio.Subject(
+        img=tio.Image(tensor=img_tens, label=tio.INTENSITY),
+        label=tio.Image(tensor=img_tens, label=tio.LABEL),
+    )
+
+    img_dataset = tio.ImagesDataset([one_subject,])
+    img_sample = img_dataset[-1]
+
+    grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)
+    patch_loader = DataLoader(grid_sampler, batch_size=batch_size)
+    aggregator = GridAggregator(grid_sampler)
+
+    input_tensors = []
+    output_tensors = []
+
+    with torch.no_grad():
+        for patches_batch in tqdm(patch_loader):
+
+            input_tensor = patches_batch["img"]["data"]
+            location = patches_batch[LOCATION]
+
+            # print(f"Input tensor {input_tensor.shape}")
+
+            inputs_t = input_tensor.squeeze(1)
+            inputs_t = inputs_t.to(device)
+
+            if stacked_3chan:
+                inputs_t = torch.stack(
+                    [inputs_t[:, 0, :, :], inputs_t[:, 0, :, :], inputs_t[:, 0, :, :]],
+                    axis=1,
+                )
+            else:
+                inputs_t = inputs_t[:, 0:1, :, :]
+
+            print(f"inputs_t: {inputs_t.shape}")
+
+            output = predict_2d_3chan(model, input_tensor, device)
+
+            # pred = model(inputs_t)
+            # pred = torch.sigmoid(pred[0])
+            # pred = torch.sigmoid(pred[0])
+            # pred = pred.data.cpu()
+            # print(f"pred: {pred.shape}")
+
+            if extra_unsqueeze:
+                output = output.unsqueeze(1)
+            # output = pred.squeeze(0)
+
+            input_tensors.append(input_tensor)
+            output_tensors.append(output)
+
+            # print(output.shape, location)
+            aggregator.add_batch(output, location)
+
+    output_tensor = aggregator.get_output_tensor()
+    logger.debug(f"Predicted volume: {output_tensor.shape}")
+
+    return output_tensor
+
+
+def predict_and_agg2(
     model,
     input_array,
     patch_size=(1, 224, 224),
@@ -440,11 +519,7 @@ def predict_and_agg(
         label=tio.Image(tensor=img_tens, label=tio.LABEL),
     )
 
-    img_dataset = tio.ImagesDataset(
-        [
-            one_subject,
-        ]
-    )
+    img_dataset = tio.ImagesDataset([one_subject,])
     img_sample = img_dataset[-1]
 
     grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)
@@ -494,3 +569,33 @@ def predict_and_agg(
     print(input_tensor.shape, output_tensor.shape)
 
     return output_tensor
+
+
+def test_make_masks(p):
+    print(f"Making masks ")
+    p.image_layers["mask"] = np.array([0, 1, 2, 3])
+    return p
+
+
+def test_make_features(p):
+    p.image_layers["features"] = np.array([0.1, 0.2, 0.3, 0.4])
+    print(f"Making features")
+    return p
+
+
+def test_make_sr(p):
+    p.image_layers["sr"] = np.array([0.1, 0.2, 0.3, 0.4])
+    print(f"Making superregions")
+    return p
+
+
+def test_make_seg_sr(p):
+    p.image_layers["seg_sr"] = np.array([0.1, 0.2, 0.3, 0.4])
+    print(f"Making segmentation with superregions")
+    return p
+
+
+def test_make_seg_cnn(p):
+    p.image_layers["seg_cnn"] = np.array([0.1, 0.2, 0.3, 0.4])
+    print(f"Making segmentation with cnn")
+    return p

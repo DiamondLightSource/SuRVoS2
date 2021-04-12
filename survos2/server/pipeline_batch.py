@@ -60,7 +60,6 @@ def gridsampler_pipeline(
     output_tensors = []
 
     entity_pts = entity_pts.astype(np.int32)
-
     img_tens = torch.FloatTensor(input_array)
 
     one_subject = tio.Subject(
@@ -68,11 +67,7 @@ def gridsampler_pipeline(
         label=tio.Image(tensor=img_tens, label=tio.LABEL),
     )
 
-    img_dataset = tio.ImagesDataset(
-        [
-            one_subject,
-        ]
-    )
+    img_dataset = tio.ImagesDataset([one_subject,])
     img_sample = img_dataset[-1]
 
     grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)
@@ -98,7 +93,6 @@ def gridsampler_pipeline(
     with torch.no_grad():
         for patches_batch in patch_loader:
             locations = patches_batch[LOCATION]
-
             loc_arr = np.array(locations[0])
             loc = (loc_arr[0], loc_arr[1], loc_arr[2])
             logger.debug(f"Location: {loc}")
@@ -129,21 +123,9 @@ def gridsampler_pipeline(
             # )
 
             payload = Patch(
-                {
-                    "total_mask": np.random.random(
-                        (4, 4),
-                    )
-                },
-                {
-                    "total_anno": np.random.random(
-                        (4, 4),
-                    )
-                },
-                {
-                    "points": np.random.random(
-                        (4, 3),
-                    )
-                },
+                {"total_mask": np.random.random((4, 4),)},
+                {"total_anno": np.random.random((4, 4),)},
+                {"points": np.random.random((4, 3),)},
             )
             pipeline.init_payload(payload)
 

@@ -16,7 +16,6 @@ def setup_cnn_model():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     num_class = 1
     model = ResNetUNet(num_class, convblock2).to(device)
-
     checkpoint_directory = cfg.torch_models_fullpath  # torch_models_fullpath
     file_path = os.path.join(checkpoint_directory, "resnetUnet_model_0511_b.pt")
     load_mod = True
@@ -58,11 +57,7 @@ def predict_and_agg(
         label=tio.Image(tensor=img_tens, label=tio.LABEL),
     )
 
-    img_dataset = tio.ImagesDataset(
-        [
-            one_subject,
-        ]
-    )
+    img_dataset = tio.ImagesDataset([one_subject,])
     img_sample = img_dataset[-1]
 
     grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)
