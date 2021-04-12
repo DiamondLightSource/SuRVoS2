@@ -70,59 +70,6 @@ def test_sr_predict():
     assert segmentation.shape == anno_image.shape
 
 
-def test_sr_predict():
-    workspace_name = "epfl_256c"
-    DataModel.g.current_workspace = workspace_name
-    DataModel.g.current_session = "default"
-
-    anno_id = "002_level"
-    region_id = "001_supervoxels"
-    feature_ids = ["002_gblur", "001_raw"]
-    classifier_type = "rf"
-    projection_type = None
-    refine = True
-    lam = (1.0,)
-    num_components = 0
-
-    # get anno
-    src = DataModel.g.dataset_uri(anno_id, group="annotations")
-    with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        anno_image = src_dataset[:] & 15
-
-    # get superregions
-    src = DataModel.g.dataset_uri(region_id, group="regions")
-    with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        supervoxel_image = src_dataset[:]
-
-    # get features
-    features = []
-
-    for feature_id in feature_ids:
-        src = DataModel.g.dataset_uri(feature_id, group="features")
-
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_dataset = DM.sources[0]
-            features.append(src_dataset[:])
-
-    superseg_cfg = cfg.pipeline
-    superseg_cfg["type"] = classifier_type
-    superseg_cfg["predict_params"]["proj"] = projection_type
-
-    segmentation = sr_predict(
-        supervoxel_image,
-        anno_image,
-        features,
-        superseg_cfg,
-        refine,
-        lam,
-        num_components,
-    )
-
-    assert segmentation.shape == anno_image.shape
-
-
 @pytest.mark.skip(reason="todo")
 def test_mask_pipeline(p: Patch):
     p = make_masks(p)
