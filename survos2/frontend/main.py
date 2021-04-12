@@ -99,13 +99,71 @@ def init_ws(workspace_params):
 
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
 
-    return survos.run_command(
+    response = survos.run_command(
         "workspace",
         "add_dataset",
         workspace=ws_name,
         dataset_name=dataset_name,
         dtype="float32",
     )
+
+    DataModel.g.current_workspace = ws_name
+    survos.run_command(
+        "features", "create", uri=None, workspace=ws_name, feature_type="raw"
+    )
+    src = DataModel.g.dataset_uri("__data__", None)
+    dst = DataModel.g.dataset_uri("001_raw", group="features")
+    with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
+        print(DM.sources[0].shape)
+        orig_dataset = DM.sources[0]
+        dst_dataset = DM.out
+        src_arr = orig_dataset[:]
+        dst_dataset[:] = src_arr
+
+    return response
+
+
+
+def roi_ws(img_volume, ws_name):
+    tmpvol_fullpath = "tmp\\tmpvol.h5"
+
+    with h5py.File(tmpvol_fullpath, "w") as hf:
+        hf.create_dataset("data", data=img_volume)
+
+    survos.run_command("workspace", "create", workspace=ws_name)
+    logger.info(f"Created workspace {ws_name}")
+
+    survos.run_command(
+        "workspace",
+        "add_data",
+        workspace=ws_name,
+        data_fname=tmpvol_fullpath,
+        dtype="float32",
+    )
+
+    response = survos.run_command(
+        "workspace",
+        "add_dataset",
+        workspace=ws_name,
+        dataset_name=ws_name + "_dataset",
+        dtype="float32",
+    )
+
+    DataModel.g.current_workspace = ws_name
+
+    survos.run_command(
+        "features", "create", uri=None, workspace=ws_name, feature_type="raw"
+    )
+    src = DataModel.g.dataset_uri("__data__", None)
+    dst = DataModel.g.dataset_uri("001_raw", group="features")
+    with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
+        print(DM.sources[0].shape)
+        orig_dataset = DM.sources[0]
+        dst_dataset = DM.out
+        src_arr = orig_dataset[:]
+        dst_dataset[:] = src_arr
+
+    return response
 
 
 def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
