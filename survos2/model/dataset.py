@@ -3,26 +3,22 @@ Hdf5 datasets, with metadata and custom chunking
 
 """
 
+import collections
+import copy
+import itertools
+import logging as log
+import numbers
 import os
 import shutil
-import copy
 
+import dask.array as da
 import h5py as h5
 import numpy as np
-import dask.array as da
-import logging as log
-
-import collections
-import itertools
-import numbers
+from loguru import logger
 
 from survos2.config import Config
-from survos2.utils import AttributeDB
-
 from survos2.improc.utils import optimal_chunksize
-
-
-from loguru import logger
+from survos2.utils import AttributeDB
 
 CHUNKS = Config["computing.chunk_size"] if Config["computing.chunks"] else None
 CHUNKS_SPARSE = (
@@ -93,6 +89,10 @@ class DatasetWrapper(BaseDataset):
         if hasattr(self.dataset, "tojson"):
             return self.dataset.tojson()
         return dict(shape=self.shape, dtype=np.dtype(self.dtype).name)
+
+
+class PatchDataset(BaseDataset):
+    pass
 
 
 class Dataset(BaseDataset):
@@ -457,7 +457,7 @@ class Dataset(BaseDataset):
         return tuple(map(int, np.ravel_multi_index(idx, self.chunk_grid)))
 
     def _process_slices(self, slices, squeeze=False):
-        #logger.debug(f"_process_slices {slices}")
+        # logger.debug(f"_process_slices {slices}")
         if type(slices) in [slice, int]:
             slices = [slices]
         elif slices is Ellipsis:
