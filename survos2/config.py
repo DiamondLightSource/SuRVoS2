@@ -17,7 +17,7 @@ class _Config(type):
         },
         "computing": {
             "chunks": True,
-            "chunk_size": 64,
+            "chunk_size": 32,
             "chunk_padding": 8,
             "chunk_size_sparse": 10,
             "scale": False,
@@ -27,6 +27,7 @@ class _Config(type):
             "chroot": "/dls/science/groups/das/SuRVoS/s2/data/",  # full path, or can be 'tmp'
             # "chroot": "Y:/data",
             #"chroot": "D:/datasets/chroot/",
+            #"chroot": "/home/avery_pennington/chroot/",
             "dbtype": "yaml",
         },
         "logging": {
@@ -39,6 +40,7 @@ class _Config(type):
         "qtui": {"maximized": False, "menuKey": "\\"},
         "filters": {},
         "pipeline": {},
+        "slic" : "skimage",
     }
 
     def __getitem__(self, key):
