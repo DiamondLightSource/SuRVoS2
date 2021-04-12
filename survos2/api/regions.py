@@ -1,28 +1,33 @@
-import hug
 import logging
 import os.path as op
 
-import numpy as np
 import dask.array as da
+import hug
+import numpy as np
+from skimage.segmentation import slic
 
-from survos2.utils import encode_numpy
-from survos2.io import dataset_from_uri
-from survos2.improc import map_blocks
-from survos2.api.utils import save_metadata, dataset_repr
-from survos2.api.types import (
-    DataURI,
-    Float,
-    SmartBoolean,
-    FloatOrVector,
-    IntList,
-    String,
-    Int,
-    FloatList,
-    DataURIList,
-)
-from survos2.api import workspace as ws
 
 from loguru import logger
+import survos2
+from survos2.api import workspace as ws
+from survos2.api.types import (
+    DataURI,
+    DataURIList,
+    Float,
+    FloatList,
+    FloatOrVector,
+    Int,
+    IntList,
+    SmartBoolean,
+    String,
+)
+from survos2.api.utils import dataset_repr, save_metadata
+from survos2.improc import map_blocks
+from survos2.io import dataset_from_uri
+from survos2.utils import encode_numpy
+from survos2.improc.utils import DatasetManager
+
+
 
 __region_fill__ = 0
 __region_dtype__ = "uint32"
@@ -39,10 +44,17 @@ def get_volume(src: DataURI):
 
 
 @hug.get()
-def get_slice(src: DataURI, slice_idx: Int, order : tuple):
+def get_slice(src: DataURI, slice_idx: Int, order: tuple):
     ds = dataset_from_uri(src, mode="r")[:]
     ds = np.transpose(ds, order)
     data = ds[slice_idx]
+    return encode_numpy(data)
+
+@hug.get()
+def get_crop(src: DataURI, roi: IntList):
+    logger.debug("Getting regions crop")
+    ds = dataset_from_uri(src, mode="r")
+    data = ds[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]]
     return encode_numpy(data)
 
 
@@ -51,7 +63,6 @@ def get_slice(src: DataURI, slice_idx: Int, order : tuple):
 def supervoxels(
     src: DataURIList,
     dst: DataURI,
-    #shape: IntList = [10, 10, 10],
     n_segments: Int = 10,
     compactness: Float = 20,
     spacing: FloatList = [1, 1, 1],
@@ -61,11 +72,14 @@ def supervoxels(
     """
     API wrapper for `cuda-slic`.
     """
-    from cuda_slic import slic
 
-    logger.info(
-        f"Calling cuda-slic with src: {src} dst: {dst}\n n_segments {n_segments} Compactness {compactness} Spacing {spacing}"
-    )
+    if survos2.config.Config["slic"] == 'skimage':
+        logger.debug("Using skimage slic")
+        from skimage.segmentation import slic
+    elif survos2.config.Config["slic"] == 'cuda_slic':
+        logger.debug("Using cuda_slic")
+        from cuda_slic import slic
+
     # import pdb; pdb.set_trace()
     map_blocks(
         slic,
@@ -78,10 +92,49 @@ def supervoxels(
         enforce_connectivity=True,
         stack=False,
         timeit=True,
-        uses_gpu=True,
+        uses_gpu=False,
+        #out_dtype=np.uint64,
         relabel=True,
     )
 
+    with DatasetManager(dst, out=None, dtype="uint64", fillvalue=0) as DM:
+        dst_dataset = DM.sources[0]
+        supervoxel_image = dst_dataset[:]
+
+    dst_dataset.set_attr("num_supervoxels", len(np.unique(supervoxel_image)))
+
+
+@hug.get()
+@save_metadata
+def supervoxels_pytorch(
+    src: DataURIList,
+    dst: DataURI,
+    n_segments: Int = 100,
+    compactness: Float = 20,
+    spacing: FloatList = [1, 1, 1],
+    multichannel: SmartBoolean = False,
+    enforce_connectivity: SmartBoolean = False,
+):
+    from survos2.server.slic_pytorch import slic_pytorch
+
+    logger.info(
+        f"Calling slic-pytorch with src: {src} dst: {dst}\n n_segments {n_segments} Compactness {compactness} Spacing {spacing}"
+    )
+    # import pdb; pdb.set_trace()
+    map_blocks(
+        slic_pytorch,
+        *src,
+        out=dst,
+        n_segments=n_segments,
+        spacing=spacing,
+        compactness=compactness,
+        multichannel=False,
+        enforce_connectivity=True,
+        stack=False,
+        timeit=False,
+        uses_gpu=False,
+        relabel=False,
+    )
 
 
 @hug.get()

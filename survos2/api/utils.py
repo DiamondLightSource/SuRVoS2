@@ -9,8 +9,8 @@ from survos2.config import Config
 
 from loguru import logger
 
-#from survos2.utils import get_logger
-#logger = get_logger()
+# from survos2.utils import get_logger
+# logger = get_logger()
 
 
 CHUNK = Config["computing.chunks"]
@@ -61,6 +61,7 @@ def save_metadata(func):
 
     @wraps(func)
     def wrapper(src, dst, *args, **kwargs):
+        logger.debug(f"Wrapper: src {src}, dst {dst}")
         result = func(src, dst, *args, **kwargs)
         ds = dataset_from_uri(dst, mode="r+")
         if ds.supports_metadata():
@@ -73,7 +74,10 @@ def save_metadata(func):
                 src_id = [dataset_from_uri(s, mode="r").id for s in src]
             else:
                 src_id = dataset_from_uri(src, mode="r").id
+            logger.debug(f"src_id: {src_id}")
             ds.set_attr("source", src_id)
+        else:
+            logger.debug("Dataset doesn't support metadata.")
         result = dataset_repr(ds)
         ds.close()
         logger.info("+ Computed: {}".format(fname))

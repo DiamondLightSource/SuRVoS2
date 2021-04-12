@@ -1,16 +1,56 @@
-import hug
-import parse
 import os.path as op
 
-from survos2.api.utils import APIException
-from survos2.api.types import String, Int, IntOrNone
-#from survos2.utils import get_logger
-from survos2.io import dataset_from_uri
-from survos2.config import Config
-from survos2.model import Workspace, Dataset
+import hug
+import parse
 from loguru import logger
 
+from survos2.api.types import Int, IntOrNone, String, IntList, DataURI
+from survos2.api.utils import APIException
+from survos2.config import Config
+
+# from survos2.utils import get_logger
+from survos2.io import dataset_from_uri
+from survos2.model import Dataset, Workspace
+from survos2.model import DataModel
+from survos2.improc.utils import DatasetManager
+
 ### Workspace
+
+from survos2.frontend.main import roi_ws
+
+
+@hug.get()
+def goto_roi(feature_id: DataURI, roi: IntList):
+    # workspace, session = parse_workspace(workspace)
+
+    # get raw from current workspace
+
+    src = DataModel.g.dataset_uri(feature_id, group="features")
+    logger.debug(f"Getting features {src} and cropping roi {roi}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0][:]
+
+    src_dataset = src_dataset[roi[0] : roi[3], roi[1] : roi[4], roi[2] : roi[5]]
+
+    # make new ws from roi crop of raw data
+    roi_name = (
+        DataModel.g.current_workspace
+        + "_roi_"
+        + str(roi[0])
+        + "_"
+        + str(roi[3])
+        + "_"
+        + str(roi[1])
+        + "_"
+        + str(roi[4])
+        + "_"
+        + str(roi[2])
+        + "_"
+        + str(roi[5])
+    )
+    roi_ws(src_dataset, roi_name)
+
+    return roi_name
 
 
 @hug.get()
@@ -39,6 +79,7 @@ def get(workspace: String):
 @hug.get()
 def add_data(workspace: String, data_fname: String):
     import dask.array as da
+
     from survos2.improc.utils import optimal_chunksize
 
     ws = get(workspace)

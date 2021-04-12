@@ -1,18 +1,17 @@
-import hug
-import parse
 import os.path as op
 
+import hug
 import numpy as np
+import parse
+from loguru import logger
 
-from survos2.api.utils import APIException, dataset_repr
-from survos2.api.types import String, SmartBoolean, Float, Int, IntList, DataURI
 from survos2.api import workspace as ws
-
+from survos2.api.types import DataURI, Float, Int, IntList, SmartBoolean, String
+from survos2.api.utils import APIException, dataset_repr
 from survos2.config import Config
 from survos2.improc import map_blocks
 from survos2.io import dataset_from_uri
 from survos2.utils import encode_numpy
-from loguru import logger
 
 __level_fill__ = 0
 __level_dtype__ = "uint32"
@@ -35,11 +34,52 @@ def get_volume(src: DataURI):
 
 
 @hug.get()
-def get_slice(src: DataURI, slice_idx: Int, order : tuple):
+def get_slice(src: DataURI, slice_idx: Int, order: tuple):
     ds = dataset_from_uri(src, mode="r")[:]
     ds = np.transpose(ds, order)
     data = ds[slice_idx]
     return encode_numpy(data)
+
+@hug.get()
+def get_crop(src: DataURI, roi: IntList):
+    logger.debug("Getting anno crop")
+    ds = dataset_from_uri(src, mode="r")
+    data = ds[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]]
+    return encode_numpy(data)
+
+
+@hug.get()
+def set_label_parent(
+    workspace: String,
+    level: String,
+    label_idx: Int,
+    parent_level: String,
+    parent_label_idx: Int,
+):
+    ds = ws.get_dataset(workspace, level, group=__group_pattern__)
+    labels = ds.get_metadata("labels", {})
+    logger.debug(f"Setting label parent using dataset {ds} and with labels {labels}")
+
+    if label_idx in labels:
+        labels[label_idx]["parent_level"] = parent_level
+        labels[label_idx]["parent_label"] = parent_label_idx
+    ds.set_metadata("labels", labels)
+
+
+@hug.get()
+def get_label_parent(workspace: String, level: String, label_idx: Int):
+    ds = get_level(workspace, level)
+    labels = ds.get_metadata("labels", {})
+    print(f"get_label_parent labels: {labels}")
+    parent_level = -1
+    parent_label_idx = -1
+
+    if label_idx in labels:    
+        if "parent_level" in labels[label_idx]:
+            parent_level = labels[label_idx]["parent_level"]
+            parent_label_idx = int(labels[label_idx]["parent_label"])
+    
+    return parent_level, parent_label_idx
 
 
 @hug.get()
@@ -61,10 +101,8 @@ def add_level(workspace: String):
 
 @hug.local()
 def get_level(workspace: String, level: String, full: SmartBoolean = False):
-
     if full == False:
         return ws.get_dataset(workspace, level, group=__group_pattern__)
-
     return ws.get_dataset(workspace, level)
 
 
@@ -99,8 +137,8 @@ def delete_level(workspace: String, level: String, full: SmartBoolean = False):
 
 @hug.get()
 def add_label(workspace: String, level: String, full: SmartBoolean = False):
-    from survos2.improc.utils import map_blocks
     from survos2.api.annotate import erase_label
+    from survos2.improc.utils import map_blocks
 
     ds = get_level(workspace, level, full)
     labels = ds.get_metadata("labels", {})

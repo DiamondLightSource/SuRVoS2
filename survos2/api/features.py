@@ -1,24 +1,30 @@
-import hug
 import numbers
 import os.path as op
+
+import hug
 import numpy as np
+from loguru import logger
+
 from survos2.api import workspace as ws
-from survos2.api.utils import get_function_api, save_metadata, dataset_repr
-from survos2.api.types import DataURI, String, Int, Float, FloatOrVector, SmartBoolean
+from survos2.api.types import (
+    DataURI,
+    Float,
+    FloatOrVector,
+    Int,
+    IntList,
+    SmartBoolean,
+    String,
+    IntOrVector,
+)
+from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 
-from survos2.utils import encode_numpy
-from survos2.io import dataset_from_uri
-#from survos2.utils import get_logger
 from survos2.improc import map_blocks
-
+from survos2.io import dataset_from_uri
+from survos2.utils import encode_numpy
 
 __feature_group__ = "features"
 __feature_dtype__ = "float32"
 __feature_fill__ = 0
-
-
-# logger = get_logger()
-from loguru import logger
 
 
 def pass_through(x):
@@ -32,6 +38,13 @@ def get_volume(src: DataURI):
     data = ds[:]
     return encode_numpy(data)
 
+
+@hug.get()
+def get_crop(src: DataURI, roi: IntList):
+    logger.debug("Getting feature crop")
+    ds = dataset_from_uri(src, mode="r")
+    data = ds[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]]
+    return encode_numpy(data)
 
 
 @hug.get()
@@ -50,9 +63,6 @@ def get_slice(src: DataURI, slice_idx: Int, order: tuple):
 def structure_tensor_determinant(
     src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
 ) -> "BLOB":
-    """
-    API wrapper around `survos2.improc.features.blob.compute_structure_tensor_determinant`.
-    """
     from ..server.filtering.blob import compute_structure_tensor_determinant
 
     map_blocks(
@@ -152,19 +162,6 @@ def erosion(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
     map_blocks(erode, src, num_iter=num_iter, out=dst, normalize=True)
 
 
-@hug.get()
-@save_metadata
-def total_variation(
-    src: DataURI, dst: DataURI, lamda: Float = 10, max_iter: Int = 100
-) -> "DENOISING":
-    """
-    API wrapper around `survos2.improc.features.tv.tvdenoising3d`.
-    """
-    from ..improc.features.tv import tvdenoising3d
-
-    map_blocks(
-        tvdenoising3d, src, out=dst, lamda=lamda, max_iter=max_iter, normalize=True
-    )
 
 
 @hug.get()
@@ -176,9 +173,7 @@ def tvdenoise_kornia(
     pad: Int = 8,
     max_iter: Int = 100,
 ) -> "DENOISING":
-    """
-    API wrapper around `survos2.improc.features.tv.tvdenoising3d`.
-    """
+
     from ..server.filtering.blur import tvdenoise_kornia
 
     map_blocks(
@@ -197,7 +192,9 @@ def tvdenoise_kornia(
 def spatial_gradient_3d(src: DataURI, dst: DataURI, dim: Int = 0) -> "EDGES":
     from ..server.filtering import spatial_gradient_3d
 
-    map_blocks(spatial_gradient_3d, src, out=dst, dim=dim, normalize=True)
+    map_blocks(
+        spatial_gradient_3d, src, out=dst, dim=dim, normalize=True,
+    )
 
 
 @hug.get()
@@ -213,7 +210,8 @@ def difference_of_gaussians(
         out=dst,
         sigma=sigma,
         sigma_ratio=sigma_ratio,
-        normalize=True,
+        pad=max(4, int((max(sigma) + 1) / 2)),
+        normalize=False,
     )
 
 
@@ -234,15 +232,6 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
     )
 
 
-@hug.get()
-@save_metadata
-def gaussian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
-    """
-    API wrapper around `survos2.improc.features.gauss.gaussian`.
-    """
-    from ..improc.features.gauss import gaussian
-
-    map_blocks(gaussian, src, out=dst, sigma=sigma, normalize=True)
 
 
 @hug.get()
@@ -251,7 +240,6 @@ def ndimage_laplacian(
     src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1
 ) -> "EDGES":
     from ..server.filtering import ndimage_laplacian
-
     map_blocks(
         ndimage_laplacian,
         src,
@@ -266,7 +254,6 @@ def ndimage_laplacian(
 @save_metadata
 def laplacian(src: DataURI, dst: DataURI, kernel_size: Float = 2.0) -> "EDGES":
     from ..server.filtering.edge import laplacian
-
     map_blocks(
         laplacian,
         src,
@@ -280,9 +267,6 @@ def laplacian(src: DataURI, dst: DataURI, kernel_size: Float = 2.0) -> "EDGES":
 @hug.get()
 @save_metadata
 def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
-    """
-    API wrapper around `survos2.improc.features.gauss.gaussian_norm`.
-    """
     from ..server.filtering.blur import gaussian_norm
 
     map_blocks(
@@ -300,9 +284,7 @@ def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
 def gaussian_center(
     src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
 ) -> "DENOISING":
-    """
-    API wrapper around `survos2.improc.features.gauss.gaussian_center`.
-    """
+
     from ..server.filtering.blur import gaussian_center
 
     map_blocks(
@@ -330,42 +312,6 @@ def median(
         out=dst,
         pad=0,
         normalize=False,
-    )
-
-
-@hug.get()
-@save_metadata
-def local_mean(src: DataURI, dst: DataURI, radius: FloatOrVector = 1) -> "LOCAL":
-    """
-    API wrapper around `survos2.improc.features.gauss.gaussian_norm`.
-    """
-    from ..improc.features.local import compute_local_mean
-
-    map_blocks(
-        compute_local_mean,
-        src,
-        out=dst,
-        radius=radius,
-        pad=max(4, int((max(radius) + 1) / 2)),
-        normalize=True,
-    )
-
-
-@hug.get()
-@save_metadata
-def local_std(src: DataURI, dst: DataURI, radius: FloatOrVector = 1) -> "LOCAL":
-    """
-    API wrapper around `survos2.improc.features.gauss.gaussian_norm`.
-    """
-    from ..improc.features.local import compute_local_std
-
-    map_blocks(
-        compute_local_std,
-        src,
-        out=dst,
-        radius=radius,
-        pad=max(4, int((max(radius) + 1) / 2)),
-        normalize=True,
     )
 
 
@@ -421,7 +367,16 @@ def available():
     h = hug.API(__name__)
     all_features = []
     for name, method in h.http.routes[""].items():
-        if name[1:] in ["available", "create", "existing", "remove", "rename", "group"]:
+        if name[1:] in [
+            "available",
+            "create",
+            "existing",
+            "remove",
+            "rename",
+            "group",
+            "get_volume",
+            "get_slice",
+        ]:
             continue
         name = name[1:]
         func = method["GET"][None].interface.spec
