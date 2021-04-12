@@ -27,10 +27,6 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.random_projection import SparseRandomProjection
 from sklearn.svm import SVC
 
-from survos2.improc.features._spencoding import _sp_labels
-from survos2.improc.features.spencoding import sphist, spmeans, spstats
-from survos2.improc.features.spgraph import aggregate_neighbors
-from survos2.improc.regions.rag import create_rag
 from survos2.improc.segmentation._qpbo import solve_aexpansion, solve_binary
 from survos2.improc.segmentation.appearance import refine
 from survos2.improc.segmentation.mappings import rmeans
@@ -250,6 +246,8 @@ def sr_predict(
 
 
 def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
+
+    from survos2.improc.regions.rag import create_rag
 
     try:
         supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32)
