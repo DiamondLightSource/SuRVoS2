@@ -27,9 +27,6 @@ __feature_dtype__ = "float32"
 __feature_fill__ = 0
 
 
-def pass_through(x):
-    return x
-
 
 @hug.get()
 def get_volume(src: DataURI):
@@ -124,6 +121,9 @@ def hessian_eigvals_cython(
     map_blocks(hessian_eigvals_cython, src, out=dst, sigma=sigma, normalize=True)
 
 
+def pass_through(x):
+    return x
+
 @hug.get()
 @save_metadata
 def raw(src: DataURI, dst: DataURI) -> "BASE":
@@ -200,7 +200,7 @@ def spatial_gradient_3d(src: DataURI, dst: DataURI, dim: Int = 0) -> "EDGES":
 @hug.get()
 @save_metadata
 def difference_of_gaussians(
-    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1, sigma_ratio: Float = 1
+    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1, sigma_ratio: Float = 2
 ) -> "EDGES":
     from ..server.filtering.edge import compute_difference_gaussians
 
@@ -286,13 +286,12 @@ def gaussian_center(
 ) -> "DENOISING":
 
     from ..server.filtering.blur import gaussian_center
-
     map_blocks(
         gaussian_center,
         src,
         out=dst,
         sigma=sigma,
-        pad=max(4, int((max(kernel_size) + 1) / 2)),
+        pad=max(4, int((max(sigma) + 1) / 2)),
         normalize=True,
     )
 
@@ -376,6 +375,7 @@ def available():
             "group",
             "get_volume",
             "get_slice",
+            "get_crop",
         ]:
             continue
         name = name[1:]
