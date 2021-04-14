@@ -87,18 +87,21 @@ def superregion_segment(
             features.append(src_dataset[:])
 
     logger.debug(
-        f"sr_predict with {len(features)} features and anno of shape {anno_level.shape} and sr of shape {supervoxel_image.shape}  using classifier type {classifier_type} and params {classifier_params}, projection type {projection_type} "
+        f"sr_predict with {len(features)} features and anno of shape {anno_level.shape} and sr of shape {supervoxel_image.shape}"
     )
 
     # run predictions
     from survos2.server.superseg import sr_predict
 
-    superseg_cfg = cfg.pipeline
-    superseg_cfg["type"] = classifier_type
+    superseg_cfg = cfg.pipeline 
+    superseg_cfg["predict_params"] = classifier_params
+    superseg_cfg["predict_params"]["clf"] = classifier_type
+    superseg_cfg["predict_params"]["type"] = classifier_params["type"]
     superseg_cfg["predict_params"]["proj"] = projection_type
-    superseg_cfg["classifier_params"] = classifier_params
+    #superseg_cfg["classifier_params"] = classifier_params
 
-    
+    logger.debug(f"Using superseg_cfg {superseg_cfg}")
+
     if constrain_mask_id != "None":
         label_idx = 2
         parent_level, parent_label_idx = get_label_parent(workspace, anno_id, label_idx)
