@@ -78,9 +78,6 @@ class Pipeline:
         return self.payload
 
 
-# todo: better way to add multiple aggregators and bundle results
-
-
 def run_workflow(workflow_file):
     if not os.path.isabs(workflow_file):
         workflow_file = os.path.join(os.getcwd(), workflow_file)

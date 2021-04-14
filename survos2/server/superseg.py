@@ -40,7 +40,7 @@ PRED_MIN = 0  # label value to use as minimum prediction label
 
 
 def obtain_classifier(clf_p):
-    if clf_p["clf"] == "ensemble":
+    if clf_p["clf"] == "Ensemble":
         mode = "ensemble"
 
         if clf_p["type"] == "rf":
@@ -89,8 +89,8 @@ def obtain_classifier(clf_p):
     return clf, mode
 
 
-def train(X_train, y_train, project=None, rnd=42, **kwargs):
-    logger.debug(f"Using projection {project}")
+def train(X_train, y_train, predict_params, project=None, rnd=42, **kwargs):
+    logger.debug(f"Using projection {project} and predict params {predict_params}")
 
     if project == "rproj":
         proj = SparseRandomProjection(n_components=X_train.shape[1], random_state=rnd)
@@ -116,7 +116,7 @@ def train(X_train, y_train, project=None, rnd=42, **kwargs):
 
     kwargs.setdefault("random_state", rnd)
 
-    clf, mode = obtain_classifier(cfg.pipeline["predict_params"])
+    clf, mode = obtain_classifier(predict_params)
 
     logger.debug(
         f"Obtained classifier {clf}, fitting on {X_train.shape}, {y_train.shape}"
@@ -191,6 +191,7 @@ def train_and_classify_regions(
     clf, proj = train(
         X_train,
         Y_train,
+        predict_params=superseg_cfg["predict_params"],
         n_estimators=superseg_cfg["predict_params"]["n_estimators"],
         project=superseg_cfg["predict_params"]["proj"],
     )
@@ -224,7 +225,6 @@ def sr_predict(
     sr = superregion_factory(supervoxel_image.astype(np.uint32), feats.features_stack)
     #logger.info(f"Calculated superregions: {sr}")
 
-    logger.debug(f"Making prediction with {cfg.pipeline['predict_params']}")
     srprediction = train_and_classify_regions(
         feats.features_stack,
         anno_image.astype(np.uint16),
