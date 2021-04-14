@@ -277,11 +277,11 @@ class EnsembleWidget(QtWidgets.QWidget):
         params = {
             'clf': 'ensemble',
             'type': ttype[current_index],
-            #'n_estimators': self.ntrees.value(),
-            #'max_depth': self.depth.value(),
-            #'learning_rate': self.lrate.value(),
-            #'subsample': self.subsample.value(),
-            #'n_jobs': self.n_jobs.value()
+            'n_estimators': self.ntrees.value(),
+            'max_depth': self.depth.value(),
+            'learning_rate': self.lrate.value(),
+            'subsample': self.subsample.value(),
+            'n_jobs': self.n_jobs.value()
         }
         return params
 

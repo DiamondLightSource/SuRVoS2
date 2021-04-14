@@ -56,37 +56,7 @@ from survos2.utils import decode_numpy
 
 from survos2.frontend.paint_strokes import paint_strokes
 from survos2.frontend.workflow import run_workflow
-
-
 from napari_plugin_engine import napari_hook_implementation
-
-
-
-class MyDockWidget(QWidget):
-    def __init__(self, napari_viewer):
-        self.viewer = napari_viewer
-        super().__init__()
-
-        # initialize layout
-        layout = QGridLayout()
-
-        # add a button
-        btn = QPushButton('Click me!', self)
-        def trigger():
-            print("napari has", len(napari_viewer.layers), "layers")
-        btn.clicked.connect(trigger)
-
-        #smallvol_widget = SmallVolWidget(np.zeros((32, 32, 32)))
-        #layout.addWidget(smallvol_widget)
-        layout.addWidget(btn)
-        # activate layout
-        self.setLayout(layout)
-
-
-class Plugin:
-    @napari_hook_implementation
-    def napari_experimental_provide_dock_widget():
-        return MyDockWidget 
 
 
      
@@ -164,20 +134,6 @@ def frontend():
             if len(existing_layer) > 0:
                 viewer.layers.remove(existing_layer[0])
 
-        def view_patch_dataset(msg):
-            from survos2.entity.instanceseg.patches import (
-                prepare_dataloaders,
-                load_patch_vols,
-            )
-
-            train_vols = [
-                "D:\\out\\vf_quartergt140_img_vols_0603_1119.h5",
-                "D:\\out\\vf_quartergt140_img_labels_0603_1119.h5",
-            ]
-            img_vols, label_vols = load_patch_vols(train_vols)
-            viewer.add_image(img_vols, name="Images")
-            viewer.add_image(label_vols, name="Labels")
-
         def load_workspace(msg):
             logger.debug(f"load_workspace: {msg}")
 
@@ -251,18 +207,13 @@ def frontend():
                 src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
                 remove_layer(cfg.current_feature_name)
                 cfg.current_feature_name = msg["feature_id"]
-
+                
                 with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
                     src_dataset = DM.sources[0][:]
                     src_arr = get_array_from_dataset(src_dataset)
-
                     cfg.supervoxels_cache = src_arr
                     cfg.supervoxels_cached = True
-
-                    if len(existing_feature_layer) > 0:
-                        existing_feature_layer[0].data = src_arr
-                    else:
-                        viewer.add_image(src_arr, name=msg["feature_id"])
+                    viewer.add_image(src_arr, name=msg["feature_id"])
 
         def update_regions(region_name):
             logger.debug(f"update regions {region_name}")
@@ -696,8 +647,6 @@ def frontend():
         def processEvents(msg):
             if msg["data"] == "refesh_annotations":
                 refresh_annotations(msg)
-            elif msg["data"] == "view_patch_dataset":
-                view_patch_dataset(msg)
             elif msg["data"] == "paint_annotations":
                 paint_annotations(msg)
             elif msg["data"] == "update_annotations":
@@ -767,9 +716,7 @@ def frontend():
         cfg.processEvents = processEvents
 
         #smallvol_control = SmallVolWidget(np.zeros((32, 32, 32)))
-        #cfg.smallvol_control = smallvol_control
-
-        
+        #cfg.smallvol_control = smallvol_control        
         #smallvol_control_dockwidget = viewer.window.add_dock_widget(
         #    smallvol_control.imv, area="right"
         #)

@@ -8,7 +8,6 @@ from .modal import ModalManager
 from .control import Launcher
 
 from survos2.frontend.components.base import *
-
 from survos2.utils import get_logger
 from survos2.config import Config
 import time
