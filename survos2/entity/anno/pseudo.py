@@ -53,17 +53,6 @@ from survos2.entity.sampler import crop_vol_and_pts
 from survos2.entity.entities import make_entity_df
 from survos2.entity.sampler import sample_marked_patches
 
-# from survos2.server.pipeline_old  import predict_and_agg
-from survos2.entity.detect.trainer import (
-    loss_dice,
-    loss_calc,
-    log_metrics,
-    train_model_cbs,
-    TrainerCallback,
-)
-
-
-from survos2.entity.detect.dataset import BoundingVolumeDataset, SmallVolDataset
 
 from survos2.server.pipeline_ops import (
     make_masks,
@@ -75,7 +64,6 @@ from survos2.server.pipeline_ops import (
     predict_and_agg,
     saliency_pipeline,
 )
-from survos2.entity.detect.proposal_agg import predict_and_agg
 from survos2.server.pipeline import Pipeline, Patch
 from survos2.server.state import cfg
 
