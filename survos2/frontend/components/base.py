@@ -662,7 +662,9 @@ class CheckBox(QCSWidget):
     def value(self):
         return self.isChecked()
 
-
+    def setValue(self, value):
+        self.chk.setChecked(value)
+        
 class LineEdit3D(QCSWidget):
     def __init__(self, *args, parent=None, **kwargs):
         super().__init__(parent=parent)

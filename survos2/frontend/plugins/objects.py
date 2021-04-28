@@ -209,8 +209,10 @@ class ObjectsCard(Card):
         self.view_btn = PushButton("View", accent=True)
         self.get_btn = PushButton("Get", accent=True)
 
-        self._add_param("scale", title="Scale: ", type="Float", default=0)
+        self._add_param("scale", title="Scale: ", type="Float", default=1)
         self._add_param("offset", title="Offset: ", type="FloatOrVector", default=0)
+        self._add_param("crop_start", title="Crop Start: ", type="FloatOrVector", default=0)
+        self._add_param("crop_end", title="Crop End: ", type="FloatOrVector", default=9000)
 
         self.add_row(HWidgets(None, self.view_btn, self.get_btn, Spacing(35)))
 
@@ -218,10 +220,18 @@ class ObjectsCard(Card):
         self.get_btn.clicked.connect(self.get_objects)
 
         cfg.object_scale = self.widgets["scale"].value()
+        cfg.object_offset = self.widgets["offset"].value()
+        cfg.object_crop_start = self.widgets["crop_start"].value()
+        cfg.object_crop_end = self.widgets["crop_end"].value()
+
         self.table_control = TableWidget()
         self.add_row(self.table_control.w, max_height=500)
 
-        tabledata, _ = setup_entity_table(objectsfullname, scale=cfg.object_scale)
+        tabledata, _ = setup_entity_table(objectsfullname, 
+                                          scale=cfg.object_scale, 
+                                          offset=cfg.object_offset,
+                                          crop_start=cfg.object_crop_start,
+                                          crop_end=cfg.object_crop_end)
         cfg.tabledata = tabledata
         self.table_control.set_data(tabledata)
         cfg.entity_table = self.table_control
@@ -271,17 +281,23 @@ class ObjectsCard(Card):
             self.objectsfullname = params["fullname"]
 
     def get_objects(self):
-        dst = DataModel.g.dataset_uri(self.objectsid, group="objects")
-        print(f"objectsfullname: {self.objectsfullname}")
-        params = dict(dst=dst, fullname=self.objectsfullname)
-        logger.debug(f"Getting objects with params {params}")
-        Launcher.g.run("objects", "points", **params)
         cfg.object_scale = self.widgets["scale"].value()
         cfg.object_offset = self.widgets["offset"].value()
+        cfg.object_crop_start = self.widgets["crop_start"].value()
+        cfg.object_crop_end = self.widgets["crop_end"].value()
 
+        dst = DataModel.g.dataset_uri(self.objectsid, group="objects")
+        print(f"objectsfullname: {self.objectsfullname}")
+        params = dict(dst=dst, fullname=self.objectsfullname, scale=cfg.object_scale, 
+            offset=cfg.object_offset, crop_start=cfg.object_crop_start, crop_end=cfg.object_crop_end)
+        logger.debug(f"Getting objects with params {params}")
+        Launcher.g.run("objects", "points", **params)
+        
         tabledata, _ = setup_entity_table(
-            self.objectsfullname, scale=cfg.object_scale, offset=cfg.object_offset
+            self.objectsfullname, scale=cfg.object_scale, offset=cfg.object_offset, crop_start=cfg.object_crop_start,
+            crop_end=cfg.object_crop_end
         )
+
         cfg.tabledata = tabledata
         print(f"Loaded tabledata {tabledata}")
         self.table_control.set_data(tabledata)

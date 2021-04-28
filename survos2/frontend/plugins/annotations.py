@@ -1,4 +1,5 @@
 import numpy as np
+import ntpath
 from loguru import logger
 from matplotlib.colors import ListedColormap
 from scipy.ndimage import binary_dilation
@@ -64,7 +65,7 @@ class LevelComboBox(LazyComboBox):
     def fill(self):
         params = dict(workspace=True, full=self.full)
         result = Launcher.g.run("annotations", "get_levels", **params)
-        print(self.except_level)
+        print(f"Getting levels except level {self.except_level}")
         if result:
             self.addCategory("Annotations")
             for r in result:
@@ -72,6 +73,7 @@ class LevelComboBox(LazyComboBox):
                 if level_name != self.except_level:
                     if r["kind"] == "level":
                         self.addItem(r["id"], r["name"])
+
 
 
 @register_plugin

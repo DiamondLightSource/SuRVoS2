@@ -8,9 +8,15 @@ from qtpy.QtCore import QSize, Signal
 
 from survos2.entity.entities import make_entity_df
 from survos2.server.state import cfg
+from survos2.entity.sampler import crop_pts_bb
 
+MAX_SIZE = 10000
 
-def setup_entity_table(entities_fullname, scale=1.0, offset=(0, 0, 0)):
+def setup_entity_table(entities_fullname, 
+                    scale=1.0, 
+                    offset=(0, 0, 0), 
+                    crop_start=(0,0,0), 
+                    crop_end=(MAX_SIZE,MAX_SIZE,MAX_SIZE)):
     entities_df = pd.read_csv(entities_fullname)
     index_column = len([col for col in entities_df.columns if "index" in col]) > 0
     print(index_column)
@@ -27,12 +33,15 @@ def setup_entity_table(entities_fullname, scale=1.0, offset=(0, 0, 0)):
     class_code_column = (
         len([col for col in entities_df.columns if "class_code" in col]) > 0
     )
+    
     if not class_code_column:
         entities_df["class_code"] = 0
 
-    entities_df = make_entity_df(np.array(entities_df), flipxy=True)
+    cropped_pts = crop_pts_bb(np.array(entities_df), [crop_start[0],crop_end[0],crop_start[1], crop_end[1], crop_start[2], crop_end[2]])
+
+    entities_df = make_entity_df(np.array(cropped_pts), flipxy=True)
     logger.debug(
-        f"Loaded entities {entities_df.shape} applying scale {scale} and offset {offset}"
+        f"Loaded entities {entities_df.shape} applying scale {scale} and offset {offset} and crop start {crop_start}, crop_end {crop_end}"
     )
     tabledata = []
     entities_df["z"] = (entities_df["z"] * scale) + offset[0]

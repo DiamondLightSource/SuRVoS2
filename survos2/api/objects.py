@@ -30,12 +30,14 @@ __objects_dtype__ = "uint32"
 __objects_group__ = "objects"
 __objects_names__ = [
     "points",
-    "boxes",
+    #"boxes",
 ]
 
 
 @hug.get()
-def points(dst: DataURI, fullname: String) -> "GEOMETRY":
+def points(dst: DataURI, fullname: String, scale : float, offset : FloatOrVector, 
+            crop_start : FloatOrVector,
+            crop_end : FloatOrVector) -> "GEOMETRY":
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
@@ -47,22 +49,25 @@ def points(dst: DataURI, fullname: String) -> "GEOMETRY":
         DM.out[:] = img_volume
         dst_dataset = DM.sources[0]
         dst_dataset.set_attr("fullname", fullname)
+        dst_dataset.set_attr("scale", scale)
+        dst_dataset.set_attr("offset", offset)
+        dst_dataset.set_attr("crop_start", crop_start)
+        dst_dataset.set_attr("crop_end", crop_end)
 
+# @hug.get()
+# def boxes(dst: DataURI, fullname: String) -> "GEOMETRY":
 
-@hug.get()
-def boxes(dst: DataURI, fullname: String) -> "GEOMETRY":
+#     src = DataModel.g.dataset_uri("__data__")
+#     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+#         src_dataset = DM.sources[0]
+#         img_volume = src_dataset[:]
+#         logger.info(f"Got __data__ volume of size {img_volume.shape}")
 
-    src = DataModel.g.dataset_uri("__data__")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        img_volume = src_dataset[:]
-        logger.info(f"Got __data__ volume of size {img_volume.shape}")
-
-    logger.info(f"Storing in dataset {dst}")
-    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = img_volume
-        dst_dataset = DM.sources[0]
-        dst_dataset.set_attr("fullname", fullname)
+#     logger.info(f"Storing in dataset {dst}")
+#     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+#         DM.out[:] = img_volume
+#         dst_dataset = DM.sources[0]
+#         dst_dataset.set_attr("fullname", fullname)
 
 
 @hug.get()

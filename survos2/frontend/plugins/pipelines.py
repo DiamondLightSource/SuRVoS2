@@ -5,7 +5,7 @@ from qtpy.QtCore import QSize, Signal
 
 from survos2.frontend.components.base import *
 from survos2.frontend.control import Launcher
-from survos2.frontend.plugins.annotation_tool import MultiAnnotationComboBox
+from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.base import ComboBox, LazyComboBox, LazyMultiComboBox
@@ -220,7 +220,7 @@ class EnsembleWidget(QtWidgets.QWidget):
         vbox.addWidget(self.type_combo)
 
         self.ntrees = LineEdit(default=100, parse=int)
-        self.depth = LineEdit(default=None, parse=int)
+        self.depth = LineEdit(default=15, parse=int)
         self.lrate = LineEdit(default=1., parse=float)
         self.subsample = LineEdit(default=1., parse=float)
 
@@ -317,7 +317,7 @@ class PipelineCard(Card):
 
             self._add_classifier_choice()
             self._add_projection_choice()
-            self._add_refine_choice()
+            #self._add_refine_choice()
             self._add_param("lam", type="FloatSlider", default=0.15)
             
         elif self.pipeline_type == "make_annotation":
@@ -436,7 +436,7 @@ class PipelineCard(Card):
 
     def _add_constrain_source(self):
         print(self.annotations_source.value())
-        self.constrain_mask_source = LevelComboBox(full=True)
+        self.constrain_mask_source = AnnotationComboBox(full=True)
         self.constrain_mask_source.fill()
         self.constrain_mask_source.setMaximumWidth(250)
 
@@ -467,27 +467,29 @@ class PipelineCard(Card):
 
     def _add_param(self, name, title=None, type="String", default=None):
         if type == "Int":
-            pipeline = LineEdit(default=default, parse=int)
+            p = LineEdit(default=default, parse=int)
         elif type == "FloatSlider":
-            # pipeline = LineEdit(default=default, parse=float)
-            pipeline = RealSlider(value=default, vmax=1, vmin=0)
-            title = "Smoothing"
+            p = RealSlider(value=default, vmax=1, vmin=0)
+            title = "MRF Refinement Amount:"
         elif type == "Float":
-            pipeline = LineEdit(default=0.0, parse=float)
+            p = LineEdit(default=0.0, parse=float)
             title = title
         elif type == "FloatOrVector":
-            pipeline = LineEdit3D(default=0, parse=float)
+            p = LineEdit3D(default=0, parse=float)
         elif type == "IntOrVector":
-            pipeline = LineEdit3D(default=default, parse=int)
+            p = LineEdit3D(default=default, parse=int)
+        elif type == "SmartBoolean":
+            p = CheckBox(checked=True)
+        
         else:
-            pipeline = None
+            p = None
 
         if title is None:
             title = name
 
-        if pipeline:
-            self.widgets[name] = pipeline
-            self.add_row(HWidgets(None, title, pipeline, Spacing(35)))
+        if p:
+            self.widgets[name] = p
+            self.add_row(HWidgets(None, title, p, Spacing(35)))
 
     def _add_compute_btn(self):
         compute_btn = PushButton("Compute", accent=True)
@@ -643,13 +645,11 @@ class PipelineCard(Card):
             )
             print(self.constrain_mask_source.value())
             if self.constrain_mask_source.value() != None:
-                all_params["constrain_mask_id"] = str(
-                    self.constrain_mask_source.value().rsplit("/", 1)[-1]
-               )
+                all_params["constrain_mask"] = self.constrain_mask_source.value() #.rsplit("/", 1)[-1]
             else:
-                all_params["constrain_mask_id"] = "None"
+                all_params["constrain_mask"] = "None"
             all_params["dst"] = dst
-            all_params["refine"] = self.refine_checkbox.value()
+            all_params["refine"] = self.widgets["refine"].value() #self.refine_checkbox.value()
             all_params["lam"] = self.widgets["lam"].value()
             all_params["classifier_type"] = self.classifier_type.value()
             all_params["projection_type"] = self.projection_type.value()
@@ -671,8 +671,9 @@ class PipelineCard(Card):
             )
             all_params["feature_ids"] = feature_names_list
             all_params["object_id"] = str(self.objects_source.value())
-            all_params["object_scale"] = self.widgets["object_scale"].value()
-            all_params["object_offset"] = self.widgets["object_offset"].value()
+            all_params["acwe"] = self.widgets["acwe"].value()
+            #all_params["object_scale"] = self.widgets["object_scale"].value()
+            #all_params["object_offset"] = self.widgets["object_offset"].value()
             all_params["dst"] = self.pipeline_id
 
         elif self.pipeline_type == "predict_segmentation_fcn":

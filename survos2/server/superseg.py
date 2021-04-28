@@ -265,7 +265,7 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
         unary = unary.astype(np.float32)
         mapping = np.zeros(pred.max() + 1, np.int32)
         mapping[labels] = np.arange(labels.size)
-        idx = np.where(pred > -1)[0]
+        idx = np.where(pred > PRED_MIN)[0]
         col = mapping[pred[idx]]
         unary[idx, col] = 0
 
@@ -282,8 +282,8 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
         logger.error(f"MRF refinement exception: {err}")
 
     try:
-        labels_out = (pred.max() + 1) - (invrmap(y_ref, supervoxel_vol) + 1)
-        # labels_out = invrmap(y_ref, supervoxel_vol) + 1
+        #labels_out = (pred.max() + 1) - (invrmap(y_ref, supervoxel_vol) + 1)
+        labels_out = invrmap(y_ref, supervoxel_vol) + 1
 
         logger.debug(
             f"Calculated mrf refinement with lamda {lam} of shape: {labels_out.shape}"

@@ -109,7 +109,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         roi_end = self.roi_end.value()
         roi = [roi_start[0],roi_start[1], roi_start[2], roi_end[0], roi_end[1], roi_end[2]]
         cfg.ppw.clientEvent.emit(
-            {"source": "workspace_gui", "data": "get_crop", "value": roi }
+            {"source": "workspace_gui", "data": "goto_roi", "roi": roi }
         )
 
 
@@ -126,9 +126,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             self.slider.vmax = cfg.slice_max - 1
             self.slider.setRange(0, cfg.slice_max - 1)
             self.slider.show()
-
             self.button2.setText("Volume Mode")
-
         self.slice_mode = not self.slice_mode
 
         self.clientEvent.emit(

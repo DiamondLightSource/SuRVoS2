@@ -213,7 +213,7 @@ class Dataset(BaseDataset):
 
     def set_metadata(self, key, value):
         if key == self.__dsname__:
-            raise DatasetException("Dataset metadata cannot me changed.")
+            raise DatasetException("Dataset metadata cannot be changed.")
         elif not self._db.isserializable(value):
             raise DatasetException("Metadata `{}` is not serializable".format(value))
         self._db[key] = value
@@ -221,7 +221,7 @@ class Dataset(BaseDataset):
 
     def update_metadata(self, key, value):
         if key == self.__dsname__:
-            raise DatasetException("Dataset metadata cannot me changed.")
+            raise DatasetException("Dataset metadata cannot be changed.")
         elif not self._db.isserializable(value):
             raise DatasetException("Metadata `{}` is not serializable".format(value))
         elif key in self._db:

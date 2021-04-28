@@ -46,44 +46,42 @@ def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0):
     dataset.set_attr("modified", modified)
 
 
-def annotate_regions2(dataset, region, r=None, label=0):
-    if label >= 16 or label < 0 or type(label) != int:
-        raise ValueError("Label has to be in bounds [0, 15]")
-    if r is None or len(r) == 0:
-        return
+# def annotate_regions2(dataset, region, r=None, label=0):
+#     if label >= 16 or label < 0 or type(label) != int:
+#         raise ValueError("Label has to be in bounds [0, 15]")
+#     if r is None or len(r) == 0:
+#         return
 
-    mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
+#     mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
+#     rmax = np.max(r)
+#     modified = dataset.get_attr("modified")
 
-    rmax = np.max(r)
-    modified = dataset.get_attr("modified")
+#     for i in range(dataset.total_chunks):
+#         idx = dataset.unravel_chunk_index(i)
+#         print(f"Idx {idx}")
+#         chunk_slices = dataset.global_chunk_bounds(idx)
+#         print(f"Chunk slices {chunk_slices}")
+#         reg_chunk = region[chunk_slices]
+#         total = max(rmax + 1, np.max(reg_chunk) + 1)
+#         mask = np.zeros(total, np.bool)
+#         mask[r] = True
+#         mask = mask[reg_chunk]
 
-    for i in range(dataset.total_chunks):
+#         # if not np.any(mask):
+#         #    modified[i] = (modified[i] << 1) & mbit
+#         #    continue
 
-        idx = dataset.unravel_chunk_index(i)
-        print(f"Idx {idx}")
-        chunk_slices = dataset.global_chunk_bounds(idx)
-        print(f"Chunk slices {chunk_slices}")
-        reg_chunk = region[chunk_slices]
-        total = max(rmax + 1, np.max(reg_chunk) + 1)
-        mask = np.zeros(total, np.bool)
-        mask[r] = True
-        mask = mask[reg_chunk]
+#         data_chunk = dataset[chunk_slices]
+#         # data_chunk = (data_chunk & _MaskCopy) | (data_chunk << _MaskSize)
+#         # data_chunk[mask] = (data_chunk[mask] & _MaskPrev) | label
+#         data_chunk[mask] = label
 
-        # if not np.any(mask):
-        #    modified[i] = (modified[i] << 1) & mbit
-        #    continue
+#         dataset[chunk_slices] = data_chunk
+#         modified[i] = (modified[i] << 1) & mbit | 1
 
-        data_chunk = dataset[chunk_slices]
-        # data_chunk = (data_chunk & _MaskCopy) | (data_chunk << _MaskSize)
-        # data_chunk[mask] = (data_chunk[mask] & _MaskPrev) | label
-        data_chunk[mask] = label
+#         print(modified[i])
 
-        dataset[chunk_slices] = data_chunk
-        modified[i] = (modified[i] << 1) & mbit | 1
-
-        print(modified[i])
-
-    dataset.set_attr("modified", modified)
+#     dataset.set_attr("modified", modified)
 
 
 def annotate_regions(dataset, region, r=None, label=0):

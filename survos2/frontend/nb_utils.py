@@ -17,16 +17,80 @@ from napari import gui_qt
 from napari import Viewer as NapariViewer
 import napari
 
+
 from IPython.display import Image
 from PIL import Image
+import matplotlib
 from matplotlib import cm
 from matplotlib import pyplot as plt
 import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import axes3d, Axes3D
 from survos2.frontend.utils import quick_norm
+import seaborn as sns
 
 
 def plot_slice_and_pts(
+    img_volume, 
+    pts=None, 
+    bg_vol=None, 
+    slice_idxs=(0, 0, 0), 
+    suptitle="",
+    plot_color=False,
+    figsize=(12, 12)
+):
+    z, x, y = slice_idxs
+    print(f"Plotting at location {z}, {x}, {y}")
+
+    plt.figure(figsize=figsize)
+    plt.suptitle(suptitle, fontsize=20)
+
+
+    if plot_color:
+        img = np.zeros((img_volume.shape[1],img_volume.shape[2],3))    
+        if bg_vol is None:
+            img[:,:,1] = img_volume[z, :]
+        else:
+            img[:,:,1] = img_volume[z, :] 
+            img[:,:,2] = bg_vol[z, :] 
+        plt.imshow(img)
+    else:
+        if bg_vol is None:
+            plt.imshow(img_volume[z, :], cmap="gray")
+        else:
+            plt.imshow(img_volume[z, :] + bg_vol[z, :], cmap="gray")
+        plt.title(f"XY, Z: {z}")
+        if pts is not None:
+            plt.scatter(pts[:, 1], pts[:, 2])
+    
+
+    plt.title(f"XY, Z: {z}")
+    if pts is not None:
+        plt.scatter(pts[:, 1], pts[:, 2])
+
+    plt.figure(figsize=(figsize[0]-1, figsize[1]-1))
+    if bg_vol is None:
+        plt.imshow(img_volume[:, :, y], cmap="gray")
+    else:
+        plt.imshow(img_volume[:, :, y] + bg_vol[:, :, y], cmap="gray")
+    plt.title(f"ZX, Y:{y}")
+    if pts is not None:
+        plt.scatter(pts[:, 1], pts[:, 0])
+
+    plt.figure(figsize=(figsize[0]-1, figsize[1]-1))
+    if bg_vol is None:
+        plt.imshow(img_volume[:, x, :], cmap="gray")
+    else:
+        plt.imshow(img_volume[:, x, :] + bg_vol[:, x, :], cmap="gray")
+
+    plt.title(f"ZY, X:{x}")
+    if pts is not None:
+        plt.scatter(
+            pts[:, 2], pts[:, 0],
+        )
+
+
+
+def plot_slice_and_pts_bw(
     img_volume, pts=None, bg_vol=None, slice_idxs=(0, 0, 0), suptitle=""
 ):
     z, x, y = slice_idxs
@@ -294,9 +358,35 @@ def grid_of_images(image_list, n_rows, n_cols, image_titles="", figsize=(20, 20)
                 axarr[i, j].set_title("Label: " + str(image_titles[(i * n_cols + j)]))
 
     plt.tight_layout()
-
-
+ 
 def show_images_and_points(
+    images, points, cluster_classes, class_names=None, titles=None, figsize=(12, 4)
+):
+    n_ims = len(images)
+    if titles is None:
+        titles = ["(%d)" % i for i in range(1, n_ims + 1)]
+    fig = plt.figure(figsize=figsize)
+    n = 1
+    plt.style.use("ggplot")
+    if class_names is None:
+        class_names = [str(i) for i in cluster_classes]
+    for image, title in zip(images, titles):
+
+        a = fig.add_subplot(1, n_ims, n)
+        plt.imshow(image, cmap="gray")
+        
+        cmap= matplotlib.colors.ListedColormap(["teal","orange", "maroon", "navy",  "mediumvioletred", "palegreen"], N=None)
+        
+        
+        
+        scat = a.scatter(points[:, 1], points[:, 2], c=cluster_classes, cmap=cmap, s=50, alpha=1.0)
+        a.legend(handles=scat.legend_elements()[0], labels=class_names)
+
+        a.set_title(title)
+        n += 1
+
+
+def show_images_and_points2(
     images, points, cluster_classes, titles=None, figsize=(12, 4)
 ):
     n_ims = len(images)

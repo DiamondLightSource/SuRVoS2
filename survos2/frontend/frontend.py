@@ -64,7 +64,7 @@ def frontend():
     logger.info(f"Frontend loading workspace {DataModel.g.current_workspace}")
 
     DataModel.g.current_session = "default"
-
+    
     src = DataModel.g.dataset_uri("__data__", None)
     dst = DataModel.g.dataset_uri("001_raw", group="features")
 
@@ -139,8 +139,7 @@ def frontend():
 
         def goto_roi(msg):
             logger.debug(f"Goto roi: {msg}")
-            
-            params = dict(workpace=True, feature_id=msg["feature_id"], roi=msg["roi"])
+            params = dict(workspace=True, current_workspace_name=DataModel.g.current_workspace, feature_id="001_raw", roi=msg["roi"])
             result = Launcher.g.run("workspace", "goto_roi", **params)
             if result:
                 logger.debug(f"Switching to goto_roi created workspace {result}")
@@ -215,9 +214,9 @@ def frontend():
                     cfg.supervoxels_cached = True
                     viewer.add_image(src_arr, name=msg["feature_id"])
 
-        def update_regions(region_name):
-            logger.debug(f"update regions {region_name}")
-
+        def view_regions(msg):
+            logger.debug(f"view_feature {msg['region_id']}")
+            region_name = msg['region_id']
             existing_regions_layer = [
                 v for v in viewer.layers if v.name == cfg.current_regions_name
             ]
@@ -243,6 +242,7 @@ def frontend():
                     else:
                         sv_layer = viewer.add_image(src_arr, name=region_name)
                         sv_layer.opacity = 0.3
+                        sv_layer.colormap = 'bop orange'
             elif cfg.retrieval_mode == 'volume':
                 src = DataModel.g.dataset_uri(region_name, group="regions")
                 with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
@@ -253,16 +253,13 @@ def frontend():
                     if len(existing_layer) > 0:
                         existing_layer[0].data = src_arr
                     else:
-                        sv_image = find_boundaries(src_arr)
+                        sv_image = find_boundaries(src_arr, mode='inner')
                         sv_layer = viewer.add_image(sv_image, name=region_name)
                         sv_layer.opacity = 0.3
+                        sv_layer.colormap = 'bop orange'
 
             cfg.current_regions_name = region_name
             cfg.supervoxels_cached = False
-
-        def view_regions(msg):
-            logger.debug(f"view_feature {msg['region_id']}")
-            update_regions(msg["region_id"])
 
         def set_paint_params(msg):
             logger.debug(f"set_paint_params {msg['paint_params']}")
@@ -276,7 +273,7 @@ def frontend():
             cfg.label_value = label_value
             anno_layer.brush_size = int(paint_params["brush_size"])
             if paint_params["current_supervoxels"] is not None:
-                update_regions(ntpath.basename(paint_params["current_supervoxels"]))
+                view_regions({'region_id' : ntpath.basename(paint_params["current_supervoxels"])})
                 cfg.supervoxels_cached = False
 
         def update_layer(layer_name, src_arr):
@@ -481,35 +478,44 @@ def frontend():
             logger.debug(f"view_objects {msg['objects_id']}")
             src = DataModel.g.dataset_uri(msg["objects_id"], group="objects")
             with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-                ds = DM.sources[0]
+                ds_objects = DM.sources[0]
 
-            logger.debug(f"Using dataset {ds}")
-            entities_fullname = ds.get_metadata("fullname")
-            logger.info(f"Viewing entities {entities_fullname}")
-            tabledata, entities_df = setup_entity_table(entities_fullname)
+            logger.debug(f"Using dataset {ds_objects}")
+            objects_fullname = ds_objects.get_metadata("fullname")
+            objects_scale = ds_objects.get_metadata("scale")
+            objects_offset = ds_objects.get_metadata("offset")
+            objects_crop_start = ds_objects.get_metadata("crop_start")
+            objects_crop_end = ds_objects.get_metadata("crop_end")
+
+            logger.info(f"Viewing entities {objects_fullname}")
+            tabledata, entities_df = setup_entity_table(objects_fullname, 
+                                        scale=objects_scale, 
+                                        offset=objects_offset, 
+                                        crop_start=objects_crop_start, 
+                                        crop_end=objects_crop_end)
             sel_start, sel_end = 0, len(entities_df)
 
             centers = np.array(
                 [
                     [
                         np.int(
-                            (np.float(entities_df.iloc[i]["z"]) * cfg.object_scale)
-                            + cfg.object_offset[0]
+                            (np.float(entities_df.iloc[i]["z"]) * 1.0)
+                            + 0
                         ),
                         np.int(
-                            (np.float(entities_df.iloc[i]["x"]) * cfg.object_scale)
-                            + cfg.object_offset[1]
+                            (np.float(entities_df.iloc[i]["x"]) * 1.0)
+                            + 0
                         ),
                         np.int(
-                            (np.float(entities_df.iloc[i]["y"]) * cfg.object_scale)
-                            + cfg.object_offset[2]
+                            (np.float(entities_df.iloc[i]["y"]) * 1.0)
+                            + 0
                         ),
                     ]
                     for i in range(sel_start, sel_end)
                 ]
             )
 
-            num_classes = len(np.unique(entities_df["class_code"])) + 2
+            num_classes = max(9,len(np.unique(entities_df["class_code"]))) + 2
             logger.debug(f"Number of entity classes {num_classes}")
             palette = np.array(sns.color_palette("hls", num_classes))
             face_color_list = [

@@ -33,11 +33,180 @@ from survos2.server.features import features_factory
 from survos2.server.state import cfg
 from survos2.utils import encode_numpy
 
+from survos2.api.utils import dataset_repr, get_function_api, save_metadata
+from survos2.api.annotations import get_label_parent
+from survos2.entity.anno.pseudo import make_pseudomasks
+from survos2.entity.entities import (
+    EntityWorkflow,
+    init_entity_workflow,
+    organize_entities,
+)
+
 
 __pipeline_group__ = "pipelines"
 __pipeline_dtype__ = "float32"
 __pipeline_fill__ = 0
 
+
+@hug.get()
+def predict_segmentation_fcn(
+    feature_ids: DataURIList,
+    model_fullname: String,
+    dst: DataURI,
+    patch_size: IntOrVector = 64,
+    patch_overlap: IntOrVector = 8,
+    threshold: Float = 0.5,
+    model_type: String = "unet3d",
+):
+    from survos2.entity.instanceseg.proposals import make_proposal
+
+    # from survos2.entity.instanceseg.patches import prepare_dataloaders, load_patch_vols
+
+    logger.debug(
+        f"FCN segmentation with features {feature_ids} and model {model_fullname}"
+    )
+
+    features = []
+    for feature_id in feature_ids:
+        src = DataModel.g.dataset_uri(feature_id, group="features")
+        logger.debug(f"Getting features {src}")
+
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            logger.debug(f"Adding feature of shape {src_dataset.shape}")
+            features.append(src_dataset[:])
+
+    proposal = make_proposal(
+        features[0],
+        model_fullname,
+        model_type=model_type,
+        patch_size=patch_size,
+        patch_overlap=patch_overlap,
+    )
+
+    proposal -= np.min(proposal)
+    proposal = proposal / np.max(proposal)
+    proposal = ((proposal < threshold) * 1) + 1
+
+    # store resulting segmentation in dst
+    dst = DataModel.g.dataset_uri(dst, group="pipelines")
+    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+        DM.out[:] = proposal
+
+
+@hug.get()
+def make_annotation(
+    workspace: String,
+    feature_ids: DataURIList,
+    object_id: DataURI,
+    acwe : SmartBoolean,
+    dst: DataURI,
+):
+    logger.debug(
+        f"object detection with workspace {workspace}, with features {feature_ids} and {object_id}"
+    )
+
+    # get features
+    features = []
+    for feature_id in feature_ids:
+        src = DataModel.g.dataset_uri(feature_id, group="features")
+        logger.debug(f"Getting features {src}")
+
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            logger.debug(f"Adding feature of shape {src_dataset.shape}")
+            features.append(src_dataset[:])
+
+    src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        ds_objects = DM.sources[0]
+
+    objects_fullname = ds_objects.get_metadata("fullname")
+    objects_scale = ds_objects.get_metadata("scale")
+    objects_offset = ds_objects.get_metadata("offset")
+    objects_crop_start = ds_objects.get_metadata("crop_start")
+    objects_crop_end = ds_objects.get_metadata("crop_end")
+
+    logger.debug(
+        f"Getting objects from {src} and file {objects_fullname}"
+    )
+
+    tabledata, entities_df = setup_entity_table(
+        objects_fullname, scale=objects_scale, offset=objects_offset, crop_start=objects_crop_start, crop_end=objects_crop_end 
+    )
+    print(entities_df)
+    entities = np.array(make_entity_df(np.array(entities_df), flipxy=True))
+
+    #default params TODO make generic, allow editing 
+    entity_meta = {
+        "0": {
+            "name": "class1",
+            "size": np.array((15, 15, 15)) * objects_scale,
+            "core_radius": np.array((7, 7, 7)) * objects_scale,
+        },
+        "1": {
+            "name": "class2",
+            "size": np.array((17, 17, 17)) * objects_scale,
+            "core_radius": np.array((9, 9, 9)) * objects_scale,
+        },
+        "2": {
+            "name": "class3",
+            "size": np.array((22, 22, 22)) * objects_scale,
+            "core_radius": np.array((11, 11, 11)) * objects_scale,
+        },
+        "5": {
+            "name": "class4",
+            "size": np.array((12, 12, 12)) * objects_scale,
+            "core_radius": np.array((5, 5, 5)) * objects_scale,
+        },
+    }
+
+    combined_clustered_pts, classwise_entities = organize_entities(
+        features[0], entities, entity_meta, plot_all=False
+    )
+
+    wparams = {}
+    wparams["entities_offset"] = (0, 0, 0)
+
+    wf = EntityWorkflow(
+        features, combined_clustered_pts, classwise_entities, features[0], wparams,
+    )
+
+    gt_proportion = 0.5
+    wf_sel = np.random.choice(range(len(wf.locs)), int(gt_proportion * len(wf.locs)))
+    gt_entities = wf.locs[wf_sel]
+    logger.debug(f"Produced {len(gt_entities)} ground truth entities.")
+
+    combined_clustered_pts, classwise_entities = organize_entities(
+        wf.vols[0], gt_entities, entity_meta
+    )
+
+    wf.params["entity_meta"] = entity_meta
+
+    anno_masks, anno_all = make_pseudomasks(
+        wf,
+        classwise_entities,
+        acwe=acwe,
+        padding=(128, 128, 128),
+        core_mask_radius=(8, 8, 8),
+    )
+
+    if acwe:
+        combined_anno = anno_masks["acwe"]
+    else:
+        combined_anno = (
+            anno_masks["0"]["mask"]
+            + anno_masks["1"]["mask"]
+            + anno_masks["2"]["mask"]
+            + anno_masks["5"]["mask"]
+    )
+
+    combined_anno = (combined_anno > 0.1) * 1.0
+    # store in dst
+    dst = DataModel.g.dataset_uri(dst, group="pipelines")
+
+    with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
+        DM.out[:] = combined_anno
 
 
 @hug.get()
@@ -47,7 +216,7 @@ def superregion_segment(
     dst: DataURI,
     workspace : String,
     anno_id: DataURI,
-    constrain_mask_id: DataURI,
+    constrain_mask: DataURI,
     region_id: DataURI,
     feature_ids: DataURIList,
     lam: float,
@@ -98,14 +267,19 @@ def superregion_segment(
     superseg_cfg["predict_params"]["clf"] = classifier_type
     superseg_cfg["predict_params"]["type"] = classifier_params["type"]
     superseg_cfg["predict_params"]["proj"] = projection_type
-    #superseg_cfg["classifier_params"] = classifier_params
-
+    
     logger.debug(f"Using superseg_cfg {superseg_cfg}")
 
-    if constrain_mask_id != "None":
-        label_idx = 2
-        parent_level, parent_label_idx = get_label_parent(workspace, anno_id, label_idx)
-        logger.debug(f"Parent for {anno_id} is {parent_level} with labels {parent_label_idx}")
+    if constrain_mask != "None":
+        
+        #parent_level, parent_label_idx = get_label_parent(workspace, anno_id, label_idx)
+        #logger.debug(f"Parent for {anno_id} is {parent_level} with labels {parent_label_idx}")
+        import ast
+        constrain_mask = ast.literal_eval(constrain_mask)
+        print(constrain_mask)
+        constrain_mask_id = ntpath.basename(constrain_mask["level"])
+        label_idx = constrain_mask["idx"]
+    
         src = DataModel.g.dataset_uri(constrain_mask_id, group="annotations")
         
         with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
@@ -113,11 +287,11 @@ def superregion_segment(
             constrain_mask_level = src_dataset[:] & 15
 
         logger.debug(
-            f"Constrain mask level shape {constrain_mask_level.shape} with labels {np.unique(constrain_mask_level)}"
+            f"Constrain mask {constrain_mask_id}, label {label_idx} level shape {constrain_mask_level.shape} with unique labels {np.unique(constrain_mask_level)}"
         )
         
-        logger.debug(f"Masking with parent label {parent_label_idx}")
-        mask = constrain_mask_level == parent_label_idx
+        
+        mask = constrain_mask_level == label_idx - 1
     
     else:
         mask = None

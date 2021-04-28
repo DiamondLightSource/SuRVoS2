@@ -249,7 +249,7 @@ def make_acwe(patch: Patch, params: dict):
     # anno = outer_mask + inner_mask
 
     patch.image_layers["acwe"] = outer_mask
-    show_images([outer_mask[outer_mask.shape[0] // 2, :]], figsize=(12, 12))
+    #show_images([outer_mask[outer_mask.shape[0] // 2, :]], figsize=(12, 12))
 
     return patch
 

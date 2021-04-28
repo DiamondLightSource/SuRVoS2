@@ -20,11 +20,8 @@ from survos2.frontend.main import roi_ws
 
 
 @hug.get()
-def goto_roi(feature_id: DataURI, roi: IntList):
-    # workspace, session = parse_workspace(workspace)
-
+def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name:String):
     # get raw from current workspace
-
     src = DataModel.g.dataset_uri(feature_id, group="features")
     logger.debug(f"Getting features {src} and cropping roi {roi}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -49,6 +46,10 @@ def goto_roi(feature_id: DataURI, roi: IntList):
         + str(roi[5])
     )
     roi_ws(src_dataset, roi_name)
+    src_ws = get(current_workspace_name)
+    target_ws = get(roi_name)
+    src_ws.replicate_workspace(target_ws.path)
+    
 
     return roi_name
 
