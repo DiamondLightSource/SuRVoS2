@@ -53,9 +53,6 @@ class FeaturesPlugin(Plugin):
         self.vbox.addWidget(self.feature_combo)
         self.feature_combo.currentIndexChanged.connect(self.add_feature)
         self.existing_features = dict()
-        #save_feature_script_btn = PushButton("Save features", accent=True)
-        #save_feature_script_btn.clicked.connect(self.save_feature_script)
-        #self.vbox.addWidget(save_feature_script_btn)
         self._populate_features()
 
 
@@ -123,12 +120,6 @@ class FeaturesPlugin(Plugin):
                 widget.update_params(params)
                 self.existing_features[fid] = widget
 
-    def save_feature_script(self):
-        for k,v in self.existing_features.items():
-            print(k)
-            print(self.existing_features[k].feature_type)
-            print(self.existing_features[k].params)
-            print(self.existing_features[k].cmb_source.value())
 
 class FeatureCard(Card):
     def __init__(self, fid, ftype, fname, fparams, parent=None):
