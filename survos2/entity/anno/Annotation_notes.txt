@@ -1,3 +1,7 @@
+anno.mask
+
+anno.crowd
+supports importing of data from zooniverse
 
 
 crowd.py
@@ -10,7 +14,8 @@ geom.py
 
 masks.py
 
-Vector to raster utilities, e.g. list of points to a mask of ellipses centered at each point.
+Vector to raster utilities, supports converting objects into label volumes.
+ e.g. list of points to a mask of ellipses centered at each point.
 
 point_cloud.py
 

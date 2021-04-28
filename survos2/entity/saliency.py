@@ -1,31 +1,24 @@
+import os
+from typing import Collection, List
+
 import numpy as np
 import pandas as pd
-from skimage import data, measure
 import skimage
-import os
-
-from scipy import ndimage
-import torch.utils.data as data
-from typing import List
-
-from matplotlib import pyplot as plt
 import torch
-import numpy as np
-from survos2.frontend.nb_utils import show_images
-
-from typing import Collection
+import torch.utils.data as data
 from matplotlib import patches, patheffects
-from matplotlib.patches import Rectangle, Patch
+from matplotlib import pyplot as plt
+from matplotlib.patches import Patch, Rectangle
 
 # from survos2.entity.Various import draw_rect
 from scipy import ndimage
-from scipy.ndimage import label, generate_binary_structure
+from scipy.ndimage import generate_binary_structure, label
+from skimage import data, measure
+from survos2.frontend.nb_utils import show_images
 
 
 def measure_components(image):
-
     labeled_array, num_features = label(image.astype(np.uint))
-
     print(f"Measured {num_features} features")
     objs = ndimage.measurements.find_objects(labeled_array)
 
@@ -111,7 +104,6 @@ def measure_regions(labeled_images, properties=["label", "area", "centroid", "bb
 
 
 def filter_small_components(images, component_size=1000):
-
     labeled_images = [measure.label(image) for image in images]
     tables = measure_regions(labeled_images)
 
@@ -153,26 +145,3 @@ def get_entity_at_loc(entities_df, selected_idx):
             entities_df.y == selected_idx[2],
         )
     ]
-
-
-def generate_click_plot_data1(img_data, click_coords):
-    img_shortlist = []
-    img_titles = []
-
-    for j in range(len(click_coords)):
-
-        if j % 5000 == 0:
-            print("Generating click plot data: {}".format(j))
-
-        sliceno, y, x = click_coords[j]
-        w, h = (100, 100)
-        print(x, y, w, h, sliceno)
-
-        img = get_img_in_bbox(img_data, 75, int(np.ceil(x)), int(np.ceil(y)), w, h)
-        img_shortlist.append(img)
-
-        y_str = "{:10.4f}".format(y)
-        x_str = "{:10.4f}".format(x)
-        img_titles.append(x_str + " " + y_str + " " + "Slice no: " + str(sliceno))
-
-    return img_shortlist, img_titles

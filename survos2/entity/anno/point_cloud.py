@@ -33,7 +33,9 @@ def show_images_and_points(
 
         a = fig.add_subplot(1, n_ims, n)
         plt.imshow(image, cmap="gray")
-        scat = a.scatter(points[:, 0], points[:, 1], c=cluster_classes, cmap="jet_r")
+        scat = a.scatter(
+            points[:, 1], points[:, 2], c=cluster_classes, cmap="jet_r", s=50, alpha=1.0
+        )
         a.legend(handles=scat.legend_elements()[0], labels=class_names)
 
         a.set_title(title)
@@ -56,10 +58,12 @@ def chip_cluster(
     offset_x,
     offset_y,
     min_cluster_size=5,
+    min_samples=1,
     eps=5,
     method="hdbscan",
     plot_all=False,
     debug_verbose=False,
+    quantile_threshold=0.95,
 ):
     """Cluster and simplify point cloud associated with a chip volume.
 
@@ -79,24 +83,23 @@ def chip_cluster(
 
     X = orig_pts.copy()
     img_sample = chip[chip.shape[0] // 2, :]
-
     subsample = False
-
     print(f"Image {chip.shape}")
-
     print(f"Clustering pts {orig_pts.shape}")
 
     if plot_all:
+
         plt.figure(figsize=(14, 14))
+        plt.gca().invert_yaxis()
         plt.scatter(
             orig_pts[:, 1] - offset_x,
             orig_pts[:, 2] - offset_y,
-            s=60,
+            s=5,
             linewidth=0,
             c=orig_pts[:, 3],
             alpha=1.0,
         )
-        plt.title("Before")
+        plt.title("Raw Points Before")
 
     if subsample:
         X = np.array(X)
@@ -151,19 +154,17 @@ def chip_cluster(
     if method == "hdbscan":
         import hdbscan
 
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size).fit(X_rescaled)
+        clusterer = hdbscan.HDBSCAN(
+            min_cluster_size=min_cluster_size, min_samples=1
+        ).fit(X_rescaled)
         label_code = clusterer.labels_
         num_clusters_found = len(np.unique(label_code))
-        threshold = pd.Series(clusterer.outlier_scores_).quantile(0.65)
+        threshold = pd.Series(clusterer.outlier_scores_).quantile(quantile_threshold)
         outliers = np.where(clusterer.outlier_scores_ > threshold)[0]
 
         X_rescaled_cl = np.delete(X_rescaled, outliers, axis=0)
         label_code_cl = np.delete(label_code, outliers, axis=0)
         cluster_probs_cl = np.delete(clusterer.probabilities_, outliers, axis=0)
-
-        # X_rescaled_cl = X_rescaled
-        # label_code_cl = label_code
-        # cluster_probs_cl = clusterer.probabilities_
         num_outliers_removed = X_rescaled.shape[0] - X_rescaled_cl.shape[0]
 
         if debug_verbose:
@@ -182,9 +183,9 @@ def chip_cluster(
 
     elif method == "dbscan":
 
-        clusterer = DBSCAN(eps=eps, min_samples=1).fit(X_rescaled)
+        clusterer = DBSCAN(eps=eps, min_samples=min_samples).fit(X_rescaled)
         label_code_cl = clusterer.labels_
-        X_rescaled_cl = X_rescaled
+        X_rescaled_cl = X_rescaled[label_code_cl != -1]
         num_clusters_found = len(np.unique(label_code_cl))
 
     cluster_coords = []
@@ -220,36 +221,45 @@ def chip_cluster(
     cc = []
 
     for c in cluster_coords:
-
         cluster_classes = list(c[:, 3].astype(np.uint32))
-
         try:
             classes_mode = mode(cluster_classes)
-
         except StatisticsError as e:
             classes_mode = np.random.choice(cluster_classes)
-
         cc.append(classes_mode)
         # print(f"Assigned class for cluster: {classes_mode}")
 
     if debug_verbose:
         print(f"Number of clusters: {len(cluster_coords)}")
-        print(f"Cluster classes {cc}")
+        # print(f"Cluster classes {cc}")
         print(f"Len cluster classes {len(cc)}")
-
-    if plot_all:
-        show_images_and_points(
-            [
-                img_sample,
-            ],
-            centroid_coords_woffset,
-            cc,
-            figsize=(12, 12),
-        )
 
     clustered = np.zeros((cluster_centroids.shape[0], 4))
     clustered[:, 0:3] = cluster_centroids
     clustered[:, 3] = cc
+
+    if plot_all:
+
+        plt.figure(figsize=(14, 14))
+        plt.gca().invert_yaxis()
+        plt.scatter(
+            centroid_coords_woffset[:, 0] - offset_x,
+            centroid_coords_woffset[:, 1] - offset_y,
+            s=5,
+            linewidth=0,
+            c=cc,
+            alpha=1.0,
+        )
+        plt.title("Raw Points After")
+
+        show_images_and_points(
+            [
+                img_sample,
+            ],
+            cluster_centroids,
+            cc,
+            figsize=(12, 12),
+        )
 
     print(f"Produced clustered output of shape: {clustered.shape}")
 
@@ -330,15 +340,6 @@ def chip_cluster2(
         xlim = (0, chip.shape[1])
         ylim = (0, chip.shape[2])
         zlim = (0, chip.shape[0])
-
-    # print(np.max(X_rescaled[:,0]), np.max(X_rescaled[:,1]), np.max(X_rescaled[:,2]))
-    # print(np.min(X_rescaled[:,0]), np.min(X_rescaled[:,1]), np.min(X_rescaled[:,2]))
-
-    # print(np.max(X_rescaled[:,0]), np.max(X_rescaled[:,1]), np.max(X_rescaled[:,2]))
-    # print(np.min(X_rescaled[:,0]), np.min(X_rescaled[:,1]), np.min(X_rescaled[:,2]))
-
-    # print(np.max(X_rescaled[:,0]), np.max(X_rescaled[:,1]), np.max(X_rescaled[:,2]))
-    # print(np.min(X_rescaled[:,0]), np.min(X_rescaled[:,1]), np.min(X_rescaled[:,2]))
 
     #
     # Point cloud cluster

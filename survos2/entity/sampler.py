@@ -1,18 +1,87 @@
+import itertools
 import os
 import time
+import warnings
+from dataclasses import dataclass
+from typing import List, NamedTuple, Tuple, Union
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import warnings
-import matplotlib.pyplot as plt
-from dataclasses import dataclass
-from typing import NamedTuple, Tuple, Union, List
-import itertools
-from survos2.frontend.nb_utils import summary_stats
-from survos2.entity.anno.geom import centroid_3d, rescale_3d
 
 # from survos2.entity.entities import get_centered_vol_in_bbox
-
 from loguru import logger
+from survos2.entity.anno.geom import centroid_3d, rescale_3d
+from survos2.frontend.nb_utils import summary_stats
+
+
+def entitybvol_to_cropbvol(bvol):
+    """
+    from z1 z2 x1 x2 y1 y2
+    to z1 x1 y1 z2 x2 y2
+    """
+    b = np.zeros_like(bvol)
+    b[0] = bvol[0]
+    b[1] = bvol[3]
+    b[2] = bvol[1]
+    b[3] = bvol[4]
+    b[4] = bvol[2]
+    b[5] = bvol[5]
+
+    return b
+
+
+def detnetbvol_to_cropbvol(bvol):
+    """
+    from x1 y1 x2 y2 z1 z2
+    to z1 x1 y1 z2 x2 y2
+
+    """
+    b = np.zeros_like(bvol)
+    b[0] = bvol[4]
+    b[1] = bvol[0]
+    b[2] = bvol[1]
+    b[3] = bvol[5]
+    b[4] = bvol[2]
+    b[5] = bvol[3]
+    return b
+
+
+def cropbvol_to_detnet_bvol(bvol):
+    """
+    from z1 x1 y1 z2 x2 y2
+    to x1 y1 x2 y2 z1 z2
+    """
+    b = np.zeros_like(bvol)
+    b[0] = bvol[1]
+    b[1] = bvol[2]
+    b[2] = bvol[4]
+    b[3] = bvol[5]
+    b[4] = bvol[0]
+    b[5] = bvol[3]
+    return b
+
+
+def produce_patches(padded_vol, padded_anno, offset_locs, bvol_grid):
+    patches = []
+    patches_pts = []
+    patches_bvols = []
+    patches_anno = []
+
+    for i in range(len(bvol_grid)):
+        patch, patch_pts = crop_vol_and_pts_bb(
+            padded_vol, offset_locs, entitybvol_to_cropbvol(bvol_grid[i]), offset=True
+        )
+        patch_anno, patch_pts = crop_vol_and_pts_bb(
+            padded_anno, offset_locs, entitybvol_to_cropbvol(bvol_grid[i]), offset=True
+        )
+        patch_bvol = centroid_to_bvol(patch_pts, bvol_dim=(24, 24, 24))
+        patches.append(patch)
+        patches_bvols.append(patch_bvol)
+        patches_pts.append(patch_pts)
+        patches_anno.append(patch_anno)
+
+    return patches, patches_anno, patches_bvols, patches_pts
 
 
 def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16), sample_grid=False):
@@ -24,6 +93,10 @@ def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16), sample_grid=False)
 
     zv, xv, yv = np.meshgrid(spacez, spacex, spacey)
     print(zv.shape, xv.shape, yv.shape)
+
+    zv = zv + padding[0]
+    xv = xv + padding[1]
+    yv = yv + padding[2]
 
     gridarr = np.stack((zv, xv, yv)).astype(np.uint32)
     gridarr[:, 1, 1, 1]
@@ -45,6 +118,15 @@ def generate_random_points(vol, num_pts, patch_size):
     pts[:, 0] = pts[:, 0] * (vol.shape[0] - z_size * 2) + z_size // 2
     pts[:, 1] = pts[:, 1] * (vol.shape[1] - y_size * 2) + x_size // 2
     pts[:, 2] = pts[:, 2] * (vol.shape[2] - x_size * 2) + y_size // 2
+    pts = np.abs(pts)
+    return pts
+
+
+def generate_random_points_in_volume(vol, num_pts):
+    pts = np.random.random((num_pts, 4))
+    pts[:, 0] = pts[:, 0] * vol.shape[0]
+    pts[:, 1] = pts[:, 1] * vol.shape[1]
+    pts[:, 2] = pts[:, 2] * vol.shape[2]
     pts = np.abs(pts)
     return pts
 
@@ -102,10 +184,10 @@ def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
     return bvols
 
 
-def sample_volumes(sel_ents, precropped_vol):
+def sample_volumes(sel_entities, precropped_vol):
     sampled_vols = []
-    for i in range(len(sel_ents)):
-        ent = sel_ents.iloc[i]
+    for i in range(len(sel_entities)):
+        ent = sel_entities.iloc[i]
         bb = np.array(
             [
                 ent["bb_s_z"],
@@ -120,7 +202,7 @@ def sample_volumes(sel_ents, precropped_vol):
     return sampled_vols
 
 
-def viz_bvols(input_array, bvols, flip_coords=False):
+def viz_bvols(input_array, bvols, flip_coords=False, edge_thickness=2):
     bvol_mask = np.zeros_like(input_array)
     print(f"Making {len(bvols)} bvols")
     for bvol in bvols:
@@ -136,8 +218,20 @@ def viz_bvols(input_array, bvols, flip_coords=False):
 
         if flip_coords:
             bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
+            bvol_mask[z_s + 1 : z_f - 1, y_s + 1 : y_f - 1, x_s + 1 : x_f - 1] = 0.90
+            bvol_mask[
+                z_s + edge_thickness : z_f - edge_thickness,
+                y_s + edge_thickness : y_f - edge_thickness,
+                x_s + edge_thickness : x_f - edge_thickness,
+            ] = 0.55
         else:
-            bvol_mask[z_s:z_f, x_s:x_f, y_s:y_f] = 1.0
+            bvol_mask[z_s:z_f, x_s:x_f, y_s:y_f] = 0.45
+            bvol_mask[z_s + 1 : z_f - 1, x_s + 1 : x_f - 1, y_s + 1 : y_f - 1] = 0.85
+            bvol_mask[
+                z_s + edge_thickness : z_f - edge_thickness,
+                y_s + edge_thickness : y_f - edge_thickness,
+                x_s + edge_thickness : x_f - edge_thickness,
+            ] = 0.45
 
     return bvol_mask
 
@@ -460,9 +554,7 @@ def crop_vol_and_pts_centered(
 ):
     patch_size = np.array(patch_size).astype(np.uint32)
     location = np.array(location).astype(np.uint32)
-
     # z, x_bl, x_ur, y_bl, y_ur = location[0], location[1], location[1]+patch_size[1], location[2], location[2]+patch_size[2]
-
     slice_start = np.max([0, location[0]])
     slice_end = np.min([location[0] + patch_size[0], img_volume.shape[0]])
 
@@ -509,9 +601,13 @@ def crop_vol_and_pts_centered(
 
 def sample_patch_slices(img_vol, entities_df):
     entities_locs = np.array(entities_df[["slice", "x", "y"]])
-    vol_list, vol_locs, vol_pts = sample_patch_locs(
+    mp = sample_marked_patches(
         img_vol, entities_locs, entities_locs, patch_size=(64, 64, 64)
     )
+    vol_list = mp.vols
+    vol_locs = mp.vols_locs
+    vol_pts = mp.vols_pts
+
     slice_list = np.array([v[vol_list[0].shape[0] // 2, :, :] for v in vol_list])
 
     print(f"Generated slice {slice_list.shape}")
@@ -525,18 +621,23 @@ def gather_single_class(img_vol, entities_locs, class_code, patch_size=(64, 64, 
     ]
     entities_locs_singleclass = np.array(entities_locs_singleclass[["slice", "x", "y"]])
 
-    return sample_patch_locs(
+    mp = sample_marked_patches(
         img_vol,
         entities_locs_singleclass,
         entities_locs_singleclass,
         patch_size=patch_size,
     )
 
+    vol_list = mp.vols
+    vol_locs = mp.vols_locs
+    vol_pts = mp.vols_pts
+
+    return vol_list, vol_locs, vol_pts
+
 
 def sample_patch2d(img_volume, pts, patch_size=(40, 40)):
     img_shortlist = []
     img_titles = []
-
     print(f"Sampling {len(pts)} pts from image volume of shape {img_volume.shape}")
 
     for j in range(len(pts)):
