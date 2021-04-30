@@ -80,7 +80,8 @@ def get_label_parent(workspace: String, level: String, label_idx: Int):
         if "parent_level" in labels[label_idx]:
             parent_level = labels[label_idx]["parent_level"]
             parent_label_idx = int(labels[label_idx]["parent_label"])
-            parent_color = labels[label_idx]["parent_color"]
+            if "parent_color" in labels[label_idx]:
+                parent_color = labels[label_idx]["parent_color"]
     
     return parent_level, parent_label_idx, parent_color
 
