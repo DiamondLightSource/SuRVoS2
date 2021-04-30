@@ -24,11 +24,11 @@ from qtpy.QtCore import QSize, QThread, QTimer
 from qtpy.QtWidgets import QApplication, QPushButton, QTabWidget, QVBoxLayout, QWidget
 
 from scipy import ndimage
-from scipy.ndimage import binary_dilation
 from skimage import img_as_float, img_as_ubyte
 from skimage.draw import line
-from skimage.morphology import disk
 from skimage.segmentation import find_boundaries
+from skimage.morphology import disk
+from scipy.ndimage import binary_dilation
 
 from survos2 import survos
 from survos2.entity.entities import make_entity_df
@@ -59,7 +59,25 @@ from survos2.frontend.workflow import run_workflow
 from napari_plugin_engine import napari_hook_implementation
 
 
-     
+def remove_masked_pts(bg_mask, entities):
+    pts_vol = np.zeros_like(bg_mask)
+    
+    #bg_mask = binary_dilation(bg_mask * 1.0, disk(2).astype(np.bool))
+    for pt in entities:
+        if pt[0] < bg_mask.shape[0] and pt[1] < bg_mask.shape[1] and pt[2] < bg_mask.shape[2]:
+            pts_vol[pt[0], pt[1], pt[2]] = 1
+        else:
+            print(pt)
+    bg_mask = bg_mask > 0
+    pts_vol = pts_vol * bg_mask
+    zs, xs, ys = np.where(pts_vol == 1)
+    masked_entities = []
+    for i in range(len(zs)):
+        pt = [zs[i], xs[i], ys[i]]
+        masked_entities.append(pt)
+    return np.array(masked_entities)
+
+
 def frontend():
     logger.info(f"Frontend loading workspace {DataModel.g.current_workspace}")
 
@@ -102,13 +120,20 @@ def frontend():
     cfg.current_annotation_name = None
     cfg.current_pipeline_name = None
     cfg.object_scale = 1.0
-    cfg.object_offset = (-16, 170, 165)  # (-16,-350,-350)
+    cfg.object_offset = (0,0,0)  #(-16, 170, 165)  # (-16,-350,-350)
     cfg.current_regions_name = None
     cfg.current_supervoxels = None
     cfg.supervoxels_cache = None
     cfg.supervoxels_cached = False
     cfg.current_regions_dataset = None
-
+    
+    label_dict = {
+            "level": "001_level",
+            "idx": 1,
+            "color": "#000000",
+    }
+    cfg.label_value = label_dict
+    
     cfg.order = (0, 1, 2)
     cfg.group = "main"
 
@@ -265,16 +290,18 @@ def frontend():
             logger.debug(f"set_paint_params {msg['paint_params']}")
             paint_params = msg["paint_params"]
             label_value = paint_params["label_value"]
-            anno_layer = viewer.layers.selected[0]
-            cfg.label_ids = list(np.unique(anno_layer))
-            anno_layer.mode = "paint"
-            cfg.current_mode = "paint"
-            anno_layer.selected_label = int(label_value["idx"]) - 1
-            cfg.label_value = label_value
-            anno_layer.brush_size = int(paint_params["brush_size"])
-            if paint_params["current_supervoxels"] is not None:
-                view_regions({'region_id' : ntpath.basename(paint_params["current_supervoxels"])})
-                cfg.supervoxels_cached = False
+
+            if label_value is not None:
+                anno_layer = viewer.layers.selected[0]
+                cfg.label_ids = list(np.unique(anno_layer))
+                anno_layer.mode = "paint"
+                cfg.current_mode = "paint"
+                anno_layer.selected_label = int(label_value["idx"]) - 1
+                cfg.label_value = label_value
+                anno_layer.brush_size = int(paint_params["brush_size"])
+                if paint_params["current_supervoxels"] is not None:
+                    view_regions({'region_id' : ntpath.basename(paint_params["current_supervoxels"])})
+                    cfg.supervoxels_cached = False
 
         def update_layer(layer_name, src_arr):
             existing_layer = [v for v in viewer.layers if v.name == layer_name]
@@ -291,8 +318,8 @@ def frontend():
 
             update_layer(msg["level_id"], src_arr)
 
-        def get_annotation_array(msg):
-            if cfg.retrieval_mode == 'slice':  # just get a slice over http
+        def get_annotation_array(msg, retrieval_mode='volume'):
+            if retrieval_mode == 'slice':  # just get a slice over http
                 src_annotations_dataset = DataModel.g.dataset_uri(
                     msg["level_id"], group="annotations"
                 )
@@ -305,7 +332,7 @@ def frontend():
                 result = Launcher.g.run("annotations", "get_slice", **params)
                 if result:
                     src_arr = decode_numpy(result)
-            elif cfg.retrieval_mode == 'volume':  # get entire volume
+            elif retrieval_mode == 'volume':  # get entire volume
                 src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
                 with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
                     src_annotations_dataset = DM.sources[0][:]
@@ -315,11 +342,9 @@ def frontend():
 
         def refresh_annotations(msg):
             logger.debug(f"refresh_annotation {msg['level_id']}")
-
             # remove_layer(cfg.current_annotation_name)
-
             cfg.current_annotation_name = msg["level_id"]
-            src_arr, src_annotations_dataset = get_annotation_array(msg)
+            src_arr, src_annotations_dataset = get_annotation_array(msg, retrieval_mode=cfg.retrieval_mode)
             result = Launcher.g.run(
                 "annotations", "get_levels", workspace=DataModel.g.current_workspace
             )
@@ -351,9 +376,12 @@ def frontend():
                     )
 
                 label_layer.mode = cfg.current_mode
-                label_layer.selected_label = int(cfg.label_value["idx"]) - 1
                 label_layer.brush_size = brush_size
 
+                if cfg.label_value is not None:
+                    
+                    label_layer.selected_label = int(cfg.label_value["idx"]) - 1
+                    
                 return label_layer, src_annotations_dataset
 
                     
@@ -363,6 +391,30 @@ def frontend():
             cfg.current_annotation_name = msg["level_id"]
             label_layer, current_annotation_ds = refresh_annotations(msg)
 
+            if cfg.label_value is not None:
+                sel_label = int(cfg.label_value["idx"]) 
+            else:
+                sel_label = 1
+            
+            if msg["level_id"] is not None:
+                params = dict(workspace=True, level=msg["level_id"], label_idx=sel_label )
+                result = Launcher.g.run("annotations", "get_label_parent", **params)
+                print(result)
+                parent_level = result[0]
+                parent_label_idx = result[1]
+
+                if parent_level != '-1' and parent_level != -1:
+                    parent_arr, parent_annotations_dataset = get_annotation_array({"level_id": parent_level}, retrieval_mode="volume")
+                    parent_arr = parent_arr & 15
+                    print(parent_annotations_dataset)
+                    print(parent_arr)            
+                    parent_mask = parent_arr == parent_label_idx
+                    print(parent_mask)
+                else:
+                    parent_arr = None
+                    parent_mask = None
+
+            
             @label_layer.bind_key("Control-Z", overwrite=True)
             def undo(v):
                 level = cfg.current_annotation_name
@@ -402,18 +454,35 @@ def frontend():
                         dragged = True
                         yield
 
-                    top_layer = viewer.layers[-1]
-                    layer_name = top_layer.name  # get last added layer name
-                    anno_layer = next(l for l in viewer.layers if l.name == layer_name)
+                    print(drag_pts)
+                    
+                    filtered_pts = drag_pts
+                    if parent_mask is not None:
+                        from survos2.entity.instanceseg.utils import remove_masked_entities
+                        filtered_pts = remove_masked_pts(parent_mask, np.array(drag_pts))
+                        print(filtered_pts)
 
-                    def update_anno(msg):
-                        src_arr, _ = get_annotation_array(msg)
-                        update_layer(msg["level_id"], src_arr)
-                    update = partial(update_anno, msg=msg)
-                    paint_strokes_worker = paint_strokes(msg, drag_pts, layer, top_layer, anno_layer)
-                    paint_strokes_worker.returned.connect(update)
-                    paint_strokes_worker.start()
-                
+                    if len(filtered_pts) > 0:
+                        top_layer = viewer.layers[-1]
+                        layer_name = top_layer.name  # get last added layer name
+                        anno_layer = next(l for l in viewer.layers if l.name == layer_name)
+
+                        def update_anno(msg):
+                            src_arr, _ = get_annotation_array(msg, retrieval_mode=cfg.retrieval_mode)
+                            update_layer(msg["level_id"], src_arr)
+                        update = partial(update_anno, msg=msg)
+                        paint_strokes_worker = paint_strokes(msg, filtered_pts, layer, top_layer, anno_layer)
+                        paint_strokes_worker.returned.connect(update)
+                        paint_strokes_worker.start()
+                    else:
+                        cfg.ppw.clientEvent.emit(
+                        {
+                            "source": "annotations",
+                            "data": "update_annotations",
+                            "level_id": msg["level_id"],
+                        }
+                    )
+                        
                     
         def view_pipeline(msg):
             logger.debug(f"view_pipeline {msg['pipeline_id']} using {msg['level_id']}")

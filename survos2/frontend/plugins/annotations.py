@@ -172,26 +172,28 @@ class AnnotationPlugin(Plugin):
         cfg.brush_size = self.width.value()
         print(cfg.current_supervoxels, cfg.label_value)
 
-        # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
-        cfg.ppw.clientEvent.emit(
-            {
-                "source": "annotations",
-                "data": "set_paint_params",
-                "paint_params": {
-                    "current_supervoxels": self.region.value(),
-                    "label_value": self.label.value(),
-                    "brush_size": self.width.value(),
-                },
-            }
-        )
 
-        cfg.ppw.clientEvent.emit(
-            {
-                "source": "annotations",
-                "data": "paint_annotations",
-                "level_id": self.label.value()["level"],
-            }
-        )
+        if cfg.label_value is not None:
+            # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "set_paint_params",
+                    "paint_params": {
+                        "current_supervoxels": self.region.value(),
+                        "label_value": self.label.value(),
+                        "brush_size": self.width.value(),
+                    },
+                }
+            )
+
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "paint_annotations",
+                    "level_id": self.label.value()["level"],
+                }
+            )
 
 
 class AnnotationLevel(Card):
@@ -283,23 +285,33 @@ class AnnotationLabel(QCSWidget):
 
     def __init__(self, label, level_dataset, parent=None):
         super().__init__(parent=parent)
+        print(f"Adding label: {label}")
         self.level_dataset = level_dataset
-        self.label_idx = label["idx"]
+        self.label_idx = int(label["idx"])
         self.label_color = label["color"]
         self.label_name = label["name"]
         self.label_visible = label["visible"]
         self.level_number = int(level_dataset.split("_")[0])
         
-        parent_level = -1
-        parent_label = -1
-        self.parent_level = parent_level
-        self.parent_label = parent_label
-
+        
         self.btn_del = DelIconButton(secondary=True)
         self.txt_label_name = LineEdit(label["name"])
         self.txt_idx = LineEdit(str(label["idx"]))
         self.btn_label_color = ColorButton(label["color"])
-        self.btn_label_parent = ParentButton(color=None, source_level=self.level_dataset)
+        
+        params = dict(workspace=True, level=level_dataset, label_idx=int(label["idx"]))
+        result = Launcher.g.run("annotations", "get_label_parent", **params)
+        print(result)
+        
+        if result[0] == -1:
+            self.parent_level = -1
+            self.parent_label = -1
+            self.btn_label_parent = ParentButton(color=None, source_level=self.level_dataset, parent_level=self.parent_level, parent_label=self.parent_label)
+        else:
+            self.parent_level = result[0]
+            self.parent_label = result[1]
+            self.btn_label_parent = ParentButton(color=result[2], source_level=self.level_dataset, parent_level=self.parent_level, parent_label=self.parent_label)
+
         # self.btn_select = IconButton("fa.pencil", "", accent=True)
         self.btn_label_parent.clicked.connect(self.set_parent)
 
@@ -325,11 +337,14 @@ class AnnotationLabel(QCSWidget):
 
     def set_label(self):
         logger.debug(f"Setting label to {self.label_idx}")
+        
+        
         label_dict = {
             "level": self.level_dataset,
             "idx": self.label_idx,
             "color": self.label_color,
         }
+
         cfg.ppw.clientEvent.emit(
             {
                 "source": "annotations",
@@ -344,19 +359,19 @@ class AnnotationLabel(QCSWidget):
 
     def set_parent(self):
         logger.debug(
-            f"Setting parent level to {self.parent_level}, with label {self.parent_label}"
+            f"Setting parent level to {self.btn_label_parent.parent_level}, with label {self.label_idx}"
         )
-        params = dict(
-            workspace=True,
-            level=self.level_dataset,
-            label_idx=self.label_idx,
-            parent_level=self.btn_label_parent.parent_level,
-            parent_label_idx=self.btn_label_parent.parent_label,
-        )
-        result = Launcher.g.run("annotations", "set_label_parent", **params)
 
-    # def parent_labels(self, level):
-    #    return [label.parent_label for label in self._levels[level].values()]
+        if int(self.label_idx) != -1:
+            params = dict(
+                workspace=True,
+                level=self.level_dataset,
+                label_idx=self.label_idx,
+                parent_level=self.btn_label_parent.parent_level,
+                parent_label_idx=self.btn_label_parent.parent_label,
+                parent_color=self.label_color
+            )
+            result = Launcher.g.run("annotations", "set_label_parent", **params)
 
     def update_label(self):
         label = dict(

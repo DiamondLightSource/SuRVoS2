@@ -55,6 +55,7 @@ def set_label_parent(
     label_idx: Int,
     parent_level: String,
     parent_label_idx: Int,
+    parent_color : String,
 ):
     ds = ws.get_dataset(workspace, level, group=__group_pattern__)
     labels = ds.get_metadata("labels", {})
@@ -63,6 +64,7 @@ def set_label_parent(
     if label_idx in labels:
         labels[label_idx]["parent_level"] = parent_level
         labels[label_idx]["parent_label"] = parent_label_idx
+        labels[label_idx]["parent_color"] = parent_color
     ds.set_metadata("labels", labels)
 
 
@@ -70,16 +72,17 @@ def set_label_parent(
 def get_label_parent(workspace: String, level: String, label_idx: Int):
     ds = get_level(workspace, level)
     labels = ds.get_metadata("labels", {})
-    print(f"get_label_parent labels: {labels}")
+    print(f"get_label_parent with level {level}, label_idx {label_idx}, result labels: {labels}")
     parent_level = -1
     parent_label_idx = -1
-
+    parent_color = None
     if label_idx in labels:    
         if "parent_level" in labels[label_idx]:
             parent_level = labels[label_idx]["parent_level"]
             parent_label_idx = int(labels[label_idx]["parent_label"])
+            parent_color = labels[label_idx]["parent_color"]
     
-    return parent_level, parent_label_idx
+    return parent_level, parent_label_idx, parent_color
 
 
 @hug.get()

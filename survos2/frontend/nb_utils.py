@@ -129,9 +129,7 @@ def plot_slice_and_pts_bw(
 
 
 def view_volume(imgvol, name=""):
-
     with napari.gui_qt():
-
         viewer = napari.Viewer()
         viewer.add_image(imgvol, name=name)
 
@@ -139,7 +137,6 @@ def view_volume(imgvol, name=""):
 
 
 def view_volumes(imgvols, name=""):
-
     with napari.gui_qt():
         viewer = napari.Viewer()
         names = [str(i) for i in range(len(imgvols))]
@@ -154,7 +151,6 @@ def view_label(label_vol, name="Label"):
     with napari.gui_qt():
 
         viewer = napari.Viewer()
-
         viewer.add_labels(label_vol, name=name)
 
         return viewer
@@ -164,7 +160,6 @@ def view_labels(img_vols, label_vol, name=""):
     with napari.gui_qt():
 
         viewer = napari.Viewer()
-
         label_layer = viewer.add_labels(
             label_vol,
             name="segmentation",
@@ -177,7 +172,6 @@ def view_vols_labels(img_vols, label_vol, name=""):
     with napari.gui_qt():
 
         viewer = napari.Viewer()
-
         names = [str(i) for i in range(len(img_vols))]
 
         label_layer = viewer.add_labels(
@@ -194,9 +188,7 @@ def view_vols_labels(img_vols, label_vol, name=""):
 
 
 def view_vols_points(img_vols, entities, names=None, flipxy=True):
-
     with napari.gui_qt():
-
         viewer = napari.Viewer()
 
         if names is None:
@@ -232,11 +224,8 @@ def view_vols_points(img_vols, entities, names=None, flipxy=True):
             )
 
         num_classes = len(np.unique(entities["class_code"])) + 5
-
         print(f"Number of entity classes {num_classes}")
-
         palette = np.array(sns.color_palette("hls", num_classes))  # num_classes))
-
         face_color_list = [palette[class_code] for class_code in entities["class_code"]]
 
         viewer.add_points(
@@ -376,8 +365,6 @@ def show_images_and_points(
         plt.imshow(image, cmap="gray")
         
         cmap= matplotlib.colors.ListedColormap(["teal","orange", "maroon", "navy",  "mediumvioletred", "palegreen"], N=None)
-        
-        
         
         scat = a.scatter(points[:, 1], points[:, 2], c=cluster_classes, cmap=cmap, s=50, alpha=1.0)
         a.legend(handles=scat.legend_elements()[0], labels=class_names)
