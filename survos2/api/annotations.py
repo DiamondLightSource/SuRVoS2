@@ -217,12 +217,28 @@ def annotate_voxels(
     yy: IntList,
     xx: IntList,
     label: Int,
-    full: SmartBoolean = False,
+    full: SmartBoolean,
+    parent_level : String,
+    parent_label_idx : Int
 ):
     from survos2.api.annotate import annotate_voxels
 
     ds = get_level(workspace, level, full)
-    annotate_voxels(ds, slice_idx=slice_idx, yy=yy, xx=xx, label=label)
+    
+    from survos2.frontend.frontend import get_annotation_array
+    if parent_level != '-1' and parent_level != -1:
+        parent_arr, parent_annotations_dataset = get_annotation_array({"level_id": parent_level}, retrieval_mode="volume")
+        parent_arr = parent_arr & 15
+        print(parent_annotations_dataset)
+        print(parent_arr)            
+        parent_mask = parent_arr == parent_label_idx
+        print(parent_mask)
+    else:
+        parent_arr = None
+        parent_mask = None
+
+    
+    annotate_voxels(ds, slice_idx=slice_idx, yy=yy, xx=xx, label=label, parent_mask=parent_mask)
 
 
 @hug.get()
@@ -232,13 +248,28 @@ def annotate_regions(
     region: DataURI,
     r: IntList,
     label: Int,
-    full: SmartBoolean = False,
+    full: SmartBoolean,
+    parent_level : String,
+    parent_label_idx : Int
 ):
     from survos2.api.annotate import annotate_regions
 
     ds = get_level(workspace, level, full)
     region = dataset_from_uri(region, mode="r")
-    annotate_regions(ds, region, r=r, label=label)
+
+    from survos2.frontend.frontend import get_annotation_array
+    if parent_level != '-1' and parent_level != -1:
+        parent_arr, parent_annotations_dataset = get_annotation_array({"level_id": parent_level}, retrieval_mode="volume")
+        parent_arr = parent_arr & 15
+        print(parent_annotations_dataset)
+        print(parent_arr)            
+        parent_mask = parent_arr == parent_label_idx
+        print(parent_mask)
+    else:
+        parent_arr = None
+        parent_mask = None
+
+    annotate_regions(ds, region, r=r, label=label, parent_mask=parent_mask)
 
 
 @hug.get()

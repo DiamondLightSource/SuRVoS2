@@ -6,7 +6,7 @@ _MaskCopy = 15  # 0000 1111
 _MaskPrev = 240  # 1111 0000
 
 
-def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0):
+def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0, parent_mask=None):
     mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
 
     def tobounds(slices):
@@ -40,6 +40,12 @@ def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0):
         data_chunk = dataset[chunk_slices]
         data_chunk = (data_chunk & _MaskCopy) | (data_chunk << _MaskSize)
         data_chunk[idx, yp, xp] = (data_chunk[idx, yp, xp] & _MaskPrev) | label
+
+
+        if parent_mask is not None:
+            parent_mask_chunk = parent_mask[chunk_slices]
+            data_chunk = data_chunk * parent_mask_chunk
+        
         dataset[chunk_slices] = data_chunk
         modified[i] = (modified[i] << 1) & mbit | 1
 
@@ -84,7 +90,7 @@ def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0):
 #     dataset.set_attr("modified", modified)
 
 
-def annotate_regions(dataset, region, r=None, label=0):
+def annotate_regions(dataset, region, r=None, label=0, parent_mask=None):
     if label >= 16 or label < 0 or type(label) != int:
         raise ValueError("Label has to be in bounds [0, 15]")
     if r is None or len(r) == 0:
@@ -95,11 +101,12 @@ def annotate_regions(dataset, region, r=None, label=0):
     rmax = np.max(r)
     modified = dataset.get_attr("modified")
     logger.debug(f"Annotating {dataset.total_chunks}")
-    for i in range(dataset.total_chunks):
 
+    for i in range(dataset.total_chunks):
         idx = dataset.unravel_chunk_index(i)
         chunk_slices = dataset.global_chunk_bounds(idx)
         reg_chunk = region[chunk_slices]
+    
         total = max(rmax + 1, np.max(reg_chunk) + 1)
         mask = np.zeros(total, np.bool)
         mask[r] = True
@@ -112,6 +119,11 @@ def annotate_regions(dataset, region, r=None, label=0):
         data_chunk = dataset[chunk_slices]
         data_chunk = (data_chunk & _MaskCopy) | (data_chunk << _MaskSize)
         data_chunk[mask] = (data_chunk[mask] & _MaskPrev) | label
+        
+        if parent_mask is not None:
+            parent_mask_chunk = parent_mask[chunk_slices]
+            data_chunk = data_chunk * parent_mask_chunk
+
         dataset[chunk_slices] = data_chunk
         modified[i] = (modified[i] << 1) & mbit | 1
 

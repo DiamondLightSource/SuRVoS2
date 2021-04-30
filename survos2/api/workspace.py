@@ -16,11 +16,12 @@ from survos2.improc.utils import DatasetManager
 
 ### Workspace
 
-from survos2.frontend.main import roi_ws
-
 
 @hug.get()
 def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name:String):
+    from survos2.frontend.main import roi_ws
+
+
     # get raw from current workspace
     src = DataModel.g.dataset_uri(feature_id, group="features")
     logger.debug(f"Getting features {src} and cropping roi {roi}")

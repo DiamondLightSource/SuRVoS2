@@ -24,12 +24,10 @@ from survos2.api.types import (
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 
 
-from survos2.frontend.components.entity import make_entity_df, setup_entity_table
 from survos2.improc import map_blocks
 from survos2.improc.utils import DatasetManager, dask_relabel_chunks
 from survos2.io import dataset_from_uri
 from survos2.model import DataModel
-from survos2.server.features import features_factory
 from survos2.server.state import cfg
 from survos2.utils import encode_numpy
 
@@ -134,6 +132,8 @@ def make_annotation(
         objects_fullname, scale=objects_scale, offset=objects_offset, crop_start=objects_crop_start, crop_end=objects_crop_end 
     )
     print(entities_df)
+    
+    from survos2.frontend.components.entity import make_entity_df, setup_entity_table
     entities = np.array(make_entity_df(np.array(entities_df), flipxy=True))
 
     #default params TODO make generic, allow editing 

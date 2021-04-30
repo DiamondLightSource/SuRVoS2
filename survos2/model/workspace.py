@@ -33,7 +33,7 @@ class Workspace(object):
     __dsname__ = "__data__"
 
     def __init__(self, path):
-        logger.debug(f"INIT workspace at {path}")
+        #logger.debug(f"INIT workspace at {path}")
 
         path = self._validate_path(path)
         if not os.path.isdir(path):

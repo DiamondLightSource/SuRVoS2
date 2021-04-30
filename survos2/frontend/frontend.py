@@ -78,6 +78,29 @@ def remove_masked_pts(bg_mask, entities):
     return np.array(masked_entities)
 
 
+def get_annotation_array(msg, retrieval_mode='volume'):
+    if retrieval_mode == 'slice':  # get a slice over http
+        src_annotations_dataset = DataModel.g.dataset_uri(
+            msg["level_id"], group="annotations"
+        )
+        params = dict(
+            workpace=True,
+            src=src_annotations_dataset,
+            slice_idx=cfg.current_slice,
+            order=cfg.order,
+        )
+        result = Launcher.g.run("annotations", "get_slice", **params)
+        if result:
+            src_arr = decode_numpy(result)
+    elif retrieval_mode == 'volume':  # get entire volume
+        src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_annotations_dataset = DM.sources[0][:]
+            src_arr = get_array_from_dataset(src_annotations_dataset)
+
+    return src_arr, src_annotations_dataset
+
+
 def frontend():
     logger.info(f"Frontend loading workspace {DataModel.g.current_workspace}")
 
@@ -318,27 +341,6 @@ def frontend():
 
             update_layer(msg["level_id"], src_arr)
 
-        def get_annotation_array(msg, retrieval_mode='volume'):
-            if retrieval_mode == 'slice':  # just get a slice over http
-                src_annotations_dataset = DataModel.g.dataset_uri(
-                    msg["level_id"], group="annotations"
-                )
-                params = dict(
-                    workpace=True,
-                    src=src_annotations_dataset,
-                    slice_idx=cfg.current_slice,
-                    order=cfg.order,
-                )
-                result = Launcher.g.run("annotations", "get_slice", **params)
-                if result:
-                    src_arr = decode_numpy(result)
-            elif retrieval_mode == 'volume':  # get entire volume
-                src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
-                with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-                    src_annotations_dataset = DM.sources[0][:]
-                    src_arr = get_array_from_dataset(src_annotations_dataset)
-
-            return src_arr, src_annotations_dataset
 
         def refresh_annotations(msg):
             logger.debug(f"refresh_annotation {msg['level_id']}")
@@ -383,9 +385,7 @@ def frontend():
                     label_layer.selected_label = int(cfg.label_value["idx"]) - 1
                     
                 return label_layer, src_annotations_dataset
-
-                    
-            
+      
         def paint_annotations(msg):
             logger.debug(f"paint_annotation {msg['level_id']}")
             cfg.current_annotation_name = msg["level_id"]
@@ -402,86 +402,74 @@ def frontend():
                 print(result)
                 parent_level = result[0]
                 parent_label_idx = result[1]
-
-                if parent_level != '-1' and parent_level != -1:
-                    parent_arr, parent_annotations_dataset = get_annotation_array({"level_id": parent_level}, retrieval_mode="volume")
-                    parent_arr = parent_arr & 15
-                    print(parent_annotations_dataset)
-                    print(parent_arr)            
-                    parent_mask = parent_arr == parent_label_idx
-                    print(parent_mask)
-                else:
-                    parent_arr = None
-                    parent_mask = None
-
             
-            @label_layer.bind_key("Control-Z", overwrite=True)
-            def undo(v):
-                level = cfg.current_annotation_name
-                params = dict(workspace=True, level=level)
-                result = Launcher.g.run("annotations", "annotate_undo", **params)
-                cfg.ppw.clientEvent.emit(
-                    {
-                        "source": "annotations",
-                        "data": "update_annotations",
-                        "level_id": level,
-                    }
-                )
-
-            @label_layer.mouse_drag_callbacks.append
-            def view_location(layer, event):
-                dragged = False
-                drag_pts = []
-                coords = np.round(layer.coordinates).astype(int)
-
-                if cfg.retrieval_mode == 'slice':
-                    drag_pt = [coords[0], coords[1]]
-                elif cfg.retrieval_mode == 'volume':
-                    drag_pt = [coords[0], coords[1], coords[2]]
-                drag_pts.append(drag_pt)
-                yield
-
-                if layer.mode == "paint" or layer.mode == "erase":
-                    while event.type == "mouse_move":
-                        coords = np.round(layer.coordinates).astype(int)
-
-                        if cfg.retrieval_mode == 'slice':
-                            drag_pt = [coords[0], coords[1]]
-                        elif cfg.retrieval_mode == 'volume':
-                            drag_pt = [coords[0], coords[1], coords[2]]
-
-                        drag_pts.append(drag_pt)
-                        dragged = True
-                        yield
-
-                    print(drag_pts)
-                    
-                    filtered_pts = drag_pts
-                    if parent_mask is not None:
-                        from survos2.entity.instanceseg.utils import remove_masked_entities
-                        filtered_pts = remove_masked_pts(parent_mask, np.array(drag_pts))
-                        print(filtered_pts)
-
-                    if len(filtered_pts) > 0:
-                        top_layer = viewer.layers[-1]
-                        layer_name = top_layer.name  # get last added layer name
-                        anno_layer = next(l for l in viewer.layers if l.name == layer_name)
-
-                        def update_anno(msg):
-                            src_arr, _ = get_annotation_array(msg, retrieval_mode=cfg.retrieval_mode)
-                            update_layer(msg["level_id"], src_arr)
-                        update = partial(update_anno, msg=msg)
-                        paint_strokes_worker = paint_strokes(msg, filtered_pts, layer, top_layer, anno_layer)
-                        paint_strokes_worker.returned.connect(update)
-                        paint_strokes_worker.start()
-                    else:
-                        cfg.ppw.clientEvent.emit(
+                @label_layer.bind_key("Control-Z", overwrite=True)
+                def undo(v):
+                    level = cfg.current_annotation_name
+                    params = dict(workspace=True, level=level)
+                    result = Launcher.g.run("annotations", "annotate_undo", **params)
+                    cfg.ppw.clientEvent.emit(
                         {
                             "source": "annotations",
                             "data": "update_annotations",
-                            "level_id": msg["level_id"],
+                            "level_id": level,
                         }
                     )
+
+                @label_layer.mouse_drag_callbacks.append
+                def view_location(layer, event):
+                    dragged = False
+                    drag_pts = []
+                    coords = np.round(layer.coordinates).astype(int)
+
+                    if cfg.retrieval_mode == 'slice':
+                        drag_pt = [coords[0], coords[1]]
+                    elif cfg.retrieval_mode == 'volume':
+                        drag_pt = [coords[0], coords[1], coords[2]]
+                    drag_pts.append(drag_pt)
+                    yield
+
+                    if layer.mode == "paint" or layer.mode == "erase":
+                        while event.type == "mouse_move":
+                            coords = np.round(layer.coordinates).astype(int)
+
+                            if cfg.retrieval_mode == 'slice':
+                                drag_pt = [coords[0], coords[1]]
+                            elif cfg.retrieval_mode == 'volume':
+                                drag_pt = [coords[0], coords[1], coords[2]]
+
+                            drag_pts.append(drag_pt)
+                            dragged = True
+                            yield
+
+                        print(drag_pts)
+                        
+                        filtered_pts = drag_pts
+                        #if parent_mask is not None:
+                        #    from survos2.entity.instanceseg.utils import remove_masked_entities
+                        #    filtered_pts = remove_masked_pts(parent_mask, np.array(drag_pts))
+                        #    print(filtered_pts)
+
+                        if len(filtered_pts) > 0:
+                            top_layer = viewer.layers[-1]
+                            layer_name = top_layer.name  # get last added layer name
+                            anno_layer = next(l for l in viewer.layers if l.name == layer_name)
+
+                            def update_anno(msg):
+                                src_arr, _ = get_annotation_array(msg, retrieval_mode=cfg.retrieval_mode)
+                                update_layer(msg["level_id"], src_arr)
+                            update = partial(update_anno, msg=msg)
+                            paint_strokes_worker = paint_strokes(msg, filtered_pts, layer, top_layer, anno_layer, parent_level, parent_label_idx)
+                            paint_strokes_worker.returned.connect(update)
+                            paint_strokes_worker.start()
+                        else:
+                            cfg.ppw.clientEvent.emit(
+                            {
+                                "source": "annotations",
+                                "data": "update_annotations",
+                                "level_id": msg["level_id"],
+                            }
+                        )
                         
                     
         def view_pipeline(msg):

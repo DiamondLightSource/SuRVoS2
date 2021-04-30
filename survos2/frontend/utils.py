@@ -29,7 +29,6 @@ DEFAULT_DATA_KEY = "default_data_dir"
 
 
 def get_array_from_dataset(src_dataset, axis=0):
-
     if cfg.retrieval_mode == 'slice':
         print(f"src_dataset shape {src_dataset.shape}")
         dataset = src_dataset.copy(order="C")

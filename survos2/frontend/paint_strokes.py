@@ -9,7 +9,7 @@ from survos2.model import DataModel
 from survos2.server.state import cfg
 
 @thread_worker
-def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer):
+def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer, parent_level=None, parent_label_idx=None):
     level = msg["level_id"]
 
     if len(drag_pts) == 0:
@@ -73,7 +73,12 @@ def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer):
 
             # todo: preserve existing
 
-            params.update(slice_idx=int(z), yy=yy, xx=xx)
+            params.update(slice_idx=int(z), 
+                yy=yy, 
+                xx=xx,
+                parent_level=parent_level,
+                parent_label_idx=parent_label_idx,
+                full=False)
 
             result = Launcher.g.run("annotations", "annotate_voxels", **params)
         # we are painting with supervoxels, so check if we have a current supervoxel cache
@@ -116,6 +121,9 @@ def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer):
                 region=cfg.current_regions_dataset,
                 r=list(map(int, all_regions)),
                 modal=False,
+                parent_level=parent_level,
+                parent_label_idx=parent_label_idx,
+                full=False
             )
             result = Launcher.g.run("annotations", "annotate_regions", **params)
 

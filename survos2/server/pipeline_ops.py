@@ -9,7 +9,6 @@ from loguru import logger
 from skimage import img_as_ubyte
 from survos2.entity.anno import geom
 from survos2.entity.anno.masks import generate_sphere_masks_fast
-from survos2.entity.entities import make_entity_df
 from survos2.entity.saliency import filter_proposal_mask, measure_big_blobs
 from survos2.entity.sampler import (
     centroid_to_bvol,
