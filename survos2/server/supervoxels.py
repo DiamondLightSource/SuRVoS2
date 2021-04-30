@@ -16,7 +16,7 @@ from typing import List
 
 import numpy as np
 import scipy
-from cuda_slic import slic
+
 from loguru import logger
 
 import survos2.api.workspace as ws
@@ -51,6 +51,7 @@ def generate_supervoxels(
 
     Returns: dataclass with all the information required for prediction
     """
+    from cuda_slic import slic
     logger.info(f"Using feature idx {dataset_feats_idx} for supervoxels.")
     logger.info(
         f"SRFeatures for supervoxels have shape {dataset_feats[dataset_feats_idx].shape}"

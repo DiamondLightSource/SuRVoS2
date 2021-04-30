@@ -3,8 +3,8 @@ import logging
 import pytest
 
 from survos2.data import embrain
-from cuda_slic import slic
-from survos2.improc.features import gaussian
+#from cuda_slic import slic
+#from survos2.improc.features import gaussian
 from survos2.improc.utils import map_blocks, map_pipeline
 from survos2.utils import Timer, get_logger
 

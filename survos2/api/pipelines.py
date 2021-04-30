@@ -22,7 +22,7 @@ from survos2.api.types import (
     String,
 )
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
-from survos2.api.annotations import get_label_parent
+
 
 from survos2.frontend.components.entity import make_entity_df, setup_entity_table
 from survos2.improc import map_blocks
@@ -34,7 +34,6 @@ from survos2.server.state import cfg
 from survos2.utils import encode_numpy
 
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
-from survos2.api.annotations import get_label_parent
 from survos2.entity.anno.pseudo import make_pseudomasks
 from survos2.entity.entities import (
     EntityWorkflow,
@@ -271,9 +270,6 @@ def superregion_segment(
     logger.debug(f"Using superseg_cfg {superseg_cfg}")
 
     if constrain_mask != "None":
-        
-        #parent_level, parent_label_idx = get_label_parent(workspace, anno_id, label_idx)
-        #logger.debug(f"Parent for {anno_id} is {parent_level} with labels {parent_label_idx}")
         import ast
         constrain_mask = ast.literal_eval(constrain_mask)
         print(constrain_mask)

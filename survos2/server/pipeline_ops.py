@@ -18,7 +18,7 @@ from survos2.entity.sampler import (
 )
 from survos2.frontend.nb_utils import show_images
 from survos2.helpers import AttrDict
-from survos2.improc.features import gaussian, gaussian_norm, tvdenoising3d
+#from survos2.improc.features import gaussian, gaussian_norm, tvdenoising3d
 from survos2.server.features import features_factory, generate_features
 from survos2.server.model import SRData, SRFeatures, SRPrediction
 from survos2.server.pipeline import Patch

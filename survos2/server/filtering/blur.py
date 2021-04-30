@@ -156,7 +156,7 @@ def gaussian_center(data, sigma=0.5, **kwargs):
     Returns
     -------
     result : 2 or 3 dimensional filtered `GPUArray`
-        The result of the filtering resulting from PyCuda. Use `.get()` to
+        The result of the filtering resulting. Use `.get()` to
         retrieve the corresponding Numpy array.
     """
 
@@ -184,7 +184,7 @@ def gaussian_norm(data, sigma=0.5, **kwargs):
     Returns
     -------
     result : 2 or 3 dimensional filtered `GPUArray`
-        The result of the filtering resulting from PyCuda. Use `.get()` to
+        The result of the filtering. Use `.get()` to
         retrieve the corresponding Numpy array.
     """
     num = gaussian_center(data, sigma=sigma)

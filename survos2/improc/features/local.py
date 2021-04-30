@@ -1,15 +1,15 @@
 import numpy as np
 from loguru import logger
-from pycuda import cumath, gpuarray
-
-from ..cuda import asgpuarray
+#from pycuda import cumath, gpuarray
+#from ..cuda import asgpuarray
 from ..utils import gpufeature
 
-from .conv import conv_sep
 
 
 @gpufeature
 def compute_local_mean(data, radius):
+    from .conv import conv_sep
+
     logger.info(f"+ Padding data with radius {radius}")
     d, h, w = radius
     d = int(d)
@@ -34,6 +34,8 @@ def compute_local_mean(data, radius):
 
 @gpufeature
 def compute_local_std(data, radius):
+    from .conv import conv_sep
+
     logger.info("+ Padding data")
     d, h, w = radius
     d = int(d)
