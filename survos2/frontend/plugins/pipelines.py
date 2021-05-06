@@ -436,7 +436,7 @@ class PipelineCard(Card):
 
     def _add_constrain_source(self):
         print(self.annotations_source.value())
-        self.constrain_mask_source = AnnotationComboBox(full=True)
+        self.constrain_mask_source = AnnotationComboBox(header=(None, "None"), full=True)
         self.constrain_mask_source.fill()
         self.constrain_mask_source.setMaximumWidth(250)
 
@@ -695,10 +695,11 @@ class PipelineCard(Card):
             #all_params.update({k: v.value() for k, v in self.widgets.items()})
 
             logger.info(f"Computing pipelines {self.pipeline_type} {all_params}")
-
-            self.pbar.setValue(20)
-            result = Launcher.g.run("pipelines", self.pipeline_type, **all_params)
-
+            try:
+                self.pbar.setValue(20)
+                result = Launcher.g.run("pipelines", self.pipeline_type, **all_params)
+            except Exception as err:
+                print(err)
             if result is not None:
                 self.pbar.setValue(100)
 

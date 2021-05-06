@@ -441,7 +441,7 @@ class ParentDialog(QDialog):
         self.source_level = source_level
         from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 
-        self.label_combobox = AnnotationComboBox(exclude_from_fill=self.source_level)
+        self.label_combobox = AnnotationComboBox(header=(None, "None"), exclude_from_fill=self.source_level)
         self.layout.addWidget(self.label_combobox)
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
@@ -498,18 +498,19 @@ class ParentButton(QtWidgets.QPushButton):
         dlg = ParentDialog(source_level=self.source_level)
         if dlg.exec_():
             selected_label = dlg.label_combobox.value()
-            print(selected_label)
-            self.setColor(selected_label["color"])
-            self.parent_level = selected_label["level"]
-            self.parent_label = selected_label["idx"] - 1
-            self.colorChanged.emit(selected_label["color"])
+            if selected_label is None:
+                self.setColor(None)
+                self.parent_level = -1
+                self.parent_label = -1
+                self.colorChanged.emit(None)
+            else:
+                self.setColor(selected_label["color"])
+                self.parent_level = selected_label["level"]
+                self.parent_label = selected_label["idx"] - 1
+                self.colorChanged.emit(selected_label["color"])
+
         else:
             print("Canceled adding label parent.")
-
-        # c = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color), self.parent())
-        # if not c.isValid():
-        #    return
-        # self.setColor(str(c.name()))
 
     def value(self):
         return self.color

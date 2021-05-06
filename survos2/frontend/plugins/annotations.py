@@ -102,13 +102,20 @@ class AnnotationPlugin(Plugin):
         self.label.currentIndexChanged.connect(self.set_sv)
 
         self.region.currentIndexChanged.connect(self.set_sv)
+        
+        self.btn_set = IconButton("fa.pencil", "Set", accent=True)
+        self.btn_set.clicked.connect(self.set_sv)
+        hbox.addWidget(self.btn_set)
+        
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
 
-        self.width = Slider(value=8, vmin=2, vmax=50, step=2)
-        self.width.valueChanged.connect(self.set_sv)
+        self.width = Slider(value=10, vmin=2, vmax=50, step=2, auto_accept=True)
+        
+        
         hbox.addWidget(self.width)
-        hbox.addWidget(None, 1)
+        
+        #hbox.addWidget(None, 1)
 
         self.vbox.addLayout(hbox)
 
@@ -319,15 +326,15 @@ class AnnotationLabel(QCSWidget):
                 parent_label=self.parent_label,
             )
 
-        # self.btn_select = IconButton("fa.pencil", "", accent=True)
-        self.btn_label_parent.clicked.connect(self.set_parent)
-
+        
         self.setMinimumHeight(self.__height__)
         self.setFixedHeight(self.__height__)
         self.txt_label_name.editingFinished.connect(self.update_label)
         self.btn_label_color.colorChanged.connect(self.update_label)
         self.btn_del.clicked.connect(self.delete)
         # self.btn_select.clicked.connect(self.set_label)
+        self.btn_label_parent.colorChanged.connect(self.set_parent)
+
 
         hbox = HBox(self)
         hbox.addWidget(
@@ -376,11 +383,19 @@ class AnnotationLabel(QCSWidget):
                     label_idx=self.label_idx,
                     parent_level=self.btn_label_parent.parent_level,
                     parent_label_idx=self.btn_label_parent.parent_label,
-                    parent_color=self.label_color,
+                    parent_color=self.btn_label_parent.color,
                 )
                 result = Launcher.g.run("annotations", "set_label_parent", **params)
         except Exception as e:
             print(e)
+
+        cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "paint_annotations",
+                    "level_id": self.level_dataset,
+                }
+            )
 
     def update_label(self):
         label = dict(

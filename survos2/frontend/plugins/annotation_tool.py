@@ -51,11 +51,11 @@ def _fill_annotations(combo, full=False):
                 
 
 class AnnotationComboBox(LazyComboBox):
-    def __init__(self, full=False, parent=None, exclude_from_fill=None):
+    def __init__(self, full=False, parent=None,header=(None, "Select Label"), exclude_from_fill=None):
         self.full = full
         self.exclude_from_fill=exclude_from_fill
 
-        super().__init__(parent=parent, header=(None, "Select Label"))
+        super().__init__(parent=parent, header=header )
         _AnnotationNotifier.listen(self.update)
         
     def fill(self):

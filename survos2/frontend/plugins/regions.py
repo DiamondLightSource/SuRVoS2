@@ -19,7 +19,6 @@ class RegionComboBox(LazyComboBox):
     def fill(self):
         params = dict(workspace=True, full=self.full)
 
-        # result = [{'kind': 'supervoxels'}, ]
         result = Launcher.g.run("regions", "existing", **params)
         logger.debug(f"Result of regions existing: {result}")
         if result:
