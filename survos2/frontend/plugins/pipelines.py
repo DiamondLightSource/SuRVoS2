@@ -625,82 +625,85 @@ class PipelineCard(Card):
             n.rsplit("/", 1)[-1] for n in self.features_source.value()
         ]
 
-        if self.pipeline_type == "superregion_segment":
-            src_grp = (
-                None if self.annotations_source.currentIndex() == 0 else "pipelines"
-            )
-            src = DataModel.g.dataset_uri(
-                self.annotations_source.value().rsplit("/", 1)[-1], group="annotations"
-            )
-            all_params = dict(src=src, modal=True)
-            all_params["workspace"] = DataModel.g.current_workspace
+        try:
+            if self.pipeline_type == "superregion_segment":
+                src_grp = (
+                    None if self.annotations_source.currentIndex() == 0 else "pipelines"
+                )
+                src = DataModel.g.dataset_uri(
+                    self.annotations_source.value().rsplit("/", 1)[-1], group="annotations"
+                )
+                all_params = dict(src=src, modal=True)
+                all_params["workspace"] = DataModel.g.current_workspace
 
-            logger.info(f"Setting src to {self.annotations_source.value()} ")
-            all_params["region_id"] = str(
-                self.regions_source.value().rsplit("/", 1)[-1]
-            )
-            all_params["feature_ids"] = feature_names_list
-            all_params["anno_id"] = str(
-                self.annotations_source.value().rsplit("/", 1)[-1]
-            )
-            print(self.constrain_mask_source.value())
-            if self.constrain_mask_source.value() != None:
-                all_params["constrain_mask"] = self.constrain_mask_source.value() #.rsplit("/", 1)[-1]
-            else:
-                all_params["constrain_mask"] = "None"
-            all_params["dst"] = dst
-            all_params["refine"] = self.widgets["refine"].value() #self.refine_checkbox.value()
-            all_params["lam"] = self.widgets["lam"].value()
-            all_params["classifier_type"] = self.classifier_type.value()
-            all_params["projection_type"] = self.projection_type.value()
-        
-            if self.classifier_type.value() == 'Ensemble':    
-                all_params["classifier_params"] = self.ensembles.get_params()
-            else:
-                all_params["classifier_params"] = self.svm.get_params()
+                logger.info(f"Setting src to {self.annotations_source.value()} ")
+                all_params["region_id"] = str(
+                    self.regions_source.value().rsplit("/", 1)[-1]
+                )
+                all_params["feature_ids"] = feature_names_list
+                all_params["anno_id"] = str(
+                    self.annotations_source.value().rsplit("/", 1)[-1]
+                )
+                print(self.constrain_mask_source.value())
+                if self.constrain_mask_source.value() != None:
+                    all_params["constrain_mask"] = self.constrain_mask_source.value() #.rsplit("/", 1)[-1]
+                else:
+                    all_params["constrain_mask"] = "None"
+                all_params["dst"] = dst
+                all_params["refine"] = self.widgets["refine"].value() #self.refine_checkbox.value()
+                all_params["lam"] = self.widgets["lam"].value()
+                all_params["classifier_type"] = self.classifier_type.value()
+                all_params["projection_type"] = self.projection_type.value()
             
+                if self.classifier_type.value() == 'Ensemble':    
+                    all_params["classifier_params"] = self.ensembles.get_params()
+                else:
+                    all_params["classifier_params"] = self.svm.get_params()
+                
 
-        elif self.pipeline_type == "make_annotation":
-            src = DataModel.g.dataset_uri(
-                self.features_source.value()[0], group="pipelines"
-            )
-            all_params = dict(src=src, dst=dst, modal=True)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["anno_id"] = str(
-                self.annotations_source.value().rsplit("/", 1)[-1]
-            )
-            all_params["feature_ids"] = feature_names_list
-            all_params["object_id"] = str(self.objects_source.value())
-            all_params["acwe"] = self.widgets["acwe"].value()
-            #all_params["object_scale"] = self.widgets["object_scale"].value()
-            #all_params["object_offset"] = self.widgets["object_offset"].value()
-            all_params["dst"] = self.pipeline_id
+            elif self.pipeline_type == "make_annotation":
+                src = DataModel.g.dataset_uri(
+                    self.features_source.value()[0], group="pipelines"
+                )
+                all_params = dict(src=src, dst=dst, modal=True)
+                all_params["workspace"] = DataModel.g.current_workspace
+                all_params["anno_id"] = str(
+                    self.annotations_source.value().rsplit("/", 1)[-1]
+                )
+                all_params["feature_ids"] = feature_names_list
+                all_params["object_id"] = str(self.objects_source.value())
+                all_params["acwe"] = self.widgets["acwe"].value()
+                #all_params["object_scale"] = self.widgets["object_scale"].value()
+                #all_params["object_offset"] = self.widgets["object_offset"].value()
+                all_params["dst"] = self.pipeline_id
 
-        elif self.pipeline_type == "predict_segmentation_fcn":
-            src = DataModel.g.dataset_uri(
-                self.features_source.value()[0], group="pipelines"
-            )
-            all_params = dict(src=src, dst=dst, modal=True)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["anno_id"] = str(
-                self.annotations_source.value().rsplit("/", 1)[-1]
-            )
-            all_params["feature_ids"] = feature_names_list
-            all_params["model_fullname"] = self.model_fullname
-            all_params["model_type"] = self.model_type.value()
-            all_params["dst"] = self.pipeline_id
+            elif self.pipeline_type == "predict_segmentation_fcn":
+                src = DataModel.g.dataset_uri(
+                    self.features_source.value()[0], group="pipelines"
+                )
+                all_params = dict(src=src, dst=dst, modal=True)
+                all_params["workspace"] = DataModel.g.current_workspace
+                all_params["anno_id"] = str(
+                    self.annotations_source.value().rsplit("/", 1)[-1]
+                )
+                all_params["feature_ids"] = feature_names_list
+                all_params["model_fullname"] = self.model_fullname
+                all_params["model_type"] = self.model_type.value()
+                all_params["dst"] = self.pipeline_id
 
-        print(self.widgets.items())
-        #all_params.update({k: v.value() for k, v in self.widgets.items()})
+            print(self.widgets.items())
+            #all_params.update({k: v.value() for k, v in self.widgets.items()})
 
-        logger.info(f"Computing pipelines {self.pipeline_type} {all_params}")
+            logger.info(f"Computing pipelines {self.pipeline_type} {all_params}")
 
-        self.pbar.setValue(20)
-        result = Launcher.g.run("pipelines", self.pipeline_type, **all_params)
+            self.pbar.setValue(20)
+            result = Launcher.g.run("pipelines", self.pipeline_type, **all_params)
 
-        if result is not None:
-            self.pbar.setValue(100)
+            if result is not None:
+                self.pbar.setValue(100)
 
+        except Exception as e:
+            print(e)
     def card_title_edited(self, newtitle):
         params = dict(pipeline_id=self.pipeline_id, new_name=newtitle, workspace=True)
         result = Launcher.g.run("pipelines", "rename", **params)

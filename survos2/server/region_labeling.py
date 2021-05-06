@@ -56,12 +56,6 @@ def rlabels(
     nr = nr or R.max() + 1
     ny = ny or y.max() + 1
 
-    logger.info("running rlabels")
-
-    logger.debug(str(type(y)))
-    logger.debug(str(type(R)))
-    logger.debug((y.shape, R.shape))
-
     try:
         features = simple_rlabels(y.ravel(), R.ravel(), ny, nr, min_ratio)
 

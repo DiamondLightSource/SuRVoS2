@@ -37,20 +37,23 @@ _AnnotationNotifier = PluginNotifier()
 
 
 def dilate_annotations(yy, xx, img_shape, line_width):
-    data = np.zeros(img_shape)
-    data[yy, xx] = True
+    try:
+        data = np.zeros(img_shape)
+        data[yy, xx] = True
 
-    r = np.ceil(line_width / 2)
-    ymin = int(max(0, yy.min() - r))
-    ymax = int(min(data.shape[0], yy.max() + 1 + r))
-    xmin = int(max(0, xx.min() - r))
-    xmax = int(min(data.shape[1], xx.max() + 1 + r))
-    mask = data[ymin:ymax, xmin:xmax]
+        r = np.ceil(line_width / 2)
+        ymin = int(max(0, yy.min() - r))
+        ymax = int(min(data.shape[0], yy.max() + 1 + r))
+        xmin = int(max(0, xx.min() - r))
+        xmax = int(min(data.shape[1], xx.max() + 1 + r))
+        mask = data[ymin:ymax, xmin:xmax]
 
-    mask = binary_dilation(mask, disk(line_width / 2).astype(np.bool))
-    yy, xx = np.where(mask)
-    yy += ymin
-    xx += xmin
+        mask = binary_dilation(mask, disk(line_width / 2).astype(np.bool))
+        yy, xx = np.where(mask)
+        yy += ymin
+        xx += xmin
+    except Exception as err:
+        print(err)
     return yy, xx
 
 
@@ -73,7 +76,6 @@ class LevelComboBox(LazyComboBox):
                 if level_name != self.except_level:
                     if r["kind"] == "level":
                         self.addItem(r["id"], r["name"])
-
 
 
 @register_plugin
@@ -153,7 +155,6 @@ class AnnotationPlugin(Plugin):
             if level["id"] not in self.levels:
                 self._add_level_widget(level)
 
-
     def timerEvent(self, event):
         self.killTimer(self.timer_id)
         self.timer_id = -1
@@ -164,14 +165,11 @@ class AnnotationPlugin(Plugin):
             self.killTimer(self.timer_id)
         self.timer_id = self.startTimer(2000)
 
-        
-
     def set_sv(self):
         cfg.current_supervoxels = self.region.value()
         cfg.label_value = self.label.value()
         cfg.brush_size = self.width.value()
         print(cfg.current_supervoxels, cfg.label_value)
-
 
         if cfg.label_value is not None:
             # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
@@ -292,25 +290,34 @@ class AnnotationLabel(QCSWidget):
         self.label_name = label["name"]
         self.label_visible = label["visible"]
         self.level_number = int(level_dataset.split("_")[0])
-        
-        
+
         self.btn_del = DelIconButton(secondary=True)
         self.txt_label_name = LineEdit(label["name"])
         self.txt_idx = LineEdit(str(label["idx"]))
         self.btn_label_color = ColorButton(label["color"])
-        
+
         params = dict(workspace=True, level=level_dataset, label_idx=int(label["idx"]))
         result = Launcher.g.run("annotations", "get_label_parent", **params)
         print(result)
-        
+
         if result[0] == -1:
             self.parent_level = -1
             self.parent_label = -1
-            self.btn_label_parent = ParentButton(color=None, source_level=self.level_dataset, parent_level=self.parent_level, parent_label=self.parent_label)
+            self.btn_label_parent = ParentButton(
+                color=None,
+                source_level=self.level_dataset,
+                parent_level=self.parent_level,
+                parent_label=self.parent_label,
+            )
         else:
             self.parent_level = result[0]
             self.parent_label = result[1]
-            self.btn_label_parent = ParentButton(color=result[2], source_level=self.level_dataset, parent_level=self.parent_level, parent_label=self.parent_label)
+            self.btn_label_parent = ParentButton(
+                color=result[2],
+                source_level=self.level_dataset,
+                parent_level=self.parent_level,
+                parent_label=self.parent_label,
+            )
 
         # self.btn_select = IconButton("fa.pencil", "", accent=True)
         self.btn_label_parent.clicked.connect(self.set_parent)
@@ -337,8 +344,7 @@ class AnnotationLabel(QCSWidget):
 
     def set_label(self):
         logger.debug(f"Setting label to {self.label_idx}")
-        
-        
+
         label_dict = {
             "level": self.level_dataset,
             "idx": self.label_idx,
@@ -358,20 +364,23 @@ class AnnotationLabel(QCSWidget):
         )
 
     def set_parent(self):
-        logger.debug(
-            f"Setting parent level to {self.btn_label_parent.parent_level}, with label {self.label_idx}"
-        )
-
-        if int(self.label_idx) != -1:
-            params = dict(
-                workspace=True,
-                level=self.level_dataset,
-                label_idx=self.label_idx,
-                parent_level=self.btn_label_parent.parent_level,
-                parent_label_idx=self.btn_label_parent.parent_label,
-                parent_color=self.label_color
+        try:
+            logger.debug(
+                f"Setting parent level to {self.btn_label_parent.parent_level}, with label {self.label_idx}"
             )
-            result = Launcher.g.run("annotations", "set_label_parent", **params)
+
+            if int(self.label_idx) != -1:
+                params = dict(
+                    workspace=True,
+                    level=self.level_dataset,
+                    label_idx=self.label_idx,
+                    parent_level=self.btn_label_parent.parent_level,
+                    parent_label_idx=self.btn_label_parent.parent_label,
+                    parent_color=self.label_color,
+                )
+                result = Launcher.g.run("annotations", "set_label_parent", **params)
+        except Exception as e:
+            print(e)
 
     def update_label(self):
         label = dict(

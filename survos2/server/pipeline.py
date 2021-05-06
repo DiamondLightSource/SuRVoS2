@@ -51,12 +51,6 @@ class Pipeline:
     dictionary of parameters (e.g. a superregion segmentation takes
     an annotation uint16, a supervoxel uint32 and multiple float32 images)
 
-    A pipeline follows the iterator protocol. The caller creates an instance,
-    providing the list of operations and a payload and then iterates through
-    the pipeline. The payload may be changed with init_payload. The result Patch
-    is obtained by calling output_result
-
-
     """
 
     def __init__(self, params, models=None):

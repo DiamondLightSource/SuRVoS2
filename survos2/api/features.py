@@ -27,7 +27,6 @@ __feature_dtype__ = "float32"
 __feature_fill__ = 0
 
 
-
 @hug.get()
 def get_volume(src: DataURI):
     logger.debug("Getting feature volume")
@@ -67,13 +66,6 @@ def structure_tensor_determinant(
     )
 
 
-@hug.get()
-@save_metadata
-def hessian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
-    from ..server.filtering.blob import compute_hessian_determinant
-
-    map_blocks(compute_hessian_determinant, src, out=dst, sigma=sigma, normalize=True)
-
 
 @hug.get()
 @save_metadata
@@ -103,12 +95,41 @@ def frangi(
     )
 
 
+
+# @hug.get()
+# @save_metadata
+# def hessian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
+#     from ..server.filtering.blob import compute_hessian_determinant
+
+#     map_blocks(compute_hessian_determinant, src, out=dst, sigma=sigma, normalize=True)
+
+@hug.get()
+@save_metadata
+def hessian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
+    from ..server.filtering.blob import hessian_eigvals_image
+
+    map_blocks(
+        hessian_eigvals_image,
+        src,
+        out=dst,
+        pad=max(4, int((max(sigma) + 1) / 2)+1),
+        sigma=sigma,
+        normalize=True,
+    )
+
 @hug.get()
 @save_metadata
 def hessian_eigvals(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
     from ..server.filtering.blob import hessian_eigvals_image
 
-    map_blocks(hessian_eigvals_image, src, out=dst, sigma=sigma, normalize=True)
+    map_blocks(
+        hessian_eigvals_image,
+        src,
+        out=dst,
+        pad=max(4, int((max(sigma) + 1) / 2)+1),
+        sigma=sigma,
+        normalize=True,
+    )
 
 
 @hug.get()
@@ -118,11 +139,19 @@ def hessian_eigvals_cython(
 ) -> "BLOB":
     from ..server.filtering.blob import hessian_eigvals_cython
 
-    map_blocks(hessian_eigvals_cython, src, out=dst, sigma=sigma, normalize=True)
+    map_blocks(
+        hessian_eigvals_cython,
+        src,
+        out=dst,
+        sigma=sigma,
+        pad=max(4, int((max(sigma) + 1) / 2)),
+        normalize=True,
+    )
 
 
 def pass_through(x):
     return x
+
 
 @hug.get()
 @save_metadata
@@ -162,8 +191,6 @@ def erosion(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
     map_blocks(erode, src, num_iter=num_iter, out=dst, normalize=True)
 
 
-
-
 @hug.get()
 @save_metadata
 def tvdenoise_kornia(
@@ -193,7 +220,11 @@ def spatial_gradient_3d(src: DataURI, dst: DataURI, dim: Int = 0) -> "EDGES":
     from ..server.filtering import spatial_gradient_3d
 
     map_blocks(
-        spatial_gradient_3d, src, out=dst, dim=dim, normalize=True,
+        spatial_gradient_3d,
+        src,
+        out=dst,
+        dim=dim,
+        normalize=True,
     )
 
 
@@ -232,14 +263,13 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
     )
 
 
-
-
 @hug.get()
 @save_metadata
 def ndimage_laplacian(
     src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1
 ) -> "EDGES":
     from ..server.filtering import ndimage_laplacian
+
     map_blocks(
         ndimage_laplacian,
         src,
@@ -254,6 +284,7 @@ def ndimage_laplacian(
 @save_metadata
 def laplacian(src: DataURI, dst: DataURI, kernel_size: Float = 2.0) -> "EDGES":
     from ..server.filtering.edge import laplacian
+
     map_blocks(
         laplacian,
         src,
@@ -286,6 +317,7 @@ def gaussian_center(
 ) -> "DENOISING":
 
     from ..server.filtering.blur import gaussian_center
+
     map_blocks(
         gaussian_center,
         src,

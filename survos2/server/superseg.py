@@ -216,21 +216,16 @@ def sr_predict(
     refine: bool,
     lam: float,  # lambda parameter to MRF Refinement
 ) -> np.ndarray:  # Volume of predicted region labels
-    """Region classification combined with MRF Refinement
-    """
+    """Region classification combined with MRF Refinement"""
 
     feats = features_factory(feature_images)
     logger.info(f"Number of features calculated: {len(feats.features_stack)}")
 
     sr = superregion_factory(supervoxel_image.astype(np.uint32), feats.features_stack)
-    #logger.info(f"Calculated superregions: {sr}")
+    # logger.info(f"Calculated superregions: {sr}")
 
     srprediction = train_and_classify_regions(
-        feats.features_stack,
-        anno_image.astype(np.uint16),
-        sr,
-        mask,
-        superseg_cfg
+        feats.features_stack, anno_image.astype(np.uint16), sr, mask, superseg_cfg
     )
 
     prob_map = srprediction.prob_map
@@ -282,7 +277,7 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
         logger.error(f"MRF refinement exception: {err}")
 
     try:
-        #labels_out = (pred.max() + 1) - (invrmap(y_ref, supervoxel_vol) + 1)
+        # labels_out = (pred.max() + 1) - (invrmap(y_ref, supervoxel_vol) + 1)
         labels_out = invrmap(y_ref, supervoxel_vol) + 1
 
         logger.debug(

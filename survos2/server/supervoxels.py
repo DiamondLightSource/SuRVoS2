@@ -52,6 +52,7 @@ def generate_supervoxels(
     Returns: dataclass with all the information required for prediction
     """
     from cuda_slic import slic
+
     logger.info(f"Using feature idx {dataset_feats_idx} for supervoxels.")
     logger.info(
         f"SRFeatures for supervoxels have shape {dataset_feats[dataset_feats_idx].shape}"
@@ -97,7 +98,9 @@ def generate_supervoxels(
 
 
 def superregion_factory(
-    supervoxel_vol: np.ndarray, features_stack: np.ndarray, desc_type="Mean",
+    supervoxel_vol: np.ndarray,
+    features_stack: np.ndarray,
+    desc_type="Mean",
 ) -> SRData:
 
     supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32, copy=True)
