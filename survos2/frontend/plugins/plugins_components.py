@@ -38,7 +38,7 @@ _FeatureNotifier = PluginNotifier()
 class SourceComboBox(LazyComboBox):
     def __init__(self, ignore_source=None, parent=None):
         self.ignore_source = ignore_source
-        super().__init__(header=None, parent=parent) #("__data__", "Raw Data")
+        super().__init__(header=("__data__", "Raw Data"), parent=parent)
         _FeatureNotifier.listen(self.update)
 
     def fill(self):
@@ -48,7 +48,7 @@ class SourceComboBox(LazyComboBox):
 class MultiSourceComboBox(LazyMultiComboBox):
     def __init__(self, parent=None):
         super().__init__(
-            header=None, text="Select Source", parent=parent
+            header=("__data__", "Raw Data"), text="Select Source", parent=parent
         )
         _FeatureNotifier.listen(self.update)
 
