@@ -92,7 +92,7 @@ def predict_segmentation_fcn(
 
 
 @hug.get()
-def make_annotation(
+def generate_blobs(
     workspace: String,
     feature_ids: DataURIList,
     object_id: DataURI,
@@ -127,13 +127,12 @@ def make_annotation(
     logger.debug(
         f"Getting objects from {src} and file {objects_fullname}"
     )
-
+    from survos2.frontend.components.entity import make_entity_df, setup_entity_table
     tabledata, entities_df = setup_entity_table(
         objects_fullname, scale=objects_scale, offset=objects_offset, crop_start=objects_crop_start, crop_end=objects_crop_end 
     )
     print(entities_df)
     
-    from survos2.frontend.components.entity import make_entity_df, setup_entity_table
     entities = np.array(make_entity_df(np.array(entities_df), flipxy=True))
 
     #default params TODO make generic, allow editing 

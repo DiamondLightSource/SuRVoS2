@@ -61,7 +61,6 @@ class LevelComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None):
         self.full = full
         self.except_level = None
-
         super().__init__(header=header, parent=parent)
         _AnnotationNotifier.listen(self.update)
 

@@ -68,7 +68,7 @@ def obtain_classifier(clf_p):
                 subsample=clf_p["subsample"],
             )
 
-    elif clf_p["clf"] == "svm":
+    elif clf_p["clf"] == "SVM":
         mode = "svm"
         clf = SVC(
             C=clf_p["C"], gamma=clf_p["gamma"], kernel=clf_p["kernel"], probability=True
@@ -192,7 +192,6 @@ def train_and_classify_regions(
         X_train,
         Y_train,
         predict_params=superseg_cfg["predict_params"],
-        n_estimators=superseg_cfg["predict_params"]["n_estimators"],
         project=superseg_cfg["predict_params"]["proj"],
     )
     logger.debug(f"Predicted  with clf: {clf} and projection {proj}")
@@ -219,23 +218,20 @@ def sr_predict(
     """Region classification combined with MRF Refinement"""
 
     feats = features_factory(feature_images)
-    logger.info(f"Number of features calculated: {len(feats.features_stack)}")
-
+    logger.debug(f"Number of features calculated: {len(feats.features_stack)}")
     sr = superregion_factory(supervoxel_image.astype(np.uint32), feats.features_stack)
-    # logger.info(f"Calculated superregions: {sr}")
-
     srprediction = train_and_classify_regions(
         feats.features_stack, anno_image.astype(np.uint16), sr, mask, superseg_cfg
     )
 
     prob_map = srprediction.prob_map
-    logger.info(f"Made sr prediction: {srprediction}")
+    logger.debug(f"Made sr prediction: {srprediction}")
 
     if refine:
         prob_map = mrf_refinement(
             srprediction.P, supervoxel_image, feats.features_stack, lam=lam
         )
-        logger.info(f"Calculated MRF Refinement")
+        logger.debug(f"Calculated MRF Refinement")
 
     return prob_map
 

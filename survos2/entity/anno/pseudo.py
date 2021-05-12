@@ -54,7 +54,7 @@ from survos2.frontend.nb_utils import (
     view_volume,
     view_volumes,
 )
-#from survos2.improc.features.tv import tvdenoising3d
+from survos2.improc.features.tv import tvdenoising3d
 from survos2.server.features import generate_features, prepare_prediction_features
 from survos2.server.filtering import (
     gaussian_blur_kornia,
@@ -88,14 +88,14 @@ def generate_annotation_volume(
     entity_meta,
     gt_proportion=1.0,
     padding=(64, 64, 64),
-    generate_random_entities=False,
+    generate_random_bg_entities=False,
+    num_bg=50,
     acwe=False,
 ):
 
-    if generate_random_entities:
-        num_entities = 50
+    if generate_random_bg_entities:
         random_entities = generate_random_points_in_volume(
-            wf.vols[0], num_entities
+            wf.vols[0], num_bg
         ).astype(np.uint32)
         from survos2.entity.instanceseg.utils import remove_masked_entities
 

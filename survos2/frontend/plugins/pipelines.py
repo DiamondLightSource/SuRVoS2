@@ -194,7 +194,8 @@ class SVMWidget(QtWidgets.QWidget):
             'clf': 'svm',
             'kernel': self.type_combo.currentText(),
             'C': self.penaltyc.value(),
-            'gamma': self.gamma.value()
+            'gamma': self.gamma.value(),
+            'type': self.type_combo.value(),
         }
 
         return params
@@ -320,7 +321,7 @@ class PipelineCard(Card):
             #self._add_refine_choice()
             self._add_param("lam", type="FloatSlider", default=0.15)
             
-        elif self.pipeline_type == "make_annotation":
+        elif self.pipeline_type == "generate_blobs":
             self._add_annotations_source()
             self._add_features_source()
             self._add_objects_source()
@@ -661,7 +662,7 @@ class PipelineCard(Card):
                     all_params["classifier_params"] = self.svm.get_params()
                 
 
-            elif self.pipeline_type == "make_annotation":
+            elif self.pipeline_type == "generate_blobs":
                 src = DataModel.g.dataset_uri(
                     self.features_source.value()[0], group="pipelines"
                 )

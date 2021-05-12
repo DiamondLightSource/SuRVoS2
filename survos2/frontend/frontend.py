@@ -58,6 +58,37 @@ from survos2.frontend.paint_strokes import paint_strokes
 from survos2.frontend.workflow import run_workflow
 from napari_plugin_engine import napari_hook_implementation
 
+from qtpy.QtWidgets import QWidget
+from napari_plugin_engine import napari_hook_implementation
+
+
+class MyWidget(QWidget):
+	def __init__(self, napari_viewer):
+		self.viewer = napari_viewer
+		super().__init__()
+		# initialize layout
+		layout = QGridLayout()
+		# add a button
+		# 
+		btn = QPushButton('Click me!', self)
+
+		def trigger():
+			print("napari has", len(napari_viewer.layers), "layers")
+		btn.clicked.connect(trigger)
+		layout.addWidget(btn)
+		# activate layout
+		self.setLayout(layout)
+
+
+@napari_hook_implementation
+def napari_experimental_provide_dock_widget():
+	return (MyWidget, {'name' : 'test'})
+
+
+#@napari_hook_implementation
+#def napari_experimental_provide_dock_widget():
+#    return SmallVolWidget(np.zeros((32, 32, 32))), {"name": "Small Volume Viewer"}
+        
 
 def remove_masked_pts(bg_mask, entities):
     pts_vol = np.zeros_like(bg_mask)
