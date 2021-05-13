@@ -10,6 +10,7 @@ api:
     - pipelines
     - objects
     - analyzer
+    - export
 computing:
   chunks: true
   chunk_size: 16     # 1024 is 1 Gb
