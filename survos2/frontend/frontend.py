@@ -47,6 +47,7 @@ from survos2.frontend.utils import (
     get_array_from_dataset,
     get_color_mapping,
     hex_string_to_rgba,
+    get_annotation_array,
 )
 from survos2.helpers import AttrDict, simple_norm
 from survos2.improc.utils import DatasetManager
@@ -61,55 +62,12 @@ from napari_plugin_engine import napari_hook_implementation
 from qtpy.QtWidgets import QWidget
 from napari_plugin_engine import napari_hook_implementation
 
-        
-
-def remove_masked_pts(bg_mask, entities):
-    pts_vol = np.zeros_like(bg_mask)
-    
-    #bg_mask = binary_dilation(bg_mask * 1.0, disk(2).astype(np.bool))
-    for pt in entities:
-        if pt[0] < bg_mask.shape[0] and pt[1] < bg_mask.shape[1] and pt[2] < bg_mask.shape[2]:
-            pts_vol[pt[0], pt[1], pt[2]] = 1
-        else:
-            print(pt)
-    bg_mask = bg_mask > 0
-    pts_vol = pts_vol * bg_mask
-    zs, xs, ys = np.where(pts_vol == 1)
-    masked_entities = []
-    for i in range(len(zs)):
-        pt = [zs[i], xs[i], ys[i]]
-        masked_entities.append(pt)
-    return np.array(masked_entities)
-
-
-def get_annotation_array(msg, retrieval_mode='volume'):
-    if retrieval_mode == 'slice':  # get a slice over http
-        src_annotations_dataset = DataModel.g.dataset_uri(
-            msg["level_id"], group="annotations"
-        )
-        params = dict(
-            workpace=True,
-            src=src_annotations_dataset,
-            slice_idx=cfg.current_slice,
-            order=cfg.order,
-        )
-        result = Launcher.g.run("annotations", "get_slice", **params)
-        if result:
-            src_arr = decode_numpy(result)
-    elif retrieval_mode == 'volume':  # get entire volume
-        src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_annotations_dataset = DM.sources[0][:]
-            src_arr = get_array_from_dataset(src_annotations_dataset)
-
-    return src_arr, src_annotations_dataset
-
 
 def frontend():
     logger.info(f"Frontend loading workspace {DataModel.g.current_workspace}")
 
     DataModel.g.current_session = "default"
-    
+
     src = DataModel.g.dataset_uri("__data__", None)
     dst = DataModel.g.dataset_uri("001_raw", group="features")
 
@@ -119,16 +77,6 @@ def frontend():
 
     src = DataModel.g.dataset_uri("__data__")
 
-    # Entity loading
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        entity_dataset = DM.sources[0]
-        entity_fullname = entity_dataset.get_metadata("entities_name")
-    logger.info(f"entity_fullname {entity_fullname}")
-    if entity_fullname is None:
-        use_entities = False
-    else:
-        use_entities = True
-
     params = dict(workspace=DataModel.g.current_workspace)
     cfg.sessions = Launcher.g.run("workspace", "list_sessions", **params)
 
@@ -137,7 +85,7 @@ def frontend():
     cfg.label_ids = [
         0,
     ]
-    cfg.retrieval_mode = "volume"  # volume | slice | crop 
+    cfg.retrieval_mode = "volume"  # volume | slice | crop
     cfg.current_slice = 0
     cfg.current_orientation = 0
     cfg.base_dataset_shape = orig_dataset.shape
@@ -147,20 +95,20 @@ def frontend():
     cfg.current_annotation_name = None
     cfg.current_pipeline_name = None
     cfg.object_scale = 1.0
-    cfg.object_offset = (0,0,0)  #(-16, 170, 165)  # (-16,-350,-350)
+    cfg.object_offset = (0, 0, 0)  # (-16, 170, 165)  # (-16,-350,-350)
     cfg.current_regions_name = None
     cfg.current_supervoxels = None
     cfg.supervoxels_cache = None
     cfg.supervoxels_cached = False
     cfg.current_regions_dataset = None
-    
+
     label_dict = {
-            "level": "001_level",
-            "idx": 1,
-            "color": "#000000",
+        "level": "001_level",
+        "idx": 1,
+        "color": "#000000",
     }
     cfg.label_value = label_dict
-    
+
     cfg.order = (0, 1, 2)
     cfg.group = "main"
 
@@ -191,7 +139,12 @@ def frontend():
 
         def goto_roi(msg):
             logger.debug(f"Goto roi: {msg}")
-            params = dict(workspace=True, current_workspace_name=DataModel.g.current_workspace, feature_id="001_raw", roi=msg["roi"])
+            params = dict(
+                workspace=True,
+                current_workspace_name=DataModel.g.current_workspace,
+                feature_id="001_raw",
+                roi=msg["roi"],
+            )
             result = Launcher.g.run("workspace", "goto_roi", **params)
             if result:
                 logger.debug(f"Switching to goto_roi created workspace {result}")
@@ -220,7 +173,6 @@ def frontend():
                 cfg.tabledata,
                 selected_roi_idx,
                 vol_size=(32, 32, 32),
-                offset=cfg.object_offset,
             )
 
             # viewer.dw.smallvol_control.set_vol(np.transpose(vol1, (0,2,1)))
@@ -233,7 +185,7 @@ def frontend():
                 v for v in viewer.layers if v.name == msg["feature_id"]
             ]
 
-            if cfg.retrieval_mode == 'slice':
+            if cfg.retrieval_mode == "slice":
                 features_src = DataModel.g.dataset_uri(
                     msg["feature_id"], group="features"
                 )
@@ -253,12 +205,12 @@ def frontend():
                     else:
                         viewer.add_image(src_arr, name=msg["feature_id"])
 
-            elif cfg.retrieval_mode == 'volume':
+            elif cfg.retrieval_mode == "volume":
                 # use DatasetManager to load feature from workspace as array and then add it to viewer
                 src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
                 remove_layer(cfg.current_feature_name)
                 cfg.current_feature_name = msg["feature_id"]
-                
+
                 with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
                     src_dataset = DM.sources[0][:]
                     src_arr = get_array_from_dataset(src_dataset)
@@ -268,14 +220,13 @@ def frontend():
 
         def view_regions(msg):
             logger.debug(f"view_feature {msg['region_id']}")
-            region_name = msg['region_id']
+            region_name = msg["region_id"]
             existing_regions_layer = [
                 v for v in viewer.layers if v.name == cfg.current_regions_name
             ]
-
             remove_layer(cfg.current_regions_name)
 
-            if cfg.retrieval_mode == 'slice':
+            if cfg.retrieval_mode == "slice":
                 #
                 regions_src = DataModel.g.dataset_uri(region_name, group="regions")
                 params = dict(
@@ -294,8 +245,8 @@ def frontend():
                     else:
                         sv_layer = viewer.add_image(src_arr, name=region_name)
                         sv_layer.opacity = 0.3
-                        sv_layer.colormap = 'bop orange'
-            elif cfg.retrieval_mode == 'volume':
+                        sv_layer.colormap = "bop orange"
+            elif cfg.retrieval_mode == "volume":
                 src = DataModel.g.dataset_uri(region_name, group="regions")
                 with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
                     src_dataset = DM.sources[0][:]
@@ -305,10 +256,10 @@ def frontend():
                     if len(existing_layer) > 0:
                         existing_layer[0].data = src_arr
                     else:
-                        sv_image = find_boundaries(src_arr, mode='inner')
+                        sv_image = find_boundaries(src_arr, mode="inner")
                         sv_layer = viewer.add_image(sv_image, name=region_name)
                         sv_layer.opacity = 0.3
-                        sv_layer.colormap = 'bop orange'
+                        sv_layer.colormap = "bop orange"
 
             cfg.current_regions_name = region_name
             cfg.supervoxels_cached = False
@@ -327,7 +278,13 @@ def frontend():
                 cfg.label_value = label_value
                 anno_layer.brush_size = int(paint_params["brush_size"])
                 if paint_params["current_supervoxels"] is not None:
-                    view_regions({'region_id' : ntpath.basename(paint_params["current_supervoxels"])})
+                    view_regions(
+                        {
+                            "region_id": ntpath.basename(
+                                paint_params["current_supervoxels"]
+                            )
+                        }
+                    )
                     cfg.supervoxels_cached = False
 
         def update_layer(layer_name, src_arr):
@@ -337,20 +294,19 @@ def frontend():
 
         def update_annotations(msg):
             logger.debug(f"refresh_annotation {msg}")
-
             src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
             with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
                 src_annotations_dataset = DM.sources[0][:]
                 src_arr = get_array_from_dataset(src_annotations_dataset)
-
             update_layer(msg["level_id"], src_arr)
-
 
         def refresh_annotations(msg):
             logger.debug(f"refresh_annotation {msg['level_id']}")
             # remove_layer(cfg.current_annotation_name)
             cfg.current_annotation_name = msg["level_id"]
-            src_arr, src_annotations_dataset = get_annotation_array(msg, retrieval_mode=cfg.retrieval_mode)
+            src_arr, src_annotations_dataset = get_annotation_array(
+                msg, retrieval_mode=cfg.retrieval_mode
+            )
             result = Launcher.g.run(
                 "annotations", "get_levels", workspace=DataModel.g.current_workspace
             )
@@ -385,28 +341,30 @@ def frontend():
                 label_layer.brush_size = brush_size
 
                 if cfg.label_value is not None:
-                    
+
                     label_layer.selected_label = int(cfg.label_value["idx"]) - 1
-                    
+
                 return label_layer, src_annotations_dataset
-      
+
         def paint_annotations(msg):
             logger.debug(f"paint_annotation {msg['level_id']}")
             cfg.current_annotation_name = msg["level_id"]
             label_layer, current_annotation_ds = refresh_annotations(msg)
 
             if cfg.label_value is not None:
-                sel_label = int(cfg.label_value["idx"]) 
+                sel_label = int(cfg.label_value["idx"])
             else:
                 sel_label = 1
-            
+
             if msg["level_id"] is not None:
-                params = dict(workspace=True, level=msg["level_id"], label_idx=sel_label )
+                params = dict(
+                    workspace=True, level=msg["level_id"], label_idx=sel_label
+                )
                 result = Launcher.g.run("annotations", "get_label_parent", **params)
                 print(result)
                 parent_level = result[0]
                 parent_label_idx = result[1]
-            
+
                 @label_layer.bind_key("Control-Z", overwrite=True)
                 def undo(v):
                     level = cfg.current_annotation_name
@@ -422,60 +380,65 @@ def frontend():
 
                 @label_layer.mouse_drag_callbacks.append
                 def view_location(layer, event):
-                    dragged = False
                     drag_pts = []
                     coords = np.round(layer.coordinates).astype(int)
 
-                    if cfg.retrieval_mode == 'slice':
+                    if cfg.retrieval_mode == "slice":
                         drag_pt = [coords[0], coords[1]]
-                    elif cfg.retrieval_mode == 'volume':
+                    elif cfg.retrieval_mode == "volume":
                         drag_pt = [coords[0], coords[1], coords[2]]
                     drag_pts.append(drag_pt)
                     yield
+
+                    if layer.mode == "fill" or layer.mode == "pick":
+                        layer.mode = "paint"
 
                     if layer.mode == "paint" or layer.mode == "erase":
                         while event.type == "mouse_move":
                             coords = np.round(layer.coordinates).astype(int)
 
-                            if cfg.retrieval_mode == 'slice':
+                            if cfg.retrieval_mode == "slice":
                                 drag_pt = [coords[0], coords[1]]
-                            elif cfg.retrieval_mode == 'volume':
+                            elif cfg.retrieval_mode == "volume":
                                 drag_pt = [coords[0], coords[1], coords[2]]
 
                             drag_pts.append(drag_pt)
-                            dragged = True
                             yield
 
-                        print(drag_pts)
-                        
-                        filtered_pts = drag_pts
-                        #if parent_mask is not None:
-                        #    from survos2.entity.instanceseg.utils import remove_masked_entities
-                        #    filtered_pts = remove_masked_pts(parent_mask, np.array(drag_pts))
-                        #    print(filtered_pts)
-
-                        if len(filtered_pts) > 0:
+                        if len(drag_pts) >= 0:
                             top_layer = viewer.layers[-1]
                             layer_name = top_layer.name  # get last added layer name
-                            anno_layer = next(l for l in viewer.layers if l.name == layer_name)
+                            anno_layer = next(
+                                l for l in viewer.layers if l.name == layer_name
+                            )
 
                             def update_anno(msg):
-                                src_arr, _ = get_annotation_array(msg, retrieval_mode=cfg.retrieval_mode)
+                                src_arr, _ = get_annotation_array(
+                                    msg, retrieval_mode=cfg.retrieval_mode
+                                )
                                 update_layer(msg["level_id"], src_arr)
+
                             update = partial(update_anno, msg=msg)
-                            paint_strokes_worker = paint_strokes(msg, filtered_pts, layer, top_layer, anno_layer, parent_level, parent_label_idx)
+                            paint_strokes_worker = paint_strokes(
+                                msg,
+                                drag_pts,
+                                layer,
+                                top_layer,
+                                anno_layer,
+                                parent_level,
+                                parent_label_idx,
+                            )
                             paint_strokes_worker.returned.connect(update)
                             paint_strokes_worker.start()
                         else:
                             cfg.ppw.clientEvent.emit(
-                            {
-                                "source": "annotations",
-                                "data": "update_annotations",
-                                "level_id": msg["level_id"],
-                            }
-                        )
-                        
-                    
+                                {
+                                    "source": "annotations",
+                                    "data": "update_annotations",
+                                    "level_id": msg["level_id"],
+                                }
+                            )
+
         def view_pipeline(msg):
             logger.debug(f"view_pipeline {msg['pipeline_id']} using {msg['level_id']}")
 
@@ -492,7 +455,7 @@ def frontend():
             ]
             cfg.current_pipeline_name = msg["pipeline_id"]
 
-            if cfg.retrieval_mode == 'slice':
+            if cfg.retrieval_mode == "slice":
                 pipeline_src = DataModel.g.dataset_uri(
                     cfg.current_pipeline_name, group="pipelines"
                 )
@@ -509,9 +472,11 @@ def frontend():
                         existing_pipeline_layer[0].data = src_arr.copy()
                     else:
                         viewer.add_labels(
-                            src_arr.astype(np.uint32), name=msg["pipeline_id"], color=cmapping
+                            src_arr.astype(np.uint32),
+                            name=msg["pipeline_id"],
+                            color=cmapping,
                         )
-            elif cfg.retrieval_mode == 'volume':
+            elif cfg.retrieval_mode == "volume":
                 src = DataModel.g.dataset_uri(msg["pipeline_id"], group="pipelines")
                 with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
                     src_dataset = DM.sources[0][:]
@@ -528,11 +493,15 @@ def frontend():
 
                         viewer.layers.remove(existing_layer[0])
                         viewer.add_labels(
-                            src_arr.astype(np.uint32), name=msg["pipeline_id"], color=cmapping
+                            src_arr.astype(np.uint32),
+                            name=msg["pipeline_id"],
+                            color=cmapping,
                         )
                     else:
                         viewer.add_labels(
-                            src_arr.astype(np.uint32), name=msg["pipeline_id"], color=cmapping
+                            src_arr.astype(np.uint32),
+                            name=msg["pipeline_id"],
+                            color=cmapping,
                         )
 
         def view_objects(msg):
@@ -549,34 +518,27 @@ def frontend():
             objects_crop_end = ds_objects.get_metadata("crop_end")
 
             logger.info(f"Viewing entities {objects_fullname}")
-            tabledata, entities_df = setup_entity_table(objects_fullname, 
-                                        scale=objects_scale, 
-                                        offset=objects_offset, 
-                                        crop_start=objects_crop_start, 
-                                        crop_end=objects_crop_end)
+            tabledata, entities_df = setup_entity_table(
+                objects_fullname,
+                scale=objects_scale,
+                offset=objects_offset,
+                crop_start=objects_crop_start,
+                crop_end=objects_crop_end,
+            )
             sel_start, sel_end = 0, len(entities_df)
 
             centers = np.array(
                 [
                     [
-                        np.int(
-                            (np.float(entities_df.iloc[i]["z"]) * 1.0)
-                            + 0
-                        ),
-                        np.int(
-                            (np.float(entities_df.iloc[i]["x"]) * 1.0)
-                            + 0
-                        ),
-                        np.int(
-                            (np.float(entities_df.iloc[i]["y"]) * 1.0)
-                            + 0
-                        ),
+                        np.int((np.float(entities_df.iloc[i]["z"]) * 1.0) + 0),
+                        np.int((np.float(entities_df.iloc[i]["x"]) * 1.0) + 0),
+                        np.int((np.float(entities_df.iloc[i]["y"]) * 1.0) + 0),
                     ]
                     for i in range(sel_start, sel_end)
                 ]
             )
 
-            num_classes = max(9,len(np.unique(entities_df["class_code"]))) + 2
+            num_classes = max(9, len(np.unique(entities_df["class_code"]))) + 2
             logger.debug(f"Number of entity classes {num_classes}")
             palette = np.array(sns.color_palette("hls", num_classes))
             face_color_list = [
@@ -591,7 +553,7 @@ def frontend():
                 n_dimensional=True,
             )
 
-            #from survos2.entity.sampler import sample_region_at_pt
+            # from survos2.entity.sampler import sample_region_at_pt
 
             # @entity_layer.mouse_drag_callbacks.append
             # def view_location(layer, event):
@@ -638,7 +600,7 @@ def frontend():
         def jump_to_slice(msg):
 
             print(f"Using order {cfg.order}")
-            if cfg.retrieval_mode == 'slice':
+            if cfg.retrieval_mode == "slice":
                 cfg.current_slice = int(msg["frame"])
                 logger.debug(f"Jump around to {cfg.current_slice}, msg {msg['frame']}")
 
@@ -752,9 +714,9 @@ def frontend():
                 goto_roi(msg)
             elif msg["data"] == "slice_mode":
                 logger.debug(f"Slice mode: {cfg.retrieval_mode}")
-                if cfg.retrieval_mode != 'slice':
-                    cfg.retrieval_mode = 'slice'
-                    
+                if cfg.retrieval_mode != "slice":
+                    cfg.retrieval_mode = "slice"
+
                     for l in viewer.layers:
                         viewer.layers.remove(l)
                     viewer_order = viewer.window.qt_viewer.viewer.dims.order
@@ -769,11 +731,12 @@ def frontend():
                     print(f"Setting slice max to {cfg.slice_max}")
                     view_feature({"feature_id": "001_raw"})
                     jump_to_slice({"frame": 0})
-                elif cfg.retrieval_mode == 'slice':
-                    cfg.retrieval_mode = 'volume'
+                elif cfg.retrieval_mode == "slice":
+                    cfg.retrieval_mode = "volume"
                     for l in viewer.layers:
                         viewer.layers.remove(l)
                     view_feature({"feature_id": "001_raw"})
+
         #
         # Add widgets to viewer
         #
@@ -782,20 +745,21 @@ def frontend():
         cfg.ppw = dw.ppw
         cfg.processEvents = processEvents
 
-        #smallvol_control = SmallVolWidget(np.zeros((32, 32, 32)))
-        #cfg.smallvol_control = smallvol_control        
-        #smallvol_control_dockwidget = viewer.window.add_dock_widget(
-        #    smallvol_control.imv, area="right"
-        #)
-        #smallvol_control_dockwidget.setVisible(False)
-        #smallvol_control_dockwidget.setWindowTitle("Patch viewer")
+        smallvol_control = SmallVolWidget(np.zeros((32, 32, 32)))
+        cfg.smallvol_control = smallvol_control
+        smallvol_control_dockwidget = viewer.window.add_dock_widget(
+            smallvol_control.imv, area="right"
+        )
+        smallvol_control_dockwidget.setVisible(False)
+        smallvol_control_dockwidget.setWindowTitle("Patch viewer")
 
         bpw_control_dockwidget = viewer.window.add_dock_widget(dw.bpw, area="left")
         dw.bpw.clientEvent.connect(lambda x: processEvents(x))
         bpw_control_dockwidget.setVisible(False)
-        
+
         pluginwidget_dockwidget = viewer.window.add_dock_widget(
-            dw.ppw, area="right",
+            dw.ppw,
+            area="right",
         )
         pluginwidget_dockwidget.setWindowTitle("Workspace")
         view_feature({"feature_id": "001_raw"})
