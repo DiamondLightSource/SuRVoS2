@@ -166,7 +166,7 @@ def dask_relabel_chunks(A):
         dtype=A.dtype,
         adjust_chunks={i: 1 for i in inds},
     )
-    block_index_global = da.cumsum(max_per_block.ravel()) * 2
+    block_index_global = da.cumsum(max_per_block.ravel()) * 3
 
     def relabel(a, block_id=None):
         bid = int(np.ravel_multi_index(block_id, A.numblocks))
