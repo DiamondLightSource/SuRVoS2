@@ -28,6 +28,49 @@ DEFAULT_DIR_KEY = "default_dir"
 DEFAULT_DATA_KEY = "default_data_dir"
 
 
+
+def remove_masked_pts(bg_mask, entities):
+    pts_vol = np.zeros_like(bg_mask)
+    
+    #bg_mask = binary_dilation(bg_mask * 1.0, disk(2).astype(np.bool))
+    for pt in entities:
+        if pt[0] < bg_mask.shape[0] and pt[1] < bg_mask.shape[1] and pt[2] < bg_mask.shape[2]:
+            pts_vol[pt[0], pt[1], pt[2]] = 1
+        else:
+            print(pt)
+    bg_mask = bg_mask > 0
+    pts_vol = pts_vol * bg_mask
+    zs, xs, ys = np.where(pts_vol == 1)
+    masked_entities = []
+    for i in range(len(zs)):
+        pt = [zs[i], xs[i], ys[i]]
+        masked_entities.append(pt)
+    return np.array(masked_entities)
+
+
+def get_annotation_array(msg, retrieval_mode='volume'):
+    if retrieval_mode == 'slice':  # get a slice over http
+        src_annotations_dataset = DataModel.g.dataset_uri(
+            msg["level_id"], group="annotations"
+        )
+        params = dict(
+            workpace=True,
+            src=src_annotations_dataset,
+            slice_idx=cfg.current_slice,
+            order=cfg.order,
+        )
+        result = Launcher.g.run("annotations", "get_slice", **params)
+        if result:
+            src_arr = decode_numpy(result)
+    elif retrieval_mode == 'volume':  # get entire volume
+        src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_annotations_dataset = DM.sources[0][:]
+            src_arr = get_array_from_dataset(src_annotations_dataset)
+
+    return src_arr, src_annotations_dataset
+
+
 def get_array_from_dataset(src_dataset, axis=0):
     if cfg.retrieval_mode == 'slice':
         print(f"src_dataset shape {src_dataset.shape}")
