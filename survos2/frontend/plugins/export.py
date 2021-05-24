@@ -1,6 +1,7 @@
 import re
 
 import h5py as h5
+import mrcfile
 import numpy as np
 from loguru import logger
 from qtpy.QtWidgets import QFileDialog, QGridLayout, QGroupBox, QLabel
@@ -21,8 +22,9 @@ from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
 
+FILE_TYPES = ["HDF5", "MRC"]
 HDF_EXT = ".h5"
-
+MRC_EXT = ".rec"
 
 class SuperRegionSegmentComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None):
@@ -70,7 +72,7 @@ class ExportPlugin(Plugin):
         feat_box_layout.addWidget(self.feat_source, 1, 0, 1, 2)
         # File type combo
         self.feat_ftype_combo = ComboBox()
-        self.feat_ftype_combo.addItem("HDF5")
+        self.add_filetypes_to_combo(self.feat_ftype_combo)
         feat_box_layout.addWidget(self.feat_ftype_combo, 1, 2)
         # Button
         self.feat_export_btn = IconButton("fa.save", "Export data", accent=True)
@@ -91,7 +93,7 @@ class ExportPlugin(Plugin):
         anno_box_layout.addWidget(self.anno_source, 1, 0, 1, 2)
         # File type combo
         self.anno_ftype_combo = ComboBox()
-        self.anno_ftype_combo.addItem("HDF5")
+        self.add_filetypes_to_combo(self.anno_ftype_combo)
         anno_box_layout.addWidget(self.anno_ftype_combo, 1, 2)
         # Button
         self.anno_export_btn = IconButton("fa.save", "Export data", accent=True)
@@ -112,7 +114,7 @@ class ExportPlugin(Plugin):
         pipe_box_layout.addWidget(self.pipe_source, 1, 0, 1, 2)
         # File type combo
         self.pipe_ftype_combo = ComboBox()
-        self.pipe_ftype_combo.addItem("HDF5")
+        self.add_filetypes_to_combo(self.pipe_ftype_combo)
         pipe_box_layout.addWidget(self.pipe_ftype_combo, 1, 2)
         # Button
         self.pipe_export_btn = IconButton("fa.save", "Export data", accent=True)
@@ -121,6 +123,10 @@ class ExportPlugin(Plugin):
 
         pipe_group_box.setLayout(pipe_box_layout)
         return pipe_group_box
+    
+    def add_filetypes_to_combo(self, combo):
+        for file_type in FILE_TYPES:
+            combo.addItem(file_type)
 
     def save_feature(self):
         result = re.search(r"(\d+) (.*)", self.feat_source.currentText())
@@ -178,7 +184,8 @@ class ExportPlugin(Plugin):
             logger.info("No pipeline selected")
 
     def get_data_filetype(self, combo_box):
-        ftype_map = {"HDF5": ("HDF5 (*.h5 *.hdf5)", HDF_EXT)}
+        ftype_map = {"HDF5": ("HDF5 (*.h5 *.hdf5)", HDF_EXT),
+                     "MRC": ("MRC (*.mrc *.rec *.st)", MRC_EXT)}
         return ftype_map.get(combo_box.currentText())
 
     def get_arr_data(self, item_id, item_type):
@@ -192,3 +199,7 @@ class ExportPlugin(Plugin):
             logger.info(f"Saving data to {path} in HDF5 format")
             with h5.File(path, "w") as f:
                 f["/data"] = data
+        elif ext == MRC_EXT:
+            logger.info(f"Saving data to {path} in MRC format")
+            with mrcfile.new(path, overwrite=True) as mrc:
+                mrc.set_data(data)
