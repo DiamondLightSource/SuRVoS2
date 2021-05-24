@@ -126,7 +126,7 @@ def hessian_eigvals(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BL
         hessian_eigvals_image,
         src,
         out=dst,
-        pad=max(4, int((max(sigma) + 1) / 2)+1),
+        pad=max(4, int((max(sigma) *2))),
         sigma=sigma,
         normalize=True,
     )
@@ -241,7 +241,7 @@ def difference_of_gaussians(
         out=dst,
         sigma=sigma,
         sigma_ratio=sigma_ratio,
-        pad=max(4, int((max(sigma) + 1) / 2)),
+        pad=max(4, int((max(sigma) *2))),
         normalize=False,
     )
 

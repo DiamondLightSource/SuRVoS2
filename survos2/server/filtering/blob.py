@@ -157,7 +157,7 @@ def hessian_eigvals(data, sigma, correct=False):
     logger.debug(f"Calculated hessian_eigvals reponse of shape {img.shape}")
 
     
-    return rescale_denan(img)
+    return np.nan_to_num(img)
 
 
 def hessian_eigvals_image(data, sigma, correct=False):
@@ -204,7 +204,7 @@ def hessian_eigvals_image(data, sigma, correct=False):
     img = img[:,:,:,0] # return primay eigenvalue
 
     
-    return rescale_denan(img)
+    return np.nan_to_num(img)
 
 
 def hessian_eigvals_p(data, sigma, correct=False):

@@ -42,8 +42,9 @@ def ndimage_laplacian(img, kernel_size=1.0):
     locNaNs = np.isnan(img)
     img = np.nan_to_num(img)
     img = ndimage.laplace(gaussian(img, kernel_size))
-    img = img - np.min(img)
-    img = img / np.max(img)
+    #img = img - np.min(img)
+    #img = img / np.max(img)
+    
     return img
 
 
@@ -96,7 +97,7 @@ def laplacian(img: np.ndarray, kernel_size) -> np.ndarray:
 
     laplacian: torch.Tensor = kornia.laplacian(img_clean_t, kernel_size=kernel_size)
     laplacian_img: np.ndarray = kornia.tensor_to_image(laplacian.float())
-    return rescale_denan(laplacian_img)
+    return np.nan_to_num(laplacian_img)
 
 
 def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False, dark_response=False):
@@ -135,7 +136,7 @@ def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False, dark
     if threshold:
         response[response < 0] = 0
 
-    response = rescale_denan(response)
+    response = np.nan_to_num(response)
 
     return response
 
