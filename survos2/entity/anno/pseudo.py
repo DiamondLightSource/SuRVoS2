@@ -34,11 +34,9 @@ from tqdm import tqdm
 from survos2 import survos
 from survos2.entity.anno.masks import generate_anno
 from survos2.entity.entities import (
-    init_entity_workflow,
     make_bounding_vols,
     make_entity_bvol,
     make_entity_df,
-    organize_entities,
 )
 
 from survos2.entity.sampler import (
@@ -48,7 +46,7 @@ from survos2.entity.sampler import (
     generate_random_points_in_volume,
 )
 from survos2.frontend.nb_utils import (
-    plot_slice_and_pts,
+    slice_plot,
     view_vols_labels,
     view_vols_points,
     view_volume,
@@ -89,39 +87,62 @@ def generate_annotation_volume(
     gt_proportion=1.0,
     padding=(64, 64, 64),
     generate_random_bg_entities=False,
-    num_bg=50,
+    num_before_masking=60,
     acwe=False,
+    stratified_selection=False,
+    class_proportion={0: 1, 1: 1.0, 2: 1.0, 5: 1},
 ):
+    entities = wf.locs
+    # entities_sel = np.random.choice(
+    #    range(len(entities)), int(gt_proportion * len(entities))
+    # )
+    # gt_entities = entities[entities_sel]
+
+    if stratified_selection:
+        stratified_entities = []
+        for c in np.unique(entities[:, 3]):
+            single_class = entities[entities[:, 3] == c]
+            entities_sel = np.random.choice(
+                range(len(single_class)), int(class_proportion[c] * len(single_class))
+            )
+            stratified_entities.append(single_class[entities_sel])
+        gt_entities = np.concatenate(stratified_entities)
+        print(f"Produced {len(gt_entities)} entities.")
+    else:
+        gt_entities = entities
 
     if generate_random_bg_entities:
         random_entities = generate_random_points_in_volume(
-            wf.vols[0], num_bg
+            wf.vols[0], num_before_masking
         ).astype(np.uint32)
         from survos2.entity.instanceseg.utils import remove_masked_entities
 
-        masked_entities = remove_masked_entities(wf.bg_mask, random_entities)
-        random_entities[:, 3] = np.array([99] * len(random_entities))
-        augmented_entities = np.vstack((wf.locs, random_entities))
-        print(augmented_entities.shape)
+        print(
+            f"Before masking random entities generated of shape {random_entities.shape}"
+        )
+        random_entities = remove_masked_entities(wf.bg_mask, random_entities)
+
+        print(f"After masking: {random_entities.shape}")
+        random_entities[:, 3] = np.array([6] * len(random_entities))
+        # augmented_entities = np.vstack((gt_entities, masked_entities))
+        # print(f"Produced augmented entities array of shape {augmented_entities.shape}")
     else:
-        augmented_entities = wf.locs
+        random_entities = []
 
     anno_masks, anno_all, gt_entities = make_anno(
-        wf, augmented_entities, entity_meta, gt_proportion, padding, acwe=acwe
+        wf, gt_entities, entity_meta, gt_proportion, padding, acwe=acwe
     )
 
-    return anno_masks, anno_all, gt_entities, augmented_entities
+    return anno_masks, anno_all, gt_entities, random_entities
 
 
-def make_anno(wf, entities, entity_meta, gt_proportion, padding, acwe=False):
-    entities_sel = np.random.choice(
-        range(len(entities)), int(gt_proportion * len(entities))
-    )
-    gt_entities = entities[entities_sel]
-    print(f"Produced {len(gt_entities)} entities.")
-    entity_meta = entity_meta
+def make_anno(
+    wf, entities, entity_meta, gt_proportion, padding, acwe=False, plot_all=True
+):
+    from survos2.entity.instanceseg.patches import organize_entities
+
     combined_clustered_pts, classwise_entities = organize_entities(
-        wf.vols[0], gt_entities, entity_meta, plot_all=True
+        wf.vols[0], entities, entity_meta, plot_all=plot_all
     )
     wf.params["entity_meta"] = entity_meta
     anno_masks, anno_all = make_pseudomasks(
@@ -131,7 +152,7 @@ def make_anno(wf, entities, entity_meta, gt_proportion, padding, acwe=False):
         padding=padding,
         core_mask_radius=(12, 12, 12),
     )
-    return anno_masks, anno_all, gt_entities
+    return anno_masks, anno_all, entities
 
 
 def make_pseudomasks(
@@ -161,7 +182,7 @@ def make_pseudomasks(
     anno_all.extend(anno_shell_gen)
 
     if plot_all:
-        plot_slice_and_pts(anno_all, None, wf.vols[0], (89, 200, 200))
+        slice_plot(anno_all, None, wf.vols[0], (89, 200, 200))
 
     if acwe:
         p = Patch(

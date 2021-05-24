@@ -33,11 +33,6 @@ from survos2.utils import encode_numpy
 
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.entity.anno.pseudo import make_pseudomasks
-from survos2.entity.entities import (
-    EntityWorkflow,
-    init_entity_workflow,
-    organize_entities,
-)
 
 
 __pipeline_group__ = "pipelines"
@@ -103,6 +98,12 @@ def generate_blobs(
         f"object detection with workspace {workspace}, with features {feature_ids} and {object_id}"
     )
 
+    from survos2.entity.instanceseg.patches import (
+        PatchWorkflow,
+        init_entity_workflow,
+        organize_entities,
+    )
+
     # get features
     features = []
     for feature_id in feature_ids:
@@ -166,7 +167,7 @@ def generate_blobs(
     wparams = {}
     wparams["entities_offset"] = (0, 0, 0)
 
-    wf = EntityWorkflow(
+    wf = PatchWorkflow(
         features, combined_clustered_pts, classwise_entities, features[0], wparams,
     )
 

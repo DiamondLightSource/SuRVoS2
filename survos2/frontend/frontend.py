@@ -72,7 +72,7 @@ def frontend():
     dst = DataModel.g.dataset_uri("001_raw", group="features")
 
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        print(f"Workspace has data of shape {DM.sources[0].shape}")
+        logger.debug(f"Workspace has data of shape {DM.sources[0].shape}")
         orig_dataset = DM.sources[0]
 
     src = DataModel.g.dataset_uri("__data__")
@@ -119,8 +119,8 @@ def frontend():
 
         # SuRVoS controls
         dw = AttrDict()
-        dw.ppw = PluginPanelWidget()
-        dw.bpw = ButtonPanelWidget()
+        dw.ppw = PluginPanelWidget() # Main SuRVoS panel
+        dw.bpw = ButtonPanelWidget() # Additional controls
         dw.ppw.setMinimumSize(QSize(400, 500))
 
         ws = Workspace(DataModel.g.current_workspace)
@@ -134,50 +134,8 @@ def frontend():
             if len(existing_layer) > 0:
                 viewer.layers.remove(existing_layer[0])
 
-        def load_workspace(msg):
-            logger.debug(f"load_workspace: {msg}")
-
-        def goto_roi(msg):
-            logger.debug(f"Goto roi: {msg}")
-            params = dict(
-                workspace=True,
-                current_workspace_name=DataModel.g.current_workspace,
-                feature_id="001_raw",
-                roi=msg["roi"],
-            )
-            result = Launcher.g.run("workspace", "goto_roi", **params)
-            if result:
-                logger.debug(f"Switching to goto_roi created workspace {result}")
-                DataModel.g.current_workspace = result
-                processEvents({"data": "refresh"})
-
-        def get_crop(msg):
-            logger.debug(f"Getting crop roi: {msg}")
-            features_src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
-            params = dict(workpace=True, src=features_src, roi=(0, 0, 0, 100, 100, 100))
-            result = Launcher.g.run("features", "get_crop", **params)
-            if result:
-                src_arr = decode_numpy(result)
-                viewer.add_image(src_arr, name=msg["feature_id"])
-
-        def show_roi(msg):
-            selected_roi_idx = cfg.entity_table.w.selected_row
-            logger.info(f"Showing ROI {msg['selected_roi']}")
-
-            existing_feature_layer = [
-                v for v in viewer.layers if v.name == cfg.current_feature_name
-            ]
-
-            vol1 = sample_roi(
-                existing_feature_layer[0].data,
-                cfg.tabledata,
-                selected_roi_idx,
-                vol_size=(32, 32, 32),
-            )
-
-            # viewer.dw.smallvol_control.set_vol(np.transpose(vol1, (0,2,1)))
-            cfg.smallvol_control.set_vol(vol1)
-            logger.info(f"Sampled ROI vol of shape: {vol1.shape}")
+        # def load_workspace(msg):
+        #     logger.debug(f"load_workspace: {msg}")
 
         def view_feature(msg):
             logger.debug(f"view_feature {msg['feature_id']}")
@@ -195,7 +153,7 @@ def frontend():
                     slice_idx=cfg.current_slice,
                     order=cfg.order,
                 )
-                print(params)
+                
                 result = Launcher.g.run("features", "get_slice", **params)
                 if result:
                     src_arr = decode_numpy(result)
@@ -302,7 +260,7 @@ def frontend():
 
         def refresh_annotations(msg):
             logger.debug(f"refresh_annotation {msg['level_id']}")
-            # remove_layer(cfg.current_annotation_name)
+
             cfg.current_annotation_name = msg["level_id"]
             src_arr, src_annotations_dataset = get_annotation_array(
                 msg, retrieval_mode=cfg.retrieval_mode
@@ -315,7 +273,6 @@ def frontend():
                 label_ids = cfg.label_ids
 
             if result:
-                # label_ids = list(np.unique(src_arr))
                 cmapping, label_ids = get_color_mapping(result, msg["level_id"])
                 logger.debug(f"Label ids {label_ids}")
                 cfg.label_ids = label_ids
@@ -328,7 +285,7 @@ def frontend():
                     viewer.layers.remove(existing_layer[0])
                     sel_label = existing_layer[0].selected_label
                     brush_size = existing_layer[0].brush_size
-                    print(f"Removed existing layer {existing_layer[0]}")
+                    logger.debug(f"Removed existing layer {existing_layer[0]}")
                     label_layer = viewer.add_labels(
                         src_arr & 15, name=msg["level_id"], color=cmapping
                     )
@@ -361,7 +318,7 @@ def frontend():
                     workspace=True, level=msg["level_id"], label_idx=sel_label
                 )
                 result = Launcher.g.run("annotations", "get_label_parent", **params)
-                print(result)
+                
                 parent_level = result[0]
                 parent_label_idx = result[1]
 
@@ -553,20 +510,6 @@ def frontend():
                 n_dimensional=True,
             )
 
-            # from survos2.entity.sampler import sample_region_at_pt
-
-            # @entity_layer.mouse_drag_callbacks.append
-            # def view_location(layer, event):
-            #     coords = np.round(layer.coordinates).astype(int)
-            #     if coords_in_view(coords, cData.vol_stack[0].shape):
-            #         vol1 = sample_region_at_pt(cData.vol_stack[0], coords, (32, 32, 32))
-            #         logger.debug(f"Sampled from {coords} a vol of shape {vol1.shape}")
-            #         cfg.smallvol_control.set_vol(np.transpose(vol1, (0, 2, 1)))
-            #         msg = f"Displaying vol of shape {vol1.shape}"
-            #         viewer.status = msg
-            #     else:
-            #         print("Coords out of view")
-
         def save_annotation(msg):
             annotation_layer = [
                 v for v in viewer.layers if v.name == cfg.current_annotation_name
@@ -597,9 +540,11 @@ def frontend():
             logger.debug(f"Set session to {msg['session']}")
             DataModel.g.current_session = msg["session"]
 
-        def jump_to_slice(msg):
+        def transfer_layer(msg):
+            logger.debug(f"transfer_layer {msg}")
 
-            print(f"Using order {cfg.order}")
+        def jump_to_slice(msg):
+            logger.debug(f"Using order {cfg.order}")
             if cfg.retrieval_mode == "slice":
                 cfg.current_slice = int(msg["frame"])
                 logger.debug(f"Jump around to {cfg.current_slice}, msg {msg['frame']}")
@@ -618,7 +563,6 @@ def frontend():
                         slice_idx=cfg.current_slice,
                         order=cfg.order,
                     )
-                    print(params)
                     result = Launcher.g.run("features", "get_slice", **params)
                     if result:
                         src_arr = decode_numpy(result)
@@ -673,6 +617,49 @@ def frontend():
             else:
                 pass
 
+        def goto_roi(msg):
+            logger.debug(f"Goto roi: {msg}")
+            params = dict(
+                workspace=True,
+                current_workspace_name=DataModel.g.current_workspace,
+                feature_id="001_raw",
+                roi=msg["roi"],
+            )
+            result = Launcher.g.run("workspace", "goto_roi", **params)
+            if result:
+                logger.debug(f"Switching to goto_roi created workspace {result}")
+                DataModel.g.current_workspace = result
+                processEvents({"data": "refresh"})
+
+        def get_crop(msg):
+            logger.debug(f"Getting crop roi: {msg}")
+            features_src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
+            params = dict(workpace=True, src=features_src, roi=(0, 0, 0, 100, 100, 100))
+            result = Launcher.g.run("features", "get_crop", **params)
+            if result:
+                src_arr = decode_numpy(result)
+                viewer.add_image(src_arr, name=msg["feature_id"])
+
+        def show_roi(msg):
+            selected_roi_idx = cfg.entity_table.w.selected_row
+            logger.info(f"Showing ROI {msg['selected_roi']}")
+
+            existing_feature_layer = [
+                v for v in viewer.layers if v.name == cfg.current_feature_name
+            ]
+
+            vol1 = sample_roi(
+                existing_feature_layer[0].data,
+                cfg.tabledata,
+                selected_roi_idx,
+                vol_size=(32, 32, 32),
+            )
+
+            # viewer.dw.smallvol_control.set_vol(np.transpose(vol1, (0,2,1)))
+            cfg.smallvol_control.set_vol(vol1)
+            logger.info(f"Sampled ROI vol of shape: {vol1.shape}")
+
+
         def processEvents(msg):
             if msg["data"] == "refesh_annotations":
                 refresh_annotations(msg)
@@ -720,15 +707,15 @@ def frontend():
                     for l in viewer.layers:
                         viewer.layers.remove(l)
                     viewer_order = viewer.window.qt_viewer.viewer.dims.order
-                    print(len(viewer_order))
+                    
                     if len(viewer_order) == 3:
                         cfg.order = [int(d) for d in viewer_order]
-                        print(f"Setting order to {cfg.order}")
+                        logger.debug(f"Setting order to {cfg.order}")
                     else:
                         cfg.order = [0, 1, 2]
-                        print(f"Resetting order to {cfg.order}")
+                        logger.debug(f"Resetting order to {cfg.order}")
                     cfg.slice_max = cfg.base_dataset_shape[cfg.order[0]]
-                    print(f"Setting slice max to {cfg.slice_max}")
+                    logger.debug(f"Setting slice max to {cfg.slice_max}")
                     view_feature({"feature_id": "001_raw"})
                     jump_to_slice({"frame": 0})
                 elif cfg.retrieval_mode == "slice":

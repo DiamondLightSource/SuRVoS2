@@ -122,11 +122,11 @@ def generate_random_points(vol, num_pts, patch_size):
     return pts
 
 
-def generate_random_points_in_volume(vol, num_pts):
+def generate_random_points_in_volume(vol, num_pts, border=(32, 32, 32)):
     pts = np.random.random((num_pts, 4))
-    pts[:, 0] = pts[:, 0] * vol.shape[0]
-    pts[:, 1] = pts[:, 1] * vol.shape[1]
-    pts[:, 2] = pts[:, 2] * vol.shape[2]
+    pts[:, 0] = pts[:, 0] * (vol.shape[0] - (2 * border[0])) + border[0]
+    pts[:, 1] = pts[:, 1] * (vol.shape[1] - (2 * border[1])) + border[1]
+    pts[:, 2] = pts[:, 2] * (vol.shape[2] - (2 * border[2])) + border[2]
     pts = np.abs(pts)
     return pts
 
@@ -165,18 +165,19 @@ def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
     np.ndarray, (nx6)
         (z_start, x_start, y_start, z_fin, x_fin, y_fin)
     """
-    bd, bw, bh = bvol_dim
+    d, w, h = bvol_dim
+    # print(d,w,h)
     if flipxy:
         bvols = np.array(
             [
-                (cz - bd, cx - bw, cy - bh, cz + bd, cx + bw, cy + bh)
+                (cz - d, cx - w, cy - h, cz + d, cx + w, cy + h)
                 for cz, cx, cy, _ in centers
             ]
         )
     else:
         bvols = np.array(
             [
-                (cz - bd, cx - bw, cy - bh, cz + bd, cx + bw, cy + bh)
+                (cz - d, cx - w, cy - h, cz + d, cx + w, cy + h)
                 for cz, cy, cx, _ in centers
             ]
         )
@@ -202,7 +203,29 @@ def sample_volumes(sel_entities, precropped_vol):
     return sampled_vols
 
 
-def viz_bvols(input_array, bvols, flip_coords=False, edge_thickness=2):
+def viz_bvols(input_array, bvols, flip_coords=False):
+    bvol_mask = np.zeros_like(input_array)
+    print(f"Making {len(bvols)} bvols")
+    for bvol in bvols:
+        # print(bvol)
+        bvol = bvol.astype(np.int32)
+        z_s = np.max((0, bvol[0]))
+        z_f = np.min((bvol[3], input_array.shape[0]))
+        x_s = np.max((0, bvol[1]))
+        x_f = np.min((bvol[4], input_array.shape[1]))
+        y_s = np.max((0, bvol[2]))
+        y_f = np.min((bvol[5], input_array.shape[2]))
+        # print(f"Sampling {z_s}, {z_f}, {x_s}, {x_f}, {y_s}, {y_f}")
+
+        if flip_coords:
+            bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
+        else:
+            bvol_mask[z_s:z_f, x_s:x_f, y_s:y_f] = 1.0
+
+    return bvol_mask
+
+
+def viz_bvols2(input_array, bvols, flip_coords=False, edge_thickness=2):
     bvol_mask = np.zeros_like(input_array)
     print(f"Making {len(bvols)} bvols")
     for bvol in bvols:

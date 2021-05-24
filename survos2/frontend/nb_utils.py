@@ -29,13 +29,15 @@ from survos2.frontend.utils import quick_norm
 import seaborn as sns
 
 
-def plot_slice_and_pts(
+def slice_plot(
     img_volume, 
     pts=None, 
     bg_vol=None, 
     slice_idxs=(0, 0, 0), 
     suptitle="",
     plot_color=False,
+    boxpadding=-1,
+    unique_color_plot=False,
     figsize=(12, 12)
 ):
     z, x, y = slice_idxs
@@ -43,6 +45,12 @@ def plot_slice_and_pts(
 
     plt.figure(figsize=figsize)
     plt.suptitle(suptitle, fontsize=20)
+    
+    if boxpadding != -1:
+        from survos2.entity.sampler import crop_pts_bb
+
+        bb = [z-boxpadding[0], z+boxpadding[0], x-boxpadding[1],x+boxpadding[1], y-boxpadding[2], y+boxpadding[2]]
+        pts = crop_pts_bb(pts, bb)
 
 
     if plot_color:
@@ -60,12 +68,23 @@ def plot_slice_and_pts(
             plt.imshow(img_volume[z, :] + bg_vol[z, :], cmap="gray")
         plt.title(f"XY, Z: {z}")
         if pts is not None:
-            plt.scatter(pts[:, 1], pts[:, 2])
+
+            if unique_color_plot:
+                import matplotlib.cm as cm
+                unique = np.unique(pts[:,3])
+                for i,u in enumerate(unique):
+                    xs = pts[:,1][pts[:,3]==u]
+                    ys = pts[:,2][pts[:,3]==u]   
+                    color_list = [plt.cm.jet(i/float(len(unique))) for i in range(len(unique))]
     
+                    plt.scatter(xs, ys, c=color_list[i], label=u,cmap='jet')
+            else:
+                plt.scatter(pts[:,1], pts[:,2])
+        plt.legend()
 
     plt.title(f"XY, Z: {z}")
-    if pts is not None:
-        plt.scatter(pts[:, 1], pts[:, 2])
+    #if pts is not None:
+    #    plt.scatter(pts[:, 1], pts[:, 2])
 
     plt.figure(figsize=(figsize[0]-1, figsize[1]-1))
     if bg_vol is None:
@@ -74,7 +93,7 @@ def plot_slice_and_pts(
         plt.imshow(img_volume[:, :, y] + bg_vol[:, :, y], cmap="gray")
     plt.title(f"ZX, Y:{y}")
     if pts is not None:
-        plt.scatter(pts[:, 1], pts[:, 0])
+        plt.scatter(pts[:, 1], pts[:, 0], c=pts[:,3], cmap='jet')
 
     plt.figure(figsize=(figsize[0]-1, figsize[1]-1))
     if bg_vol is None:
@@ -85,12 +104,12 @@ def plot_slice_and_pts(
     plt.title(f"ZY, X:{x}")
     if pts is not None:
         plt.scatter(
-            pts[:, 2], pts[:, 0],
+            pts[:, 2], pts[:, 0], c=pts[:,3], cmap='jet'
         )
 
 
 
-def plot_slice_and_pts_bw(
+def slice_plot_bw(
     img_volume, pts=None, bg_vol=None, slice_idxs=(0, 0, 0), suptitle=""
 ):
     z, x, y = slice_idxs
@@ -260,11 +279,11 @@ def isstring(s):
 
 def summary_stats(arr):
     return (
-        np.max(arr),
         np.min(arr),
+        np.max(arr),
         np.mean(arr),
-        np.median(arr),
         np.std(arr),
+        np.median(arr),
         arr.shape,
     )
 
