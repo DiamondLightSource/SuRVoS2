@@ -14,8 +14,9 @@ windows-build:
   before_script:
     - C:\ProgramData\Miniconda3\shell\condabin\conda-hook.ps1
   script:
-    - "conda env create -f survos2_clean_environment_windows.yml -p $WINDOWS_CONDA_PATH"
+    - "conda env create -f survos2_clean_environment_windows_conda.yml -p $WINDOWS_CONDA_PATH"
     - "conda activate $WINDOWS_CONDA_PATH"
+    - pip install -r survos2_clean_environment_windows_pip.txt
     - python .\survos2\improc\setup.py build_ext --inplace
     - conda deactivate
   artifacts:
