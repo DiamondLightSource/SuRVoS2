@@ -13,6 +13,7 @@ import socket
 import h5py as h5
 import pyqtgraph.parametertree.parameterTypes as pTypes
 import yaml
+from skimage import io
 import time
 from datetime import date
 from loguru import logger
@@ -127,7 +128,7 @@ class LoadDataDialog(QDialog):
 
         # INPUT
         rvbox.addWidget(QLabel("Input Dataset:"))
-        self.winput = FileWidget(extensions="*.h5 *.hdf5", save=False)
+        self.winput = FileWidget(extensions="*.h5 *.hdf5 *.tif *.tiff", save=False)
         rvbox.addWidget(self.winput)
         rvbox.addWidget(QLabel("Internal HDF5 data path:"))
         self.int_h5_pth = QLabel("None selected")
@@ -300,7 +301,11 @@ class LoadDataDialog(QDialog):
 
             self.data = self.volread(path)
             self.dataset = dataset
-            self.data_shape = self.data[self.dataset].shape
+            if isinstance(self.data, h5.Group):
+                self.data_shape = self.data[self.dataset].shape
+            else:
+                self.data_shape = self.data.shape
+            logger.info(self.data_shape)
             self.reset_roi_fields()
             self.update_image(load=True)
 
@@ -387,6 +392,8 @@ class LoadDataDialog(QDialog):
         logger.info("Loading file handle")
         if file_extension in [".hdf5", ".h5"]:
             data = h5.File(path, "r")
+        elif file_extension in [".tif", ".tiff"]:
+            data = io.imread(path)
         else:
             raise Exception("File format not supported")
         return data
@@ -467,8 +474,10 @@ class LoadDataDialog(QDialog):
             self.slider.blockSignals(False)
             self.canvas.ax.set_ylim([y_size + 1, -1])
             self.canvas.ax.set_xlim([-1, x_size + 1])
-
-        img = self.data[self.dataset][idx]
+        if isinstance(self.data, h5.Group):
+            img = self.data[self.dataset][idx]
+        else:
+            img = self.data[idx]
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], "gray")
         self.canvas.ax.grid(False)
         self.canvas.redraw()
@@ -1081,7 +1090,7 @@ if __name__ == "__main__":
         "server_ip": "127.0.0.1",
         "server_port": "8134",
         "workspace_name": "test_hunt_d4b",
-        "use_ssh": "true",
+        "use_ssh": True,
         "ssh_host": "ws168.diamond.ac.uk",
         "ssh_port": "22"
     }

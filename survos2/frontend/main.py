@@ -7,6 +7,7 @@ import json
 import time
 from typing import List, Dict
 from attrdict import AttrDict
+from skimage import io
 
 from survos2.frontend.frontend import frontend
 
@@ -35,15 +36,18 @@ def init_ws(workspace_params):
 
     image_path = os.path.join(datasets_dir, fname)
     logger.info(f"Initialising workspace {ws_name} with image volume {image_path}")
-
-    original_data = h5py.File(image_path, "r")
-
+    _, suffix = os.path.splitext(image_path)
+    if suffix in [".h5", ".hdf5"]:
+        original_data = h5py.File(image_path, "r")
+    elif suffix in [".tif", ".tiff"]:
+        original_data = None
+        img_volume = io.imread(image_path)
     if "group_name" in workspace_params:
         group_name = workspace_params["group_name"]
         logger.info("Extracting dataset and then group")
         img_volume = original_data[dataset_name]
         img_volume = img_volume[group_name]
-    else:
+    elif isinstance(original_data, h5py.Group):
         logger.info("Extracting dataset")
         try:
             img_volume = original_data[dataset_name]
