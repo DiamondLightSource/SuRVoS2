@@ -8,6 +8,7 @@ import time
 from typing import List, Dict
 from attrdict import AttrDict
 from skimage import io
+import mrcfile
 
 from survos2.frontend.frontend import frontend
 
@@ -42,6 +43,9 @@ def init_ws(workspace_params):
     elif suffix in [".tif", ".tiff"]:
         original_data = None
         img_volume = io.imread(image_path)
+    elif suffix in [".rec", ".mrc"]:
+        original_data = mrcfile.mmap(image_path, "r+")
+        img_volume = original_data.data
     if "group_name" in workspace_params:
         group_name = workspace_params["group_name"]
         logger.info("Extracting dataset and then group")

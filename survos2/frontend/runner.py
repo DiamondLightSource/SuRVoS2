@@ -14,6 +14,7 @@ import h5py as h5
 import pyqtgraph.parametertree.parameterTypes as pTypes
 import yaml
 from skimage import io
+import mrcfile
 import time
 from datetime import date
 from loguru import logger
@@ -51,6 +52,7 @@ from survos2.frontend.utils import ComboDialog, FileWidget, MplCanvas
 from survos2.model.workspace import WorkspaceException
 from survos2.config import Config
 
+LOAD_DATA_EXT = "*.h5 *.hdf5 *.tif *.tiff *.rec *.mrc"
 # example set of params for testing
 ptree_init2 = [
     {
@@ -128,7 +130,7 @@ class LoadDataDialog(QDialog):
 
         # INPUT
         rvbox.addWidget(QLabel("Input Dataset:"))
-        self.winput = FileWidget(extensions="*.h5 *.hdf5 *.tif *.tiff", save=False)
+        self.winput = FileWidget(extensions=LOAD_DATA_EXT, save=False)
         rvbox.addWidget(self.winput)
         rvbox.addWidget(QLabel("Internal HDF5 data path:"))
         self.int_h5_pth = QLabel("None selected")
@@ -394,6 +396,9 @@ class LoadDataDialog(QDialog):
             data = h5.File(path, "r")
         elif file_extension in [".tif", ".tiff"]:
             data = io.imread(path)
+        elif file_extension in [".rec", ".mrc"]:
+            mrc = mrcfile.mmap(path, mode="r+")
+            data = mrc.data
         else:
             raise Exception("File format not supported")
         return data
