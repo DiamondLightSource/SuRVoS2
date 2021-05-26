@@ -2,6 +2,7 @@ import re
 
 import h5py as h5
 import mrcfile
+from skimage import io
 import numpy as np
 from loguru import logger
 from qtpy.QtWidgets import QFileDialog, QGridLayout, QGroupBox, QLabel
@@ -22,9 +23,10 @@ from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
 
-FILE_TYPES = ["HDF5", "MRC"]
+FILE_TYPES = ["HDF5", "MRC", "TIFF"]
 HDF_EXT = ".h5"
 MRC_EXT = ".rec"
+TIFF_EXT = ".tiff"
 
 class SuperRegionSegmentComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None):
@@ -185,7 +187,8 @@ class ExportPlugin(Plugin):
 
     def get_data_filetype(self, combo_box):
         ftype_map = {"HDF5": ("HDF5 (*.h5 *.hdf5)", HDF_EXT),
-                     "MRC": ("MRC (*.mrc *.rec *.st)", MRC_EXT)}
+                     "MRC": ("MRC (*.mrc *.rec *.st)", MRC_EXT),
+                     "TIFF": ("TIFF (*.tif *.tiff)", TIFF_EXT)}
         return ftype_map.get(combo_box.currentText())
 
     def get_arr_data(self, item_id, item_type):
@@ -203,3 +206,6 @@ class ExportPlugin(Plugin):
             logger.info(f"Saving data to {path} in MRC format")
             with mrcfile.new(path, overwrite=True) as mrc:
                 mrc.set_data(data)
+        elif ext == TIFF_EXT:
+            logger.info(f"Saving data to {path} in TIFF format")
+            io.imsave(path, data)
