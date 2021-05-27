@@ -60,7 +60,7 @@ from survos2.entity.sampler import viz_bvols, centroid_to_bvol, offset_points
 
 
 def make_entity_mask(wf, dets, flipxy=True, padding=(32, 32, 32)):
-    from survos2.entity.instanceseg.utils import pad_vol
+    from survos2.entity.utils import pad_vol
 
     offset_dets = offset_points(dets, (-padding[0], -padding[1], -padding[2]))
     offset_det_bvol = centroid_to_bvol(offset_dets, bvol_dim=padding, flipxy=flipxy)

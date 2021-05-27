@@ -110,14 +110,15 @@ def filter_small_components(images, component_size=1000):
     too_big = [
         tables[i][tables[i]["area"] > component_size] for i in range(len(tables))
     ]
-    too_small = [
-        tables[i][tables[i]["area"] < component_size] for i in range(len(tables))
-    ]
+    # too_small = [
+    #    tables[i][tables[i]["area"] < component_size] for i in range(len(tables))
+    # ]
 
     filtered_images = []
 
     for img_idx in range(len(images)):
         sel_classes = list(too_big[img_idx]["class_code"])
+        print(f"Out of {len(tables[0])}, keeping {len(sel_classes)} components")
         total_mask = np.zeros_like(images[img_idx])
 
         for idx in sel_classes:
@@ -126,7 +127,7 @@ def filter_small_components(images, component_size=1000):
 
         filtered_images.append((total_mask * images[img_idx]) * 1.0)
 
-    return filtered_images
+    return total_mask
 
 
 def measure_big_blobs(images: List[np.ndarray]):
@@ -145,3 +146,4 @@ def get_entity_at_loc(entities_df, selected_idx):
             entities_df.y == selected_idx[2],
         )
     ]
+

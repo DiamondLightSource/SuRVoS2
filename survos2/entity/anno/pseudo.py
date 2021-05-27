@@ -115,7 +115,7 @@ def generate_annotation_volume(
         random_entities = generate_random_points_in_volume(
             wf.vols[0], num_before_masking
         ).astype(np.uint32)
-        from survos2.entity.instanceseg.utils import remove_masked_entities
+        from survos2.entity.utils import remove_masked_entities
 
         print(
             f"Before masking random entities generated of shape {random_entities.shape}"
@@ -139,7 +139,7 @@ def generate_annotation_volume(
 def make_anno(
     wf, entities, entity_meta, gt_proportion, padding, acwe=False, plot_all=True
 ):
-    from survos2.entity.instanceseg.patches import organize_entities
+    from survos2.entity.patches import organize_entities
 
     combined_clustered_pts, classwise_entities = organize_entities(
         wf.vols[0], entities, entity_meta, plot_all=plot_all

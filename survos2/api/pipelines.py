@@ -40,51 +40,6 @@ __pipeline_dtype__ = "float32"
 __pipeline_fill__ = 0
 
 
-@hug.get()
-def predict_segmentation_fcn(
-    feature_ids: DataURIList,
-    model_fullname: String,
-    dst: DataURI,
-    patch_size: IntOrVector = 64,
-    patch_overlap: IntOrVector = 8,
-    threshold: Float = 0.5,
-    model_type: String = "unet3d",
-):
-    from survos2.entity.instanceseg.proposals import make_proposal
-
-    # from survos2.entity.instanceseg.patches import prepare_dataloaders, load_patch_vols
-
-    logger.debug(
-        f"FCN segmentation with features {feature_ids} and model {model_fullname}"
-    )
-
-    features = []
-    for feature_id in feature_ids:
-        src = DataModel.g.dataset_uri(feature_id, group="features")
-        logger.debug(f"Getting features {src}")
-
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_dataset = DM.sources[0]
-            logger.debug(f"Adding feature of shape {src_dataset.shape}")
-            features.append(src_dataset[:])
-
-    proposal = make_proposal(
-        features[0],
-        model_fullname,
-        model_type=model_type,
-        patch_size=patch_size,
-        patch_overlap=patch_overlap,
-    )
-
-    proposal -= np.min(proposal)
-    proposal = proposal / np.max(proposal)
-    proposal = ((proposal < threshold) * 1) + 1
-
-    # store resulting segmentation in dst
-    dst = DataModel.g.dataset_uri(dst, group="pipelines")
-    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = proposal
-
 
 @hug.get()
 def generate_blobs(
@@ -98,7 +53,7 @@ def generate_blobs(
         f"object detection with workspace {workspace}, with features {feature_ids} and {object_id}"
     )
 
-    from survos2.entity.instanceseg.patches import (
+    from survos2.entity.patches import (
         PatchWorkflow,
         init_entity_workflow,
         organize_entities,
@@ -168,7 +123,7 @@ def generate_blobs(
     wparams["entities_offset"] = (0, 0, 0)
 
     wf = PatchWorkflow(
-        features, combined_clustered_pts, classwise_entities, features[0], wparams,
+        features, combined_clustered_pts, classwise_entities, features[0], wparams,combined_clustered_pts
     )
 
     gt_proportion = 0.5

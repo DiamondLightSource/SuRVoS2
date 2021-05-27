@@ -16,18 +16,19 @@ from skimage import img_as_ubyte
 import imageio
 
 
-def normalized_coords(entities_df, img_volume):
+def normalized_coords(entities_df, img_volume, scale_minmax=False):
     chip = img_volume
     oe = np.array(entities_df)
     orig_pts = oe.astype(np.float32)
     X = orig_pts.copy()
-    scale_minmax = True
-    X_rescaled = orig_pts.copy()
-    if scale_minmax:
 
-        scale_x = 1.0 / np.max(X[:, 1])
-        scale_y = 1.0 / np.max(X[:, 2])
-        scale_z = (1.0 / np.max(X[:, 0])) * 0.02
+    X_rescaled = orig_pts.copy()
+
+    scale_x = 1.0 / np.max(X[:, 1])
+    scale_y = 1.0 / np.max(X[:, 2])
+    scale_z = (1.0 / np.max(X[:, 0])) * 0.02
+
+    if scale_minmax:
 
         xlim = (
             np.min(X_rescaled[:, 1]).astype(np.uint16) - 0.1,
@@ -52,14 +53,14 @@ def normalized_coords(entities_df, img_volume):
 
     print(f"Rescaled to {scale_x}, {scale_y}, {scale_z}")
 
-    return X_rescaled
+    return X_rescaled, (scale_z, scale_x, scale_y)
 
 
 def get_window(image_volume, sliceno, xstart, ystart, xend, yend):
     return image_volume[sliceno, xstart:xend, ystart:yend]
 
 
-def aggregate_cluster_votes():
+def aggregate_cluster_votes(cluster_coords):
     agg = []
 
     for c in cluster_coords:
@@ -74,7 +75,7 @@ def aggregate_cluster_votes():
                 "class_code": "int32",
             }
         )
-        agg.append(majority_voting(cluster_df))
+        agg.append(majority_voting2(cluster_df))
     return agg
 
 
@@ -108,7 +109,6 @@ def centroid_3d_with_class(arr):
 
 
 def aggregate_common_centroids(entities):
-
     unique_centroids = entities.drop_duplicates(["z", "x", "y"])
     key_names = ["z", "x", "y"]
     # keys = centroids_key[i]
@@ -161,7 +161,7 @@ def majority_voting2(cluster_df):
 
         c = Counter(class_codes)
         classes_mostcommon = c.most_common(1)
-        print(classes_mostcommon)
+        # print(classes_mostcommon)
         cc.append((key[0], key[2], key[1], classes_mostcommon[0][0]))
 
     output_df = pd.DataFrame(
