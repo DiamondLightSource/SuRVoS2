@@ -29,11 +29,6 @@ from survos2.entity.entities import (
     make_entity_df,
     calc_bounding_vols,
 )
-from survos2.entity.dataset import (
-    BoundingVolumeDataset,
-    LabeledVolDataset,
-    SmallVolDataset,
-)
 
 from survos2.entity.utils import get_largest_cc, get_surface, pad_vol
 from survos2.entity.sampler import (
