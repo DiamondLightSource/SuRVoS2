@@ -1,19 +1,5 @@
 """
-An object/entity is labeled geometric/vector data is stored in 
-a dataframe used for object-based image analysis.
-
-A basic Entity Dataframe has 'z','x','y','class_code'
-
-An example use is to provide labeled patch volumes to classifier.
-
-An entity workflow is initialized by the project file, which contains
-
-1. Where the volume image file (hdf5) is
-2. The path of the image data within the hdf5 file.
-3. A csv of locations
-4. Class names
-5. Synthetic data generation parameters, such as the parameters for 
-the blob or shell to generate for each class type.
+A Entity Dataframe has 'z','x','y','class_code'
 
 
 """
