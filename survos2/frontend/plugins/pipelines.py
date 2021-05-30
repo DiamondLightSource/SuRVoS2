@@ -25,6 +25,9 @@ from survos2.frontend.utils import FileWidget
 _PipelineNotifier = PluginNotifier()
 
 
+
+
+
 def _fill_pipelines(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
     result = Launcher.g.run("pipelines", "existing", **params)
@@ -122,7 +125,9 @@ class PipelinesPlugin(Plugin):
         return widget
 
     def setup(self):
-        params = dict(workspace=True)
+        params = dict(
+            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
+        )
         result = Launcher.g.run("pipelines", "existing", **params)
         logger.debug(f"Pipeline result {result}")
 
@@ -239,7 +244,7 @@ class EnsembleWidget(QtWidgets.QWidget):
 
         #self.btn_train_predict = PushButton('Train & Predict')
         #self.btn_train_predict.clicked.connect(self.on_train_predict_clicked)
-        self.n_jobs = LineEdit(default=1, parse=int)
+        self.n_jobs = LineEdit(default=10, parse=int)
         vbox.addWidget(HWidgets('Num Jobs', self.n_jobs))
         
     def on_ensemble_changed(self, idx):
@@ -431,7 +436,7 @@ class PipelineCard(Card):
         self.features_source = MultiSourceComboBox()
         self.features_source.fill()
         self.features_source.setMaximumWidth(250)
-
+        cfg.pipelines_features_source = self.features_source
         widget = HWidgets("Features:", self.features_source, Spacing(35), stretch=1)
         self.add_row(widget)
 
@@ -463,7 +468,7 @@ class PipelineCard(Card):
         self.regions_source.setMaximumWidth(250)
 
         widget = HWidgets("Superregions:", self.regions_source, Spacing(35), stretch=1)
-
+        cfg.pipelines_regions_source = self.regions_source
         self.add_row(widget)
 
     def _add_param(self, name, title=None, type="String", default=None):
@@ -481,7 +486,6 @@ class PipelineCard(Card):
             p = LineEdit3D(default=default, parse=int)
         elif type == "SmartBoolean":
             p = CheckBox(checked=True)
-        
         else:
             p = None
 
@@ -498,14 +502,31 @@ class PipelineCard(Card):
         self.add_row(HWidgets(None, compute_btn, Spacing(35)))
 
     def update_params(self, params):
-        if "source" in params:
-            for source in params["source"]:
-                self.features_source.select(source)
-
+        logger.debug(f"Pipeline update params {params}")
         for k, v in params.items():
             if k in self.widgets:
                 self.widgets[k].setValue(v)
-
+        if "anno_id" in params:
+            if params["anno_id"] is not None:
+                print(list(self.annotations_source.items()))
+                self.annotations_source.select(os.path.join("annotations/",params["anno_id"]))
+        if "feature_ids" in params:
+            for source in params["feature_ids"]:
+                self.features_source.select(os.path.join("features/",source))
+        if "region_id" in params:
+            if params["region_id"] is not None:
+                self.regions_source.select(os.path.join("regions/",params["region_id"]))
+        if "constrain_mask" in params:
+            print(list(self.constrain_mask_source.items()))
+            if params["constrain_mask"] is not None and params["constrain_mask"] != 'None':
+                import ast
+                constrain_mask_dict = ast.literal_eval(params["constrain_mask"])
+                print(constrain_mask_dict)
+                
+                constrain_mask_source = constrain_mask_dict["level"] + ":" + str(constrain_mask_dict["idx"])
+                print(f"Constrain mask source {constrain_mask_source}")
+                self.constrain_mask_source.select(constrain_mask_source)
+                
     def card_deleted(self):
         params = dict(pipeline_id=self.pipeline_id, workspace=True)
         result = Launcher.g.run("pipelines", "remove", **params)
@@ -525,7 +546,7 @@ class PipelineCard(Card):
         logger.debug(f"View pipeline_id {self.pipeline_id}")
         if self.annotations_source.value() is not None:
             level_id = str(self.annotations_source.value().rsplit("/", 1)[-1])
-            logger.debug(f"Assigning annotation level {level_id} ti")
+            logger.debug(f"Assigning annotation level {level_id}")
             str(self.annotations_source.value().rsplit("/", 1)[-1])
             cfg.ppw.clientEvent.emit(
                 {
@@ -556,6 +577,10 @@ class PipelineCard(Card):
             dst = DataModel.g.dataset_uri(fid, group="features")
             with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
                 DM.out[:] = src_arr
+
+            cfg.ppw.clientEvent.emit(
+                {"source": "workspace_gui", "data": "refresh", "value": None}
+            )
 
     def load_as_annotation(self):
         logger.debug(f"Loading prediction {self.pipeline_id} as annotation.")
@@ -668,9 +693,9 @@ class PipelineCard(Card):
                 )
                 all_params = dict(src=src, dst=dst, modal=True)
                 all_params["workspace"] = DataModel.g.current_workspace
-                all_params["anno_id"] = str(
-                    self.annotations_source.value().rsplit("/", 1)[-1]
-                )
+                #all_params["anno_id"] = str(
+                #    self.annotations_source.value().rsplit("/", 1)[-1]
+                #)
                 all_params["feature_ids"] = feature_names_list
                 all_params["object_id"] = str(self.objects_source.value())
                 all_params["acwe"] = self.widgets["acwe"].value()
@@ -692,8 +717,8 @@ class PipelineCard(Card):
                 all_params["model_type"] = self.model_type.value()
                 all_params["dst"] = self.pipeline_id
 
-            print(self.widgets.items())
-            #all_params.update({k: v.value() for k, v in self.widgets.items()})
+            
+            all_params.update({k: v.value() for k, v in self.widgets.items()})
 
             logger.info(f"Computing pipelines {self.pipeline_type} {all_params}")
             try:
@@ -706,6 +731,7 @@ class PipelineCard(Card):
 
         except Exception as e:
             print(e)
+
     def card_title_edited(self, newtitle):
         params = dict(pipeline_id=self.pipeline_id, new_name=newtitle, workspace=True)
         result = Launcher.g.run("pipelines", "rename", **params)

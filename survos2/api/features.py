@@ -132,22 +132,6 @@ def hessian_eigvals(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BL
     )
 
 
-@hug.get()
-@save_metadata
-def hessian_eigvals_cython(
-    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
-) -> "BLOB":
-    from ..server.filtering.blob import hessian_eigvals_cython
-
-    map_blocks(
-        hessian_eigvals_cython,
-        src,
-        out=dst,
-        sigma=sigma,
-        pad=max(4, int((max(sigma) + 1) / 2)),
-        normalize=True,
-    )
-
 
 def pass_through(x):
     return x
@@ -290,7 +274,7 @@ def laplacian(src: DataURI, dst: DataURI, kernel_size: Float = 2.0) -> "EDGES":
         src,
         out=dst,
         kernel_size=kernel_size,
-        pad=max(4, int(kernel_size) + 1 / 2),
+        pad=max(4, int(kernel_size) * 2),
         normalize=False,
     )
 

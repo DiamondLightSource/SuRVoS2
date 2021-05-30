@@ -39,7 +39,7 @@ from survos2.utils import encode_numpy
 __analyzer_fill__ = 0
 __analyzer_dtype__ = "uint32"
 __analyzer_group__ = "analyzer"
-__analyzer_names__ = ["simple_stats", "simple_stats2"]
+__analyzer_names__ = ["image_stats", "object_stats"]
 
 
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
@@ -76,94 +76,9 @@ def plot_clustered_img(
     ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=40, zorder=200)
 
 
-@hug.get()
-def object_analyzer(
-    workspace: String, object_id: DataURI, feature_ids: DataURIList, dst: DataURI,
-) -> "OBJECTS":
-    logger.debug(f"Calculating clustering on patches located at entities: {object_id}")
-    logger.debug(f"With features: {feature_ids}")
-    from survos2.entity.cluster.cluster_plotting import cluster_scatter
-    from survos2.entity.cluster.clusterer import (
-        PatchCluster,
-        prepare_patches_for_clustering,
-    )
-    from survos2.entity.cluster.cnn_features import prepare_3channel
-
-    # get features
-    src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
-    logger.debug(f"Getting features {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        ds_feature = DM.sources[0][:]
-        # logger.debug(f"summary_stats {src_dataset[:]}")
-
-    # get entities
-    src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
-    logger.debug(f"Getting objects {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        ds_objects = DM.sources[0]
-    entities_fullname = ds_objects.get_metadata("fullname")
-    tabledata, entities_df = setup_entity_table(entities_fullname)
-
-    entities = np.array(entities_df)
-    feature_mat, selected_images = prepare_patches_for_clustering(
-        ds_feature, entities, padding=(32, 32, 32)
-    )
-
-    n_components = 10
-    num_clusters = 15
-    perplexity = 100
-    n_iter = 1000
-    skip_px = 2
-
-    print(f"Using feature matrix of size {feature_mat.shape}")
-    selected_3channel = prepare_3channel(
-        selected_images,
-        patch_size=(selected_images[0].shape[0], selected_images[0].shape[1]),
-    )
-
-    patch_clusterer = PatchCluster(num_clusters, n_components)
-    patch_clusterer.prepare_data(feature_mat)
-    patch_clusterer.fit()
-    patch_clusterer.predict()
-    patch_clusterer.embed_TSNE(perplexity=perplexity, n_iter=n_iter)
-
-    print(f"Metrics (DB, Sil, C-H): {patch_clusterer.cluster_metrics()}")
-    preds = patch_clusterer.get_predictions()
-    # cluster_scatter(patch_clusterer.embedding, preds)
-    selected_images_arr = np.array(selected_3channel)
-    print(f"Plotting {selected_images_arr.shape} patch images.")
-    selected_images_arr = selected_images_arr[:, :, :, 1]
-
-    # fig, ax = plt.subplots(figsize=(17, 17))
-    # plt.title(
-    #    "Windows around a click clustered using deep features and embedded in 2d using T-SNE".format()
-    # )
-
-    # Plot to image
-    fig = Figure()
-    canvas = FigureCanvasAgg(fig)
-    ax = fig.gca()
-    ax.axis("off")
-    # fig.tight_layout(pad=0)
-    # ax.margins(0)
-    # ax.imshow(src_dataset[:][100,0:100,0:100])
-
-    plot_clustered_img(
-        patch_clusterer.embedding,
-        preds,
-        ax=ax,
-        images=selected_images_arr[:, ::skip_px, ::skip_px],
-    )
-
-    fig.suptitle("Test")
-    canvas.draw()
-    plot_image = np.asarray(canvas.buffer_rgba())
-
-    return encode_numpy(plot_image)
-
 
 @hug.get()
-def simple_stats(workspace: String, feature_ids: DataURIList, dst: DataURI,) -> "IMAGE":
+def image_stats(workspace: String, feature_ids: DataURIList, dst: DataURI,) -> "IMAGE":
     logger.debug(f"Calculating stats on features: {feature_ids}")
     src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
     logger.debug(f"Getting features {src}")
@@ -192,7 +107,7 @@ def simple_stats(workspace: String, feature_ids: DataURIList, dst: DataURI,) -> 
 
 
 @hug.get()
-def simple_stats2(
+def object_stats(
     workspace: String, object_id: DataURI, feature_ids: DataURIList, dst: DataURI,
 ) -> "OBJECTS":
     logger.debug(f"Calculating stats on objects: {object_id}")
@@ -227,7 +142,7 @@ def simple_stats2(
     )
     print(centers)
 
-    point_features = [(ds_feature[c[0], c[2], c[1]]) for c in centers]
+    point_features = [(ds_feature[c[0], c[1], c[2]]) for c in centers]
     return point_features
 
 

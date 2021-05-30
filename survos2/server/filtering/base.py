@@ -69,5 +69,5 @@ def gamma_adjust(data, gamma=1.0):
     np.ndarray
         Gamma adjusted image
     """
-    return rescale_denan(exposure.adjust_gamma(data, gamma))
+    return np.nan_to_num(exposure.adjust_gamma(data, gamma))
 

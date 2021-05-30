@@ -120,7 +120,7 @@ class ObjectsPlugin(Plugin):
             # Remove objects that no longer exist in the server
             for objects in list(self.existing_objects.keys()):
                 if objects not in result:
-                    self.existing_objects.pop(obs).setParent(None)
+                    self.existing_objects.pop(objects).setParent(None)
 
             # Populate with new entity if any
             for entity in sorted(result):
@@ -294,7 +294,7 @@ class ObjectsCard(Card):
         Launcher.g.run("objects", "points", **params)
         
         tabledata, _ = setup_entity_table(
-            self.objectsfullname, scale=cfg.object_scale, offset=cfg.object_offset, crop_start=cfg.object_crop_start,
+            self.objectsfullname, entities_df=None, scale=cfg.object_scale, offset=cfg.object_offset, crop_start=cfg.object_crop_start,
             crop_end=cfg.object_crop_end
         )
 

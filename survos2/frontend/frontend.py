@@ -12,12 +12,10 @@ import numpy as np
 import seaborn as sns
 import yaml
 from loguru import logger
-from magicgui import magicgui
 from matplotlib.colors import Normalize
+
 from napari.layers import Image
 from napari.qt.threading import thread_worker
-
-from pyqtgraph.widgets.ProgressDialog import ProgressDialog
 
 from qtpy import QtCore
 from qtpy.QtCore import QSize, QThread, QTimer
@@ -47,20 +45,40 @@ from survos2.frontend.utils import (
     get_array_from_dataset,
     get_color_mapping,
     hex_string_to_rgba,
-    get_annotation_array,
 )
 from survos2.helpers import AttrDict, simple_norm
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel, Workspace
 from survos2.server.state import cfg
 from survos2.utils import decode_numpy
-
 from survos2.frontend.paint_strokes import paint_strokes
 from survos2.frontend.workflow import run_workflow
 from napari_plugin_engine import napari_hook_implementation
-
 from qtpy.QtWidgets import QWidget
 from napari_plugin_engine import napari_hook_implementation
+
+
+def get_annotation_array(msg, retrieval_mode='volume'):
+    if retrieval_mode == 'slice':  # get a slice over http
+        src_annotations_dataset = DataModel.g.dataset_uri(
+            msg["level_id"], group="annotations"
+        )
+        params = dict(
+            workpace=True,
+            src=src_annotations_dataset,
+            slice_idx=cfg.current_slice,
+            order=cfg.order,
+        )
+        result = Launcher.g.run("annotations", "get_slice", **params)
+        if result:
+            src_arr = decode_numpy(result)
+    elif retrieval_mode == 'volume':  # get entire volume
+        src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_annotations_dataset = DM.sources[0][:]
+            src_arr = get_array_from_dataset(src_annotations_dataset)
+
+    return src_arr, src_annotations_dataset
 
 
 def frontend():
@@ -117,11 +135,13 @@ def frontend():
         viewer.theme = "dark"
         viewer.window._qt_window.setGeometry(100, 200, 1280, 720)
 
+
+        
         # SuRVoS controls
         dw = AttrDict()
         dw.ppw = PluginPanelWidget() # Main SuRVoS panel
         dw.bpw = ButtonPanelWidget() # Additional controls
-        dw.ppw.setMinimumSize(QSize(400, 500))
+        dw.ppw.setMinimumSize(QSize(400, 600))
 
         ws = Workspace(DataModel.g.current_workspace)
         dw.ws = ws
@@ -133,9 +153,6 @@ def frontend():
             existing_layer = [v for v in viewer.layers if v.name == layer_name]
             if len(existing_layer) > 0:
                 viewer.layers.remove(existing_layer[0])
-
-        # def load_workspace(msg):
-        #     logger.debug(f"load_workspace: {msg}")
 
         def view_feature(msg):
             logger.debug(f"view_feature {msg['feature_id']}")
@@ -184,8 +201,7 @@ def frontend():
             ]
             remove_layer(cfg.current_regions_name)
 
-            if cfg.retrieval_mode == "slice":
-                #
+            if cfg.retrieval_mode == "slice":                
                 regions_src = DataModel.g.dataset_uri(region_name, group="regions")
                 params = dict(
                     workpace=True,
@@ -245,10 +261,10 @@ def frontend():
                     )
                     cfg.supervoxels_cached = False
 
-        def update_layer(layer_name, src_arr):
+        def update_annotation_layer(layer_name, src_arr):
             existing_layer = [v for v in viewer.layers if v.name == layer_name]
             if len(existing_layer) > 0:
-                existing_layer[0].data = src_arr & 15
+                existing_layer[0].data = src_arr.astype(np.int) & 15
 
         def update_annotations(msg):
             logger.debug(f"refresh_annotation {msg}")
@@ -256,7 +272,7 @@ def frontend():
             with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
                 src_annotations_dataset = DM.sources[0][:]
                 src_arr = get_array_from_dataset(src_annotations_dataset)
-            update_layer(msg["level_id"], src_arr)
+            update_annotation_layer(msg["level_id"], src_arr)
 
         def refresh_annotations(msg):
             logger.debug(f"refresh_annotation {msg['level_id']}")
@@ -373,7 +389,7 @@ def frontend():
                                 src_arr, _ = get_annotation_array(
                                     msg, retrieval_mode=cfg.retrieval_mode
                                 )
-                                update_layer(msg["level_id"], src_arr)
+                                update_annotation_layer(msg["level_id"], src_arr)
 
                             update = partial(update_anno, msg=msg)
                             paint_strokes_worker = paint_strokes(
@@ -542,6 +558,100 @@ def frontend():
 
         def transfer_layer(msg):
             logger.debug(f"transfer_layer {msg}")
+            selected_layer = viewer.layers.selected[0]
+            from napari.layers.image.image import Image
+            from napari.layers.points.points import Points
+            from napari.layers.labels.labels import Labels
+            print(type(selected_layer))
+
+            if isinstance(selected_layer, Labels):
+                logger.debug("Transferring Labels layer to Annotations.")
+                params = dict(level=selected_layer.name, workspace=True)
+                result = Launcher.g.run("annotations", "add_level", workspace=True)
+                label_values = np.unique(selected_layer.data)
+                print(f"Label values: {label_values}")
+                for v in label_values:
+                    print(f"Label value to add {v}")
+                    if v != 0:
+                        params = dict(
+                        level=result["id"],
+                        idx=int(v)-2,
+                        name=str(int(v)-2),
+                        color="#11FF11",
+                        workspace=True,
+                        )
+                        label_result = Launcher.g.run("annotations", "add_label", **params)
+                        
+                levels_result = Launcher.g.run("annotations", "get_levels", **params)[0]
+    
+
+                for v in levels_result["labels"].keys():
+                    label_rgba = np.array(selected_layer.get_color(int(v)-1))
+                    label_rgba = (255 * label_rgba).astype(np.uint8)
+                    label_hex = "#{:02x}{:02x}{:02x}".format(*label_rgba)
+                    label = dict(
+                        idx=int(v),
+                        name=str(int(v)-1),
+                        color=label_hex,
+                    )
+                    params = dict(level=result["id"], workspace=True)
+                    label_result = Launcher.g.run(
+                        "annotations", "update_label", **params, **label)
+                
+                    if levels_result:
+                        fid = result["id"]
+                        ftype = result["kind"]
+                        fname = result["name"]
+                        logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
+                        dst = DataModel.g.dataset_uri(fid, group="annotations")
+
+                    with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
+                        DM.out[:] = selected_layer.data
+
+            elif isinstance(selected_layer, Points):
+                logger.debug("Transferring Points layer to Objects.")
+                entities_arr = np.concatenate((selected_layer.data, np.zeros((len(selected_layer.data),1))), axis=1)
+                
+                entities_df = make_entity_df(entities_arr, flipxy=True)
+                print(entities_df)
+                tmp_fname = "./points_temp.csv"
+                entities_df.to_csv(tmp_fname, line_terminator="")
+                
+                object_scale = 1.0
+                object_offset = (0.0,0.0,0.0)
+                object_crop_start = (0.0,0.0,0.0)
+                object_crop_end = (1e5,1e5,1e5)
+                
+                params = dict(
+                    order=0, workspace=True, fullname=tmp_fname,
+                )
+                result = Launcher.g.run("objects", "create", **params)
+                if result:
+                    dst = DataModel.g.dataset_uri(result["id"], group="objects")
+                    params = dict(dst=dst, fullname=tmp_fname, scale=object_scale, 
+                                  offset=object_offset, crop_start=object_crop_start, crop_end=object_crop_end)
+                    logger.debug(f"Getting objects with params {params}")
+                    Launcher.g.run("objects", "points", **params)
+
+                
+
+            elif isinstance(selected_layer, Image):
+                logger.debug("Transferring Image layer to Features.")
+                params = dict(feature_type="raw", workspace=True)                
+                result = Launcher.g.run("features", "create", **params)
+                if result:
+                    fid = result["id"]
+                    ftype = result["kind"]
+                    fname = result["name"]
+                    logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
+                    dst = DataModel.g.dataset_uri(fid, group="features")
+                    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+                        DM.out[:] = selected_layer.data
+            else:
+                logger.debug("Unsupported layer type.")
+   
+            processEvents({'data':'refresh'})
+
 
         def jump_to_slice(msg):
             logger.debug(f"Using order {cfg.order}")
@@ -549,6 +659,7 @@ def frontend():
                 cfg.current_slice = int(msg["frame"])
                 logger.debug(f"Jump around to {cfg.current_slice}, msg {msg['frame']}")
 
+                print(cfg.current_feature_name)                
                 existing_feature_layer = [
                     v for v in viewer.layers if v.name == cfg.current_feature_name
                 ]
@@ -615,7 +726,7 @@ def frontend():
                         src_arr = decode_numpy(result)
                         existing_pipeline_layer[0].data = src_arr.copy()
             else:
-                pass
+                logger.debug("jump_to_slice but in volume mode")
 
         def goto_roi(msg):
             logger.debug(f"Goto roi: {msg}")
@@ -699,6 +810,8 @@ def frontend():
                 get_crop(msg)
             elif msg["data"] == "goto_roi":
                 goto_roi(msg)
+            elif msg["data"] == "transfer_layer":
+                transfer_layer(msg)
             elif msg["data"] == "slice_mode":
                 logger.debug(f"Slice mode: {cfg.retrieval_mode}")
                 if cfg.retrieval_mode != "slice":
@@ -731,22 +844,26 @@ def frontend():
         dw.ppw.clientEvent.connect(lambda x: processEvents(x))
         cfg.ppw = dw.ppw
         cfg.processEvents = processEvents
+        pluginwidget_dockwidget = viewer.window.add_dock_widget(
+            dw.ppw,
+            area="right",
+            name="Workspace"
+        )
+        pluginwidget_dockwidget.setWindowTitle("Workspace")
+        view_feature({"feature_id": "001_raw"})
 
         smallvol_control = SmallVolWidget(np.zeros((32, 32, 32)))
         cfg.smallvol_control = smallvol_control
         smallvol_control_dockwidget = viewer.window.add_dock_widget(
-            smallvol_control.imv, area="right"
+            smallvol_control.imv, area="right",
+            name="Patch viewer"
         )
         smallvol_control_dockwidget.setVisible(False)
         smallvol_control_dockwidget.setWindowTitle("Patch viewer")
 
-        bpw_control_dockwidget = viewer.window.add_dock_widget(dw.bpw, area="left")
+        #Button panel (beta panel)
+        bpw_control_dockwidget = viewer.window.add_dock_widget(dw.bpw, area="left", name="Beta menu")
         dw.bpw.clientEvent.connect(lambda x: processEvents(x))
         bpw_control_dockwidget.setVisible(False)
+        bpw_control_dockwidget.setWindowTitle("Beta menu")
 
-        pluginwidget_dockwidget = viewer.window.add_dock_widget(
-            dw.ppw,
-            area="right",
-        )
-        pluginwidget_dockwidget.setWindowTitle("Workspace")
-        view_feature({"feature_id": "001_raw"})

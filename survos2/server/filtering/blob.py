@@ -113,7 +113,7 @@ def hessian_eigvals_cython(data, sigma, correct=False):
 
     logger.debug(f"Calculated hessian_eigvals reponse of shape {response.shape}")
     
-    return rescale_denan(response)
+    return np.nan_to_num(response)
 
 
 def hessian_eigvals(data, sigma, correct=False):

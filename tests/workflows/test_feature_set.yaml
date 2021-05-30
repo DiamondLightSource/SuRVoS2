@@ -9,7 +9,7 @@ f2:
     src: 001_raw
     dst: 003_tvdenoise_kornia
     params:
-        regularization_amount: 5
+        regularization_amount: 0.001
         pad: 8
         max_iter: 100
 f3:

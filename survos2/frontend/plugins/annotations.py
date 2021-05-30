@@ -99,21 +99,17 @@ class AnnotationPlugin(Plugin):
         self.label = AnnotationComboBox()
         self.region = RegionComboBox(header=(None, "Voxels"), full=True)
         self.label.currentIndexChanged.connect(self.set_sv)
-
-        self.region.currentIndexChanged.connect(self.set_sv)
-        
+        self.region.currentIndexChanged.connect(self.set_sv)        
         self.btn_set = IconButton("fa.pencil", "Set", accent=True)
         self.btn_set.clicked.connect(self.set_sv)
-        hbox.addWidget(self.btn_set)
         
+        hbox.addWidget(self.btn_set)
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
 
         self.width = Slider(value=10, vmin=2, vmax=50, step=2, auto_accept=True)
-        
-        
+                
         hbox.addWidget(self.width)
-        
         #hbox.addWidget(None, 1)
 
         self.vbox.addLayout(hbox)

@@ -26,7 +26,6 @@ from loguru import logger
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel, Workspace
 
-
 DEFAULT_DIR_KEY = "default_dir"
 DEFAULT_DATA_KEY = "default_data_dir"
 
@@ -51,27 +50,6 @@ def remove_masked_pts(bg_mask, entities):
     return np.array(masked_entities)
 
 
-def get_annotation_array(msg, retrieval_mode='volume'):
-    if retrieval_mode == 'slice':  # get a slice over http
-        src_annotations_dataset = DataModel.g.dataset_uri(
-            msg["level_id"], group="annotations"
-        )
-        params = dict(
-            workpace=True,
-            src=src_annotations_dataset,
-            slice_idx=cfg.current_slice,
-            order=cfg.order,
-        )
-        result = Launcher.g.run("annotations", "get_slice", **params)
-        if result:
-            src_arr = decode_numpy(result)
-    elif retrieval_mode == 'volume':  # get entire volume
-        src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_annotations_dataset = DM.sources[0][:]
-            src_arr = get_array_from_dataset(src_annotations_dataset)
-
-    return src_arr, src_annotations_dataset
 
 
 def get_array_from_dataset(src_dataset, axis=0):

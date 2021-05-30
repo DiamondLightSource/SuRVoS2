@@ -14,7 +14,7 @@ from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
 from survos2.utils import decode_numpy
-
+from survos2.frontend.components.entity import TableWidget
 
 def _fill_analyzers(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
@@ -70,13 +70,7 @@ class AnalyzerPlugin(Plugin):
         result = Launcher.g.run("analyzer", "available", workspace=True)
 
         if not result:
-            logger.debug("No analyzers")
-            params = {}
-            params["category"] = "IMAGE"
-            params["name"] = "s0"
-            params["type"] = "simple_stats"
-            result = {}
-            result[0] = params
+            logger.debug("No analyzers.")
         else:
 
             all_categories = sorted(set(p["category"] for p in result))
@@ -94,20 +88,23 @@ class AnalyzerPlugin(Plugin):
 
     def add_analyzer(self, idx):
         if idx != 0:
-            logger.debug(f"Adding analyzer {idx}")
+            
             analyzer_type = self.analyzers_combo.itemText(idx)
             self.analyzers_combo.setCurrentIndex(0)
-
-            params = dict(analyzer_type=analyzer_type, workspace=True)
+            logger.debug(f"Adding analyzer {analyzer_type}")
+            from survos2.api.analyzer import __analyzer_names__
+            order = __analyzer_names__.index(analyzer_type)
+            params = dict(analyzer_type=analyzer_type, order=order, workspace=True)
             result = Launcher.g.run("analyzer", "create", **params)
 
             if result:
                 analyzer_id = result["id"]
-                analyzername = result["name"]
-                self._add_analyzer_widget(analyzer_id, analyzername, True)
+                analyzer_name = result["name"]
+                analyzer_type = result["kind"]
+                self._add_analyzer_widget(analyzer_id, analyzer_name, analyzer_type, True)
 
-    def _add_analyzer_widget(self, analyzer_id, analyzername, expand=False):
-        widget = AnalyzerCard(analyzer_id, analyzername)
+    def _add_analyzer_widget(self, analyzer_id, analyzer_name, analyzer_type, expand=False):
+        widget = AnalyzerCard(analyzer_id, analyzer_name, analyzer_type)
         widget.showContent(expand)
         self.analyzers_layout.addWidget(widget)
 
@@ -116,18 +113,12 @@ class AnalyzerPlugin(Plugin):
 
     def setup(self):
         params = dict(order=1, workspace=True)
-
         params["id"] = 0
         params["name"] = "analysis1"
-        params["kind"] = "simple_stats"
-        
-        #result = {}
-        #result[0] = params
-
         result = Launcher.g.run("analyzer", "existing", **params)
         
         if result:
-            logger.debug("Populating analyzer widgets with {result}")
+            logger.debug(f"Populating analyzer widgets with {result}")
             # Remove analyzer that no longer exist in the server
             for analyzer in list(self.existing_analyzer.keys()):
                 if analyzer not in result:
@@ -139,16 +130,18 @@ class AnalyzerPlugin(Plugin):
                     continue
                 params = result[analyzer]
                 analyzer_id = params.pop("id", analyzer)
-                analyzername = params.pop("name", analyzer)
+                analyzer_name = params.pop("name", analyzer)
+                analyzer_type = params.pop("kind", analyzer)
+                logger.debug(f"Adding analyzer of type {analyzer_type}")
 
-                if params.pop("kind", "unknown") != "unknown":
-                    widget = self._add_analyzer_widget(analyzer_id, analyzername)
+                if params.pop("kind", analyzer) != "unknown":
+                    widget = self._add_analyzer_widget(analyzer_id, analyzer_name, analyzer_type)
                     widget.update_params(params)
                     self.existing_analyzer[analyzer_id] = widget
                 else:
                     logger.debug(
                         "+ Skipping loading analyzer: {}, {}".format(
-                            analyzer_id, analyzername
+                            analyzer_id, analyzer_name, analyzer_type
                         )
                     )
 
@@ -161,24 +154,27 @@ class MplCanvas(FigureCanvasQTAgg):
 
 
 class AnalyzerCard(Card):
-    def __init__(self, analyzer_id, analyzername, parent=None):
+    def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
         super().__init__(
-            title=analyzername,
+            title=analyzer_name,
             collapsible=True,
             removable=True,
             editable=True,
             parent=parent,
         )
         self.analyzer_id = analyzer_id
-        self.analyzername = analyzername
+        self.analyzer_name = analyzer_name
+        self.analyzer_type = analyzer_type
 
-        self._add_features_source()
-        self._add_objects_source()
+        if self.analyzer_type=="image_stats":
+            self._add_features_source()
+        else:
+            self._add_features_source()
+            self._add_objects_source()
 
         self.calc_btn = PushButton("Compute")
         self.plot_btn = PushButton("Plot")
-        self.add_row(HWidgets(None, self.calc_btn, Spacing(35)))
-        self.add_row(HWidgets(None, self.plot_btn, Spacing(35)))
+        self.add_row(HWidgets(None, self.calc_btn, self.plot_btn, Spacing(35)))
         self.calc_btn.clicked.connect(self.calculate_analyzer)
         self.plot_btn.clicked.connect(self.clustering_plot)
 
@@ -186,12 +182,10 @@ class AnalyzerCard(Card):
         self.objects_source = ObjectComboBox(full=True)
         self.objects_source.fill()
         self.objects_source.setMaximumWidth(250)
-
         widget = HWidgets("Objects:", self.objects_source, Spacing(35), stretch=1)
         self.add_row(widget)
 
     def _add_features_source(self):
-
         self.features_source = MultiSourceComboBox()
         self.features_source.fill()
         self.features_source.setMaximumWidth(250)
@@ -217,19 +211,68 @@ class AnalyzerCard(Card):
     def calculate_analyzer(self):
         src = DataModel.g.dataset_uri(self.features_source.value())
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        
         all_params = dict(src=src, dst=dst, modal=False)
         all_params["workspace"] = DataModel.g.current_workspace
-        all_params["feature_ids"] = str(self.features_source.value()[-1])
-        all_params["object_id"] = str(self.objects_source.value())
-        logger.debug(f"Running analyzer with params {all_params}")
-        result = Launcher.g.run("analyzer", "simple_stats", **all_params)
 
-        if result:
-            src_arr = decode_numpy(result)
-            sc = MplCanvas(self, width=5, height=4, dpi=100)
-            sc.axes.imshow(src_arr)
-            # sc.axes.plot([0,1,2,3,4], [10,1,20,3,40])
-            self.add_row(sc, max_height=300)
+        if self.analyzer_type == "image_stats":
+            all_params["feature_ids"] = str(self.features_source.value()[-1])
+            logger.debug(f"Running analyzer with params {all_params}")
+            result = Launcher.g.run("analyzer", "image_stats", **all_params)
+            if result:
+                src_arr = decode_numpy(result)
+                sc = MplCanvas(self, width=5, height=4, dpi=100)
+                sc.axes.imshow(src_arr)
+                self.add_row(sc, max_height=300)
+
+        elif self.analyzer_type == "object_stats2":    
+            all_params["feature_ids"] = str(self.features_source.value()[-1])
+            all_params["object_id"] = str(self.objects_source.value())
+            logger.debug(f"Running analyzer with params {all_params}")
+            result = Launcher.g.run("analyzer", "object_stats", **all_params)
+            if result:
+                src_arr = decode_numpy(result)
+                sc = MplCanvas(self, width=5, height=4, dpi=100)
+                sc.axes.imshow(src_arr)
+                self.add_row(sc, max_height=300)
+                
+        elif self.analyzer_type == "object_stats":    
+            all_params["feature_ids"] = str(self.features_source.value()[-1])
+            all_params["object_id"] = str(self.objects_source.value())
+            logger.debug(f"Running analyzer with params {all_params}")
+            result = Launcher.g.run("analyzer", "object_stats2", **all_params)
+            if result:
+                resultrow = HWidgets(str(len(result)))
+                self.add_row(resultrow, max_height=300)
+
+                table_control = TableWidget()
+
+                logger.debug(f"Object stats result table {len(result)}")
+                
+                tabledata = []
+                for i in range(len(result)):
+                    entry = (
+                            i,
+                            result[i]
+                        )
+                    tabledata.append(entry)
+
+                tabledata = np.array(
+                    tabledata,
+                    dtype=[
+                        ("index", int),
+                        ("z", float),
+                    ],
+                )
+            
+                table_control.set_data(tabledata)
+                self.add_row(table_control.w, max_height=500)
+                self.collapse()
+                self.expand()
+                
+
+
+        
 
     def clustering_plot(self):
         src = DataModel.g.dataset_uri(self.features_source.value())
@@ -239,10 +282,9 @@ class AnalyzerCard(Card):
         all_params["feature_ids"] = str(self.features_source.value()[-1])
         all_params["object_id"] = str(self.objects_source.value())
         logger.debug(f"Running analyzer with params {all_params}")
-        result = Launcher.g.run("analyzer", "simple_stats", **all_params)
+        result = Launcher.g.run("analyzer", "image_stats", **all_params)
         if result:
             src_arr = decode_numpy(result)
             sc = MplCanvas(self, width=5, height=4, dpi=100)
             sc.axes.imshow(src_arr)
-            # sc.axes.plot([0,1,2,3,4], [10,1,20,3,40])
             self.add_row(sc, max_height=300)

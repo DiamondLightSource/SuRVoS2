@@ -12,12 +12,19 @@ from survos2.entity.sampler import crop_pts_bb
 
 MAX_SIZE = 10000
 
-def setup_entity_table(entities_fullname, 
+def setup_entity_table(entities_fullname,
+                    entities_df = None,
                     scale=1.0, 
                     offset=(0, 0, 0), 
                     crop_start=(0,0,0), 
                     crop_end=(MAX_SIZE,MAX_SIZE,MAX_SIZE)):
-    entities_df = pd.read_csv(entities_fullname)
+    if entities_df == None:
+        print(f"Reading entity csv: {entities_fullname}")
+        entities_df = pd.read_csv(entities_fullname)
+        print(entities_df)
+
+
+    #otherwise ignore filename
     index_column = len([col for col in entities_df.columns if "index" in col]) > 0
     print(index_column)
     entities_df.drop(
@@ -25,21 +32,21 @@ def setup_entity_table(entities_fullname,
         axis=1,
         inplace=True,
     )
-    entities_df.drop(
-        entities_df.columns[entities_df.columns.str.contains("index", case=False)],
-        axis=1,
-        inplace=True,
-    )
-    class_code_column = (
-        len([col for col in entities_df.columns if "class_code" in col]) > 0
-    )
+    # entities_df.drop(
+    #     entities_df.columns[entities_df.columns.str.contains("index", case=False)],
+    #     axis=1,
+    #     inplace=True,
+    # )
+    # class_code_column = (
+    #     len([col for col in entities_df.columns if "class_code" in col]) > 0
+    # )
     
-    if not class_code_column:
-        entities_df["class_code"] = 0
+    # if not class_code_column:
+    #     entities_df["class_code"] = 0
 
-    cropped_pts = crop_pts_bb(np.array(entities_df), [crop_start[0],crop_end[0],crop_start[1], crop_end[1], crop_start[2], crop_end[2]])
-
-    entities_df = make_entity_df(np.array(cropped_pts), flipxy=True)
+    #cropped_pts = crop_pts_bb(np.array(entities_df), [crop_start[0],crop_end[0],crop_start[1], crop_end[1], crop_start[2], crop_end[2]])
+    #print(cropped_pts)
+    entities_df = make_entity_df(np.array(entities_df), flipxy=True)
     logger.debug(
         f"Loaded entities {entities_df.shape} applying scale {scale} and offset {offset} and crop start {crop_start}, crop_end {crop_end}"
     )
@@ -78,9 +85,9 @@ def setup_entity_table(entities_fullname,
         tabledata,
         dtype=[
             ("index", int),
-            ("z", int),
-            ("x", int),
-            ("y", int),
+            ("z", float),
+            ("x", float),
+            ("y", float),
             ("class_code", int),
         ],
     )
