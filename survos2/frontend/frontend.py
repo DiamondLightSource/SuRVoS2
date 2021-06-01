@@ -614,7 +614,7 @@ def frontend():
                 
                 entities_df = make_entity_df(entities_arr, flipxy=True)
                 print(entities_df)
-                tmp_fname = "./points_temp.csv"
+                tmp_fname = "./tmp/" + str(selected_layer.name) + ".csv"
                 entities_df.to_csv(tmp_fname, line_terminator="")
                 
                 object_scale = 1.0

@@ -211,46 +211,7 @@ def remove_padding(vol, padding):
     return unpadded_vol
 
 
-def get3dcc(pred_vol):
-    # pred_t= torch.FloatTensor(pred_vol)
-    # pred_t = torch.abs(pred_t.unsqueeze(0))
-    # input_tens = input_tens / torch.max(input_tens)
-    # pred_ssm_t = kornia.dsnt.spatial_softmax_2d(pred_t, temperature=0.1)
-
-    # print(f"SSM stats: {summary_stats(pred_ssm_t.numpy())}")
-    # pred_ssm = pred_ssm_t.squeeze(0).detach().numpy()
-
-    pred_vol_mask = (((pred_vol > 0.45)) * 1.0).astype(np.uint16)
-    # pred_vol_mask = pred_ssm.astype(np.uint16)
-    # print(pred_vol_mask.shape)
-
-    connectivity = 6
-    labels_out = cc3d.connected_components(
-        pred_vol_mask, connectivity=connectivity
-    )  # 26-connected
-
-    return labels_out
-
-
 def prepare_bv(mask):
     label_vol = get3dcc(pred_vol)
     list_of_roi = regionprops(label_vol)
     return list_of_roi
-
-
-def plot_bb_2d(img, pred_info):
-    ax = None
-    if ax is None:
-        _, ax = plt.subplots(1, 1)
-    ax.imshow(img)
-
-    bbs = pred_info["bbs"]
-    preds = pred_info["preds"]
-    scores = pred_info["scores"]
-    bb_ids = pred_info["bb_ids"]
-
-    for bbox, c, scr, bb_id in zip(bbs, preds, scores, bb_ids):
-        txt = c
-        draw_bb(
-            ax, [bbox[1], bbox[0], bbox[3], bbox[2]], text=f"{txt} {scr:.2f} \n {bb_id}"
-        )

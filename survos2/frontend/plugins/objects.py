@@ -202,6 +202,7 @@ class ObjectsCard(Card):
         self.objectsfullname = objectsfullname
         self.widgets = {}
         self.filewidget = FileWidget(extensions="*.csv", save=False)
+        self.filewidget.path.setText(self.objectsfullname)
         self.add_row(self.filewidget)
         self.filewidget.path_updated.connect(self.load_data)
 

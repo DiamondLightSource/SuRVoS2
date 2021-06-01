@@ -43,32 +43,23 @@ def points(dst: DataURI, fullname: String, scale : float, offset : FloatOrVector
         src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
         logger.info(f"Got __data__ volume of size {img_volume.shape}")
+    
+    
     # store in dst
     logger.info(f"Storing in dataset {dst}")
+    
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = img_volume
+        DM.out[:] = np.zeros_like(img_volume)
         dst_dataset = DM.sources[0]
-        dst_dataset.set_attr("fullname", fullname)
         dst_dataset.set_attr("scale", scale)
         dst_dataset.set_attr("offset", offset)
         dst_dataset.set_attr("crop_start", crop_start)
         dst_dataset.set_attr("crop_end", crop_end)
 
-# @hug.get()
-# def boxes(dst: DataURI, fullname: String) -> "GEOMETRY":
-
-#     src = DataModel.g.dataset_uri("__data__")
-#     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-#         src_dataset = DM.sources[0]
-#         img_volume = src_dataset[:]
-#         logger.info(f"Got __data__ volume of size {img_volume.shape}")
-
-#     logger.info(f"Storing in dataset {dst}")
-#     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-#         DM.out[:] = img_volume
-#         dst_dataset = DM.sources[0]
-#         dst_dataset.set_attr("fullname", fullname)
-
+        csv_saved_fullname = dst_dataset.save_file(fullname)
+        logger.info(f"Saving {fullname} to {csv_saved_fullname}")
+        dst_dataset.set_attr("fullname", csv_saved_fullname)
+        
 
 @hug.get()
 def create(workspace: String, fullname: String, order: Int = 0):
