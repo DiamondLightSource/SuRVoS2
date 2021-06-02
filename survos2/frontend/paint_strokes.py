@@ -36,95 +36,95 @@ def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer, parent_level=None
 
     if len(drag_pts[0]) == 2:
     # depending on the slice mode we need to handle either 2 or 3 coordinates
-    #if cfg.retrieval_mode == 'slice':
         for x, y in drag_pts[1:]:
-            yy, xx = line(py, px, y, x)
-            line_x.extend(xx)
-            line_y.extend(yy)
-            py, px = y, x
-            anno_shape = (anno_layer.data.shape[0], anno_layer.data.shape[1])
+            if x < anno_layer.data.shape[1] and y < anno_layer.data.shape[2]:
+                yy, xx = line(py, px, y, x)
+                line_x.extend(xx)
+                line_y.extend(yy)
+                py, px = y, x
+                anno_shape = (anno_layer.data.shape[0], anno_layer.data.shape[1])
     else: # cfg.retrieval_mode == 'volume':
         for _, x, y in drag_pts[1:]:
-            yy, xx = line(py, px, y, x)
-            line_x.extend(xx)
-            line_y.extend(yy)
-            py, px = y, x
-            anno_shape = (anno_layer.data.shape[1], anno_layer.data.shape[2])
+            if x < anno_layer.data.shape[1] and y < anno_layer.data.shape[2]:
+                yy, xx = line(py, px, y, x)
+                line_x.extend(xx)
+                line_y.extend(yy)
+                py, px = y, x
+                anno_shape = (anno_layer.data.shape[1], anno_layer.data.shape[2])
 
-    line_y = np.array(line_y)
     line_x = np.array(line_x)
+    line_y = np.array(line_y)
     
-    if len(line_y) > 0:
-        from survos2.frontend.plugins.annotations import dilate_annotations
+    try:
+        if len(line_y) > 0:
+            from survos2.frontend.plugins.annotations import dilate_annotations
 
-        all_regions = set()
+            all_regions = set()
 
-        # Check if we are painting using supervoxels, if not, annotate voxels
-        if cfg.current_supervoxels == None:
-            line_y, line_x = dilate_annotations(
-                line_x, line_y, anno_shape, top_layer.brush_size,
-            )
-            params = dict(workspace=True, level=level, label=sel_label)
-            yy, xx = list(line_y), list(line_x)
-            yy = [int(e) for e in yy]
-            xx = [int(e) for e in xx]
+            # Check if we are painting using supervoxels, if not, annotate voxels
+            if cfg.current_supervoxels == None:
+                line_y, line_x = dilate_annotations(
+                    line_x, line_y, anno_shape, top_layer.brush_size,
+                )
+                params = dict(workspace=True, level=level, label=sel_label)
+                yy, xx = list(line_y), list(line_x)
+                yy = [int(e) for e in yy]
+                xx = [int(e) for e in xx]
 
-            n_dimensional = top_layer.n_dimensional
+                n_dimensional = top_layer.n_dimensional
 
-            # todo: preserve existing
+                # todo: preserve existing
 
-            params.update(slice_idx=int(z), 
-                yy=yy, 
-                xx=xx,
-                parent_level=parent_level,
-                parent_label_idx=parent_label_idx,
-                full=False)
+                params.update(slice_idx=int(z), 
+                    yy=yy, 
+                    xx=xx,
+                    parent_level=parent_level,
+                    parent_label_idx=parent_label_idx,
+                    full=False)
 
-            result = Launcher.g.run("annotations", "annotate_voxels", **params)
-        # we are painting with supervoxels, so check if we have a current supervoxel cache
-        # if not, get the supervoxels from the server
-        else:
-            line_x, line_y = dilate_annotations(
-                line_x, line_y, anno_shape, top_layer.brush_size,
-            )
-
-            if cfg.supervoxels_cached == False:
-                regions_dataset = DataModel.g.dataset_uri(
-                    cfg.current_regions_name, group="regions"
+                result = Launcher.g.run("annotations", "annotate_voxels", **params)
+            # we are painting with supervoxels, so check if we have a current supervoxel cache
+            # if not, get the supervoxels from the server
+            else:
+                line_x, line_y = dilate_annotations(
+                    line_x, line_y, anno_shape, top_layer.brush_size,
                 )
 
-                with DatasetManager(
-                    regions_dataset, out=None, dtype="uint32", fillvalue=0,
-                ) as DM:
-                    src_dataset = DM.sources[0]
-                    sv_arr = src_dataset[:]
+                if cfg.supervoxels_cached == False:
+                    regions_dataset = DataModel.g.dataset_uri(
+                        cfg.current_regions_name, group="regions"
+                    )
+                    with DatasetManager(
+                        regions_dataset, out=None, dtype="uint32", fillvalue=0,
+                    ) as DM:
+                        src_dataset = DM.sources[0]
+                        sv_arr = src_dataset[:]
 
-                logger.debug(f"Loaded superregion array of shape {sv_arr.shape}")
-                cfg.supervoxels_cache = sv_arr
-                cfg.supervoxels_cached = True
-                cfg.current_regions_dataset = regions_dataset
-            else:
-                sv_arr = cfg.supervoxels_cache
+                    logger.debug(f"Loaded superregion array of shape {sv_arr.shape}")
+                    cfg.supervoxels_cache = sv_arr
+                    cfg.supervoxels_cached = True
+                    cfg.current_regions_dataset = regions_dataset
+                else:
+                    sv_arr = cfg.supervoxels_cache
 
-                print(f"Used cached supervoxels of shape {sv_arr.shape}")
+                for x, y in zip(line_x, line_y):
 
-            for x, y in zip(line_x, line_y):
-                sv = sv_arr[z, x, y]
-                all_regions |= set([sv])
+                    if z >= 0 and z < sv_arr.shape[0] and x >= 0 and x < sv_arr.shape[1] and y >= 0 and y < sv_arr.shape[2]:
+                        sv = sv_arr[z, x, y]
+                        all_regions |= set([sv])
+                
+                # Commit annotation to server
+                params = dict(workspace=True, level=level, label=sel_label)
 
-            print(f"Painted regions {all_regions}")
-
-            # Commit annotation to server
-            params = dict(workspace=True, level=level, label=sel_label)
-
-            params.update(
-                region=cfg.current_regions_dataset,
-                r=list(map(int, all_regions)),
-                modal=False,
-                parent_level=parent_level,
-                parent_label_idx=parent_label_idx,
-                full=False
-            )
-            result = Launcher.g.run("annotations", "annotate_regions", **params)
-
+                params.update(
+                    region=cfg.current_regions_dataset,
+                    r=list(map(int, all_regions)),
+                    modal=False,
+                    parent_level=parent_level,
+                    parent_label_idx=parent_label_idx,
+                    full=False
+                )
+                result = Launcher.g.run("annotations", "annotate_regions", **params)
+    except Exception as e:
+        logger.debug(f"Exception: {e}")
  

@@ -26,8 +26,6 @@ _PipelineNotifier = PluginNotifier()
 
 
 
-
-
 def _fill_pipelines(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
     result = Launcher.g.run("pipelines", "existing", **params)
