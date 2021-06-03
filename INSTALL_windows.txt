@@ -15,3 +15,8 @@
 5. Build survos:
 
 	python ./survos2/improc/setup.py build_ext --inplace
+
+6. Change the CHROOT in survos2/config.py to something appropriate for the machine and network settings.
+
+7. Run:
+	 python -m survos2.frontend.runner
