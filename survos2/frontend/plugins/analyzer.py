@@ -240,7 +240,7 @@ class AnalyzerCard(Card):
             all_params["feature_ids"] = str(self.features_source.value()[-1])
             all_params["object_id"] = str(self.objects_source.value())
             logger.debug(f"Running analyzer with params {all_params}")
-            result = Launcher.g.run("analyzer", "object_stats2", **all_params)
+            result = Launcher.g.run("analyzer", "object_stats", **all_params)
             if result:
                 resultrow = HWidgets(str(len(result)))
                 self.add_row(resultrow, max_height=300)
