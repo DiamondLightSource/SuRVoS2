@@ -1095,7 +1095,7 @@ if __name__ == "__main__":
         "server_ip": "127.0.0.1",
         "server_port": "8134",
         "workspace_name": "test_hunt_d4b",
-        "use_ssh": True,
+        "use_ssh": False,
         "ssh_host": "ws168.diamond.ac.uk",
         "ssh_port": "22"
     }
