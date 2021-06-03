@@ -1,0 +1,17 @@
+1. Obtain repo.zip and unpack or clone repo from gitlab.
+	
+2. (Install miniconda) then start miniconda prompt. (Python 3.8)
+	
+3. In <INSTALLDIR>/SuRVoS2, use survos2_clean_environment_windows_conda.yml to create a new environment by:
+
+	conda env create -f survos2_clean_environment_windows_conda.yml 
+
+	conda activate survos2_env
+
+4. Perform the pip installs using:
+	
+	pip install -r survos2_clean_environment_windows_pip.txt
+
+5. Build survos:
+
+	python ./survos2/improc/setup.py build_ext --inplace
