@@ -5,7 +5,6 @@ attrs
 babel
 backcall
 cachey
-cuda-slic
 docutils
 freetype-py
 humanize
@@ -23,7 +22,7 @@ mako
 more-itertools
 morphsnakes
 mrcfile
-napari
+napari==0.4.7
 napari-plugin-engine
 napari-svg
 nibabel
@@ -37,7 +36,6 @@ pluggy
 prompt-toolkit
 ptyprocess
 py
-pycuda
 pydantic
 pygments
 pyopengl
@@ -65,3 +63,4 @@ wcwidth
 wget
 wrapt
 zipp
+
