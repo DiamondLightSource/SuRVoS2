@@ -15,7 +15,19 @@ from scipy import ndimage
 from scipy.ndimage import generate_binary_structure, label
 from skimage import data, measure
 from survos2.frontend.nb_utils import show_images
+from survos2.entity.entities import make_entity_bvol
 
+def component_bounding_boxes(images):
+    bbs_tables = []
+    bbs_arrs = []
+
+    for image in images:
+        bbs_arr = measure_components(image)
+        bbs_arrs.append(bbs_arr)
+        bbs_table = make_entity_bvol(bbs_arr)
+        bbs_tables.append(bbs_table)
+
+    return bbs_tables, bbs_arrs
 
 def measure_components(image):
     labeled_array, num_features = label(image.astype(np.uint))

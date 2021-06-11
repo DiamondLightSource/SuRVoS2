@@ -13,6 +13,7 @@ import seaborn as sns
 import yaml
 from loguru import logger
 from matplotlib.colors import Normalize
+import tempfile
 
 from napari.layers import Image
 from napari.qt.threading import thread_worker
@@ -134,8 +135,6 @@ def frontend():
         viewer = napari.Viewer(title="SuRVoS - " + DataModel.g.current_workspace)
         viewer.theme = "dark"
         viewer.window._qt_window.setGeometry(100, 200, 1280, 720)
-
-
         
         # SuRVoS controls
         dw = AttrDict()
@@ -154,7 +153,7 @@ def frontend():
             if len(existing_layer) > 0:
                 viewer.layers.remove(existing_layer[0])
 
-        def view_feature(msg):
+        def view_feature(msg, new_name=None):
             logger.debug(f"view_feature {msg['feature_id']}")
             existing_feature_layer = [
                 v for v in viewer.layers if v.name == msg["feature_id"]
@@ -178,7 +177,10 @@ def frontend():
                     if len(existing_feature_layer) > 0:
                         existing_feature_layer[0].data = src_arr.copy()
                     else:
-                        viewer.add_image(src_arr, name=msg["feature_id"])
+                        if new_name:
+                            viewer.add_image(src_arr, name=new_name)
+                        else:
+                            viewer.add_image(src_arr, name=msg["feature_id"])
 
             elif cfg.retrieval_mode == "volume":
                 # use DatasetManager to load feature from workspace as array and then add it to viewer
@@ -191,15 +193,23 @@ def frontend():
                     src_arr = get_array_from_dataset(src_dataset)
                     cfg.supervoxels_cache = src_arr
                     cfg.supervoxels_cached = True
-                    viewer.add_image(src_arr, name=msg["feature_id"])
-
+                    if new_name:
+                        viewer.add_image(src_arr, name=new_name)
+                    else:
+                        viewer.add_image(src_arr, name=msg["feature_id"])
         def view_regions(msg):
             logger.debug(f"view_feature {msg['region_id']}")
             region_name = msg["region_id"]
             existing_regions_layer = [
                 v for v in viewer.layers if v.name == cfg.current_regions_name
             ]
-            remove_layer(cfg.current_regions_name)
+            
+            region_opacity = 0.3
+            if len(existing_regions_layer) > 0:
+                region_opacity = existing_regions_layer[0].opacity
+                remove_layer(cfg.current_regions_name)
+                cfg.current_regions_name = None
+
 
             if cfg.retrieval_mode == "slice":                
                 regions_src = DataModel.g.dataset_uri(region_name, group="regions")
@@ -215,10 +225,10 @@ def frontend():
                     src_arr = find_boundaries(src_arr) * 1.0
                     if len(existing_regions_layer) > 0:
                         existing_regions_layer[0].data = src_arr.copy()
-                        existing_regions_layer[0].opacity = 0.3
+                        existing_regions_layer[0].opacity = region_opacity
                     else:
                         sv_layer = viewer.add_image(src_arr, name=region_name)
-                        sv_layer.opacity = 0.3
+                        sv_layer.opacity = region_opacity
                         sv_layer.colormap = "bop orange"
             elif cfg.retrieval_mode == "volume":
                 src = DataModel.g.dataset_uri(region_name, group="regions")
@@ -232,7 +242,7 @@ def frontend():
                     else:
                         sv_image = find_boundaries(src_arr, mode="inner")
                         sv_layer = viewer.add_image(sv_image, name=region_name)
-                        sv_layer.opacity = 0.3
+                        sv_layer.opacity = region_opacity
                         sv_layer.colormap = "bop orange"
 
             cfg.current_regions_name = region_name
@@ -244,22 +254,23 @@ def frontend():
             label_value = paint_params["label_value"]
 
             if label_value is not None:
-                anno_layer = viewer.layers.selected[0]
-                cfg.label_ids = list(np.unique(anno_layer))
-                anno_layer.mode = "paint"
-                cfg.current_mode = "paint"
-                anno_layer.selected_label = int(label_value["idx"]) - 1
-                cfg.label_value = label_value
-                anno_layer.brush_size = int(paint_params["brush_size"])
-                if paint_params["current_supervoxels"] is not None:
-                    view_regions(
-                        {
-                            "region_id": ntpath.basename(
-                                paint_params["current_supervoxels"]
-                            )
-                        }
-                    )
-                    cfg.supervoxels_cached = False
+                if len(viewer.layers.selected) > 0:
+                    anno_layer = viewer.layers.selected[0]
+                    cfg.label_ids = list(np.unique(anno_layer))
+                    anno_layer.mode = "paint"
+                    cfg.current_mode = "paint"
+                    anno_layer.selected_label = int(label_value["idx"]) - 1
+                    cfg.label_value = label_value
+                    anno_layer.brush_size = int(paint_params["brush_size"])
+                    if paint_params["current_supervoxels"] is not None:
+                        view_regions(
+                            {
+                                "region_id": ntpath.basename(
+                                    paint_params["current_supervoxels"]
+                                )
+                            }
+                        )
+                        cfg.supervoxels_cached = False
 
         def update_annotation_layer(layer_name, src_arr):
             existing_layer = [v for v in viewer.layers if v.name == layer_name]
@@ -275,142 +286,150 @@ def frontend():
             update_annotation_layer(msg["level_id"], src_arr)
 
         def refresh_annotations(msg):
+            
             logger.debug(f"refresh_annotation {msg['level_id']}")
+            
+            try:
+                cfg.current_annotation_name = msg["level_id"]
 
-            cfg.current_annotation_name = msg["level_id"]
-            src_arr, src_annotations_dataset = get_annotation_array(
-                msg, retrieval_mode=cfg.retrieval_mode
-            )
-            result = Launcher.g.run(
-                "annotations", "get_levels", workspace=DataModel.g.current_workspace
-            )
+                src_arr, src_annotations_dataset = get_annotation_array(
+                    msg, retrieval_mode=cfg.retrieval_mode
+                )
+                result = Launcher.g.run(
+                    "annotations", "get_levels", workspace=DataModel.g.current_workspace
+                )
 
-            if cfg.label_ids is not None:
-                label_ids = cfg.label_ids
+                if cfg.label_ids is not None:
+                    label_ids = cfg.label_ids
 
-            if result:
-                cmapping, label_ids = get_color_mapping(result, msg["level_id"])
-                logger.debug(f"Label ids {label_ids}")
-                cfg.label_ids = label_ids
+                if result:
+                    cmapping, label_ids = get_color_mapping(result, msg["level_id"])
+                    logger.debug(f"Label ids {label_ids}")
+                    cfg.label_ids = label_ids
 
-                existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
-                sel_label = 1
-                brush_size = 10
+                    existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
+                    sel_label = 1
+                    brush_size = 10
 
-                if len(existing_layer) > 0:
-                    viewer.layers.remove(existing_layer[0])
-                    sel_label = existing_layer[0].selected_label
-                    brush_size = existing_layer[0].brush_size
-                    logger.debug(f"Removed existing layer {existing_layer[0]}")
-                    label_layer = viewer.add_labels(
-                        src_arr & 15, name=msg["level_id"], color=cmapping
-                    )
-                else:
-                    label_layer = viewer.add_labels(
-                        src_arr & 15, name=msg["level_id"], color=cmapping
-                    )
+                    if len(existing_layer) > 0:
+                        viewer.layers.remove(existing_layer[0])
+                        sel_label = existing_layer[0].selected_label
+                        brush_size = existing_layer[0].brush_size
+                        logger.debug(f"Removed existing layer {existing_layer[0]}")
+                        label_layer = viewer.add_labels(
+                            src_arr & 15, name=msg["level_id"], color=cmapping
+                        )
+                    else:
+                        label_layer = viewer.add_labels(
+                            src_arr & 15, name=msg["level_id"], color=cmapping
+                        )
 
-                label_layer.mode = cfg.current_mode
-                label_layer.brush_size = brush_size
+                    label_layer.mode = cfg.current_mode
+                    label_layer.brush_size = brush_size
 
-                if cfg.label_value is not None:
+                    if cfg.label_value is not None:
+                        label_layer.selected_label = int(cfg.label_value["idx"]) - 1
 
-                    label_layer.selected_label = int(cfg.label_value["idx"]) - 1
-
-                return label_layer, src_annotations_dataset
+                    return label_layer, src_annotations_dataset
+            except Exception as e:
+                print(f"Exception {e}")
 
         def paint_annotations(msg):
             logger.debug(f"paint_annotation {msg['level_id']}")
             cfg.current_annotation_name = msg["level_id"]
-            label_layer, current_annotation_ds = refresh_annotations(msg)
+            
+            try:
+                label_layer, current_annotation_ds = refresh_annotations(msg)
+                if cfg.label_value is not None:
+                    sel_label = int(cfg.label_value["idx"])
+                else:
+                    sel_label = 1
 
-            if cfg.label_value is not None:
-                sel_label = int(cfg.label_value["idx"])
-            else:
-                sel_label = 1
-
-            if msg["level_id"] is not None:
-                params = dict(
-                    workspace=True, level=msg["level_id"], label_idx=sel_label
-                )
-                result = Launcher.g.run("annotations", "get_label_parent", **params)
-                
-                parent_level = result[0]
-                parent_label_idx = result[1]
-
-                @label_layer.bind_key("Control-Z", overwrite=True)
-                def undo(v):
-                    level = cfg.current_annotation_name
-                    params = dict(workspace=True, level=level)
-                    result = Launcher.g.run("annotations", "annotate_undo", **params)
-                    cfg.ppw.clientEvent.emit(
-                        {
-                            "source": "annotations",
-                            "data": "update_annotations",
-                            "level_id": level,
-                        }
+                if msg["level_id"] is not None:
+                    params = dict(
+                        workspace=True, level=msg["level_id"], label_idx=sel_label
                     )
+                    result = Launcher.g.run("annotations", "get_label_parent", **params)
+                    
+                    parent_level = result[0]
+                    parent_label_idx = result[1]
 
-                @label_layer.mouse_drag_callbacks.append
-                def view_location(layer, event):
-                    drag_pts = []
-                    coords = np.round(layer.coordinates).astype(int)
+                    @label_layer.bind_key("Control-Z", overwrite=True)
+                    def undo(v):
+                        level = cfg.current_annotation_name
+                        params = dict(workspace=True, level=level)
+                        result = Launcher.g.run("annotations", "annotate_undo", **params)
+                        cfg.ppw.clientEvent.emit(
+                            {
+                                "source": "annotations",
+                                "data": "update_annotations",
+                                "level_id": level,
+                            }
+                        )
 
-                    if cfg.retrieval_mode == "slice":
-                        drag_pt = [coords[0], coords[1]]
-                    elif cfg.retrieval_mode == "volume":
-                        drag_pt = [coords[0], coords[1], coords[2]]
-                    drag_pts.append(drag_pt)
-                    yield
+                    @label_layer.mouse_drag_callbacks.append
+                    def view_location(layer, event):
+                        drag_pts = []
+                        coords = np.round(layer.coordinates).astype(int)
 
-                    if layer.mode == "fill" or layer.mode == "pick":
-                        layer.mode = "paint"
+                        if cfg.retrieval_mode == "slice":
+                            drag_pt = [coords[0], coords[1]]
+                        elif cfg.retrieval_mode == "volume":
+                            drag_pt = [coords[0], coords[1], coords[2]]
+                        drag_pts.append(drag_pt)
+                        yield
 
-                    if layer.mode == "paint" or layer.mode == "erase":
-                        while event.type == "mouse_move":
-                            coords = np.round(layer.coordinates).astype(int)
+                        if layer.mode == "fill" or layer.mode == "pick":
+                            layer.mode = "paint"
 
-                            if cfg.retrieval_mode == "slice":
-                                drag_pt = [coords[0], coords[1]]
-                            elif cfg.retrieval_mode == "volume":
-                                drag_pt = [coords[0], coords[1], coords[2]]
+                        if layer.mode == "paint" or layer.mode == "erase":
+                            while event.type == "mouse_move":
+                                coords = np.round(layer.coordinates).astype(int)
 
-                            drag_pts.append(drag_pt)
-                            yield
+                                if cfg.retrieval_mode == "slice":
+                                    drag_pt = [coords[0], coords[1]]
+                                elif cfg.retrieval_mode == "volume":
+                                    drag_pt = [coords[0], coords[1], coords[2]]
 
-                        if len(drag_pts) >= 0:
-                            top_layer = viewer.layers[-1]
-                            layer_name = top_layer.name  # get last added layer name
-                            anno_layer = next(
-                                l for l in viewer.layers if l.name == layer_name
-                            )
+                                drag_pts.append(drag_pt)
+                                yield
 
-                            def update_anno(msg):
-                                src_arr, _ = get_annotation_array(
-                                    msg, retrieval_mode=cfg.retrieval_mode
+                            if len(drag_pts) >= 0:
+                                top_layer = viewer.layers[-1]
+                                layer_name = top_layer.name  # get last added layer name
+                                anno_layer = next(
+                                    l for l in viewer.layers if l.name == layer_name
                                 )
-                                update_annotation_layer(msg["level_id"], src_arr)
 
-                            update = partial(update_anno, msg=msg)
-                            paint_strokes_worker = paint_strokes(
-                                msg,
-                                drag_pts,
-                                layer,
-                                top_layer,
-                                anno_layer,
-                                parent_level,
-                                parent_label_idx,
-                            )
-                            paint_strokes_worker.returned.connect(update)
-                            paint_strokes_worker.start()
-                        else:
-                            cfg.ppw.clientEvent.emit(
-                                {
-                                    "source": "annotations",
-                                    "data": "update_annotations",
-                                    "level_id": msg["level_id"],
-                                }
-                            )
+                                def update_anno(msg):
+                                    src_arr, _ = get_annotation_array(
+                                        msg, retrieval_mode=cfg.retrieval_mode
+                                    )
+                                    update_annotation_layer(msg["level_id"], src_arr)
+
+                                update = partial(update_anno, msg=msg)
+                                paint_strokes_worker = paint_strokes(
+                                    msg,
+                                    drag_pts,
+                                    layer,
+                                    top_layer,
+                                    anno_layer,
+                                    parent_level,
+                                    parent_label_idx,
+                                )
+                                paint_strokes_worker.returned.connect(update)
+                                paint_strokes_worker.start()
+                            else:
+                                cfg.ppw.clientEvent.emit(
+                                    {
+                                        "source": "annotations",
+                                        "data": "update_annotations",
+                                        "level_id": msg["level_id"],
+                                    }
+                                )
+            except Exception as e:
+                print(f"Exception: {e}")
+
 
         def view_pipeline(msg):
             logger.debug(f"view_pipeline {msg['pipeline_id']} using {msg['level_id']}")
@@ -584,7 +603,6 @@ def frontend():
                         
                 levels_result = Launcher.g.run("annotations", "get_levels", **params)[0]
     
-
                 for v in levels_result["labels"].keys():
                     label_rgba = np.array(selected_layer.get_color(int(v)-1))
                     label_rgba = (255 * label_rgba).astype(np.uint8)
@@ -614,8 +632,12 @@ def frontend():
                 
                 entities_df = make_entity_df(entities_arr, flipxy=True)
                 print(entities_df)
-                tmp_fname = "./tmp/" + str(selected_layer.name) + ".csv"
-                entities_df.to_csv(tmp_fname, line_terminator="")
+                import ntpath
+                tmp_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv"))
+                print(tmp_fullpath)
+
+                #tmp_fname = "./tmp/" + str(selected_layer.name) + ".csv"
+                entities_df.to_csv(tmp_fullpath, line_terminator="")
                 
                 object_scale = 1.0
                 object_offset = (0.0,0.0,0.0)
@@ -623,17 +645,18 @@ def frontend():
                 object_crop_end = (1e5,1e5,1e5)
                 
                 params = dict(
-                    order=0, workspace=True, fullname=tmp_fname,
+                    order=0, workspace=True, fullname=tmp_fullpath,
                 )
                 result = Launcher.g.run("objects", "create", **params)
                 if result:
                     dst = DataModel.g.dataset_uri(result["id"], group="objects")
-                    params = dict(dst=dst, fullname=tmp_fname, scale=object_scale, 
+                    params = dict(dst=dst, fullname=tmp_fullpath, scale=object_scale, 
                                   offset=object_offset, crop_start=object_crop_start, crop_end=object_crop_end)
                     logger.debug(f"Getting objects with params {params}")
                     Launcher.g.run("objects", "points", **params)
 
-                
+                os.remove(tmp_fullpath)
+       
 
             elif isinstance(selected_layer, Image):
                 logger.debug("Transferring Image layer to Features.")
@@ -850,7 +873,10 @@ def frontend():
             name="Workspace"
         )
         pluginwidget_dockwidget.setWindowTitle("Workspace")
-        view_feature({"feature_id": "001_raw"})
+        #view_feature({"feature_id": "001_raw"})
+
+        view_feature({"feature_id": "001_raw"}, new_name="Raw")
+
 
         smallvol_control = SmallVolWidget(np.zeros((32, 32, 32)))
         cfg.smallvol_control = smallvol_control

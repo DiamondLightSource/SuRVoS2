@@ -13,6 +13,8 @@ import kornia
 from loguru import logger
 
 
+
+
 def make_gaussian_kernel(kernel_size, sigma, dim=3):
     """Make gaussian kernel
 
@@ -57,7 +59,6 @@ def make_gaussian_kernel(kernel_size, sigma, dim=3):
 
     kernel = kernel / torch.sum(kernel)
     kernel = kernel.view(1, *kernel.size())
-    # kernel = kernel.repeat(channels, *[1] * (kernel.dim() - 1))
 
     return kernel
 
@@ -175,17 +176,11 @@ def gaussian_norm(data, sigma=0.5, **kwargs):
     ----------
     data : 3 dimensional numpy array
         The data to be filtered
-    sigma : float or array of floats
-        The standard deviation of the Gaussian filter used to estimate the mean
-        and standard deviation of the kernel. Controls the radius and strength
-        of the filter. If an array is given, it has to satisfy
-        `len(sigma) = data.ndim`. Default: 0.5
+    sigma : float 
 
     Returns
     -------
-    result : 2 or 3 dimensional filtered `GPUArray`
-        The result of the filtering. Use `.get()` to
-        retrieve the corresponding Numpy array.
+    result : 3 dimensional numpy array
     """
     num = gaussian_center(data, sigma=sigma)
     den = np.sqrt(gaussian_blur_kornia(num ** 2, sigma=sigma))
@@ -196,8 +191,7 @@ def gaussian_norm(data, sigma=0.5, **kwargs):
     return num
 
 
-import torch
-import torch.nn as nn
+
 
 # adapted from kornia.losses.TotalVariation
 class TotalVariation(nn.Module):

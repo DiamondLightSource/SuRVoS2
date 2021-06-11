@@ -9,6 +9,7 @@ from typing import List, Dict
 from attrdict import AttrDict
 from skimage import io
 import mrcfile
+import tempfile
 
 from survos2.frontend.frontend import frontend
 
@@ -89,7 +90,9 @@ def init_ws(workspace_params):
         logger.info(f"Downsampling data by a factor of {downby}")
         img_volume = img_volume[::downby, ::downby, ::downby]
 
-    tmpvol_fullpath = "tmp\\tmpvol.h5"
+    import ntpath
+    tmpvol_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".h5")) 
+    print(tmpvol_fullpath)
 
     with h5py.File(tmpvol_fullpath, "w") as hf:
         hf.create_dataset("data", data=img_volume)
@@ -106,6 +109,9 @@ def init_ws(workspace_params):
     )
 
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
+
+
+    os.remove(tmpvol_fullpath)
 
     response = survos.run_command(
         "workspace",

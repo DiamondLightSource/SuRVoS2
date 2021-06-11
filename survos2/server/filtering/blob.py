@@ -275,15 +275,14 @@ def make_gaussian_1d(sigma=1.0, size=None, order=0, trunc=3):
 def compute_structure_tensor(data, sigma):
 
     logger.info("+ Computing Structure Tensor")
-    data = gaussian_blur_kornia(data, sigma=sigma)
+    
     gradients = np.gradient(data)
-
     H_elems = [
-        gradients[2 - ax0] * gradients[2 - ax1]
+        gaussian_blur_kornia(gradients[2 - ax0] * gradients[2 - ax1], sigma=sigma)
         for ax0, ax1 in combinations_with_replacement(range(3), 2)
     ]
 
-    return H_elems
+    return np.nan_to_num(H_elems)
 
 
 def compute_structure_tensor_determinant(data, sigma=1):
@@ -313,39 +312,9 @@ def compute_structure_tensor_determinant(data, sigma=1):
     )
     
     
-    return rescale_denan(determinant)
+    return determinant
 
 
-
-def compute_structure_tensor_eigvals(data, sigma):
-    """Structure tensor eigenvalues
-
-    Parameters
-    ----------
-    data : np.ndarray(D,H,W)
-        Input image
-    sigma : Vector of 3 floats
-        Kernel size
-
-    Returns
-    -------
-    np.ndarray()
-        [description]
-    """
-    Sxx, Sxy, Sxz, Syy, Syz, Szz = compute_structure_tensor(data, sigma)
-    logger.info("+ Computing Structure Tensor Eigenvalues")
-
-    img_t = (
-        kornia.utils.image_to_tensor(np.array(img_gray))
-        .float()
-        .unsqueeze(0)
-        .unsqueeze(0)
-    )
-
-    R, eigvec = torch.symeig(img_t, eigenvectors=False)
-    R: np.ndarray = kornia.tensor_to_image(R.float())
-
-    return R
 
 
 def divide_nonzero(array1, array2):

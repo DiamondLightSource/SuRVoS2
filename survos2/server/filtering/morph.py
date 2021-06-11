@@ -5,7 +5,10 @@ from loguru import logger
 
 def erode(I, num_iter, thresh=0.5):
     logger.info("+ Computing erosion")
+    I -= np.min(I)
+    I = I / np.max(I)
     I = (I >= thresh) * 1.0
+    
     struct2 = ndimage.generate_binary_structure(3, 2)
 
     for i in range(num_iter):
@@ -16,7 +19,11 @@ def erode(I, num_iter, thresh=0.5):
 
 def dilate(I, num_iter, thresh=0.5):
     logger.info("+ Computing dilation")
+
+    I -= np.min(I)
+    I = I / np.max(I)
     I = (I >= thresh) * 1.0
+    
     struct2 = ndimage.generate_binary_structure(3, 2)
 
     for i in range(num_iter):

@@ -22,6 +22,9 @@ from survos2.improc import map_blocks
 from survos2.io import dataset_from_uri
 from survos2.utils import encode_numpy
 
+from survos2.model import DataModel
+from survos2.improc.utils import DatasetManager
+
 __feature_group__ = "features"
 __feature_dtype__ = "float32"
 __feature_fill__ = 0
@@ -62,7 +65,7 @@ def structure_tensor_determinant(
     from ..server.filtering.blob import compute_structure_tensor_determinant
 
     map_blocks(
-        compute_structure_tensor_determinant, src, out=dst, sigma=sigma, normalize=True
+        compute_structure_tensor_determinant, src, out=dst, sigma=sigma, pad=max(4, int((max(sigma) *2))),normalize=True
     )
 
 
@@ -92,6 +95,7 @@ def frangi(
         gamma=15,
         dark_response=True,
         normalize=True,
+        pad=max(4, int((scale_max *2))),
     )
 
 
@@ -105,21 +109,7 @@ def frangi(
 
 @hug.get()
 @save_metadata
-def hessian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
-    from ..server.filtering.blob import hessian_eigvals_image
-
-    map_blocks(
-        hessian_eigvals_image,
-        src,
-        out=dst,
-        pad=max(4, int((max(sigma) + 1) / 2)+1),
-        sigma=sigma,
-        normalize=True,
-    )
-
-@hug.get()
-@save_metadata
-def hessian_eigvals(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
+def hessian_eigenvalues(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
     from ..server.filtering.blob import hessian_eigvals_image
 
     map_blocks(
@@ -153,6 +143,20 @@ def simple_invert(src: DataURI, dst: DataURI) -> "BASE":
 
 @hug.get()
 @save_metadata
+def rescale(src: DataURI, dst: DataURI) -> "BASE":
+    from ..server.filtering import rescale_denan
+
+    logger.debug(f"Rescaling src {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0][:]
+        
+        filtered = rescale_denan(src_dataset)   
+        
+    map_blocks(pass_through, filtered, out=dst, normalize=False)
+
+
+@hug.get()
+@save_metadata
 def gamma_correct(src: DataURI, dst: DataURI, gamma: Float = 1.0) -> "BASE":
     from ..server.filtering import gamma_adjust
 
@@ -164,7 +168,7 @@ def gamma_correct(src: DataURI, dst: DataURI, gamma: Float = 1.0) -> "BASE":
 def dilation(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
     from ..server.filtering import dilate
 
-    map_blocks(dilate, src, num_iter=num_iter, out=dst, normalize=True)
+    map_blocks(dilate, src, num_iter=num_iter, out=dst, normalize=True, pad=max(4, int(num_iter*2)) ) 
 
 
 @hug.get()
@@ -172,12 +176,12 @@ def dilation(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
 def erosion(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
     from ..server.filtering import erode
 
-    map_blocks(erode, src, num_iter=num_iter, out=dst, normalize=True)
+    map_blocks(erode, src, num_iter=num_iter, out=dst, normalize=True, pad=max(4, int(num_iter*2)) )
 
 
 @hug.get()
 @save_metadata
-def tvdenoise_kornia(
+def tvdenoise(
     src: DataURI,
     dst: DataURI,
     regularization_amount: Float = 0.001,
@@ -243,13 +247,13 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
         out=dst,
         sigma=sigma,
         pad=max(4, int((max(sigma) + 1) / 2)),
-        normalize=True,
+        normalize=False,
     )
 
 
 @hug.get()
 @save_metadata
-def ndimage_laplacian(
+def laplacian(
     src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1
 ) -> "EDGES":
     from ..server.filtering import ndimage_laplacian
@@ -259,29 +263,15 @@ def ndimage_laplacian(
         src,
         out=dst,
         kernel_size=kernel_size,
-        pad=max(4, int((max(kernel_size) + 1) / 2)),
+        pad=max(4, int(max(kernel_size)) * 2),
         normalize=False,
     )
 
 
-@hug.get()
-@save_metadata
-def laplacian(src: DataURI, dst: DataURI, kernel_size: Float = 2.0) -> "EDGES":
-    from ..server.filtering.edge import laplacian
-
-    map_blocks(
-        laplacian,
-        src,
-        out=dst,
-        kernel_size=kernel_size,
-        pad=max(4, int(kernel_size) * 2),
-        normalize=False,
-    )
-
 
 @hug.get()
 @save_metadata
-def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
+def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "NEIGHBORHOOD":
     from ..server.filtering.blur import gaussian_norm
 
     map_blocks(
@@ -289,7 +279,7 @@ def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
         src,
         out=dst,
         sigma=sigma,
-        pad=max(4, int((max(sigma) + 1) / 2)),
+        pad=max(4, int((max(sigma) * 2))),
         normalize=True,
     )
 
@@ -298,7 +288,7 @@ def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
 @save_metadata
 def gaussian_center(
     src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
-) -> "DENOISING":
+) -> "NEIGHBORHOOD":
 
     from ..server.filtering.blur import gaussian_center
 
@@ -307,7 +297,7 @@ def gaussian_center(
         src,
         out=dst,
         sigma=sigma,
-        pad=max(4, int((max(sigma) + 1) / 2)),
+        pad=max(4, int((max(sigma)  * 2))),
         normalize=True,
     )
 

@@ -75,7 +75,7 @@ def produce_patches(padded_vol, padded_anno, offset_locs, bvol_grid):
         patch_anno, patch_pts = crop_vol_and_pts_bb(
             padded_anno, offset_locs, entitybvol_to_cropbvol(bvol_grid[i]), offset=True
         )
-        patch_bvol = centroid_to_bvol(patch_pts, bvol_dim=(24, 24, 24))
+        patch_bvol = centroid_to_detnet_bvol(patch_pts, bvol_dim=(10,10,10))
         patches.append(patch)
         patches_bvols.append(patch_bvol)
         patches_pts.append(patch_pts)
@@ -146,6 +146,45 @@ def offset_points(pts, offset, scale=32, random_offset=False):
         trans_pts = trans_pts + offset_rand
 
     return trans_pts
+
+
+
+
+def centroid_to_detnet_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
+    """Centroid to bounding volume
+
+    Parameters
+    ----------
+    centers : np.ndarray, (nx3)
+        3d coordinates of the point to use as the centroid of the bounding box
+    bvol_dim : tuple, optional
+        Dimensions of the bounding volume centered at the points given by centers, by default (10, 10, 10)
+    flipxy : bool, optional
+        Flip x and y coordinates, by default False
+
+    Returns
+    -------
+    np.ndarray, (nx6)
+        (x_start, y_start, x_fin, y_fin, z_start, z_fin)
+    """
+    d, w, h = bvol_dim
+    
+    if flipxy:
+        bvols = np.array(
+            [
+                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
+                for cz, cx, cy, _ in centers
+            ]
+        )
+    else:
+        bvols = np.array(
+            [
+                (cx - w, cy - h, cx + w, cy + h,cz - d,cz + d)
+                for cz, cy, cx, _ in centers
+            ]
+        )
+
+    return bvols
 
 
 def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):

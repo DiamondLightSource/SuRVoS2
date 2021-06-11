@@ -11,51 +11,53 @@ from survos2.server.state import cfg
 @thread_worker
 def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer, parent_level=None, parent_label_idx=None):
     level = msg["level_id"]
-
     if len(drag_pts) == 0:
         return
     
-    sel_label = int(cfg.label_value["idx"]) - 1
-    anno_layer.selected_label = sel_label
-    anno_layer.brush_size = int(cfg.brush_size)
 
-    if layer.mode == "erase":
-        sel_label = 0
-        cfg.current_mode = "erase"
-    else:
-        cfg.current_mode = "paint"
-
-    line_x = []
-    line_y = []
-
-    if len(drag_pts[0]) == 2:
-        px, py = drag_pts[0]
-        z = cfg.current_slice
-    else:
-        z, px, py = drag_pts[0]
-
-    if len(drag_pts[0]) == 2:
-    # depending on the slice mode we need to handle either 2 or 3 coordinates
-        for x, y in drag_pts[1:]:
-            if x < anno_layer.data.shape[1] and y < anno_layer.data.shape[2]:
-                yy, xx = line(py, px, y, x)
-                line_x.extend(xx)
-                line_y.extend(yy)
-                py, px = y, x
-                anno_shape = (anno_layer.data.shape[0], anno_layer.data.shape[1])
-    else: # cfg.retrieval_mode == 'volume':
-        for _, x, y in drag_pts[1:]:
-            if x < anno_layer.data.shape[1] and y < anno_layer.data.shape[2]:
-                yy, xx = line(py, px, y, x)
-                line_x.extend(xx)
-                line_y.extend(yy)
-                py, px = y, x
-                anno_shape = (anno_layer.data.shape[1], anno_layer.data.shape[2])
-
-    line_x = np.array(line_x)
-    line_y = np.array(line_y)
-    
     try:
+        sel_label = int(cfg.label_value["idx"]) - 1
+        anno_layer.selected_label = sel_label
+        anno_layer.brush_size = int(cfg.brush_size)
+ 
+
+
+        if layer.mode == "erase":
+            sel_label = 0
+            cfg.current_mode = "erase"
+        else:
+            cfg.current_mode = "paint"
+
+        line_x = []
+        line_y = []
+
+        if len(drag_pts[0]) == 2:
+            px, py = drag_pts[0]
+            z = cfg.current_slice
+        else:
+            z, px, py = drag_pts[0]
+
+        if len(drag_pts[0]) == 2:
+        # depending on the slice mode we need to handle either 2 or 3 coordinates
+            for x, y in drag_pts[1:]:
+                if x < anno_layer.data.shape[1] and y < anno_layer.data.shape[2]:
+                    yy, xx = line(py, px, y, x)
+                    line_x.extend(xx)
+                    line_y.extend(yy)
+                    py, px = y, x
+                    anno_shape = (anno_layer.data.shape[0], anno_layer.data.shape[1])
+        else: # cfg.retrieval_mode == 'volume':
+            for _, x, y in drag_pts[1:]:
+                if x < anno_layer.data.shape[1] and y < anno_layer.data.shape[2]:
+                    yy, xx = line(py, px, y, x)
+                    line_x.extend(xx)
+                    line_y.extend(yy)
+                    py, px = y, x
+                    anno_shape = (anno_layer.data.shape[1], anno_layer.data.shape[2])
+
+        line_x = np.array(line_x)
+        line_y = np.array(line_y)
+        
         if len(line_y) > 0:
             from survos2.frontend.plugins.annotations import dilate_annotations
 

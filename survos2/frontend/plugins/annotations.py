@@ -53,7 +53,7 @@ def dilate_annotations(yy, xx, img_shape, line_width):
         yy += ymin
         xx += xmin
     except Exception as err:
-        print(err)
+        print(f"Exception: {err}")
     return yy, xx
 
 
@@ -106,11 +106,8 @@ class AnnotationPlugin(Plugin):
         hbox.addWidget(self.btn_set)
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
-
         self.width = Slider(value=10, vmin=2, vmax=50, step=2, auto_accept=True)
-                
         hbox.addWidget(self.width)
-        #hbox.addWidget(None, 1)
 
         self.vbox.addLayout(hbox)
 
@@ -171,7 +168,7 @@ class AnnotationPlugin(Plugin):
         cfg.current_supervoxels = self.region.value()
         cfg.label_value = self.label.value()
         cfg.brush_size = self.width.value()
-        print(cfg.current_supervoxels, cfg.label_value)
+        print(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
 
         if cfg.label_value is not None:
             # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
@@ -229,12 +226,6 @@ class AnnotationLevel(Card):
             _AnnotationNotifier.notify()
 
     def card_deleted(self):
-        params = dict(level=self.level_id, workspace=True)
-        result = Launcher.g.run("annotations", "delete_level", **params)
-        if result:
-            self.removed.emit(self.level_id)
-            _AnnotationNotifier.notify()
-
         cfg.ppw.clientEvent.emit(
             {
                 "source": "annotations",
@@ -242,6 +233,15 @@ class AnnotationLevel(Card):
                 "layer_name": self.level_id,
             }
         )
+
+        params = dict(level=self.level_id, workspace=True)
+        result = Launcher.g.run("annotations", "delete_level", **params)
+        if result:
+            self.removed.emit(self.level_id)
+            #_AnnotationNotifier.notify()
+
+        cfg.current_annotation_layer = None
+ 
 
     def remove_label(self, idx):
         if idx in self.labels:
