@@ -90,7 +90,6 @@ def init_ws(workspace_params):
         logger.info(f"Downsampling data by a factor of {downby}")
         img_volume = img_volume[::downby, ::downby, ::downby]
 
-    import ntpath
     tmpvol_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".h5")) 
     print(tmpvol_fullpath)
 

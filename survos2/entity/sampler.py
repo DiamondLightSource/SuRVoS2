@@ -150,42 +150,6 @@ def offset_points(pts, offset, scale=32, random_offset=False):
 
 
 
-def centroid_to_detnet_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
-    """Centroid to bounding volume
-
-    Parameters
-    ----------
-    centers : np.ndarray, (nx3)
-        3d coordinates of the point to use as the centroid of the bounding box
-    bvol_dim : tuple, optional
-        Dimensions of the bounding volume centered at the points given by centers, by default (10, 10, 10)
-    flipxy : bool, optional
-        Flip x and y coordinates, by default False
-
-    Returns
-    -------
-    np.ndarray, (nx6)
-        (x_start, y_start, x_fin, y_fin, z_start, z_fin)
-    """
-    d, w, h = bvol_dim
-    
-    if flipxy:
-        bvols = np.array(
-            [
-                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
-                for cz, cx, cy, _ in centers
-            ]
-        )
-    else:
-        bvols = np.array(
-            [
-                (cx - w, cy - h, cx + w, cy + h,cz - d,cz + d)
-                for cz, cy, cx, _ in centers
-            ]
-        )
-
-    return bvols
-
 
 def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
     """Centroid to bounding volume

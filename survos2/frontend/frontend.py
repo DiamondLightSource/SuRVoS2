@@ -631,12 +631,10 @@ def frontend():
                 entities_arr = np.concatenate((selected_layer.data, np.zeros((len(selected_layer.data),1))), axis=1)
                 
                 entities_df = make_entity_df(entities_arr, flipxy=True)
-                print(entities_df)
-                import ntpath
+                
                 tmp_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv"))
                 print(tmp_fullpath)
 
-                #tmp_fname = "./tmp/" + str(selected_layer.name) + ".csv"
                 entities_df.to_csv(tmp_fullpath, line_terminator="")
                 
                 object_scale = 1.0
