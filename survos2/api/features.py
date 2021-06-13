@@ -229,7 +229,7 @@ def difference_of_gaussians(
         out=dst,
         sigma=sigma,
         sigma_ratio=sigma_ratio,
-        pad=max(4, int((max(sigma) *2))),
+        pad=max(4, int((max(sigma) * 3))),
         normalize=False,
     )
 
@@ -263,7 +263,7 @@ def laplacian(
         src,
         out=dst,
         kernel_size=kernel_size,
-        pad=max(4, int(max(kernel_size)) * 2),
+        pad=max(4, int(max(kernel_size)) * 3),
         normalize=False,
     )
 
@@ -315,7 +315,7 @@ def median(
         median_size=median_size,
         num_iter=num_iter,
         out=dst,
-        pad=0,
+        pad=max(4, int((median_size  * 2))),
         normalize=False,
     )
 

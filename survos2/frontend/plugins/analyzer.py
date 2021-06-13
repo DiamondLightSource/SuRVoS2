@@ -165,7 +165,7 @@ class AnalyzerCard(Card):
         self.analyzer_id = analyzer_id
         self.analyzer_name = analyzer_name
         self.analyzer_type = analyzer_type
-
+        
         if self.analyzer_type=="image_stats":
             self._add_features_source()
         else:
@@ -177,7 +177,7 @@ class AnalyzerCard(Card):
         self.add_row(HWidgets(None, self.calc_btn, self.plot_btn, Spacing(35)))
         self.calc_btn.clicked.connect(self.calculate_analyzer)
         self.plot_btn.clicked.connect(self.clustering_plot)
-
+        self.table_control = None
     def _add_objects_source(self):
         self.objects_source = ObjectComboBox(full=True)
         self.objects_source.fill()
@@ -242,11 +242,6 @@ class AnalyzerCard(Card):
             logger.debug(f"Running analyzer with params {all_params}")
             result = Launcher.g.run("analyzer", "object_stats", **all_params)
             if result:
-                resultrow = HWidgets(str(len(result)))
-                self.add_row(resultrow, max_height=300)
-
-                table_control = TableWidget()
-
                 logger.debug(f"Object stats result table {len(result)}")
                 
                 tabledata = []
@@ -265,8 +260,11 @@ class AnalyzerCard(Card):
                     ],
                 )
             
-                table_control.set_data(tabledata)
-                self.add_row(table_control.w, max_height=500)
+                if self.table_control is None:
+                    self.table_control = TableWidget()
+                    self.add_row(self.table_control.w, max_height=500)        
+
+                self.table_control.set_data(tabledata)
                 self.collapse()
                 self.expand()
                 
