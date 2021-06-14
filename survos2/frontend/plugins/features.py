@@ -89,11 +89,12 @@ class FeaturesPlugin(Plugin):
             _FeatureNotifier.notify()
 
     def _add_feature_widget(self, fid, ftype, fname, expand=False):
-        widget = FeatureCard(fid, ftype, fname, self.feature_params[ftype])
-        widget.showContent(expand)
-        self.vbox.addWidget(widget)
-        self.existing_features[fid] = widget
-        return widget
+        if ftype in self.feature_params:
+            widget = FeatureCard(fid, ftype, fname, self.feature_params[ftype])
+            widget.showContent(expand)
+            self.vbox.addWidget(widget)
+            self.existing_features[fid] = widget
+            return widget
 
     def setup(self):
         params = dict(
@@ -117,8 +118,9 @@ class FeaturesPlugin(Plugin):
                 ftype = params.pop("kind")
                 fname = params.pop("name", feature)
                 widget = self._add_feature_widget(fid, ftype, fname)
-                widget.update_params(params)
-                self.existing_features[fid] = widget
+                if widget:
+                    widget.update_params(params)
+                    self.existing_features[fid] = widget
 
 
 class FeatureCard(Card):
