@@ -120,6 +120,7 @@ def frontend():
     cfg.supervoxels_cache = None
     cfg.supervoxels_cached = False
     cfg.current_regions_dataset = None
+    cfg.num_undo = 0
 
     label_dict = {
         "level": "001_level",
@@ -356,16 +357,18 @@ def frontend():
 
                     @label_layer.bind_key("Control-Z", overwrite=True)
                     def undo(v):
-                        level = cfg.current_annotation_name
-                        params = dict(workspace=True, level=level)
-                        result = Launcher.g.run("annotations", "annotate_undo", **params)
-                        cfg.ppw.clientEvent.emit(
-                            {
-                                "source": "annotations",
-                                "data": "update_annotations",
-                                "level_id": level,
-                            }
-                        )
+                        if cfg.num_undo == 0:
+                            level = cfg.current_annotation_name
+                            params = dict(workspace=True, level=level)
+                            result = Launcher.g.run("annotations", "annotate_undo", **params)
+                            cfg.ppw.clientEvent.emit(
+                                {
+                                    "source": "annotations",
+                                    "data": "update_annotations",
+                                    "level_id": level,
+                                }
+                            )
+                            cfg.num_undo += 1
 
                     @label_layer.mouse_drag_callbacks.append
                     def view_location(layer, event):
@@ -383,6 +386,7 @@ def frontend():
                             layer.mode = "paint"
 
                         if layer.mode == "paint" or layer.mode == "erase":
+                            
                             while event.type == "mouse_move":
                                 coords = np.round(layer.coordinates).astype(int)
 
@@ -419,6 +423,7 @@ def frontend():
                                 )
                                 paint_strokes_worker.returned.connect(update)
                                 paint_strokes_worker.start()
+                                cfg.num_undo = 0
                             else:
                                 cfg.ppw.clientEvent.emit(
                                     {
@@ -427,6 +432,7 @@ def frontend():
                                         "level_id": msg["level_id"],
                                     }
                                 )
+                            
             except Exception as e:
                 print(f"Exception: {e}")
 
