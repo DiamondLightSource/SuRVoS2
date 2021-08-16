@@ -54,6 +54,7 @@ def datamodel():
         hf.create_dataset("data", data=testvol)
 
     tmp_ws_name = "testworkspace_tmp1"
+    print(DataModel.g.CHROOT)
 
     result = survos.run_command("workspace", "get", uri=None, workspace=tmp_ws_name)
 
@@ -98,7 +99,8 @@ class Tests(object):
             dst_arr = dst_dataset[:]
 
         assert dst_arr.shape == (4, 4, 4)
-
+        assert np.max(dst_arr) <= 1.0
+        assert np.min(dst_arr) >= 0.0
 
 if __name__ == "__main__":
     pytest.main()
