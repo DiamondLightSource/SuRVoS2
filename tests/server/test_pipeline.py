@@ -254,23 +254,7 @@ class Tests(object):
         
         assert len(result[0]) == 2
 
-    def test_analyzers(self, datamodel):
-        DataModel = datamodel
-
-        # add data to workspace
-        result = survos.run_command(
-            "analyzer", "create", uri=None, workspace=DataModel.g.current_workspace
-        )
-        assert result[0]["id"] == "001_image_stats"
-
-        result = survos.run_command('analyzer', 'create', uri=None, workspace=DataModel.g.current_workspace, order=5)
-        assert result[0]["id"] == "002_label_splitter"
-
-        result = survos.run_command('analyzer', 'existing', uri=None, workspace=DataModel.g.current_workspace,
-                  dtype='float32')
-
-        print(result)
-        assert len(result[0])==2
+   
 
 
 if __name__ == "__main__":
