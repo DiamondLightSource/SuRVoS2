@@ -1,24 +1,19 @@
 import os
-import sys
 import numpy as np
 from loguru import logger
 import h5py
-import json
-import time
-from typing import List, Dict
-from attrdict import AttrDict
 from skimage import io
 import mrcfile
 import tempfile
 
-from survos2.frontend.frontend import frontend
 
-from survos2.entity.entities import make_entity_df
 from survos2 import survos
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
-from survos2.entity.sampler import crop_vol_and_pts_centered
 from survos2.model.workspace import WorkspaceException
+
+from survos2.entity.sampler import crop_vol_and_pts_centered
+from survos2.entity.entities import make_entity_df
 
 
 def preprocess(img_volume):
@@ -90,28 +85,39 @@ def init_ws(workspace_params):
         logger.info(f"Downsampling data by a factor of {downby}")
         img_volume = img_volume[::downby, ::downby, ::downby]
 
-    tmpvol_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".h5")) 
-    print(tmpvol_fullpath)
+    tmpvol_fullpath = os.path.abspath(
+        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".h5")
+    )
+    logger.info(tmpvol_fullpath)
 
     with h5py.File(tmpvol_fullpath, "w") as hf:
         hf.create_dataset("data", data=img_volume)
 
+    # survos.load_settings()
+
+    # result = Launcher.g.run("workspace", "create", workspace=ws_name)
+
     survos.run_command("workspace", "create", workspace=ws_name)
-    logger.info(f"Created workspace {ws_name}")
+
+    # result = Launcher.g.run("workspace", "add_data", workspace=ws_name,
+    #                        data_fname=tmpvol_fullpath,
+    #                        dtype="float32")
 
     survos.run_command(
         "workspace",
         "add_data",
         workspace=ws_name,
         data_fname=tmpvol_fullpath,
-        dtype="float32",
     )
 
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
 
-
     os.remove(tmpvol_fullpath)
-
+    # result = Launcher.g.run("workspace", "add_dataset",
+    #                        workspace=ws_name,
+    #                        dataset_name=dataset_name,
+    #                        dtype="float32"
+    # )
     response = survos.run_command(
         "workspace",
         "add_dataset",
@@ -121,9 +127,15 @@ def init_ws(workspace_params):
     )
 
     DataModel.g.current_workspace = ws_name
+
+    # response = Launcher.g.run("features", "create",
+    #                       workspace=ws_name,
+    #                       feature_type="raw")
+
     survos.run_command(
         "features", "create", uri=None, workspace=ws_name, feature_type="raw"
     )
+
     src = DataModel.g.dataset_uri("__data__", None)
     dst = DataModel.g.dataset_uri("001_raw", group="features")
     with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
@@ -133,8 +145,7 @@ def init_ws(workspace_params):
         src_arr = orig_dataset[:]
         dst_dataset[:] = src_arr
 
-    return response
-
+    return (_, response)
 
 
 def roi_ws(img_volume, ws_name):
@@ -199,5 +210,8 @@ def precrop(img_volume, entities_df, precrop_coord, precrop_vol_size):
     entities_df = make_entity_df(precropped_pts, flipxy=False)
     return img_volume, entities_df
 
+
 def start_client():
+    from survos2.frontend.frontend import frontend
+
     frontend()

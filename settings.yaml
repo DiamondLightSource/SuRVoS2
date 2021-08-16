@@ -1,89 +1,87 @@
-title: 'SuRVoS2: Super-Region Volume Segmentation Workbench'
-
 api:
+  host: 127.0.0.1
   plugins:
-    - workspace
-    - render
-    - features
-    - regions
-    - annotations
-    - pipelines
-    - objects
-    - analyzer
-    - export
+  - workspace
+  - render
+  - server
+  - features
+  - regions
+  - annotations
+  - pipelines
+  - objects
+  - analyzer
+  - export
+  port: 8123
+  renderer: mpl
 computing:
+  chunk_padding: 8
+  chunk_size: 10
+  chunk_size_sparse: 10
   chunks: true
-  chunk_size: 16     # 1024 is 1 Gb
-  chunk_padding : 8
-logging:
-  level: info
-environments:
-  ###########################################
-  # Set with SURVOS_ENV environment variable
-  # Will overwrite existing configs
-  ###########################################
-  test: # SURVOS_ENV=test
-    api:
-      renderer: mpl  
-    computing:
-      chunks: false      # Automatic chunking
-      chunk_size: 10   # in MB
-      chunk_size_sparse: 10
-    model:
-      chroot: temp       # will create a temporary directory
-    logging:
-      file: /tmp/survos.log
-      level: debug
-
+  scale: false
+  stretch: false
 filters:
+  filter1:
+    feature: gaussian
+    params:
+      sigma: 2
+    plugin: features
+  filter2:
+    feature: gaussian
+    params:
+      sigma: 2
+    plugin: features
+  filter3:
+    feature: tvdenoising3d
+    params:
+      lamda: 3.7
+    plugin: features
+  filter4:
+    feature: laplacian
+    params:
+      kernel_size: 3
+    plugin: features
+  filter5:
+    feature: gradient
+    params:
+      sigma: 3
+    plugin: features
   superregions1:
-    plugin: superregions
     feature: slic
     params:
-      slic_feat_idx: -1
       compactness: 20
       postprocess: false
+      slic_feat_idx: -1
       sp_shape:
       - 18
       - 18
       - 18
-  filter1: 
-    plugin: features
-    feature: gaussian
-    params:
-        sigma: 2
-  filter2: 
-    plugin: features
-    feature: gaussian
-    params:
-        sigma: 2
-  filter3:
-    plugin: features
-    feature: tvdenoising3d
-    params:
-        lamda: 3.7
-  filter4:
-    plugin: features
-    feature: laplacian
-    params:
-        kernel_size: 3
-  filter5:
-    plugin: features
-    feature: gradient  
-    params:
-        sigma: 3
-
+    plugin: superregions
+logging:
+  file: ''
+  file_format: '%(asctime)s - | %(levelname)8s | %(message)s'
+  level: debug
+  std: true
+  std_format: '%(levelname)8s | %(message)s'
+model:
+  chroot: /dls/science/groups/das/SuRVoS/s2/data
+  dbtype: yaml
 pipeline:
   calculate_features: true
   calculate_supervoxels: true
-  load_pretrained_classifier: true
   load_annotation: false
-  predict_params:
-    clf: ensemble
-    type: rf 
-    n_estimators: 10
-    proj: rproj
-    max_depth: 20
-    n_jobs: 1
+  load_pretrained_classifier: true
   mask_params:
-    mask_radius: 10 
+    mask_radius: 10
+  predict_params:
+    clf: Ensemble
+    max_depth: 20
+    n_estimators: 10
+    n_jobs: 1
+    proj: rproj
+    type: rf
+qtui:
+  maximized: false
+  menuKey: \
+slic: skimage
+title: 'SuRVoS2: Super-Region Volume Segmentation Workbench'

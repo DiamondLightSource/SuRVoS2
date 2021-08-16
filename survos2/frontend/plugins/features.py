@@ -12,6 +12,9 @@ from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.plugins_components import SourceComboBox
 from survos2.server.state import cfg
 
+from napari.qt import progress
+
+
 _FeatureNotifier = PluginNotifier()
 
 
@@ -55,7 +58,6 @@ class FeaturesPlugin(Plugin):
         self.existing_features = dict()
         self._populate_features()
 
-
     def _populate_features(self):
         self.feature_params = {}
         self.feature_combo.clear()
@@ -74,8 +76,12 @@ class FeaturesPlugin(Plugin):
                     self.feature_combo.addItem(f["name"])
 
     def add_feature(self, idx):
-        if idx == 0:
+        if idx <= 0:
             return
+        logger.debug(f"Adding feature {self.feature_combo.itemText(idx)}")
+        if self.feature_combo.itemText(idx) == "":
+            return
+
         feature_type = self.feature_combo.itemText(idx)
         self.feature_combo.setCurrentIndex(0)
         params = dict(feature_type=feature_type, workspace=True)
@@ -96,7 +102,13 @@ class FeaturesPlugin(Plugin):
             self.existing_features[fid] = widget
             return widget
 
+    def clear(self):
+        for feature in list(self.existing_features.keys()):
+            self.existing_features.pop(feature).setParent(None)
+        self.existing_features = {}
+
     def setup(self):
+        self._populate_features()
         params = dict(
             workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
         )
@@ -117,10 +129,23 @@ class FeaturesPlugin(Plugin):
                 fid = params.pop("id", feature)
                 ftype = params.pop("kind")
                 fname = params.pop("name", feature)
-                widget = self._add_feature_widget(fid, ftype, fname)
-                if widget:
+
+                logger.debug(f"fid {fid} ftype {ftype} fname {fname}")
+                if params.pop("kind", "unknown") != "unknown":
+
+                    widget = self._add_feature_widget(fid, ftype, fname)
                     widget.update_params(params)
                     self.existing_features[fid] = widget
+
+                else:
+                    logger.debug(
+                        "+ Skipping loading feature: {}, {}".format(fid, fname)
+                    )
+                    if ftype:
+                        widget = self._add_feature_widget(fid, ftype, fname)
+                        if widget:
+                            widget.update_params(params)
+                            self.existing_features[fid] = widget
 
 
 class FeatureCard(Card):
@@ -136,10 +161,9 @@ class FeatureCard(Card):
         self.params = fparams
         self.widgets = dict()
 
-        from qtpy.QtWidgets import QProgressBar
-
-        self.pbar = QProgressBar(self)
-        self.add_row(self.pbar)
+        # from qtpy.QtWidgets import QProgressBar
+        # self.pbar = QProgressBar(self)
+        # self.add_row(self.pbar)
 
         self._add_source()
         for pname, params in fparams.items():
@@ -174,12 +198,22 @@ class FeatureCard(Card):
     def _add_view_btn(self):
         view_btn = PushButton("View", accent=True)
         view_btn.clicked.connect(self.view_feature)
-        self.add_row(HWidgets(None, view_btn,))
+        self.add_row(
+            HWidgets(
+                None,
+                view_btn,
+            )
+        )
 
     def _add_compute_btn(self):
         compute_btn = PushButton("Compute", accent=True)
         compute_btn.clicked.connect(self.compute_feature)
-        self.add_row(HWidgets(None, compute_btn,))
+        self.add_row(
+            HWidgets(
+                None,
+                compute_btn,
+            )
+        )
 
     def update_params(self, params):
         src = params.pop("source", None)
@@ -216,28 +250,32 @@ class FeatureCard(Card):
         )
 
     def compute_feature(self):
-        self.pbar.setValue(25)
-        src_grp = None if self.cmb_source.currentIndex() == 0 else "features"
+        with progress(total=3) as pbar:
+            pbar.set_description("Calculating feature")
+            # self.pbar.setValue(25)
+            pbar.update(1)
+            src_grp = None if self.cmb_source.currentIndex() == 0 else "features"
 
-        src = DataModel.g.dataset_uri(self.cmb_source.value(), group=src_grp)
-        logger.info(f"Setting src: {self.cmb_source.value()} ")
+            src = DataModel.g.dataset_uri(self.cmb_source.value(), group=src_grp)
+            logger.info(f"Setting src: {self.cmb_source.value()} ")
 
-        dst = DataModel.g.dataset_uri(self.feature_id, group="features")
-        self.pbar.setValue(50)
+            dst = DataModel.g.dataset_uri(self.feature_id, group="features")
+            # self.pbar.setValue(50)
 
-        logger.info(f"Setting dst: {self.feature_id}")
-        logger.info(f"widgets.items() {self.widgets.items()}")
+            logger.info(f"Setting dst: {self.feature_id}")
+            logger.info(f"widgets.items() {self.widgets.items()}")
+            pbar.update(1)
 
-        all_params = dict(src=src, dst=dst, modal=True)
-        all_params.update({k: v.value() for k, v in self.widgets.items()})
+            all_params = dict(src=src, dst=dst, modal=True)
+            all_params.update({k: v.value() for k, v in self.widgets.items()})
 
-        logger.info(f"Computing features: {self.feature_type} {all_params}")
-        result = Launcher.g.run("features", self.feature_type, **all_params)
-
-        if result is not None:
-            self.pbar.setValue(100)
-
-        print(result)
+            logger.info(f"Computing features: {self.feature_type} {all_params}")
+            # result = Launcher.g.run("features", self.feature_type, **all_params)
+            Launcher.g.run("features", self.feature_type, **all_params)
+            
+            # pbar.update(1)
+            # if result is not None:
+            #     self.pbar.setValue(100)
 
     def card_title_edited(self, newtitle):
         params = dict(feature_id=self.feature_id, new_name=newtitle, workspace=True)

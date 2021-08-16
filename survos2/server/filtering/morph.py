@@ -1,14 +1,15 @@
 import numpy as np
 from scipy import ndimage
 from loguru import logger
+from skimage.morphology import skeletonize as skeletonize_skimage
 
 
 def erode(I, num_iter, thresh=0.5):
-    logger.info("+ Computing erosion")
+
     I -= np.min(I)
     I = I / np.max(I)
     I = (I >= thresh) * 1.0
-    
+
     struct2 = ndimage.generate_binary_structure(3, 2)
 
     for i in range(num_iter):
@@ -18,12 +19,11 @@ def erode(I, num_iter, thresh=0.5):
 
 
 def dilate(I, num_iter, thresh=0.5):
-    logger.info("+ Computing dilation")
 
     I -= np.min(I)
     I = I / np.max(I)
     I = (I >= thresh) * 1.0
-    
+
     struct2 = ndimage.generate_binary_structure(3, 2)
 
     for i in range(num_iter):
@@ -32,11 +32,90 @@ def dilate(I, num_iter, thresh=0.5):
     return I
 
 
+def opening(I, num_iter, thresh=0.5):
+
+    I -= np.min(I)
+    I = I / np.max(I)
+    I = (I >= thresh) * 1.0
+
+    struct2 = ndimage.generate_binary_structure(3, 2)
+
+    for i in range(num_iter):
+        I = ndimage.binary_opening(I, structure=struct2).astype(I.dtype)
+
+    return I
+
+
+def closing(I, num_iter, thresh=0.5):
+
+    I -= np.min(I)
+    I = I / np.max(I)
+    I = (I >= thresh) * 1.0
+
+    struct2 = ndimage.generate_binary_structure(3, 2)
+
+    for i in range(num_iter):
+        I = ndimage.binary_closing(I, structure=struct2).astype(I.dtype)
+
+    return I
+
+
+def distance_transform_edt(I, thresh=0.5):
+
+    I -= np.min(I)
+    I = I / np.max(I)
+    I = (I >= thresh) * 1.0
+
+    I = ndimage.distance_transform_edt(I)
+
+    return I
+
+
 def median(I, median_size, num_iter, thresh=0.5):
-    logger.info(f"+ Computing median with size {median_size} and num_iter {num_iter}")
+    """Median filter, using ndimage implementation.
+
+    Parameters
+    ----------
+    data : np.ndarray (D,H,W)
+        Input image
+    median_size : int
+        Median size
+    num_iter : int
+
+    Returns
+    -------
+    np.ndarray (D,H,W)
+        Median filtered image
+    """
     I = I * 1.0
 
     for i in range(num_iter):
         I = ndimage.median_filter(I, median_size).astype(I.dtype)
 
     return I
+
+
+def skeletonize(I, thresh=0.5):
+
+    I -= np.min(I)
+    I = I / np.max(I)
+    I = (I >= thresh) * 1.0
+    skeleton = skeletonize_skimage(I)
+
+    return skeleton
+
+
+def watershed(I, markers, thresh=0.5):
+
+    I -= np.min(I)
+    I = I / np.max(I)
+    from skimage import img_as_ubyte
+
+    I = img_as_ubyte(I)
+    # xm, ym, zm = np.ogrid[0:I.shape[0]:10, 0:I.shape[1]:10, 0:I.shape[2]:10]
+    markers = ((markers > 0) * 1.0).astype(np.int16)
+
+    markers = ndimage.label(markers)[0]
+    # markers[xm, ym, zm]= np.arange(xm.size*ym.size*zm.size).reshape((xm.size,ym.size, zm.size))
+    ws = ndimage.watershed_ift(I, markers)
+    return ws

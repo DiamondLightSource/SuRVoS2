@@ -47,12 +47,3 @@ class SRSegmentation:
     features: Optional[SRFeatures]
     superregions: Optional[SRData]
     srprediction: Optional[SRPrediction]
-
-
-# old
-# @dataclass
-# class SegData:
-#    img_vol_proc : List[np.ndarray]
-#    feats : SRFeatures
-#    dataset_anno_proc : np.ndarray
-#    superregions : np.ndarray

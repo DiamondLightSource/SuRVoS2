@@ -24,6 +24,11 @@ from survos2.utils import encode_numpy
 
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
+from survos2.server.filtering import rescale_denan
+
+
+from survos2.server.state import cfg
+
 
 __feature_group__ = "features"
 __feature_dtype__ = "float32"
@@ -65,9 +70,13 @@ def structure_tensor_determinant(
     from ..server.filtering.blob import compute_structure_tensor_determinant
 
     map_blocks(
-        compute_structure_tensor_determinant, src, out=dst, sigma=sigma, pad=max(4, int((max(sigma) *2))),normalize=True
+        compute_structure_tensor_determinant,
+        src,
+        out=dst,
+        sigma=sigma,
+        pad=max(4, int((max(sigma) * 2))),
+        normalize=True,
     )
-
 
 
 @hug.get()
@@ -95,17 +104,9 @@ def frangi(
         gamma=15,
         dark_response=True,
         normalize=True,
-        pad=max(4, int((scale_max *2))),
+        pad=max(4, int((scale_max * 2))),
     )
 
-
-
-# @hug.get()
-# @save_metadata
-# def hessian(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
-#     from ..server.filtering.blob import compute_hessian_determinant
-
-#     map_blocks(compute_hessian_determinant, src, out=dst, sigma=sigma, normalize=True)
 
 @hug.get()
 @save_metadata
@@ -116,11 +117,10 @@ def hessian_eigenvalues(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) ->
         hessian_eigvals_image,
         src,
         out=dst,
-        pad=max(4, int((max(sigma) *2))),
+        pad=max(4, int((sigma * 2))),
         sigma=sigma,
         normalize=True,
     )
-
 
 
 def pass_through(x):
@@ -143,15 +143,38 @@ def simple_invert(src: DataURI, dst: DataURI) -> "BASE":
 
 @hug.get()
 @save_metadata
+def invert_threshold(src: DataURI, dst: DataURI, thresh: Float = 0.5) -> "BASE":
+    from ..server.filtering import invert_threshold
+
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset_arr = DM.sources[0][:]
+        filtered = invert_threshold(src_dataset_arr, thresh=thresh)
+
+    map_blocks(pass_through, src, out=dst, thresh=thresh, normalize=True)
+
+
+@hug.get()
+@save_metadata
+def threshold(src: DataURI, dst: DataURI, thresh: Float = 0.5) -> "BASE":
+    from ..server.filtering import threshold as threshold_fn
+
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset_arr = DM.sources[0][:]
+        filtered = threshold_fn(src_dataset_arr, thresh=thresh)
+
+    map_blocks(pass_through, filtered, out=dst, normalize=False)
+
+
+@hug.get()
+@save_metadata
 def rescale(src: DataURI, dst: DataURI) -> "BASE":
-    from ..server.filtering import rescale_denan
 
     logger.debug(f"Rescaling src {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0][:]
-        
-        filtered = rescale_denan(src_dataset)   
-        
+
+        filtered = rescale_denan(src_dataset)
+
     map_blocks(pass_through, filtered, out=dst, normalize=False)
 
 
@@ -168,7 +191,14 @@ def gamma_correct(src: DataURI, dst: DataURI, gamma: Float = 1.0) -> "BASE":
 def dilation(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
     from ..server.filtering import dilate
 
-    map_blocks(dilate, src, num_iter=num_iter, out=dst, normalize=True, pad=max(4, int(num_iter*2)) ) 
+    map_blocks(
+        dilate,
+        src,
+        num_iter=num_iter,
+        out=dst,
+        normalize=True,
+        pad=max(4, int(num_iter * 2)),
+    )
 
 
 @hug.get()
@@ -176,7 +206,70 @@ def dilation(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
 def erosion(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
     from ..server.filtering import erode
 
-    map_blocks(erode, src, num_iter=num_iter, out=dst, normalize=True, pad=max(4, int(num_iter*2)) )
+    map_blocks(
+        erode,
+        src,
+        num_iter=num_iter,
+        out=dst,
+        normalize=True,
+        pad=max(4, int(num_iter * 2)),
+    )
+
+
+@hug.get()
+@save_metadata
+def opening(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
+    from ..server.filtering import opening
+
+    map_blocks(
+        opening,
+        src,
+        num_iter=num_iter,
+        out=dst,
+        normalize=True,
+        pad=max(4, int(num_iter * 2)),
+    )
+
+
+@hug.get()
+@save_metadata
+def closing(src: DataURI, dst: DataURI, num_iter: Int = 1) -> "MORPHOLOGY":
+    from ..server.filtering import closing
+
+    map_blocks(
+        closing,
+        src,
+        num_iter=num_iter,
+        out=dst,
+        normalize=True,
+        pad=max(4, int(num_iter * 2)),
+    )
+
+
+@hug.get()
+@save_metadata
+def distance_transform_edt(src: DataURI, dst: DataURI) -> "MORPHOLOGY":
+    from ..server.filtering import distance_transform_edt
+
+    logger.debug(f"Calculating distance transform")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset_arr = DM.sources[0][:]
+        filtered = distance_transform_edt(src_dataset_arr)
+
+    map_blocks(pass_through, filtered, out=dst, normalize=False)
+
+
+@hug.get()
+@save_metadata
+def skeletonize(src: DataURI, dst: DataURI) -> "MORPHOLOGY":
+    from ..server.filtering import skeletonize
+
+    logger.debug(f"Calculating medial axis")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset_arr = DM.sources[0][:]
+        filtered = skeletonize(src_dataset_arr)
+
+    map_blocks(pass_through, filtered, out=dst, normalize=False)
 
 
 @hug.get()
@@ -253,9 +346,7 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
 
 @hug.get()
 @save_metadata
-def laplacian(
-    src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1
-) -> "EDGES":
+def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "EDGES":
     from ..server.filtering import ndimage_laplacian
 
     map_blocks(
@@ -263,15 +354,16 @@ def laplacian(
         src,
         out=dst,
         kernel_size=kernel_size,
-        pad=max(4, int(max(kernel_size)) * 3),
+        pad=max(4, int(kernel_size) * 3),
         normalize=False,
     )
 
 
-
 @hug.get()
 @save_metadata
-def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "NEIGHBORHOOD":
+def gaussian_norm(
+    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
+) -> "NEIGHBORHOOD":
     from ..server.filtering.blur import gaussian_norm
 
     map_blocks(
@@ -297,7 +389,7 @@ def gaussian_center(
         src,
         out=dst,
         sigma=sigma,
-        pad=max(4, int((max(sigma)  * 2))),
+        pad=max(4, int((max(sigma) * 2))),
         normalize=True,
     )
 
@@ -315,7 +407,7 @@ def median(
         median_size=median_size,
         num_iter=num_iter,
         out=dst,
-        pad=max(4, int((median_size  * 2))),
+        pad=max(4, int((median_size * 2))),
         normalize=False,
     )
 

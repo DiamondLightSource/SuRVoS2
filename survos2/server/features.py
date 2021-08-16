@@ -90,8 +90,6 @@ def generate_features(img_vol, feature_params, roi_crop, resample_amt):
             roi_crop[2] : roi_crop[3],
             roi_crop[4] : roi_crop[5],
         ].astype(np.float32, copy=False)
-        # layer_proc = scipy.ndimage.zoom(layer_proc, resample_amt, order=1)
-        # layer_proc = normalize(layer_proc, norm="unit")
         return layer_proc
 
     logger.info(f"From img vol of shape: {img_vol.shape}")

@@ -4,12 +4,6 @@ Various utility functions
 """
 
 import os
-import argparse
-import glob
-import json
-import math
-import sys
-import time
 import ast
 
 import numpy as np
@@ -59,8 +53,6 @@ from skimage.segmentation import mark_boundaries
 from skimage.util import img_as_ubyte
 
 
-from collections import OrderedDict
-from math import pi, sin, cos, atan2
 from sklearn import mixture
 import sklearn.cluster as clstr
 import scipy
@@ -68,7 +60,6 @@ import scipy.cluster.vq as vq
 import scipy.misc
 import scipy.signal as signal
 
-from pathlib import Path
 
 import napari
 
@@ -138,21 +129,18 @@ def simple_norm(arr, minim=0.0, maxim=1.0):
     return normed_arr
 
 
-def norm1(img_data):
+def threechan_norm(img_data):
     img_data = img_data - img_data.mean()
     img_data = img_data - img_data.min()
-    # image = image / std
     img_data /= np.max(img_data)
 
     return img_data
 
 
 def prepare_3channel(selected_images, patch_size=(28, 28)):
-
     selected_3channel = []
 
     for i in range(len(selected_images)):
-
         img_out = np.zeros((patch_size[0], patch_size[1], 3))
 
         if i % 1000 == 0:
@@ -160,7 +148,7 @@ def prepare_3channel(selected_images, patch_size=(28, 28)):
 
         try:
             img_data = selected_images[i]
-            img_data = norm1(img_data)
+            img_data = threechan_norm(img_data)
 
             img_out[:, :, 0] = img_data
             img_out[:, :, 1] = img_data
@@ -353,9 +341,6 @@ def make_dirs(dirs):
 def randrange(n, vmin, vmax):
 
     return (vmax - vmin) * np.random.rand(n) + vmin
-
-
-import ast
 
 
 def get_window(image_volume, sliceno, xstart, ystart, xend, yend):

@@ -1,11 +1,7 @@
 from qtpy import QtWidgets
-from qtpy.QtWidgets import QRadioButton, QPushButton
-from qtpy.QtCore import QSize
-from qtpy import QtCore, QtWidgets, QtGui
-from qtpy.QtCore import Signal
+from qtpy import QtCore, QtWidgets
 from survos2.frontend.components.base import *
 from survos2.model.singleton import Singleton
-from survos2.frontend.utils import resource
 
 
 class _Modal(QCSWidget):

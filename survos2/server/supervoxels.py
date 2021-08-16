@@ -53,11 +53,11 @@ def generate_supervoxels(
     """
     from cuda_slic import slic
 
-    logger.info(f"Using feature idx {dataset_feats_idx} for supervoxels.")
-    logger.info(
+    logger.debug(f"Using feature idx {dataset_feats_idx} for supervoxels.")
+    logger.debug(
         f"SRFeatures for supervoxels have shape {dataset_feats[dataset_feats_idx].shape}"
     )
-    logger.info(f"Generating supervoxels with params: {slic_params}")
+    logger.debug(f"Generating supervoxels with params: {slic_params}")
 
     block_z, block_x, block_y = dataset_feats[0].shape
 
@@ -72,23 +72,23 @@ def generate_supervoxels(
         timeit=False,
     )
     supervoxel_vol = supervoxel_vol.astype(np.uint32, copy=True)
-    logger.info(f"Finished slic with supervoxel vol of shape {supervoxel_vol.shape}")
+    logger.debug(f"Finished slic with supervoxel vol of shape {supervoxel_vol.shape}")
 
     supervoxel_vol = supervoxel_vol[...]
     supervoxel_vol = np.asarray(supervoxel_vol)
     supervoxel_vol = np.nan_to_num(supervoxel_vol)
-    logger.info(
+    logger.debug(
         f"Calling rmeans with filtered_stack { len(filtered_stack)} and supervoxel_vol {supervoxel_vol.shape}"
     )
     supervoxel_features = rmeans(filtered_stack, supervoxel_vol)
 
-    logger.info(
+    logger.debug(
         f"Finished rmeans with supervoxel_features of shape {supervoxel_features.shape}"
     )
 
     supervoxel_rag = create_rag(np.array(supervoxel_vol), connectivity=6)
 
-    logger.info(
+    logger.debug(
         "MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol))
     )
 
@@ -114,12 +114,12 @@ def superregion_factory(
             features_stack, supervoxel_vol, mode="add", sigmaset=True, norm=None
         )
 
-    logger.info(
+    logger.debug(
         f"Finished calculating superregion descriptors of shape {descriptors.shape}"
     )
 
     supervoxel_rag = create_rag(np.array(supervoxel_vol), connectivity=6)
-    logger.info(
+    logger.debug(
         "MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol))
     )
 
@@ -160,7 +160,7 @@ def prepare_supervoxels(
 
     supervoxel_proc = scipy.ndimage.zoom(supervoxel_proc, resample_amt, order=1)
 
-    logger.info(
+    logger.debug(
         f"Loading Supervoxel {os.path.basename(supervoxels[0])} with shape {supervoxel_proc.shape}"
     )
 

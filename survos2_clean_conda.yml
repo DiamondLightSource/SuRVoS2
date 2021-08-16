@@ -1,0 +1,10 @@
+name: survos2_env_g
+channels:
+  - pytorch
+  - anaconda
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pip
+  

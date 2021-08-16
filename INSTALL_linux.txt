@@ -1,0 +1,25 @@
+1. Obtain repo.zip and unpack or clone repo from gitlab.
+	
+2. (Install miniconda) then start miniconda prompt. (Python 3.8)
+	
+3. In <INSTALLDIR>/SuRVoS2, use survos2_clean_environment_windows_conda.yml to create a new environment by:
+
+	conda env create -f survos2_clean_environment_linux.yml 
+
+	conda activate [CREATED ENVIRONMENT NAME]
+
+	python -m pip install -r req.txt
+
+4. Build survos:
+
+	python ./survos2/improc/setup.py build_ext --inplace
+
+5. Change the default CHROOT in settings.yaml to something appropriate for the machine and network settings.
+
+6. Install SuRVoS plugin for Napari
+	python -m pip install -e .
+
+7. Run Napari:
+	napari
+
+8. Start SuRVoS Plugin from Plugins dropdown

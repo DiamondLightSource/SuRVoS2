@@ -93,7 +93,6 @@ def list_plugins():
 
 
 class PluginContainer(QCSWidget):
-
     view_requested = QtCore.Signal(str, dict)
     __sidebar_width__ = 400
 
@@ -111,7 +110,6 @@ class PluginContainer(QCSWidget):
             if (t != "workspace") and (t != "render")
         ]
         # 'workspace' and 'render' are internal plugins with no gui
-
         for t in self.tabs:
             self.tabwidget.addTab(t[0], t[1].capitalize())
             t[0].layout = QVBoxLayout()
@@ -141,7 +139,7 @@ class PluginContainer(QCSWidget):
         self.plugins.pop(name, None)
 
     def show_plugin(self, name, tab):
-        if name in self.plugins:  # and name != self.selected_name:
+        if name in self.plugins:
             print(f"show_plugin: {name}")
 
             self.selected_name = name
@@ -153,4 +151,5 @@ class PluginContainer(QCSWidget):
                     self.containers[t[1]].addWidget(self.selected["widget"], 1)
 
             if hasattr(self.selected["widget"], "setup"):
+                self.selected["widget"].clear()
                 self.selected["widget"].setup()

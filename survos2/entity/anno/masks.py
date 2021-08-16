@@ -56,7 +56,7 @@ from numpy.linalg import LinAlgError
 from survos2.entity.anno.geom import centroid_3d, rescale_3d
 from survos2.entity.anno.point_cloud import chip_cluster
 from skimage.segmentation import mark_boundaries
-from survos2.server.pipeline import Pipeline, Patch
+from survos2.entity.pipeline import Patch
 from survos2.server.state import cfg
 
 
@@ -96,7 +96,7 @@ def generate_anno(
         )
         cfg["pipeline"]["mask_params"]["mask_radius"] = v["size"]
 
-        from survos2.server.pipeline_ops import make_masks
+        from survos2.entity.pipeline_ops import make_masks
 
         p = make_masks(p, cfg["pipeline"])
 
@@ -128,9 +128,9 @@ def ellipsoidal_mask(
     d: int,
     w: int,
     h: int,
-    a: float = 1.0,
-    b: float = 1.0,
-    c: float = 1.0,
+    a: float = 1,
+    b: float = 1,
+    c: float = 1,
     center: Tuple[float, float, float] = (0.0, 0.0, 0.0),
     radius: int = 8,
     debug_verbose: bool = False,
@@ -175,7 +175,7 @@ def ellipsoidal_mask(
         )
     )
 
-    mask = dist_from_center <= np.float(radius)
+    mask = dist_from_center <= float(radius)
 
     if debug_verbose:
         print("Area of mask: {}".format(np.sum(mask)))
@@ -264,7 +264,7 @@ def ellipse_mask(w, h, a=1.0, b=1.0, center=None, radius=4.0):
         (((X - center[0]) ** 2) / a + ((Y - center[1]) ** 2) / b)
     )
 
-    mask = dist_from_center <= np.float(radius)
+    mask = dist_from_center <= float(radius)
 
     # print("Area of mask: {}".format(np.sum(mask)))
 
@@ -328,7 +328,7 @@ def generate_sphere_masks_fast(
     classwise_pts: np.ndarray,
     patch_size=(64, 64, 64),
     radius: int = 24,
-    ecc=(1.0, 1.0, 1.0),
+    ecc=(1.0, 0.7, 0.7),
 ):
     """Copies a small sphere mask to locations centered on classwise_pts
 

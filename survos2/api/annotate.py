@@ -8,8 +8,8 @@ _MaskPrev = 240  # 1111 0000
 
 def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0, parent_mask=None):
     mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
-    
-    def remove_masked_points(xs,ys, bg_mask):
+
+    def remove_masked_points(xs, ys, bg_mask):
         pts_slice = np.zeros_like(bg_mask[slice_idx])
         print(pts_slice.shape)
         for i in range(len(xs)):
@@ -35,6 +35,10 @@ def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0, parent_mask
         raise ValueError("Label has to be in bounds [0, 15]")
 
     modified = dataset.get_attr("modified")
+    if (
+        len(modified) == 1
+    ):  # resetting chunk based modified parameter for voxel annotation
+        modified = [0] * dataset.total_chunks
 
     for i in range(dataset.total_chunks):
         idx = dataset.unravel_chunk_index(i)
@@ -46,14 +50,14 @@ def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0, parent_mask
             continue
 
         idx, yp, xp = result
-        print(f"Len points {len(xp)}") 
+        # print(f"Len points {len(xp)}")
         data_chunk = dataset[chunk_slices]
         data_chunk = (data_chunk & _MaskCopy) | (data_chunk << _MaskSize)
 
-        mask = np.zeros_like(data_chunk[0,:])
-        print(mask.shape)
+        mask = np.zeros_like(data_chunk[0, :])
+        # print(mask.shape)
 
-        data_slice=data_chunk[idx]
+        data_slice = data_chunk[idx]
         data_slice[yp, xp] = (data_slice[yp, xp] & _MaskPrev) | label
 
         if parent_mask is not None:
@@ -61,9 +65,9 @@ def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0, parent_mask
             parent_mask_slice = parent_mask_chunk[idx]
             data_slice = data_slice * parent_mask_slice
 
-        #data_chunk[idx, yp, xp] = (data_chunk[idx, yp, xp] & _MaskPrev) | label
+        # data_chunk[idx, yp, xp] = (data_chunk[idx, yp, xp] & _MaskPrev) | label
 
-        data_chunk[idx,:] = data_slice
+        data_chunk[idx, :] = data_slice
 
         dataset[chunk_slices] = data_chunk
         modified[i] = (modified[i] << 1) & mbit | 1
@@ -71,7 +75,53 @@ def annotate_voxels(dataset, slice_idx=0, yy=None, xx=None, label=0, parent_mask
     dataset.set_attr("modified", modified)
 
 
-def annotate_regions(dataset, region, r=None, label=0, parent_mask=None):
+def annotate_regions(dataset, region, r=None, label=0, parent_mask=None, bb=None):
+    if label >= 16 or label < 0 or type(label) != int:
+        raise ValueError("Label has to be in bounds [0, 15]")
+    if r is None or len(r) == 0:
+        return
+
+    mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
+    rmax = np.max(r)
+    modified = dataset.get_attr("modified")
+    modified = [0]
+    # logger.debug(f"Annotating {dataset.total_chunks} chunks")
+    reg = region[:]
+    ds = dataset[:]
+    # print(f"Dataset shape {ds.shape}")
+    mask = np.zeros_like(reg)
+
+    # print(f"BB: {bb}")
+    try:
+        if not bb:
+            # print("No mask")
+            bb = [0, 0, 0, ds.shape[0], ds.shape[1], ds.shape[2]]
+        # else:
+        # print(f"Masking using bb: {bb}")
+        for r_idx in r:
+            mask[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] += (
+                reg[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] == r_idx
+            )
+    except Exception as e:
+        print(f"annotate_regions exception {e}")
+    mask = (mask > 0) * 1.0
+
+    if parent_mask is not None:
+        # print(f"Using parent mask of shape: {parent_mask.shape}")
+        mask = mask * parent_mask
+
+    mask = mask > 0
+    # print(mask.shape)
+    # if not np.any(mask):
+    #    modified[i] = (modified[i] << 1) & mbit
+
+    ds = (ds & _MaskCopy) | (ds << _MaskSize)
+    ds[mask] = (ds[mask] & _MaskPrev) | label
+
+    return ds
+
+
+def annotate_regions4(dataset, region, r=None, label=0, parent_mask=None):
     if label >= 16 or label < 0 or type(label) != int:
         raise ValueError("Label has to be in bounds [0, 15]")
     if r is None or len(r) == 0:
@@ -85,13 +135,15 @@ def annotate_regions(dataset, region, r=None, label=0, parent_mask=None):
 
     for i in range(dataset.total_chunks):
         idx = dataset.unravel_chunk_index(i)
-        chunk_slices = dataset.global_chunk_bounds(idx) # get slice() for the current chunk
-        reg_chunk = region[chunk_slices] # take a chunk of the superregion volume
-    
+        chunk_slices = dataset.global_chunk_bounds(
+            idx
+        )  # get slice() for the current chunk
+        reg_chunk = region[chunk_slices]  # take a chunk of the superregion volume
+
         total = max(rmax + 1, np.max(reg_chunk) + 1)
         mask = np.zeros(total, np.bool)
-        mask[r] = True # set to true the chunks that have been painted
-        mask = mask[reg_chunk] #
+        mask[r] = True  # set to true the chunks that have been painted
+        mask = mask[reg_chunk]  #
 
         if parent_mask is not None:
             parent_mask_chunk = parent_mask[chunk_slices]
@@ -104,7 +156,6 @@ def annotate_regions(dataset, region, r=None, label=0, parent_mask=None):
         data_chunk = dataset[chunk_slices]
         data_chunk = (data_chunk & _MaskCopy) | (data_chunk << _MaskSize)
         data_chunk[mask] = (data_chunk[mask] & _MaskPrev) | label
-        
 
         dataset[chunk_slices] = data_chunk
         modified[i] = (modified[i] << 1) & mbit | 1
@@ -112,24 +163,81 @@ def annotate_regions(dataset, region, r=None, label=0, parent_mask=None):
     dataset.set_attr("modified", modified)
 
 
+def annotate_regions3(dataset, region, r=None, label=0, parent_mask=None):
+    if label >= 16 or label < 0 or type(label) != int:
+        raise ValueError("Label has to be in bounds [0, 15]")
+    if r is None or len(r) == 0:
+        return
+
+    mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
+
+    rmax = np.max(r)
+    modified = dataset.get_attr("modified")
+    logger.debug(f"Annotating {dataset.total_chunks}")
+
+    for i in range(dataset.total_chunks):
+        idx = dataset.unravel_chunk_index(i)
+        chunk_slices = dataset.global_chunk_bounds(
+            idx
+        )  # get slice() for the current chunk
+        reg_chunk = region[chunk_slices]  # take a chunk of the superregion volume
+
+        #         total = max(rmax + 1, np.max(reg_chunk) + 1)
+        #         mask = np.zeros(total, bool)
+        #         print(mask.shape)
+        #         mask[r] = True # set to true the chunks that have been painted
+        #         print(mask.shape)
+        #         mask_ = mask
+        #         mask = mask[reg_chunk] # only select pixels in current chunk
+
+        mask = np.zeros_like(reg_chunk)
+
+        for r_idx in r:
+            mask += (reg_chunk == r_idx) * 1
+        mask = mask > 0
+
+        if parent_mask is not None:
+            parent_mask_chunk = parent_mask[chunk_slices]
+            mask = mask * parent_mask_chunk
+
+        if not np.any(mask):
+            modified[i] = (modified[i] << 1) & mbit
+            continue
+
+        data_chunk = dataset[chunk_slices]
+        data_chunk = (data_chunk & _MaskCopy) | (data_chunk << _MaskSize)
+        data_chunk[mask] = (data_chunk[mask] & _MaskPrev) | label
+
+        dataset[chunk_slices] = data_chunk
+        modified[i] = (modified[i] << 1) & mbit | 1
+
+    dataset.set_attr("modified", modified)
+    return mask, reg_chunk
+
+
 def undo_annotation(dataset):
     modified = dataset.get_attr("modified")
     print(modified)
+    print("Undoing annotation")
 
-    for i in range(dataset.total_chunks):
-
-        if modified[i] & 1 == 0:
-            continue
-
-        print("Undoing annotation")
-
-        idx = dataset.unravel_chunk_index(i)
-        chunk_slices = dataset.global_chunk_bounds(idx)
-        data = dataset[chunk_slices]
-
+    if len(modified) == 1:
+        data = dataset[:]
         # data = (data << _MaskSize) | (data >> _MaskSize)
         data = data >> _MaskSize
-        dataset[chunk_slices] = data
+        dataset[:] = data & 15
+    else:  # annotate voxels
+        for i in range(dataset.total_chunks):
+
+            if modified[i] & 1 == 0:
+                continue
+
+            idx = dataset.unravel_chunk_index(i)
+            chunk_slices = dataset.global_chunk_bounds(idx)
+            data = dataset[chunk_slices]
+
+            # data = (data << _MaskSize) | (data >> _MaskSize)
+            data = data >> _MaskSize
+            dataset[chunk_slices] = data
 
     dataset.set_attr("modified", modified)
     print(f"Finished undo")

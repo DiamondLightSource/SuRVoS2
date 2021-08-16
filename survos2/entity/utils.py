@@ -29,72 +29,6 @@ from loguru import logger
 from survos2.frontend.main import init_ws, roi_ws
 
 
-def add_anno(anno_vol, new_name, workspace_name):
-    result = survos.run_command(
-        "annotations",
-        "add_level",
-        uri=None,
-        workspace=workspace_name,
-    )
-    print(result)
-    new_anno_id = result[0]["id"]
-    result = survos.run_command(
-        "annotations",
-        "rename",
-        uri=None,
-        feature_id=new_anno_id,
-        new_name=new_name,
-        workspace=workspace_name,
-    )
-
-    src = DataModel.g.dataset_uri(new_anno_id, group="annotations")
-
-    with DatasetManager(src, out=src, dtype="int32", fillvalue=0) as DM:
-        out_dataset = DM.out
-        out_dataset[:] = anno_vol
-
-    print(f"Created new annotation with id: {new_anno_id}")
-
-
-def add_feature(feature_vol, new_name, workspace_name):
-    result = survos.run_command(
-        "features", "create", uri=None, workspace=workspace_name, feature_type="raw"
-    )
-    new_feature_id = result[0]["id"]
-    result = survos.run_command(
-        "features",
-        "rename",
-        uri=None,
-        feature_id=new_feature_id,
-        new_name=new_name,
-        workspace=workspace_name,
-    )
-
-    src = DataModel.g.dataset_uri(new_feature_id, group="features")
-
-    with DatasetManager(src, out=src, dtype="float32", fillvalue=0) as DM:
-        out_dataset = DM.out
-        out_dataset[:] = feature_vol
-
-    print(f"Created new feature with id: {new_feature_id}")
-
-
-def get_entities(objects_id):
-    msg = {"objects_id": objects_id}
-    logger.debug(f"view_objects {msg['objects_id']}")
-    src = DataModel.g.dataset_uri(msg["objects_id"], group="objects")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        ds = DM.sources[0]
-
-    logger.debug(f"Using dataset {ds}")
-    entities_fullname = ds.get_metadata("fullname")
-    logger.info(f"Viewing entities {entities_fullname}")
-    from survos2.frontend.components.entity import setup_entity_table
-
-    tabledata, entities_df = setup_entity_table(entities_fullname)
-    return entities_df
-
-
 def remove_masked_entities(bg_mask, entities):
     pts_vol = np.zeros_like(bg_mask)
     for pt in entities:
@@ -142,13 +76,15 @@ def remove_padding(vol, padding):
 
 
 def get_largest_cc(I):
-    img = I > 0
-    label_im, nb_labels = ndimage.label(img)
-    sizes = ndimage.sum(I, label_im, range(nb_labels + 1))
-    max_sz = np.max(sizes)
-    lab_sz = sizes[label_im]
-    cc = lab_sz == max_sz
-    cc = cc.astype(int)
+    cc = np.zeros_like(I)
+    if np.sum(I) > 0:
+        img = I > 0
+        label_im, nb_labels = ndimage.label(img)
+        sizes = ndimage.sum(I, label_im, range(nb_labels + 1))
+        max_sz = np.max(sizes)
+        lab_sz = sizes[label_im]
+        cc = lab_sz == max_sz
+        cc = cc.astype(int)
 
     return cc
 
@@ -210,8 +146,3 @@ def remove_padding(vol, padding):
     ]
     return unpadded_vol
 
-
-def prepare_bv(mask):
-    label_vol = get3dcc(pred_vol)
-    list_of_roi = regionprops(label_vol)
-    return list_of_roi

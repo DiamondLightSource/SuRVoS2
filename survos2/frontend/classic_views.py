@@ -1,26 +1,13 @@
-import os.path as op
 
-from .utils import resource
-from .qtcompat import QtWidgets, QtCore, QtGui
-from .plugins import list_plugins, get_plugin
-from .views import list_views, get_view
-from .modal import ModalManager
-from .control import Launcher
+from .qtcompat import QtWidgets, QtCore
 
 from survos2.frontend.components.base import *
-from survos2.utils import get_logger
-from survos2.config import Config
 import time
-from multiprocessing import Process
-from vispy.color import Colormap
 
-import numpy as np
-import numba
-import math
 
 from loguru import logger
 
-#logger = get_logger()
+# logger = get_logger()
 
 
 class ViewContainer(QCSWidget):

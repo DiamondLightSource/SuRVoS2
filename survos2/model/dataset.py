@@ -91,8 +91,6 @@ class DatasetWrapper(BaseDataset):
         return dict(shape=self.shape, dtype=np.dtype(self.dtype).name)
 
 
-
-
 class Dataset(BaseDataset):
 
     __dbname__ = "dataset"
@@ -142,10 +140,13 @@ class Dataset(BaseDataset):
     def save_file(self, fullname):
         fname = os.path.basename(fullname)
         out_fullname = os.path.join(self._path, fname)
-        from shutil import copyfile
-        copyfile(fullname, out_fullname)
-        return out_fullname
+        from shutil import copyfile, copy
 
+        try:
+            copy(fullname, out_fullname)
+        except shutil.SameFileError:
+            pass
+        return out_fullname
 
     def tojson(self):
         db = copy.deepcopy(self._db)

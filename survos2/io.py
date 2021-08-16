@@ -1,11 +1,9 @@
 import hug
 
 import re
-import os
 import os.path as op
 import copy
 
-import logging
 import h5py as h5
 import numpy as np
 import mrcfile as mrc

@@ -30,4 +30,4 @@ from survos2.improc.utils import DatasetManager
 
 __export_fill__ = 0
 __export_dtype__ = "uint32"
-__export_group__ = "export"
+__export_group__ = "server"

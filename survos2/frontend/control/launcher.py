@@ -17,8 +17,11 @@ from loguru import logger
 from survos2.survos import run_command
 
 
+# needed as separate function rather than method for multiprocessing
 def _run_command(plugin, command, client, uri=None, out=None, **kwargs):
+    logger.debug(f"bg _run_command: {plugin} {command}")
     response = client.get("{}/{}".format(plugin, command), **kwargs)
+    logger.debug(f"bg parsing response")
     result = parse_response(plugin, command, response, log=False)
     if out is not None:
         out.put(result)
@@ -33,6 +36,7 @@ class Launcher(QtCore.QObject):
         self.connected = True
         self.terminated = False
         self.queue = None
+        self.client = None
 
     def set_remote(self, uri):
         self.client = remote_client(uri)
@@ -40,58 +44,63 @@ class Launcher(QtCore.QObject):
         self.pending = []
 
     def run(self, plugin, command, modal=False, **kwargs):
-        if self.terminated:
-            return False
+        if self.client:
+            if self.terminated:
+                return False
 
-        self.modal = modal
-        self.title = "{}::{}".format(plugin.capitalize(), command.capitalize())
-        self.setup(self.title)
+            workspace = kwargs.pop("workspace", None)
+            logger.debug(
+                f"Running command {command} with plugin {plugin} in workspace {workspace}"
+            )
 
-        # use default workspace or instead use the passed in workspace
-        workspace = kwargs.pop("workspace", None)
-        logger.debug(f"Running using workspace {workspace}")
-        if workspace == True:
-            if DataModel.g.current_workspace:
-                kwargs["workspace"] = DataModel.g.current_workspace
-            else:
-                return self.process_error("Workspace required but not loaded.")
-        elif workspace is not None:
-            kwargs["workspace"] = workspace
+            self.modal = modal
+            self.title = "{}::{}".format(plugin.capitalize(), command.capitalize())
+            self.setup(self.title)
 
-        func = self._run_background if modal else self._run_command
-        success = False
+            # use default workspace or instead use the passed in workspace
 
-        while not success:
-            try:
-                if kwargs.pop("timeit", False):
-                    with Timer(self.title):
-                        result, error = func(plugin, command, **kwargs)
+            logger.debug(f"Running using workspace {workspace}")
+            if workspace == True:
+                if DataModel.g.current_workspace:
+                    kwargs["workspace"] = DataModel.g.current_workspace
                 else:
-                    result, error = func(plugin, command, **kwargs)
+                    return self.process_error("Workspace required but not loaded.")
+            elif workspace is not None:
+                kwargs["workspace"] = workspace
 
-            except (ConnectTimeout, ConnectionError):
+            func = self._run_background if modal else self._run_command
+            success = False
 
-                self.connected = False
-                logger.info("ConnectionError - delayed")
-                # ModalManager.g.connection_lost()
+            while not success:
+                try:
+                    if kwargs.pop("timeit", False):
+                        with Timer(self.title):
+                            result, error = func(plugin, command, **kwargs)
+                    else:
+                        result, error = func(plugin, command, **kwargs)
 
-                if self.terminated:
-                    return False
-            else:
-                success = True
+                except (ConnectTimeout, ConnectionError):
 
-        if error:
-            return self.process_error(result)
+                    self.connected = False
+                    logger.info("ConnectionError - delayed")
+                    # ModalManager.g.connection_lost()
 
-        self.cleanup()
-        return result
+                    if self.terminated:
+                        return False
+                else:
+                    success = True
+
+            if error:
+                return self.process_error(result)
+
+            self.cleanup()
+
+            return result
 
     def _run_command(self, plugin, command, uri=None, out=None, **kwargs):
-        # if uri is None:
-        #    return run_command(plugin, command, uri=None, **kwargs)
-        # else:
-        # remote client, send (plugin, command)
+        logger.debug(f"_run_command: {plugin} {command}")
         response = self.client.get("{}/{}".format(plugin, command), **kwargs)
+        logger.debug("parsing_response")
         result = parse_response(plugin, command, response, log=False)
         if out is not None:
             out.put(result)
@@ -116,7 +125,7 @@ class Launcher(QtCore.QObject):
         try:
             params = dict(workspace=DataModel.g.current_workspace)
             self._run_command("workspace", "list_datasets", **params)
-            
+
         except (ConnectTimeout, ConnectionError):
             pass
         else:
@@ -137,13 +146,13 @@ class Launcher(QtCore.QObject):
             error = format_yaml(
                 error, explicit_start=False, explicit_end=False, flow=False
             )
-        try:
-            traceback.print_last()
-        except Exception as e:
-            pass
+        # try:
+        #     traceback.print_last()
+        # except Exception as e:
+        #     pass
 
         logger.error("{} :: {}".format(self.title, error))
-        ModalManager.g.show_error(error)
+        # ModalManager.g.show_error(error)
         QtWidgets.QApplication.processEvents()
         return False
 

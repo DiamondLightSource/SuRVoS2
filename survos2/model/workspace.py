@@ -4,25 +4,30 @@ import shutil
 
 import numpy as np
 import tempfile
-#import logging as log
+
+# import logging as log
 
 from survos2.config import Config
 from survos2.utils import check_relpath
 from survos2.model.dataset import Dataset
+from survos2.model.model import DataModel
 
 from loguru import logger
 
-CHROOT = Config["model.chroot"]
-DATABASE = Config["model.dbtype"]
-CHUNK_DATA = Config["computing.chunks"]
-CHUNK_SIZE = Config["computing.chunk_size"]
 
-if CHROOT in ["tmp", "temp"]:
-    tmp = tempfile.gettempdir()
-    CHROOT = os.path.join(tmp, "tmp_survos_chroot")
-    os.makedirs(CHROOT, exist_ok=True)
+# Config.update_yaml()
 
-logger.info(f"CHROOT is {CHROOT}")
+# CHROOT = Config["model.chroot"]
+# DATABASE = Config["model.dbtype"]
+# CHUNK_DATA = Config["computing.chunks"]
+# CHUNK_SIZE = Config["computing.chunk_size"]
+
+# if CHROOT in ["tmp", "temp"]:
+#     tmp = tempfile.gettempdir()
+#     CHROOT = os.path.join(tmp, "tmp_survos_chroot")
+#     os.makedirs(CHROOT, exist_ok=True)
+
+# logger.info(f"CHROOT is {CHROOT}")
 
 
 class WorkspaceException(Exception):
@@ -33,7 +38,7 @@ class Workspace(object):
     __dsname__ = "__data__"
 
     def __init__(self, path):
-        #logger.debug(f"INIT workspace at {path}")
+        # logger.debug(f"INIT workspace at {path}")
 
         path = self._validate_path(path)
         if not os.path.isdir(path):
@@ -56,16 +61,21 @@ class Workspace(object):
     @staticmethod
     def _validate_path(path):
 
-        if not CHROOT and os.path.realpath(path) != path:
+        if DataModel.g.CHROOT in ["tmp", "temp"]:
+            tmp = tempfile.gettempdir()
+            DataModel.g.CHROOT = os.path.join(tmp, "tmp_survos_chroot")
+            os.makedirs(DataModel.g.CHROOT, exist_ok=True)
+
+        if not DataModel.g.CHROOT and os.path.realpath(path) != path:
             raise WorkspaceException(
                 "'{}' is not a valid workspace path without CHROOT".format(path)
             )
-        elif CHROOT:
-            path2 = check_relpath(CHROOT, path, exception=False)
+        elif DataModel.g.CHROOT:
+            path2 = check_relpath(DataModel.g.CHROOT, path, exception=False)
             if path2 is False:
                 raise WorkspaceException(
                     "Invalid workspace path: {}. "
-                    "Workspace is in chroot mode at {}".format(path, CHROOT)
+                    "Workspace is in chroot mode at {}".format(path, DataModel.g.CHROOT)
                 )
             path = path2
         return path
@@ -120,7 +130,7 @@ class Workspace(object):
 
         # path = self.genpath()
         path = self._path
-        
+
         return [sess for sess in os.listdir(path) if self.has_session(sess)]
 
     def available_datasets(self, session="default", group=None):
@@ -166,7 +176,7 @@ class Workspace(object):
             raise WorkspaceException("Session '%s' already exists." % (session))
         elif session == self.__dsname__:
             raise WorkspaceException("Invalid session name: '%s'" % session)
-        
+
         # Update filesystem
         path = self.genpath(session)
         if not os.path.isdir(path):
@@ -193,7 +203,7 @@ class Workspace(object):
 
         # path = self.genpath(self.__dsname__)
 
-        chunks = CHUNK_SIZE if CHUNK_DATA else None
+        chunks = DataModel.g.CHUNK_SIZE if DataModel.g.CHUNK_DATA else None
         path = self.genpath(self.__dsname__)
         Dataset.create(path, data=data_fname, chunks=chunks)
 
@@ -230,7 +240,7 @@ class Workspace(object):
             dtype=dtype,
             chunks=chunk_size,
             fillvalue=fillvalue,
-            database=DATABASE,
+            database=DataModel.g.DATABASE,
         )
 
     def remove_dataset(self, dataset_name, session="default"):

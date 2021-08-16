@@ -4,12 +4,9 @@ import os.path as op
 
 
 class _Config(type):
-
     __data__ = {  # Defaults
         "title": "SuRVoS",
         "api": {
-            # "host": "172.23.167.1",
-            # "host": "172.23.5.231",
             "host": "127.0.0.1",
             "port": 8123,
             "plugins": [],
@@ -24,10 +21,7 @@ class _Config(type):
             "stretch": False,
         },
         "model": {
-            "chroot": "/dls/science/groups/das/SuRVoS/s2/data/",  # full path, or can be 'tmp'
-            # "chroot": "Y:/data",
-            #"chroot": "D:/datasets/chroot/",
-            #"chroot": "/home/avery_pennington/chroot/",
+            "chroot": "/",  # default location to store data
             "dbtype": "yaml",
         },
         "logging": {
@@ -40,7 +34,7 @@ class _Config(type):
         "qtui": {"maximized": False, "menuKey": "\\"},
         "filters": {},
         "pipeline": {},
-        "slic" : "skimage",
+        "slic": "skimage",
     }
 
     def __getitem__(self, key):
@@ -78,7 +72,34 @@ class Config(object, metaclass=_Config):
                 _Config.__data__[k] = v
 
     def __repr__(self):
-        return ""
+        return repr(_Config.__data__)
+
+    def print_contents():
+        print(_Config.__data__)
+
+    @staticmethod
+    def update_yaml():
+        settings_yaml = op.join(op.dirname(__file__), "..", "settings.yaml")
+        print(settings_yaml)
+        if op.isfile(settings_yaml):
+            with open(settings_yaml, "r") as __f:
+                print("Updating Config")
+                yaml_dict = yaml.safe_load(__f)
+                for k, v in yaml_dict.items():
+                    print(k, v)
+                    if k == "environments":
+                        continue
+                    if type(v) == dict:
+                        print("Updating dict")
+                        _Config.__data__[k].update(v)
+                    else:
+                        print("Updating single key")
+                        _Config.__data__[k] = v
+
+    def write_yaml():
+        settings_yaml = op.join(op.dirname(__file__), "..", "settings.yaml")
+        with open(settings_yaml, "w") as outfile:
+            yaml.dump(_Config.__data__, outfile, default_flow_style=False)
 
 
 __default_config_files__ = [

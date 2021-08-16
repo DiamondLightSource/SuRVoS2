@@ -12,6 +12,7 @@ from survos2.config import Config
 from survos2.improc import map_blocks
 from survos2.io import dataset_from_uri
 from survos2.utils import encode_numpy
+from survos2.model import DataModel
 
 __level_fill__ = 0
 __level_dtype__ = "uint32"
@@ -40,6 +41,7 @@ def get_slice(src: DataURI, slice_idx: Int, order: tuple):
     data = ds[slice_idx]
     return encode_numpy(data)
 
+
 @hug.get()
 def get_crop(src: DataURI, roi: IntList):
     logger.debug("Getting anno crop")
@@ -55,7 +57,7 @@ def set_label_parent(
     label_idx: Int,
     parent_level: String,
     parent_label_idx: Int,
-    parent_color : String,
+    parent_color: String,
 ):
     ds = ws.get_dataset(workspace, level, group=__group_pattern__)
     labels = ds.get_metadata("labels", {})
@@ -72,17 +74,19 @@ def set_label_parent(
 def get_label_parent(workspace: String, level: String, label_idx: Int):
     ds = get_level(workspace, level)
     labels = ds.get_metadata("labels", {})
-    print(f"get_label_parent with level {level}, label_idx {label_idx}, result labels: {labels}")
+    print(
+        f"get_label_parent with level {level}, label_idx {label_idx}, result labels: {labels}"
+    )
     parent_level = -1
     parent_label_idx = -1
     parent_color = None
-    if label_idx in labels:    
+    if label_idx in labels:
         if "parent_level" in labels[label_idx]:
             parent_level = labels[label_idx]["parent_level"]
             parent_label_idx = int(labels[label_idx]["parent_label"])
             if "parent_color" in labels[label_idx]:
                 parent_color = labels[label_idx]["parent_color"]
-    
+
     return parent_level, parent_label_idx, parent_color
 
 
@@ -218,27 +222,31 @@ def annotate_voxels(
     xx: IntList,
     label: Int,
     full: SmartBoolean,
-    parent_level : String,
-    parent_label_idx : Int
+    parent_level: String,
+    parent_label_idx: Int,
 ):
     from survos2.api.annotate import annotate_voxels
 
     ds = get_level(workspace, level, full)
-    
+
     from survos2.frontend.frontend import get_annotation_array
-    if parent_level != '-1' and parent_level != -1:
-        parent_arr, parent_annotations_dataset = get_annotation_array({"level_id": parent_level}, retrieval_mode="volume")
+
+    if parent_level != "-1" and parent_level != -1:
+        parent_arr, parent_annotations_dataset = get_annotation_array(
+            {"level_id": parent_level}, retrieval_mode="volume"
+        )
         parent_arr = parent_arr & 15
         print(parent_annotations_dataset)
-        print(parent_arr)            
+        print(parent_arr)
         parent_mask = parent_arr == parent_label_idx
         print(parent_mask)
     else:
         parent_arr = None
         parent_mask = None
 
-    
-    annotate_voxels(ds, slice_idx=slice_idx, yy=yy, xx=xx, label=label, parent_mask=parent_mask)
+    annotate_voxels(
+        ds, slice_idx=slice_idx, yy=yy, xx=xx, label=label, parent_mask=parent_mask
+    )
 
 
 @hug.get()
@@ -249,8 +257,9 @@ def annotate_regions(
     r: IntList,
     label: Int,
     full: SmartBoolean,
-    parent_level : String,
-    parent_label_idx : Int
+    parent_level: String,
+    parent_label_idx: Int,
+    bb: IntList,
 ):
     from survos2.api.annotate import annotate_regions
 
@@ -258,18 +267,35 @@ def annotate_regions(
     region = dataset_from_uri(region, mode="r")
 
     from survos2.frontend.frontend import get_annotation_array
-    if parent_level != '-1' and parent_level != -1:
-        parent_arr, parent_annotations_dataset = get_annotation_array({"level_id": parent_level}, retrieval_mode="volume")
+
+    if parent_level != "-1" and parent_level != -1:
+        parent_arr, parent_annotations_dataset = get_annotation_array(
+            {"level_id": parent_level}, retrieval_mode="volume"
+        )
         parent_arr = parent_arr & 15
-        print(parent_annotations_dataset)
-        print(parent_arr)            
+        # print(f"Using parent dataset for masking {parent_annotations_dataset}")
         parent_mask = parent_arr == parent_label_idx
-        print(parent_mask)
+        # print(parent_mask)
     else:
+        # print("Not masking using parent level")
         parent_arr = None
         parent_mask = None
 
-    annotate_regions(ds, region, r=r, label=label, parent_mask=parent_mask)
+    logger.debug(f"BB in annotate_regions {bb}")
+    anno = annotate_regions(
+        ds, region, r=r, label=label, parent_mask=parent_mask, bb=bb
+    )
+
+    def pass_through(x):
+        return x
+
+    print(anno.shape)
+    dst = src = DataModel.g.dataset_uri(level, group="annotations")
+
+    map_blocks(pass_through, anno, out=dst, normalize=False)
+    modified_ds = dataset_from_uri(dst, mode="r")
+    modified = [1]
+    modified_ds.set_attr("modified", modified)
 
 
 @hug.get()

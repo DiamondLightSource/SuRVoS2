@@ -441,7 +441,9 @@ class ParentDialog(QDialog):
         self.source_level = source_level
         from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 
-        self.label_combobox = AnnotationComboBox(header=(None, "None"), exclude_from_fill=self.source_level)
+        self.label_combobox = AnnotationComboBox(
+            header=(None, "None"), exclude_from_fill=self.source_level
+        )
         self.layout.addWidget(self.label_combobox)
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
@@ -450,13 +452,21 @@ class ParentDialog(QDialog):
 class ParentButton(QtWidgets.QPushButton):
     colorChanged = Signal(str)
 
-    def __init__(self, color="#000000", clickable=True, source_level="001_level", parent_level=-1, parent_label=-1, **kwargs):
+    def __init__(
+        self,
+        color="#000000",
+        clickable=True,
+        source_level="001_level",
+        parent_level=-1,
+        parent_label=-1,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.setColor(color)
         if clickable:
             self.clicked.connect(self.on_click)
-        #self.parent_level = -1
-        #self.parent_label = -1
+        # self.parent_level = -1
+        # self.parent_label = -1
         self.source_level = source_level
 
     def setColor(self, color):
@@ -665,7 +675,8 @@ class CheckBox(QCSWidget):
 
     def setValue(self, value):
         self.chk.setChecked(value)
-        
+
+
 class LineEdit3D(QCSWidget):
     def __init__(self, *args, parent=None, **kwargs):
         super().__init__(parent=parent)

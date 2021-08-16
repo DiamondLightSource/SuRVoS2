@@ -38,13 +38,11 @@ def ndimage_laplacian(img, kernel_size=1.0):
     np.array (D,H,W)
         Filtered image
     """
-    logger.info("+ Computing ndimage laplacian")
+
     locNaNs = np.isnan(img)
     img = np.nan_to_num(img)
     img = ndimage.laplace(gaussian(img, kernel_size))
-    #img = img - np.min(img)
-    #img = img / np.max(img)
-    
+
     return img
 
 
@@ -59,7 +57,7 @@ def spatial_gradient_3d(vol_gray: np.ndarray, dim=0) -> np.ndarray:
     Returns:
         np.ndarray -- filtered array
     """
-    logger.info("+ Calculating spatial gradient")
+
     img_gray = img_as_float(np.clip(vol_gray, 0.0, 1.0))
 
     t_gray = (
@@ -91,16 +89,14 @@ def laplacian(img: np.ndarray, kernel_size) -> np.ndarray:
     kernel_size = int(kernel_size)
     if kernel_size % 2 == 0:
         kernel_size += 1
-    logger.info(
-        f"+ Calculating laplacian on tensor image of shape {img_clean_t.shape} with kernel size {kernel_size}"
-    )
-
     laplacian: torch.Tensor = kornia.laplacian(img_clean_t, kernel_size=kernel_size)
     laplacian_img: np.ndarray = kornia.tensor_to_image(laplacian.float())
     return np.nan_to_num(laplacian_img)
 
 
-def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False, dark_response=False):
+def compute_difference_gaussians(
+    data, sigma, sigma_ratio, threshold=False, dark_response=False
+):
     """Difference of Gaussians (DoG) filter
 
     Parameters
@@ -123,8 +119,6 @@ def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False, dark
     sigma = np.asarray(sigma)
     sigma2 = np.asarray(sigma) * sigma_ratio
 
-    logger.info("+ Computing difference of Gaussians with {sigma} {sigma_ratio}")
-
     if dark_response:
         data *= -1
 
@@ -139,4 +133,3 @@ def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False, dark
     response = np.nan_to_num(response)
 
     return response
-

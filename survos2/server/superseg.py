@@ -225,7 +225,7 @@ def sr_predict(
     )
 
     prob_map = srprediction.prob_map
-    logger.debug(f"Made sr prediction: {srprediction}")
+    # logger.debug(f"Made sr prediction: {srprediction}")
 
     if refine:
         prob_map = mrf_refinement(
@@ -275,7 +275,7 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
     try:
         if len(np.unique(pred)) == 2:
             labels_out = (pred.max() + 1) - (invrmap(y_ref, supervoxel_vol) + 1)
-        else:    
+        else:
             labels_out = invrmap(y_ref, supervoxel_vol) + 1
 
         logger.debug(

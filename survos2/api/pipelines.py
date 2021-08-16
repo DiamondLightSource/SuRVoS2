@@ -2,11 +2,16 @@ import logging
 import ntpath
 import os
 from typing import List
+from dataclasses import dataclass
+
 
 import dask.array as da
 import hug
+from numba.core.types.scalars import Integer
 import numpy as np
 from loguru import logger
+from scipy import ndimage
+from skimage.morphology.selem import octahedron
 
 from survos2.api import workspace as ws
 from survos2.api.types import (
@@ -33,12 +38,107 @@ from survos2.utils import encode_numpy
 
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.entity.anno.pseudo import make_pseudomasks
+from survos2.api.features import pass_through
 
+
+from torch.utils.data import DataLoader
+from survos2.frontend.components.entity import setup_entity_table
+
+from survos2.api.features import pass_through
 
 __pipeline_group__ = "pipelines"
 __pipeline_dtype__ = "float32"
 __pipeline_fill__ = 0
 
+
+@hug.get()
+def level_combination(
+    level_over: DataURI,
+    level_base: DataURI,
+    dst: DataURI,
+):
+
+    src1 = DataModel.g.dataset_uri(level_over, group="annotations")
+    with DatasetManager(src1, out=None, dtype="uint16", fillvalue=0) as DM:
+        src1_dataset = DM.sources[0]
+        anno1_level = src1_dataset[:] & 15
+
+        logger.debug(f"Obtained annotation level with labels {np.unique(anno1_level)}")
+
+    src2 = DataModel.g.dataset_uri(level_base, group="annotations")
+    with DatasetManager(src2, out=None, dtype="uint16", fillvalue=0) as DM:
+        src2_dataset = DM.sources[0]
+        anno2_level = src2_dataset[:] & 15
+
+        logger.debug(f"Obtained annotation level with labels {np.unique(anno2_level)}")
+
+    def pass_through(x):
+        return x
+
+    result = anno2_level * (1.0 - (anno1_level > 0))
+    shifted_level = anno1_level
+    result += shifted_level
+
+    map_blocks(pass_through, result, out=dst, normalize=False)
+
+
+@hug.get()
+def cleaning(
+    # object_id : DataURI,
+    feature_id: DataURI,
+    dst: DataURI,
+    min_component_size: Int = 100,
+):
+    from survos2.entity.components import (
+        single_component_cleaning,
+        filter_small_components,
+    )
+
+    # src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
+    # logger.debug(f"Getting objects {src}")
+    # with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+    #     ds_objects = DM.sources[0]
+    # entities_fullname = ds_objects.get_metadata("fullname")
+    # tabledata, entities_df = setup_entity_table(entities_fullname)
+    # selected_entities = np.array(entities_df)
+
+    logger.debug(f"Calculating stats on feature: {feature_id}")
+    src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        feature_dataset_arr = DM.sources[0][:]
+
+    seg_cleaned, tables, labeled_images = filter_small_components(
+        [feature_dataset_arr], min_component_size=min_component_size
+    )
+    # seg_cleaned = single_component_cleaning(selected_entities, feature_dataset_arr, bvol_dim=(42,42,42))
+
+    # map_blocks(pass_through, (seg_cleaned > 0) * 1.0, out=dst, normalize=False)
+
+    with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
+        DM.out[:] = (seg_cleaned > 0) * 1.0
+
+
+@hug.get()
+def watershed(src: DataURI, anno_id: DataURI, dst: DataURI):
+    from ..server.filtering import watershed
+
+    # get marker anno
+    anno_uri = DataModel.g.dataset_uri(anno_id, group="annotations")
+    with DatasetManager(anno_uri, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        anno_level = src_dataset[:] & 15
+        logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
+
+    logger.debug(f"Calculating watershed")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset_arr = DM.sources[0][:]
+
+    filtered = watershed(src_dataset_arr, anno_level)
+
+    dst = DataModel.g.dataset_uri(dst, group="pipelines")
+
+    with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
+        DM.out[:] = filtered
 
 
 @hug.get()
@@ -46,13 +146,16 @@ def generate_blobs(
     workspace: String,
     feature_ids: DataURIList,
     object_id: DataURI,
-    acwe : SmartBoolean,
     dst: DataURI,
+    acwe: SmartBoolean = False,
+    size: FloatOrVector = (5.0, 5.0, 5.0),
+    balloon: Float = 1.1,
+    threshold: Float = 0.1,
+    iterations: Int = 1,
+    smoothing: Int = 1,
 ):
 
-    from survos2.entity.patches import (
-        PatchWorkflow,
-        init_entity_workflow,
+    from survos2.entity.anno.pseudo import (
         organize_entities,
     )
 
@@ -77,38 +180,25 @@ def generate_blobs(
     objects_crop_start = ds_objects.get_metadata("crop_start")
     objects_crop_end = ds_objects.get_metadata("crop_end")
 
-    logger.debug(
-        f"Getting objects from {src} and file {objects_fullname}"
-    )
+    logger.debug(f"Getting objects from {src} and file {objects_fullname}")
     from survos2.frontend.components.entity import make_entity_df, setup_entity_table
+
     tabledata, entities_df = setup_entity_table(
-        objects_fullname, scale=objects_scale, offset=objects_offset, crop_start=objects_crop_start, crop_end=objects_crop_end 
+        objects_fullname,
+        scale=objects_scale,
+        offset=objects_offset,
+        crop_start=objects_crop_start,
+        crop_end=objects_crop_end,
     )
-    print(entities_df)
-    
+
     entities = np.array(make_entity_df(np.array(entities_df), flipxy=True))
 
-    #default params TODO make generic, allow editing 
+    # default params TODO make generic, allow editing
     entity_meta = {
         "0": {
             "name": "class1",
-            "size": np.array((15, 15, 15)) * objects_scale,
-            "core_radius": np.array((7, 7, 7)) * objects_scale,
-        },
-        "1": {
-            "name": "class2",
-            "size": np.array((17, 17, 17)) * objects_scale,
-            "core_radius": np.array((9, 9, 9)) * objects_scale,
-        },
-        "2": {
-            "name": "class3",
-            "size": np.array((22, 22, 22)) * objects_scale,
-            "core_radius": np.array((11, 11, 11)) * objects_scale,
-        },
-        "5": {
-            "name": "class4",
-            "size": np.array((12, 12, 12)) * objects_scale,
-            "core_radius": np.array((5, 5, 5)) * objects_scale,
+            "size": np.array(size),
+            "core_radius": np.array((7, 7, 7)),
         },
     }
 
@@ -119,40 +209,50 @@ def generate_blobs(
     wparams = {}
     wparams["entities_offset"] = (0, 0, 0)
 
+    @dataclass
+    class PatchWorkflow:
+        vols: List[np.ndarray]
+        locs: np.ndarray
+        entities: dict
+        bg_mask: np.ndarray
+        params: dict
+        gold: np.ndarray
+
+
     wf = PatchWorkflow(
-        features, combined_clustered_pts, classwise_entities, features[0], wparams, combined_clustered_pts
+        features,
+        combined_clustered_pts,
+        classwise_entities,
+        features[0],
+        wparams,
+        combined_clustered_pts,
     )
 
-    gt_proportion = 0.5
-    wf_sel = np.random.choice(range(len(wf.locs)), int(gt_proportion * len(wf.locs)))
-    gt_entities = wf.locs[wf_sel]
-    logger.debug(f"Produced {len(gt_entities)} ground truth entities.")
-
     combined_clustered_pts, classwise_entities = organize_entities(
-        wf.vols[0], gt_entities, entity_meta
+        wf.vols[0], wf.locs, entity_meta
     )
 
     wf.params["entity_meta"] = entity_meta
 
-    anno_masks, anno_all = make_pseudomasks(
+    anno_masks, anno_acwe = make_pseudomasks(
         wf,
         classwise_entities,
         acwe=acwe,
         padding=(128, 128, 128),
-        core_mask_radius=(8, 8, 8),
+        core_mask_radius=size,
+        balloon=balloon,
+        threshold=threshold,
+        iterations=iterations,
+        smoothing=smoothing,
     )
 
     if acwe:
-        combined_anno = anno_masks["acwe"]
+        combined_anno = anno_acwe["0"]
     else:
-        combined_anno = (
-            anno_masks["0"]["mask"]
-            + anno_masks["1"]["mask"]
-            + anno_masks["2"]["mask"]
-            + anno_masks["5"]["mask"]
-    )
+        combined_anno = anno_masks["0"]["mask"]
 
     combined_anno = (combined_anno > 0.1) * 1.0
+
     # store in dst
     dst = DataModel.g.dataset_uri(dst, group="pipelines")
 
@@ -165,7 +265,7 @@ def generate_blobs(
 def superregion_segment(
     src: DataURI,
     dst: DataURI,
-    workspace : String,
+    workspace: String,
     anno_id: DataURI,
     constrain_mask: DataURI,
     region_id: DataURI,
@@ -174,7 +274,7 @@ def superregion_segment(
     refine: SmartBoolean,
     classifier_type: String,
     projection_type: String,
-    classifier_params : dict,
+    classifier_params: dict,
 ):
     logger.debug(
         f"superregion_segment using anno {anno_id} and superregions {region_id} and features {feature_ids}"
@@ -213,23 +313,24 @@ def superregion_segment(
     # run predictions
     from survos2.server.superseg import sr_predict
 
-    superseg_cfg = cfg.pipeline 
+    superseg_cfg = cfg.pipeline
     superseg_cfg["predict_params"] = classifier_params
     superseg_cfg["predict_params"]["clf"] = classifier_type
     superseg_cfg["predict_params"]["type"] = classifier_params["type"]
     superseg_cfg["predict_params"]["proj"] = projection_type
-    
+
     logger.debug(f"Using superseg_cfg {superseg_cfg}")
 
     if constrain_mask != "None":
         import ast
+
         constrain_mask = ast.literal_eval(constrain_mask)
         print(constrain_mask)
         constrain_mask_id = ntpath.basename(constrain_mask["level"])
         label_idx = constrain_mask["idx"]
-    
+
         src = DataModel.g.dataset_uri(constrain_mask_id, group="annotations")
-        
+
         with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
             src_dataset = DM.sources[0]
             constrain_mask_level = src_dataset[:] & 15
@@ -237,10 +338,9 @@ def superregion_segment(
         logger.debug(
             f"Constrain mask {constrain_mask_id}, label {label_idx} level shape {constrain_mask_level.shape} with unique labels {np.unique(constrain_mask_level)}"
         )
-        
-        
+
         mask = constrain_mask_level == label_idx - 1
-    
+
     else:
         mask = None
 
@@ -254,7 +354,6 @@ def superregion_segment(
         lam,
     )
 
-
     def pass_through(x):
         return x
 
@@ -263,7 +362,7 @@ def superregion_segment(
     # # store in dst
     # logger.debug(f"Storing segmentation in dst {dst}")
     # with DatasetManager(dst, out=None, dtype="uint32", fillvalue=0) as DM:
-        
+
     #     DM.out[:] = segmentation.astype(np.uint32)
 
 
@@ -310,6 +409,7 @@ def remove(workspace: String, pipeline_id: String):
 @hug.get()
 def rename(workspace: String, pipeline_id: String, new_name: String):
     ws.rename_dataset(workspace, pipeline_id, __pipeline_group__, new_name)
+
 
 @hug.get()
 def group():

@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# from survos2.entity.entities import get_centered_vol_in_bbox
 from loguru import logger
 from survos2.entity.anno.geom import centroid_3d, rescale_3d
 from survos2.frontend.nb_utils import summary_stats
@@ -75,7 +74,7 @@ def produce_patches(padded_vol, padded_anno, offset_locs, bvol_grid):
         patch_anno, patch_pts = crop_vol_and_pts_bb(
             padded_anno, offset_locs, entitybvol_to_cropbvol(bvol_grid[i]), offset=True
         )
-        patch_bvol = centroid_to_detnet_bvol(patch_pts, bvol_dim=(10,10,10))
+        patch_bvol = centroid_to_detnet_bvol(patch_pts, bvol_dim=(10, 10, 10))
         patches.append(patch)
         patches_bvols.append(patch_bvol)
         patches_pts.append(patch_pts)
@@ -148,7 +147,41 @@ def offset_points(pts, offset, scale=32, random_offset=False):
     return trans_pts
 
 
+def centroid_to_detnet_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
+    """Centroid to bounding volume
 
+    Parameters
+    ----------
+    centers : np.ndarray, (nx3)
+        3d coordinates of the point to use as the centroid of the bounding box
+    bvol_dim : tuple, optional
+        Dimensions of the bounding volume centered at the points given by centers, by default (10, 10, 10)
+    flipxy : bool, optional
+        Flip x and y coordinates, by default False
+
+    Returns
+    -------
+    np.ndarray, (nx6)
+        (x_start, y_start, x_fin, y_fin, z_start, z_fin)
+    """
+    d, w, h = bvol_dim
+
+    if flipxy:
+        bvols = np.array(
+            [
+                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
+                for cz, cx, cy, _ in centers
+            ]
+        )
+    else:
+        bvols = np.array(
+            [
+                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
+                for cz, cy, cx, _ in centers
+            ]
+        )
+
+    return bvols
 
 
 def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
@@ -395,8 +428,8 @@ def sample_marked_patches(
         x = int(np.ceil(x))
         y = int(np.ceil(y))
 
-        slice_start = np.max([0, sliceno - np.int(patch_size[0] / 2.0)])
-        slice_end = np.min([sliceno + np.int(patch_size[0] / 2.0), img_volume.shape[0]])
+        slice_start = np.max([0, sliceno - int(patch_size[0] / 2.0)])
+        slice_end = np.min([sliceno + int(patch_size[0] / 2.0), img_volume.shape[0]])
 
         out_of_bounds = np.unique(
             np.hstack(

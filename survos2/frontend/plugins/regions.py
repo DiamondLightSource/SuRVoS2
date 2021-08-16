@@ -9,6 +9,7 @@ from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.model import DataModel
 from survos2.server.state import cfg
+from survos2.improc.utils import DatasetManager
 
 
 class RegionComboBox(LazyComboBox):
@@ -50,7 +51,7 @@ class RegionsPlugin(Plugin):
         vbox.addLayout(self.supervoxel_layout)
 
     def add_supervoxel(self):
-        params = dict(order=1, workspace=True)
+        params = dict(order=1, workspace=True, big=False)
         result = Launcher.g.run("regions", "create", **params)
 
         if result:
@@ -65,22 +66,24 @@ class RegionsPlugin(Plugin):
         self.existing_supervoxels[svid] = widget
         return widget
 
-    def setup(self):
-        params = dict(order=1, workspace=True)
+    def clear(self):
+        for region in list(self.existing_supervoxels.keys()):
+            self.existing_supervoxels.pop(region).setParent(None)
+        self.existing_supervoxels = {}
 
-        params["id"] = 0
-        params["name"] = "sv1"
-        params["kind"] = "supervoxels"
-        result = {}
-        result[0] = params
+    def setup(self):
+        params = dict(
+            order=1,
+            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
+        )
 
         result = Launcher.g.run("regions", "existing", **params)
+        logger.debug(f"Region result {result}")
         if result:
             # Remove regions that no longer exist in the server
             for region in list(self.existing_supervoxels.keys()):
                 if region not in result:
                     self.existing_supervoxels.pop(region).setParent(None)
-
             # Populate with new region if any
             for supervoxel in sorted(result):
 
@@ -123,6 +126,9 @@ class SupervoxelCard(Card):
         self.svspacing.setMaximumWidth(250)
         self.svcompactness = LineEdit(parse=float, default=20)
         self.svcompactness.setMaximumWidth(250)
+
+        self.int64_checkbox = CheckBox(checked=False)
+
         self.compute_btn = PushButton("Compute")
         self.view_btn = PushButton("View", accent=True)
 
@@ -130,8 +136,9 @@ class SupervoxelCard(Card):
         self.add_row(HWidgets("Shape:", self.svshape, stretch=1))
         self.add_row(HWidgets("Spacing:", self.svspacing, stretch=1))
         self.add_row(HWidgets("Compactness:", self.svcompactness, stretch=1))
-        self.add_row(HWidgets(None, self.compute_btn))
+        self.add_row(HWidgets("Int64:", self.int64_checkbox, stretch=1))
 
+        self.add_row(HWidgets(None, self.compute_btn))
         self.add_row(HWidgets(None, self.view_btn))
 
         self.compute_btn.clicked.connect(self.compute_supervoxels)
@@ -144,7 +151,11 @@ class SupervoxelCard(Card):
             self.setParent(None)
 
         cfg.ppw.clientEvent.emit(
-            {"source": "regions", "data": "remove_layer", "layer_name": self.svid,}
+            {
+                "source": "regions",
+                "data": "remove_layer",
+                "layer_name": self.svid,
+            }
         )
 
     def card_title_edited(self, newtitle):
@@ -163,9 +174,10 @@ class SupervoxelCard(Card):
 
     def compute_supervoxels(self):
         self.pbar.setValue(10)
-        src = [
-            DataModel.g.dataset_uri("features/" + s) for s in [self.svsource.value()]
-        ]
+        # src = [
+        #    DataModel.g.dataset_uri("features/" + s) for s in [self.svsource.value()]
+        # ]
+        src = DataModel.g.dataset_uri(self.svsource.value(), group="features")
         dst = DataModel.g.dataset_uri(self.svid, group="regions")
         logger.debug(f"Compute sv: Src {src} Dst {dst}")
 
@@ -178,7 +190,17 @@ class SupervoxelCard(Card):
             f"Using chunk_size {chunk_size} to compute number of supervoxel segments for num_chunks: {num_chunks}."
         )
 
-        n_segments = int(np.prod(chunk_size) // (self.svshape.value() ** 3))
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_dataset_shape = DM.sources[0][:].shape
+
+        # n_segments = int(np.prod(chunk_size) // (self.svshape.value() ** 3))
+
+        n_segments = int(np.prod(src_dataset_shape) / self.svshape.value() ** 3)
+
+        if self.int64_checkbox.value():
+            out_dtype = "uint64"
+        else:
+            out_dtype = "uint32"
 
         params = dict(
             src=src,
@@ -188,6 +210,7 @@ class SupervoxelCard(Card):
             n_segments=n_segments,
             spacing=self.svspacing.value(),
             modal=False,
+            out_dtype=out_dtype,
         )
         logger.debug(f"Compute supervoxels with params {params}")
 

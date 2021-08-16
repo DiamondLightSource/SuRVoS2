@@ -5,14 +5,8 @@ from .views import list_views, get_view
 from .modal import ModalManager
 from .control import Launcher
 from multiprocessing import Process
-from vispy.color import Colormap
 from survos2.config import Config
 import time
-import numpy as np
-import numba
-import math
-from scipy import stats
-import napari
 
 from survos2.frontend.components.icon_buttons import ToolIconButton
 from survos2.frontend.components.base import (
@@ -24,7 +18,8 @@ from survos2.frontend.components.base import (
     ScrollPane,
 )
 from loguru import logger
-#logger = get_logger()
+
+# logger = get_logger()
 
 
 def resource(*args):
@@ -336,4 +331,3 @@ class MainWidget(QtGui.QDialog):
         QtWidgets.QApplication.processEvents()
         ModalManager.g.terminate()
         event.ignore()"""
-        pass

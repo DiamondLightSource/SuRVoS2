@@ -12,6 +12,8 @@ from loguru import logger
 from survos2.config import Config
 from survos2.utils import format_yaml
 from survos2.survos import init_api, run_command
+from survos2.model.model import DataModel
+
 
 default_uri = "{}:{}".format(Config["api.host"], Config["api.port"])
 
@@ -20,31 +22,32 @@ fmt = " <green>{name}</green> - <level>{level} - {message}</level>"
 logger.remove()  # remove default logger
 # logger.add(sys.stderr, level="DEBUG")
 logger.add(
-    sys.stderr, level="DEBUG", format=fmt, colorize=True
+    sys.stderr, level="INFO", format=fmt, colorize=True
 )  # minimal stderr logger
 # logger.add("logs/main.log", level="DEBUG", format=fmt) #compression='zip')
-
+#logger.add(send_udp, format="{time} {level} {message}", filter="my_module", level="DEBUG")
 
 @begin.subcommand
 def start_server(
     workspace: "Workspace path (full or chrooted) to load",
     port: "port like URI to start the server at",
+    CHROOT: "Path to Image Data",
 ):
     """
     Start a SuRVoS API Server listeting for requests.
     """
     from hug.store import InMemoryStore
     from hug.middleware import SessionMiddleware, CORSMiddleware
-
     from survos2.model import DataModel
 
-    full_ws_path = os.path.join(Config["model.chroot"], workspace)
+    full_ws_path = os.path.join(CHROOT, workspace)
 
     if not os.path.isdir(full_ws_path):
         logger.error(f"No workspace can be found at {full_ws_path}, aborting.")
         sys.exit(1)
     logger.info(f"Full workspace path is {full_ws_path}")
 
+    DataModel.g.CHROOT = CHROOT
     DataModel.g.current_workspace = workspace
 
     api, __plugins = init_api(return_plugins=True)
@@ -112,70 +115,6 @@ def nu_gui(
 
     if Launcher.g.connected:
         main.start_client()
-
-
-@begin.subcommand
-def classic_gui2(
-    workspace: "Workspace path (full or chrooted) to load",
-    server: "URI to the remote SuRVoS API Server",
-):
-    """
-    Show Classic SuRVoS QT user interface
-    """
-    from qtpy import QtWidgets
-
-    # from survos2.ui.qt import MainWindow
-    # from survos2.ui.qt.control import Launcher
-    from survos2.model import DataModel
-    from survos2.frontend.slice_paint import MainWidget
-    from survos2.frontend.control.launcher import Launcher
-
-    DataModel.g.current_workspace = workspace
-
-    logger.info(f"Connecting to server: {server}")
-    resp = Launcher.g.set_remote(server)
-    logger.info(f"Response from server: {resp}")
-
-    app = QtWidgets.QApplication([])
-    window = MainWidget(maximize=bool(Config["qtui.maximized"]))
-
-    import signal
-
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-    sys.exit(app.exec_())
-
-
-@begin.subcommand
-def classic_gui(
-    workspace: "Workspace path (full or chrooted) to load",
-    server: "URI to the remote SuRVoS API Server",
-):
-    """
-    Show Classic SuRVoS QT user interface
-    """
-    from qtpy import QtWidgets
-
-    # from survos2.ui.qt import MainWindow
-    # from survos2.ui.qt.control import Launcher
-    from survos2.model import DataModel
-    from survos2.frontend.classic_gui import MainWindow
-    from survos2.frontend.control.launcher import Launcher
-
-    DataModel.g.current_workspace = workspace
-
-    logger.info(f"Connecting to server: {server}")
-    resp = Launcher.g.set_remote(server)
-    logger.info(f"Response from server: {resp}")
-
-    app = QtWidgets.QApplication([])
-    window = MainWindow(maximize=bool(Config["qtui.maximized"]))
-
-    import signal
-
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-    sys.exit(app.exec_())
 
 
 @begin.subcommand

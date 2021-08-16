@@ -18,9 +18,8 @@ from survos2.improc.utils import DatasetManager
 
 
 @hug.get()
-def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name:String):
+def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name: String):
     from survos2.frontend.main import roi_ws
-
 
     # get raw from current workspace
     src = DataModel.g.dataset_uri(feature_id, group="features")
@@ -50,9 +49,14 @@ def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name:String):
     src_ws = get(current_workspace_name)
     target_ws = get(roi_name)
     src_ws.replicate_workspace(target_ws.path)
-    
 
     return roi_name
+
+
+@hug.get()
+def set_workspace(workspace: String):
+    logger.debug(f"Setting workspace to {workspace}")
+    DataModel.g.current_workspace = workspace
 
 
 @hug.get()

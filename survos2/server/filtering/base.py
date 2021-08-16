@@ -30,22 +30,8 @@ def simple_invert(data):
     return 1.0 - data
 
 
-def median_filter(data, size=5):
-    """Median filter, using ndimage implementation.
-
-    Parameters
-    ----------
-    data : np.ndarray (D,H,W)
-        Input image
-    size : int, optional
-        Median size, by default 5
-
-    Returns
-    -------
-    np.ndarray (D,H,W)
-        Median filtered image
-    """
-    return ndimage.median_filter(data, size=size)
+def label(data):
+    return ndimage.label(data)
 
 
 def rescale_denan(img):
@@ -54,13 +40,14 @@ def rescale_denan(img):
     img = np.nan_to_num(img)
     return img
 
+
 def gamma_adjust(data, gamma=1.0):
     """Gamma adjust filter using skimage implementation
 
     Parameters
     ----------
     data : np.ndarray (D,H,W)
-        Input image 
+        Input image
     gamma : float
         Gamma
 
@@ -71,3 +58,10 @@ def gamma_adjust(data, gamma=1.0):
     """
     return np.nan_to_num(exposure.adjust_gamma(data, gamma))
 
+
+def threshold(img, thresh=0.5):
+    return (img > thresh) * 1.0
+
+
+def invert_threshold(img, thresh=0.5):
+    return (img < thresh) * 1.0

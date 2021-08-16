@@ -1,17 +1,13 @@
-import argparse
 import getpass
-import json
 import os
 import signal
 import subprocess
-import sys
 from pathlib import Path
 
 from paramiko.client import SSHClient, WarningPolicy
 from paramiko.ssh_exception import AuthenticationException
 import socket
 import h5py as h5
-import pyqtgraph.parametertree.parameterTypes as pTypes
 import yaml
 from skimage import io
 import mrcfile
@@ -29,28 +25,29 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QInputDialog,
-    QMessageBox, 
+    QMessageBox,
     QLabel,
     QLineEdit,
     QPushButton,
     QRadioButton,
     QSlider,
-    QSpacerItem,
     QSpinBox,
     QTabWidget,
     QVBoxLayout,
-    QWidget,
+    QWidget
 )
 from pyqtgraph.parametertree import (
     Parameter,
-    ParameterItem,
-    ParameterTree,
-    registerParameterType,
+    ParameterTree
 )
 from survos2.frontend.main import init_ws
 from survos2.frontend.utils import ComboDialog, FileWidget, MplCanvas
+from survos2.frontend.plugins.base import ComboBox
 from survos2.model.workspace import WorkspaceException
 from survos2.config import Config
+
+
+CHROOT = Config["model.chroot"]
 
 LOAD_DATA_EXT = "*.h5 *.hdf5 *.tif *.tiff *.rec *.mrc"
 # example set of params for testing
@@ -500,6 +497,7 @@ class LoadDataDialog(QDialog):
         est_data_size /= self.downsample_spinner.value()
         self.data_size_label.setText(f"{est_data_size:.2f}")
 
+
 class SSHWorker(QObject):
 
     button_message_signal = pyqtSignal(list)
@@ -516,54 +514,67 @@ class SSHWorker(QObject):
     @pyqtSlot()
     def start_server_over_ssh(self):
         try:
-                client = SSHClient()
-                client.load_system_host_keys()
-                client.set_missing_host_key_policy(WarningPolicy())
-                client.connect(self.ssh_host, port=self.ssh_port, username=self.ssh_user, password=self.text)
-                transport = client.get_transport()
-                ip, _ = transport.getpeername()
-                if ip:
-                    self.update_ip_linedt_signal.emit(ip)
-                    logger.info(f"IP for {self.ssh_host} detected as {ip}.")
-                ws_name = self.run_config["workspace_name"]
-                server_port = self.run_config["server_port"]
-                # TODO Check if the server port is already in use
-                logger.info(f"Checking if server port: {server_port} at ip: {ip} is already in use.")
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                result = sock.connect_ex((ip, int(server_port)))
-                if result == 0:
-                    logger.error(f"Port {server_port} is already open.")
-                    self.button_message_signal.emit([f"Port: {server_port} at ip: {ip} is already in use!", "maroon", 3])
-                    self.error_signal.emit()
-                    sock.close()
-                    client.close()
-                    return
-                else:
-                    logger.info(f"Port {server_port} is not open.")
+            client = SSHClient()
+            client.load_system_host_keys()
+            client.set_missing_host_key_policy(WarningPolicy())
+            client.connect(
+                self.ssh_host,
+                port=self.ssh_port,
+                username=self.ssh_user,
+                password=self.text,
+            )
+            transport = client.get_transport()
+            ip, _ = transport.getpeername()
+            if ip:
+                self.update_ip_linedt_signal.emit(ip)
+                logger.info(f"IP for {self.ssh_host} detected as {ip}.")
+            ws_name = self.run_config["workspace_name"]
+            server_port = self.run_config["server_port"]
+            # TODO Check if the server port is already in use
+            logger.info(
+                f"Checking if server port: {server_port} at ip: {ip} is already in use."
+            )
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex((ip, int(server_port)))
+            if result == 0:
+                logger.error(f"Port {server_port} is already open.")
+                self.button_message_signal.emit(
+                    [f"Port: {server_port} at ip: {ip} is already in use!", "maroon", 3]
+                )
+                self.error_signal.emit()
                 sock.close()
-                cuda_command = ("module load cuda/10.1\n")
-                command = ("/dls_sw/apps/SuRVoS2/s2_conda/bin/python -u "
-                           "/dls/science/groups/das/SuRVoS/s2/s2_dec/SuRVoS2/survos.py "
-                          f"start_server {ws_name} {server_port} > {date.today()}_survos2.log &\n")
-                logger.info(f'Running command on remote machine: {command}')
-               
-                session = transport.open_session()
-                session.setblocking(0) # Set to non-blocking mode
-                session.get_pty()
-                session.invoke_shell()
-                # Send commands
-                session.send(cuda_command)
-                session.send(command)
-                # Loop for 15 seconds
-                self.button_message_signal.emit([f"Starting server on {self.ssh_host}. Please Wait!", "navy", 14])
-                start = time.time()    
-                while time.time() - start < 15:
-                    if session.recv_ready():
-                        data = session.recv(512)
-                        print(data.decode(), flush=True)
-                    time.sleep(1) # Yield CPU so we don't take up 100% usage...
-                self.finished.emit()
-                
+                client.close()
+                return
+            else:
+                logger.info(f"Port {server_port} is not open.")
+            sock.close()
+            cuda_command = "module load cuda/10.1\n"
+            command = (
+                "/dls_sw/apps/SuRVoS2/s2_conda/bin/python -u "
+                "/dls/science/groups/das/SuRVoS/s2/s2_dec/SuRVoS2/survos.py "
+                f"start_server {ws_name} {server_port} > {date.today()}_survos2.log &\n"
+            )
+            logger.info(f"Running command on remote machine: {command}")
+
+            session = transport.open_session()
+            session.setblocking(0)  # Set to non-blocking mode
+            session.get_pty()
+            session.invoke_shell()
+            # Send commands
+            session.send(cuda_command)
+            session.send(command)
+            # Loop for 15 seconds
+            self.button_message_signal.emit(
+                [f"Starting server on {self.ssh_host}. Please Wait!", "navy", 14]
+            )
+            start = time.time()
+            while time.time() - start < 15:
+                if session.recv_ready():
+                    data = session.recv(512)
+                    print(data.decode(), flush=True)
+                time.sleep(1)  # Yield CPU so we don't take up 100% usage...
+            self.finished.emit()
+
         except AuthenticationException:
             logger.error("SSH Authentication failed!")
             self.button_message_signal.emit(["Incorrect Password!", "maroon", 3])
@@ -598,8 +609,8 @@ class FrontEndRunner(QWidget):
         tab1.layout = QVBoxLayout()
         tab1.setLayout(tab1.layout)
 
-        workspace_fields = self.get_workspace_fields()
-        tab1.layout.addWidget(workspace_fields)
+        chroot_fields = self.get_chroot_fields()
+        tab1.layout.addWidget(chroot_fields)
 
         self.setup_adv_run_fields()
         self.adv_run_fields.hide()
@@ -628,8 +639,9 @@ class FrontEndRunner(QWidget):
         """Gets the QGroupBox that contains all the fields for setting up the workspace.
 
         Returns:
-            PyQt5.QWidgets.GroupBox: GroupBox with workspace fields. 
+            PyQt5.QWidgets.GroupBox: GroupBox with workspace fields.
         """
+
         select_data_button = QPushButton("Select")
         workspace_fields = QGroupBox("Create Workspace:")
         wf_layout = QGridLayout()
@@ -670,8 +682,7 @@ class FrontEndRunner(QWidget):
         return workspace_fields
 
     def setup_roi_fields(self):
-        """Sets up the QGroupBox that displays the ROI dimensions, if selected.
-        """
+        """Sets up the QGroupBox that displays the ROI dimensions, if selected."""
         self.roi_fields = QGroupBox("ROI:")
         roi_fields_layout = QHBoxLayout()
         # z
@@ -699,8 +710,7 @@ class FrontEndRunner(QWidget):
         self.roi_fields.setLayout(roi_fields_layout)
 
     def setup_adv_run_fields(self):
-        """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2.
-        """
+        """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
         self.adv_run_fields = QGroupBox("Advanced Run Settings:")
         adv_run_layout = QGridLayout()
         adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
@@ -741,7 +751,7 @@ class FrontEndRunner(QWidget):
         """Gets the QGroupBox that contains the fields for starting SuRVoS.
 
         Returns:
-            PyQt5.QWidgets.GroupBox: GroupBox with run fields. 
+            PyQt5.QWidgets.GroupBox: GroupBox with run fields.
         """
         self.run_button = QPushButton("Run SuRVoS")
         advanced_button = QRadioButton("Advanced")
@@ -749,9 +759,17 @@ class FrontEndRunner(QWidget):
         run_fields = QGroupBox("Run SuRVoS:")
         run_layout = QGridLayout()
         run_layout.addWidget(QLabel("Workspace Name:"), 0, 0)
+
+        workspaces = os.listdir(CHROOT)
+        self.workspaces_list = ComboBox()
+        for s in workspaces:
+            self.workspaces_list.addItem(key=s)
+        prnt("bob")
+        run_layout.addWidget(self.workspaces_list, 0, 0)
+
         self.ws_name_linedt_2 = QLineEdit(self.workspace_config["workspace_name"])
         self.ws_name_linedt_2.setAlignment(Qt.AlignLeft)
-        run_layout.addWidget(self.ws_name_linedt_2, 0, 1)
+        run_layout.addWidget(self.ws_name_linedt_2, 0, 2)
         run_layout.addWidget(advanced_button, 1, 0)
         run_layout.addWidget(self.adv_run_fields, 2, 1)
         run_layout.addWidget(self.run_button, 3, 0, 1, 3)
@@ -766,13 +784,12 @@ class FrontEndRunner(QWidget):
         try:
             user = getpass.getuser()
         except Exception:
-            user =""
+            user = ""
         return user
 
     @pyqtSlot()
     def launch_data_loader(self):
-        """Load the dialog box widget to select data with data preview window and ROI selection.
-        """
+        """Load the dialog box widget to select data with data preview window and ROI selection."""
         path = None
         int_h5_pth = None
         dialog = LoadDataDialog(self)
@@ -794,11 +811,10 @@ class FrontEndRunner(QWidget):
                 self.roi_fields.hide()
 
     def update_roi_fields_from_dialog(self):
-        """Updates the ROI fields in the main window.
-        """
+        """Updates the ROI fields in the main window."""
         x_start, x_end, y_start, y_end, z_start, z_end = self.roi_limits
         self.xstart_roi_val.setText(x_start)
-        self.xend_roi_val.setText( x_end)
+        self.xend_roi_val.setText(x_end)
         self.ystart_roi_val.setText(y_start)
         self.yend_roi_val.setText(y_end)
         self.zstart_roi_val.setText(z_start)
@@ -806,8 +822,7 @@ class FrontEndRunner(QWidget):
 
     @pyqtSlot()
     def toggle_advanced(self):
-        """Controls displaying/hiding the advanced run fields on radio button toggle.
-        """
+        """Controls displaying/hiding the advanced run fields on radio button toggle."""
         rbutton = self.sender()
         if rbutton.isChecked():
             self.adv_run_fields.show()
@@ -816,8 +831,7 @@ class FrontEndRunner(QWidget):
 
     @pyqtSlot()
     def toggle_ssh(self):
-        """Controls displaying/hiding the SSH fields on radio button toggle.
-        """
+        """Controls displaying/hiding the SSH fields on radio button toggle."""
         rbutton = self.sender()
         if rbutton.isChecked():
             self.adv_ssh_fields.show()
@@ -893,8 +907,7 @@ class FrontEndRunner(QWidget):
 
     @pyqtSlot()
     def create_workspace_clicked(self):
-        """Performs checks and coordinates workspace creation on button press.
-        """
+        """Performs checks and coordinates workspace creation on button press."""
         logger.debug("Creating workspace: ")
         # Set the path to the data file
         vol_path = Path(self.data_filepth_linedt.text())
@@ -941,7 +954,7 @@ class FrontEndRunner(QWidget):
         Args:
             message (str): Message to display in button.
             button (PyQt5.QWidgets.QBushButton): The button to manipulate.
-            colour_str (str): The standard CSS colour string or hex code describing the colour to change the button to. 
+            colour_str (str): The standard CSS colour string or hex code describing the colour to change the button to.
         """
         timeout *= 1000
         msg_old = button.text()
@@ -971,8 +984,7 @@ class FrontEndRunner(QWidget):
 
     @pyqtSlot()
     def output_config_clicked(self):
-        """Outputs pipeline config YAML file on button click.
-        """
+        """Outputs pipeline config YAML file on button click."""
         out_fname = "pipeline_cfg.yml"
         logger.debug(f"Outputting pipeline config: {out_fname}")
         with open(out_fname, "w") as outfile:
@@ -990,11 +1002,11 @@ class FrontEndRunner(QWidget):
         params = self.get_ssh_params()
         if not all(params):
             logger.error("Not all SSH parameters given! Not connecting to SSH.")
-            pass
         ssh_host, ssh_user, ssh_port = params
         # Pop up dialog to ask for password
-        text, ok = QInputDialog.getText(None, "Login", f"Password for {ssh_user}@{ssh_host}", 
-                                    QLineEdit.Password)
+        text, ok = QInputDialog.getText(
+            None, "Login", f"Password for {ssh_user}@{ssh_host}", QLineEdit.Password
+        )
         if ok and text:
             self.ssh_worker = SSHWorker(params, text, self.run_config)
             self.ssh_thread = QThread(self)
@@ -1005,11 +1017,15 @@ class FrontEndRunner(QWidget):
             self.ssh_worker.update_ip_linedt_signal.connect(self.update_ip_linedt)
             self.ssh_thread.started.connect(self.ssh_worker.start_server_over_ssh)
             self.ssh_thread.start()
-    
+
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Quit', 'Are you sure you want to quit? '\
-            'The server will be stopped.',
-        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        reply = QMessageBox.question(
+            self,
+            "Quit",
+            "Are you sure you want to quit? " "The server will be stopped.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
         if reply == QMessageBox.Yes:
             event.accept()
         else:
@@ -1025,7 +1041,9 @@ class FrontEndRunner(QWidget):
 
     @pyqtSlot(list)
     def send_msg_to_run_button(self, param_list):
-        self.button_feedback_response(param_list[0], self.run_button, param_list[1], param_list[2])
+        self.button_feedback_response(
+            param_list[0], self.run_button, param_list[1], param_list[2]
+        )
 
     @pyqtSlot()
     def run_clicked(self):
@@ -1034,7 +1052,9 @@ class FrontEndRunner(QWidget):
         Raises:
             Exception: If survos.py not found.
         """
-        self.ssh_error = False # Flag which will be set to True if there is an SSH error
+        self.ssh_error = (
+            False  # Flag which will be set to True if there is an SSH error
+        )
         command_dir = os.getcwd()
         self.script_fullname = os.path.join(command_dir, "survos.py")
         if not os.path.isfile(self.script_fullname):
@@ -1043,38 +1063,45 @@ class FrontEndRunner(QWidget):
         self.run_config["workspace_name"] = self.ws_name_linedt_2.text()
         self.run_config["server_port"] = self.server_port_linedt.text()
         # Temporary measure to check whether the workspace exists or not
-        full_ws_path = os.path.join(Config["model.chroot"], self.run_config["workspace_name"])
+        full_ws_path = os.path.join(
+            Config["model.chroot"], self.run_config["workspace_name"]
+        )
         if not os.path.isdir(full_ws_path):
-            logger.error(f"No workspace can be found at {full_ws_path}, Not starting SuRVoS.")
+            logger.error(
+                f"No workspace can be found at {full_ws_path}, Not starting SuRVoS."
+            )
             self.button_feedback_response(
-                        f"Workspace {self.run_config['workspace_name']} does not appear to exist!",
-                        self.run_button,
-                        "maroon",
-                    )
+                f"Workspace {self.run_config['workspace_name']} does not appear to exist!",
+                self.run_button,
+                "maroon",
+            )
             return
         # Try some fancy SSH stuff here
         if self.ssh_button.isChecked():
             self.start_server_over_ssh()
         else:
             self.server_process = subprocess.Popen(
-            [
-                "python",
-                self.script_fullname,
-                "start_server",
-                self.run_config["workspace_name"],
-                self.run_config["server_port"]
-            ])
+                [
+                    "python",
+                    self.script_fullname,
+                    "start_server",
+                    self.run_config["workspace_name"],
+                    self.run_config["server_port"],
+                ]
+            )
             try:
                 outs, errs = self.server_process.communicate(timeout=10)
                 print(f"OUTS: {outs, errs}")
             except subprocess.TimeoutExpired:
                 pass
-            
+
             self.start_client()
 
     def start_client(self):
         if not self.ssh_error:
-            self.button_feedback_response("Starting Client.", self.run_button, "green", 7)
+            self.button_feedback_response(
+                "Starting Client.", self.run_button, "green", 7
+            )
             self.run_config["server_ip"] = self.server_ip_linedt.text()
             self.client_process = subprocess.Popen(
                 [
@@ -1088,6 +1115,7 @@ class FrontEndRunner(QWidget):
                 ]
             )
 
+
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -1097,7 +1125,7 @@ if __name__ == "__main__":
         "workspace_name": "test_hunt_d4b",
         "use_ssh": False,
         "ssh_host": "ws168.diamond.ac.uk",
-        "ssh_port": "22"
+        "ssh_port": "22",
     }
 
     workspace_config = {

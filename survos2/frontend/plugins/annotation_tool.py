@@ -37,6 +37,7 @@ def _fill_level(combo, level):
         data = dict(level=level["id"], idx=label["idx"], color=label["color"])
         combo.addItem(lidx, label["name"], icon=icon, data=data)
 
+
 def _fill_annotations(combo, full=False):
     params = dict(workspace=True, full=full)
     levels = Launcher.g.run("annotations", "get_levels", **params)
@@ -48,16 +49,22 @@ def _fill_annotations(combo, full=False):
                     _fill_level(combo, level)
             else:
                 _fill_level(combo, level)
-                
+
 
 class AnnotationComboBox(LazyComboBox):
-    def __init__(self, full=False, parent=None,header=(None, "Select Label"), exclude_from_fill=None):
+    def __init__(
+        self,
+        full=False,
+        parent=None,
+        header=(None, "Select Label"),
+        exclude_from_fill=None,
+    ):
         self.full = full
-        self.exclude_from_fill=exclude_from_fill
+        self.exclude_from_fill = exclude_from_fill
 
-        super().__init__(parent=parent, header=header )
+        super().__init__(parent=parent, header=header)
         _AnnotationNotifier.listen(self.update)
-        
+
     def fill(self):
         _fill_annotations(self, full=self.full)
 

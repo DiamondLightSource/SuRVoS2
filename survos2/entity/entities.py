@@ -1,9 +1,3 @@
-"""
-A Entity Dataframe has 'z','x','y','class_code'
-
-
-"""
-
 import collections
 import glob
 import itertools
@@ -16,41 +10,86 @@ from dataclasses import dataclass
 from statistics import StatisticsError, mode
 from typing import List, NamedTuple
 
-import h5py
-import hdbscan
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import skimage
 import torch.utils.data as data
 from loguru import logger
 from numpy import linalg
 from numpy.lib.stride_tricks import as_strided as ast
-from numpy.linalg import LinAlgError
-from numpy.random import permutation
-from scipy import ndimage
-from skimage import data
-from skimage.color import label2rgb
-from skimage.filters import threshold_otsu
-from skimage.io import imread, imread_collection
-from skimage.measure import label, regionprops
-from skimage.morphology import binary_dilation, closing, disk, square, thin
-from skimage.segmentation import clear_border, find_boundaries
-from sklearn.model_selection import StratifiedKFold, train_test_split
 
 from survos2.entity.anno.geom import centroid_3d, rescale_3d
 from survos2.entity.sampler import crop_vol_and_pts_bb, sample_bvol
 from survos2.frontend.nb_utils import slice_plot, summary_stats
 from survos2.entity.sampler import viz_bvols, centroid_to_bvol, offset_points
 
+from survos2.frontend.control.launcher import Launcher
+from survos2.model import DataModel
+from survos2.improc.utils import DatasetManager
 
-def make_entity_mask(wf, dets, flipxy=True, padding=(32, 32, 32)):
+import tempfile
+
+
+def load_entities_as_objects(entities_arr, flipxy=True):
+    entities_df = make_entity_df(entities_arr, flipxy=flipxy)
+    tmp_fullpath = os.path.abspath(
+        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
+    )
+    print(f"Creating temp file: {tmp_fullpath}")
+    entities_df.to_csv(tmp_fullpath, line_terminator="")
+
+    object_scale = 1.0
+    object_offset = (0.0, 0.0, 0.0)
+    object_crop_start = (0.0, 0.0, 0.0)
+    object_crop_end = (1e5, 1e5, 1e5)
+
+    params = dict(
+        order=0,
+        workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
+        fullname=tmp_fullpath,
+    )
+    print(params)
+    result = Launcher.g.run("objects", "create", **params)
+    print(result)
+    if result:
+        dst = DataModel.g.dataset_uri(result["id"], group="objects")
+        params = dict(
+            dst=dst,
+            fullname=tmp_fullpath,
+            scale=object_scale,
+            offset=object_offset,
+            crop_start=object_crop_start,
+            crop_end=object_crop_end,
+        )
+        logger.debug(f"Getting objects with params {params}")
+        Launcher.g.run("objects", "points", **params)
+
+    os.remove(tmp_fullpath)
+
+
+def get_entities(objects_id):
+    msg = {"objects_id": objects_id}
+    logger.debug(f"view_objects {msg['objects_id']}")
+    src = DataModel.g.dataset_uri(msg["objects_id"], group="objects")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        ds = DM.sources[0]
+
+    logger.debug(f"Using dataset {ds}")
+    entities_fullname = ds.get_metadata("fullname")
+    logger.info(f"Viewing entities {entities_fullname}")
+    from survos2.frontend.components.entity import setup_entity_table
+
+    tabledata, entities_df = setup_entity_table(entities_fullname)
+    return entities_df
+
+
+def make_entity_mask(vol, dets, flipxy=True, bvol_dim=(32, 32, 32)):
     from survos2.entity.utils import pad_vol
 
-    offset_dets = offset_points(dets, (-padding[0], -padding[1], -padding[2]))
-    offset_det_bvol = centroid_to_bvol(offset_dets, bvol_dim=padding, flipxy=flipxy)
-    padded_vol = pad_vol(wf.vols[0], padding)
+    offset_dets = offset_points(dets, (-bvol_dim[0], -bvol_dim[1], -bvol_dim[2]))
+    offset_det_bvol = centroid_to_bvol(offset_dets, bvol_dim=bvol_dim, flipxy=flipxy)
+    padded_vol = pad_vol(vol, bvol_dim)
     det_mask = viz_bvols(padded_vol, offset_det_bvol)
     return det_mask, offset_dets, padded_vol
 
@@ -72,8 +111,8 @@ def calc_bounding_vols(main_bv):
     return main_bv
 
 
-def uncrop_pad(img, orig_img, crop_bb):
-    blank_img = np.zeros_like(orig_img)
+def uncrop_pad(img, orig_img_shape, crop_bb):
+    blank_img = np.zeros(orig_img_shape)
     blank_img[
         crop_bb[0] : crop_bb[0] + img.shape[0],
         crop_bb[2] : crop_bb[2] + img.shape[1],
@@ -101,6 +140,12 @@ def offset_points(pts, patch_pos):
 
 
 def make_entity_df(pts, flipxy=True):
+    """
+    Converts an array with 4 columns for z,x,y and class code into a typed dataframe.
+    A Entity Dataframe has 'z','x','y','class_code'.
+
+    """
+
     if flipxy:
         entities_df = pd.DataFrame(
             {"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]}

@@ -1,32 +1,57 @@
 # SuRVoS2
-Next generation of SuRVoS - Coming soon!
 
-[![pipeline status](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/badges/master/pipeline.svg?job=linux-build&key_text=Linux+build)](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/-/commits/master) [![pipeline status](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/badges/master/pipeline.svg?job=linux-test&key_text=Linux+tests)](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/-/commits/master) [![pipeline status](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/badges/master/pipeline.svg?job=windows-build&key_text=Windows+build&key_width=100)](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/-/commits/master) [![pipeline status](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/badges/master/pipeline.svg?job=windows-test&key_text=Windows+tests&key_width=100)](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/-/commits/master)[![coverage report](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/badges/master/coverage.svg)](https://gitlab.diamond.ac.uk/data-analysis/imaging/SuRVoS2/-/commits/master)
+[![License](https://img.shields.io/pypi/l/SuRVoS2.svg?color=green)](https://github.com/penningav/SuRVoS2/raw/master/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/SuRVoS2.svg?color=green)](https://pypi.org/project/SuRVoS2)
+[![Python Version](https://img.shields.io/pypi/pyversions/SuRVoS2.svg?color=green)](https://python.org)
+[![tests](https://github.com/penningav/SuRVoS2/workflows/tests/badge.svg)](https://github.com/penningav/SuRVoS2/actions)
+[![codecov](https://codecov.io/gh/penningav/SuRVoS2/branch/master/graph/badge.svg)](https://codecov.io/gh/penningav/SuRVoS2)
 
-## Run server
+Volumetric Image Segmentation
 
-```bash
-bin/survos server
-```
+----------------------------------
 
-## Run Qt client
+This [napari] plugin was generated with [Cookiecutter] using with [@napari]'s [cookiecutter-napari-plugin] template.
 
-```bash
-bin/survos qt [workspace_path] --server [host:port]
-```
+<!--
+Don't miss the full getting started guide to set up your new package:
+https://github.com/napari/cookiecutter-napari-plugin#getting-started
 
-## Run API command
+and review the napari docs for plugin developers:
+https://napari.org/docs/plugins/index.html
+-->
 
-- Locally:
+## Installation
 
-```bash
-bin/server run [plugin].[command] [param1=value1] [param2=value2]
-```
+You can install `SuRVoS2` via [pip]:
 
-- Remotely:
+    pip install SuRVoS2
 
-```bash
-bin/server run [plugin].[command] --server [host:port] [param1=value1] [param2=value2]
-```
+## Contributing
 
-[![](https://codescene.io/projects/3732/status.svg) Get more details at **codescene.io**.](https://codescene.io/projects/3732/jobs/latest-successful/results)
+Contributions are very welcome. Tests can be run with [tox], please ensure
+the coverage at least stays the same before you submit a pull request.
+
+## License
+
+Distributed under the terms of the [MIT] license,
+"SuRVoS2" is free and open source software
+
+## Issues
+
+If you encounter any problems, please [file an issue] along with a detailed description.
+
+[napari]: https://github.com/napari/napari
+[Cookiecutter]: https://github.com/audreyr/cookiecutter
+[@napari]: https://github.com/napari
+[MIT]: http://opensource.org/licenses/MIT
+[BSD-3]: http://opensource.org/licenses/BSD-3-Clause
+[GNU GPL v3.0]: http://www.gnu.org/licenses/gpl-3.0.txt
+[GNU LGPL v3.0]: http://www.gnu.org/licenses/lgpl-3.0.txt
+[Apache Software License 2.0]: http://www.apache.org/licenses/LICENSE-2.0
+[Mozilla Public License 2.0]: https://www.mozilla.org/media/MPL/2.0/index.txt
+[cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
+[file an issue]: https://github.com/penningav/SuRVoS2/issues
+[napari]: https://github.com/napari/napari
+[tox]: https://tox.readthedocs.io/en/latest/
+[pip]: https://pypi.org/project/pip/
+[PyPI]: https://pypi.org/

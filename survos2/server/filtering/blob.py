@@ -23,7 +23,6 @@ def compute_hessian(data, sigma):
     np.ndarray(6,D,H,W)
         Hessian matrix
     """
-    logger.info("+ Computing Hessian Matrix")
     gaussian_filtered = gaussian_blur_kornia(data, sigma=sigma)
     gradients = [np.gradient(gaussian_filtered, axis=i) for i in range(3)]
     axes = range(data.ndim)
@@ -56,7 +55,6 @@ def compute_hessian_determinant(data, sigma, bright=False):
     np.ndarray(D,H,W)
         Determinant of hessian calculated at each voxel value
     """
-    logger.info("+ Computing Hessian Determinant")
     Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = compute_hessian(data, sigma)
 
     det = (
@@ -99,7 +97,6 @@ def hessian_eigvals_cython(data, sigma, correct=False):
     else:
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = H
 
-    logger.info(f"+ Computing Hessian Eigenvalues with sigma {sigma}")
     from survos2.improc.features._symeigval import symmetric_eig
 
     response = symmetric_eig(
@@ -112,7 +109,7 @@ def hessian_eigvals_cython(data, sigma, correct=False):
     )
 
     logger.debug(f"Calculated hessian_eigvals reponse of shape {response.shape}")
-    
+
     return np.nan_to_num(response)
 
 
@@ -144,8 +141,6 @@ def hessian_eigvals(data, sigma, correct=False):
     else:
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = H
 
-    logger.info(f"+ Computing Hessian Eigenvalues with sigma {sigma}")
-
     Hs = torch.FloatTensor([[Hzz, Hyz, Hxz], [Hyz, Hyy, Hxy], [Hxz, Hxy, Hxx]])
     Hs_batch = Hs.reshape((3, 3, Hs.shape[-3] * Hs.shape[-2] * Hs.shape[-1]))
     e, v = torch.symeig(Hs_batch.permute((2, 0, 1)))
@@ -154,9 +149,6 @@ def hessian_eigvals(data, sigma, correct=False):
     img: np.ndarray = kornia.tensor_to_image(e)
     img = np.transpose(img, (0, 3, 1, 2))
 
-    logger.debug(f"Calculated hessian_eigvals reponse of shape {img.shape}")
-
-    
     return np.nan_to_num(img)
 
 
@@ -188,8 +180,6 @@ def hessian_eigvals_image(data, sigma, correct=False):
     else:
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = H
 
-    logger.info(f"+ Computing Hessian Eigenvalues with sigma {sigma}")
-
     Hs = torch.FloatTensor([[Hzz, Hyz, Hxz], [Hyz, Hyy, Hxy], [Hxz, Hxy, Hxx]])
     Hs_batch = Hs.reshape((3, 3, Hs.shape[-3] * Hs.shape[-2] * Hs.shape[-1]))
     e, v = torch.symeig(Hs_batch.permute((2, 0, 1)))
@@ -197,13 +187,8 @@ def hessian_eigvals_image(data, sigma, correct=False):
 
     img: np.ndarray = kornia.tensor_to_image(e)
     img = np.transpose(img, (0, 3, 1, 2))
-    
-    logger.debug(f"Calculated hessian_eigvals reponse of shape {img.shape}")
+    img = img[:, :, :, 0]  # return primay eigenvalue
 
-
-    img = img[:,:,:,0] # return primay eigenvalue
-
-    
     return np.nan_to_num(img)
 
 
@@ -236,7 +221,6 @@ def hessian_eigvals_p(data, sigma, correct=False):
     else:
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = H
 
-    logger.info(f"+ Computing Hessian Eigenvalues with sigma {sigma}")
     from survos2.improc.features._symeigval import symmetric_eig_pytorch
 
     response = symmetric_eig_pytorch(
@@ -248,9 +232,6 @@ def hessian_eigvals_p(data, sigma, correct=False):
         Hzz.copy(order="C"),
     )[:, :, :, 0]
 
-    logger.debug(f"Calculated hessian_eigvals reponse of shape {response.shape}")
-
-    
     return rescale_denan(response)
 
 
@@ -273,9 +254,6 @@ def make_gaussian_1d(sigma=1.0, size=None, order=0, trunc=3):
 
 
 def compute_structure_tensor(data, sigma):
-
-    logger.info("+ Computing Structure Tensor")
-    
     gradients = np.gradient(data)
     H_elems = [
         gaussian_blur_kornia(gradients[2 - ax0] * gradients[2 - ax1], sigma=sigma)
@@ -304,17 +282,13 @@ def compute_structure_tensor_determinant(data, sigma=1):
     """
     Sxx, Sxy, Sxz, Syy, Syz, Szz = compute_structure_tensor(data=data, sigma=sigma)
 
-    logger.info("+ Computing Structure Tensor Determinant")
     determinant = (
         Sxx * (Syy * Szz - Syz * Syz)
         - Sxy * (Sxy * Szz - Syz * Sxz)
         + Sxz * (Sxy * Syz - Syy * Sxz)
     )
-    
-    
+
     return determinant
-
-
 
 
 def divide_nonzero(array1, array2):
@@ -361,15 +335,12 @@ def compute_frangi(
         Frangi-filtered image
 
     """
-    logger.info(f"+ Computing frangi on input data of shape {data.shape}")
-
     sigmas = np.arange(scale_range[0], scale_range[1], scale_step)
 
     if np.any(np.asarray(sigmas) < 0.0):
         raise ValueError("Sigma values less than zero are not valid")
 
     filtered_array = np.zeros(sigmas.shape + data.shape)
-    logger.info(f"+ Created frangi filter array of shape {filtered_array.shape}")
 
     for i, sigma in enumerate(sigmas):
         R = hessian_eigvals(data, sigma, correct=True)
@@ -409,6 +380,5 @@ def compute_frangi(
             tmp[e3 > 0] = 0
 
         filtered_array[i] = np.nan_to_num(tmp)
-        logger.info(f"+ Computed frangi filtered array of shape {filtered_array.shape}")
 
     return np.max(filtered_array, axis=0)

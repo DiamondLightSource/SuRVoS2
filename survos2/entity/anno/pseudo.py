@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass
 from pprint import pprint
 from typing import Dict, List
-
+from loguru import logger
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,7 +17,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# import torchvision.utils
 from matplotlib import patches, patheffects
 from napari import layers
 from skimage import data, measure
@@ -33,53 +32,86 @@ from tqdm import tqdm
 
 from survos2 import survos
 from survos2.entity.anno.masks import generate_anno
-from survos2.entity.entities import (
-    make_bounding_vols,
-    make_entity_bvol,
-    make_entity_df,
-)
 
 from survos2.entity.sampler import (
-    crop_vol_and_pts,
-    crop_vol_and_pts_bb,
-    sample_marked_patches,
     generate_random_points_in_volume,
 )
 from survos2.frontend.nb_utils import (
     slice_plot,
-    view_vols_labels,
-    view_vols_points,
-    view_volume,
-    view_volumes,
 )
 
-from survos2.server.features import generate_features, prepare_prediction_features
-from survos2.server.filtering import (
-    gaussian_blur_kornia,
-    ndimage_laplacian,
-    spatial_gradient_3d,
-)
-from survos2.server.filtering.morph import dilate, erode, median
+
 from survos2.server.model import SRData, SRFeatures
-from survos2.server.pipeline import Patch, Pipeline
-from survos2.server.pipeline_ops import (
-    make_acwe,
-    clean_segmentation,
-    make_bb,
-    make_masks,
-    make_noop,
-    make_sr,
-    predict_and_agg,
-    saliency_pipeline,
-)
+from survos2.entity.pipeline import Patch
 from survos2.server.state import cfg
-from survos2.server.supervoxels import generate_supervoxels
 
-# Fixed
-# AC
-# SR
-# Unet?
+from survos2.entity.entities import make_entity_df
 
+def organize_entities(
+    img_vol, clustered_pts, entity_meta, flipxy=False, plot_all=False
+):
+
+    class_idxs = entity_meta.keys()
+    classwise_entities = []
+
+    for c in class_idxs:
+        pt_idxs = clustered_pts[:, 3] == int(c)
+        classwise_pts = clustered_pts[pt_idxs]
+        clustered_df = make_entity_df(classwise_pts, flipxy=flipxy)
+        classwise_pts = np.array(clustered_df)
+        classwise_entities.append(classwise_pts)
+        entity_meta[c]["entities"] = classwise_pts
+        if plot_all:
+            plt.figure(figsize=(9, 9))
+            plt.imshow(img_vol[img_vol.shape[0] // 4, :], cmap="gray")
+            plt.scatter(classwise_pts[:, 1], classwise_pts[:, 2], c="cyan")
+            plt.title(
+                str(entity_meta[c]["name"])
+                + " Clustered Locations: "
+                + str(len(classwise_pts))
+            )
+
+    combined_clustered_pts = np.concatenate(classwise_entities)
+
+    return combined_clustered_pts, entity_meta
+
+
+
+def make_acwe(patch: Patch, params: dict):
+    """
+    Active Contour
+
+    (Float layer -> Float layer)
+
+    """
+    from skimage import exposure
+
+    edge_map = 1.0 - patch.image_layers["Main"]
+    edge_map -= np.min(edge_map)
+    edge_map = edge_map / np.max(edge_map)
+    #edge_map = exposure.adjust_sigmoid(edge_map, cutoff=1.0)
+    logger.debug("Calculating ACWE")
+    import morphsnakes as ms
+
+    seg1 = ms.morphological_geodesic_active_contour(
+        edge_map,
+        iterations=params["iterations"],
+        init_level_set=patch.image_layers["total_mask"],
+        smoothing=params["smoothing"],
+        threshold=params["threshold"],
+        balloon=params["balloon"],
+    )
+
+    outer_mask = ((seg1 * 1.0) > 0) * 2.0
+
+    # inner_mask = ((seg2 * 1.0) > 0) * 1.0
+    # outer_mask = outer_mask * (1.0 - inner_mask)
+    # anno = outer_mask + inner_mask
+
+    patch.image_layers["acwe"] = outer_mask
+    # show_images([outer_mask[outer_mask.shape[0] // 2, :]], figsize=(12, 12))
+
+    return patch
 
 def generate_annotation_volume(
     wf,
@@ -139,7 +171,6 @@ def generate_annotation_volume(
 def make_anno(
     wf, entities, entity_meta, gt_proportion, padding, acwe=False, plot_all=True
 ):
-    from survos2.entity.patches import organize_entities
 
     combined_clustered_pts, classwise_entities = organize_entities(
         wf.vols[0], entities, entity_meta, plot_all=plot_all
@@ -161,6 +192,10 @@ def make_pseudomasks(
     padding=(64, 64, 64),
     core_mask_radius=(8, 8, 8),
     acwe=False,
+    balloon=1.3,
+    threshold=0.1,
+    iterations=1,
+    smoothing=1,
     plot_all=False,
 ):
 
@@ -184,15 +219,25 @@ def make_pseudomasks(
     if plot_all:
         slice_plot(anno_all, None, wf.vols[0], (89, 200, 200))
 
+    anno_acwe = {}
     if acwe:
-        p = Patch(
-            {"Main": wf.vols[0]},
-            {},
-            {"Points": classwise_entities["0"]["entities"]},
-            {},
-        )
-        p.image_layers["total_mask"] = (anno_gen > 0) * 1.0
-        p = make_acwe(p, cfg["pipeline"])
-        anno_masks["acwe"] = p.image_layers["acwe"]
 
-    return anno_masks, anno_all
+        for i in classwise_entities.keys():
+            p = Patch(
+                {"Main": wf.vols[0]},
+                {},
+                {"Points": classwise_entities["0"]["entities"]},
+                {},
+            )
+            p.image_layers["total_mask"] = (anno_masks[i]["mask"] > 0) * 1.0
+            params = cfg["pipeline"]
+            params["smoothing"] = smoothing
+            params["threshold"] = threshold
+            params["iterations"] = iterations
+            params["balloon"] = balloon
+
+            p = make_acwe(p, params)
+
+            anno_acwe[i] = p.image_layers["acwe"]
+
+    return anno_masks, anno_acwe

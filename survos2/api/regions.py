@@ -26,13 +26,14 @@ from survos2.improc import map_blocks
 from survos2.io import dataset_from_uri
 from survos2.utils import encode_numpy
 from survos2.improc.utils import DatasetManager
-
+from skimage.segmentation import slic
+from survos2.model import DataModel
 
 
 __region_fill__ = 0
 __region_dtype__ = "uint32"
 __region_group__ = "regions"
-__region_names__ = [None, "supervoxels"]  # , 'megavoxels']
+__region_names__ = [None, "supervoxels"]
 
 
 @hug.get()
@@ -50,6 +51,7 @@ def get_slice(src: DataURI, slice_idx: Int, order: tuple):
     data = ds[slice_idx]
     return encode_numpy(data)
 
+
 @hug.get()
 def get_crop(src: DataURI, roi: IntList):
     logger.debug("Getting regions crop")
@@ -61,6 +63,36 @@ def get_crop(src: DataURI, roi: IntList):
 @hug.get()
 @save_metadata
 def supervoxels(
+    src: DataURI,
+    dst: DataURI,
+    n_segments: Int = 10,
+    compactness: Float = 20,
+    spacing: FloatList = [1, 1, 1],
+    multichannel: SmartBoolean = False,
+    enforce_connectivity: SmartBoolean = False,
+    out_dtype="int",
+):
+    with DatasetManager(src, out=None, dtype=out_dtype, fillvalue=0) as DM:
+        src_data_arr = DM.sources[0][:]
+
+    supervoxel_image = slic(
+        src_data_arr,
+        n_segments=n_segments,
+        spacing=spacing,
+        compactness=compactness,
+        multichannel=False,
+    )
+    print(supervoxel_image)
+
+    def pass_through(x):
+        return x
+
+    map_blocks(pass_through, supervoxel_image, out=dst, normalize=False)
+
+
+@hug.get()
+@save_metadata
+def supervoxels_chunked(
     src: DataURIList,
     dst: DataURI,
     n_segments: Int = 10,
@@ -68,19 +100,9 @@ def supervoxels(
     spacing: FloatList = [1, 1, 1],
     multichannel: SmartBoolean = False,
     enforce_connectivity: SmartBoolean = False,
+    out_dtype="int",
 ):
-    """
-    API wrapper for `cuda-slic`.
-    """
 
-    if survos2.config.Config["slic"] == 'skimage':
-        logger.debug("Using skimage slic")
-        from skimage.segmentation import slic
-    elif survos2.config.Config["slic"] == 'cuda_slic':
-        logger.debug("Using cuda_slic")
-        from cuda_slic import slic
-
-    # import pdb; pdb.set_trace()
     map_blocks(
         slic,
         *src,
@@ -93,16 +115,19 @@ def supervoxels(
         stack=False,
         timeit=True,
         uses_gpu=False,
-        #out_dtype=np.uint64,
+        out_dtype=out_dtype,
         relabel=True,
     )
 
-    with DatasetManager(dst, out=None, dtype="uint64", fillvalue=0) as DM:
+    with DatasetManager(dst, out=None, dtype=out_dtype, fillvalue=0) as DM:
         dst_dataset = DM.sources[0]
         supervoxel_image = dst_dataset[:]
+        print(supervoxel_image.dtype)
 
-    dst_dataset.set_attr("num_supervoxels", len(np.unique(supervoxel_image)))
+    num_sv = len(np.unique(supervoxel_image))
+    print(f"Number of supervoxels created: {num_sv}")
 
+    dst_dataset.set_attr("num_supervoxels", num_sv)
 
 
 @hug.get()
@@ -128,11 +153,29 @@ def merge_regions(src: DataURI, labels: DataURI, dst: DataURI, min_size: Float):
 
 
 @hug.get()
-def create(workspace: String, order: Int = 1):
+def create(workspace: String, order: Int = 1, big: bool = False):
     region_type = __region_names__[order]
-    ds = ws.auto_create_dataset(
-        workspace, region_type, __region_group__, __region_dtype__, fill=__region_fill__
-    )
+    if big:
+        logger.debug("Creating int64 regions")
+        ds = ws.auto_create_dataset(
+            workspace,
+            region_type,
+            __region_group__,
+            __region_dtype__,
+            dtype=np.uint64,
+            fill=__region_fill__,
+        )
+    else:
+        logger.debug("Creating int32 regions")
+        ds = ws.auto_create_dataset(
+            workspace,
+            region_type,
+            __region_group__,
+            __region_dtype__,
+            dtype=np.uint32,
+            fill=__region_fill__,
+        )
+
     ds.set_attr("kind", region_type)
     return dataset_repr(ds)
 

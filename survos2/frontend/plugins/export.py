@@ -28,6 +28,7 @@ HDF_EXT = ".h5"
 MRC_EXT = ".rec"
 TIFF_EXT = ".tiff"
 
+
 class SuperRegionSegmentComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None):
         self.full = full
@@ -125,7 +126,7 @@ class ExportPlugin(Plugin):
 
         pipe_group_box.setLayout(pipe_box_layout)
         return pipe_group_box
-    
+
     def add_filetypes_to_combo(self, combo):
         for file_type in FILE_TYPES:
             combo.addItem(file_type)
@@ -186,9 +187,11 @@ class ExportPlugin(Plugin):
             logger.info("No pipeline selected")
 
     def get_data_filetype(self, combo_box):
-        ftype_map = {"HDF5": ("HDF5 (*.h5 *.hdf5)", HDF_EXT),
-                     "MRC": ("MRC (*.mrc *.rec *.st)", MRC_EXT),
-                     "TIFF": ("TIFF (*.tif *.tiff)", TIFF_EXT)}
+        ftype_map = {
+            "HDF5": ("HDF5 (*.h5 *.hdf5)", HDF_EXT),
+            "MRC": ("MRC (*.mrc *.rec *.st)", MRC_EXT),
+            "TIFF": ("TIFF (*.tif *.tiff)", TIFF_EXT),
+        }
         return ftype_map.get(combo_box.currentText())
 
     def get_arr_data(self, item_id, item_type):

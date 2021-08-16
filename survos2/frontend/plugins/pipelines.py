@@ -12,6 +12,7 @@ from survos2.frontend.plugins.base import ComboBox, LazyComboBox, LazyMultiCombo
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
 from survos2.frontend.plugins.regions import RegionComboBox
+from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.utils import (
     get_array_from_dataset,
     get_color_mapping,
@@ -23,7 +24,6 @@ from survos2.server.state import cfg
 from survos2.frontend.utils import FileWidget
 
 _PipelineNotifier = PluginNotifier()
-
 
 
 def _fill_pipelines(combo, full=False, filter=True, ignore=None):
@@ -48,8 +48,8 @@ class PipelinesComboBox(LazyComboBox):
         if result:
             self.addCategory("Segmentations")
             for fid in result:
-                if result[fid]["kind"] == "pipelines":
-                    self.addItem(fid, result[fid]["name"])
+                # if result[fid]["kind"] == "pipelines":
+                self.addItem(fid, result[fid]["name"])
 
 
 @register_plugin
@@ -73,7 +73,6 @@ class PipelinesPlugin(Plugin):
         self.pipeline_combo.clear()
         self.pipeline_combo.addItem("Add segmentation")
 
-        result = None
         result = Launcher.g.run("pipelines", "available", workspace=True)
 
         if not result:
@@ -84,7 +83,9 @@ class PipelinesPlugin(Plugin):
             result = {}
             result[0] = params
             self.pipeline_params["superregion_segment"] = {
-                "sr_params": {"type": "sr2",}
+                "sr_params": {
+                    "type": "sr2",
+                }
             }
         else:
             all_categories = sorted(set(p["category"] for p in result))
@@ -100,8 +101,13 @@ class PipelinesPlugin(Plugin):
                     self.pipeline_combo.addItem(f["name"])
 
     def add_pipeline(self, idx):
-        if idx == 0:
+        if idx <= 0:
             return
+        if self.pipeline_combo.itemText(idx) == "":
+            return
+
+        logger.debug(f"Adding pipeline {self.pipeline_combo.itemText(idx)}")
+
         pipeline_type = self.pipeline_combo.itemText(idx)
         self.pipeline_combo.setCurrentIndex(0)
 
@@ -122,7 +128,13 @@ class PipelinesPlugin(Plugin):
         self.existing_pipelines[fid] = widget
         return widget
 
+    def clear(self):
+        for pipeline in list(self.existing_pipelines.keys()):
+            self.existing_pipelines.pop(pipeline).setParent(None)
+        self.existing_pipelines = {}
+
     def setup(self):
+        self._populate_pipelines()
         params = dict(
             workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
         )
@@ -149,7 +161,6 @@ class PipelinesPlugin(Plugin):
                 self.existing_pipelines[fid] = widget
 
 
-
 class SVMWidget(QtWidgets.QWidget):
     predict = Signal(dict)
 
@@ -161,47 +172,47 @@ class SVMWidget(QtWidgets.QWidget):
         self.setLayout(vbox)
 
         self.type_combo = ComboBox()
-        self.type_combo.addCategory('Kernel Type:')
-        self.type_combo.addItem('linear')
-        self.type_combo.addItem('poly')
-        self.type_combo.addItem('rbf')
-        self.type_combo.addItem('sigmoid')
+        self.type_combo.addCategory("Kernel Type:")
+        self.type_combo.addItem("linear")
+        self.type_combo.addItem("poly")
+        self.type_combo.addItem("rbf")
+        self.type_combo.addItem("sigmoid")
         vbox.addWidget(self.type_combo)
 
         self.penaltyc = LineEdit(default=1.0, parse=float)
         self.gamma = LineEdit(default=1.0, parse=float)
 
-        vbox.addWidget(HWidgets(QtWidgets.QLabel('Penalty C:'),
-                                self.penaltyc,
-                                QtWidgets.QLabel('Gamma:'),
-                                self.gamma,
-                                stretch=[0, 1, 0, 1]))
-
-        #self.btn_predict = PushButton('Predict')
-        #self.btn_predict.clicked.connect(self.on_predict_clicked)
-        #vbox.addWidget(HWidgets(None, self.btn_predict, stretch=[1, 0]))
+        vbox.addWidget(
+            HWidgets(
+                QtWidgets.QLabel("Penalty C:"),
+                self.penaltyc,
+                QtWidgets.QLabel("Gamma:"),
+                self.gamma,
+                stretch=[0, 1, 0, 1],
+            )
+        )
 
     def on_predict_clicked(self):
         params = {
-            'clf': 'svm',
-            'kernel': self.type_combo.currentText(),
-            'C': self.penaltyc.value(),
-            'gamma': self.gamma.value()
+            "clf": "svm",
+            "kernel": self.type_combo.currentText(),
+            "C": self.penaltyc.value(),
+            "gamma": self.gamma.value(),
         }
 
         self.predict.emit(params)
 
-
     def get_params(self):
         params = {
-            'clf': 'svm',
-            'kernel': self.type_combo.currentText(),
-            'C': self.penaltyc.value(),
-            'gamma': self.gamma.value(),
-            'type': self.type_combo.value(),
+            "clf": "svm",
+            "kernel": self.type_combo.currentText(),
+            "C": self.penaltyc.value(),
+            "gamma": self.gamma.value(),
+            "type": self.type_combo.value(),
         }
 
         return params
+
 
 class EnsembleWidget(QtWidgets.QWidget):
     train_predict = Signal(dict)
@@ -214,37 +225,45 @@ class EnsembleWidget(QtWidgets.QWidget):
         self.setLayout(vbox)
 
         self.type_combo = ComboBox()
-        self.type_combo.addCategory('Ensemble Type:') 
-        self.type_combo.addItem('Random Forest')
-        self.type_combo.addItem('ExtraRandom Forest')
-        self.type_combo.addItem('AdaBoost')
-        self.type_combo.addItem('GradientBoosting')
-    
+        self.type_combo.addCategory("Ensemble Type:")
+        self.type_combo.addItem("Random Forest")
+        self.type_combo.addItem("ExtraRandom Forest")
+        self.type_combo.addItem("AdaBoost")
+        self.type_combo.addItem("GradientBoosting")
+
         self.type_combo.currentIndexChanged.connect(self.on_ensemble_changed)
         vbox.addWidget(self.type_combo)
 
         self.ntrees = LineEdit(default=100, parse=int)
         self.depth = LineEdit(default=15, parse=int)
-        self.lrate = LineEdit(default=1., parse=float)
-        self.subsample = LineEdit(default=1., parse=float)
+        self.lrate = LineEdit(default=1.0, parse=float)
+        self.subsample = LineEdit(default=1.0, parse=float)
 
-        vbox.addWidget(HWidgets(QtWidgets.QLabel('# Trees:'),
-                                self.ntrees,
-                                QtWidgets.QLabel('Max Depth:'),
-                                self.depth,
-                                stretch=[0, 1, 0, 1]))
+        vbox.addWidget(
+            HWidgets(
+                QtWidgets.QLabel("# Trees:"),
+                self.ntrees,
+                QtWidgets.QLabel("Max Depth:"),
+                self.depth,
+                stretch=[0, 1, 0, 1],
+            )
+        )
 
-        vbox.addWidget(HWidgets(QtWidgets.QLabel('Learn Rate:'),
-                                self.lrate,
-                                QtWidgets.QLabel('Subsample:'),
-                                self.subsample,
-                                stretch=[0, 1, 0, 1]))
+        vbox.addWidget(
+            HWidgets(
+                QtWidgets.QLabel("Learn Rate:"),
+                self.lrate,
+                QtWidgets.QLabel("Subsample:"),
+                self.subsample,
+                stretch=[0, 1, 0, 1],
+            )
+        )
 
-        #self.btn_train_predict = PushButton('Train & Predict')
-        #self.btn_train_predict.clicked.connect(self.on_train_predict_clicked)
+        # self.btn_train_predict = PushButton('Train & Predict')
+        # self.btn_train_predict.clicked.connect(self.on_train_predict_clicked)
         self.n_jobs = LineEdit(default=10, parse=int)
-        vbox.addWidget(HWidgets('Num Jobs', self.n_jobs))
-        
+        vbox.addWidget(HWidgets("Num Jobs", self.n_jobs))
+
     def on_ensemble_changed(self, idx):
         if idx == 2:
             self.ntrees.setDefault(50)
@@ -255,39 +274,40 @@ class EnsembleWidget(QtWidgets.QWidget):
             self.lrate.setDefault(0.1)
             self.depth.setDefault(3)
         else:
-            self.lrate.setDefault(1.)
+            self.lrate.setDefault(1.0)
             self.depth.setDefault(15)
 
     def on_train_predict_clicked(self):
-        ttype = ['rf', 'erf', 'ada', 'gbf']
+        ttype = ["rf", "erf", "ada", "gbf"]
         params = {
-            'clf': 'ensemble',
-            'type': ttype[self.type_combo.currentIndex()],
-            'n_estimators': self.ntrees.value(),
-            'max_depth': self.depth.value(),
-            'learning_rate': self.lrate.value(),
-            'subsample': self.subsample.value(),
-            'n_jobs': self.n_jobs.value()
+            "clf": "ensemble",
+            "type": ttype[self.type_combo.currentIndex()],
+            "n_estimators": self.ntrees.value(),
+            "max_depth": self.depth.value(),
+            "learning_rate": self.lrate.value(),
+            "subsample": self.subsample.value(),
+            "n_jobs": self.n_jobs.value(),
         }
         self.train_predict.emit(params)
 
     def get_params(self):
-        ttype = ['rf', 'erf', 'ada', 'gbf']
-        if self.type_combo.currentIndex()-1 == 0:
+        ttype = ["rf", "erf", "ada", "gbf"]
+        if self.type_combo.currentIndex() - 1 == 0:
             current_index = 0
         else:
-            current_index = self.type_combo.currentIndex()-1
+            current_index = self.type_combo.currentIndex() - 1
         logger.debug(f"Ensemble type_combo index: {current_index}")
         params = {
-            'clf': 'ensemble',
-            'type': ttype[current_index],
-            'n_estimators': self.ntrees.value(),
-            'max_depth': self.depth.value(),
-            'learning_rate': self.lrate.value(),
-            'subsample': self.subsample.value(),
-            'n_jobs': self.n_jobs.value()
+            "clf": "ensemble",
+            "type": ttype[current_index],
+            "n_estimators": self.ntrees.value(),
+            "max_depth": self.depth.value(),
+            "learning_rate": self.lrate.value(),
+            "subsample": self.subsample.value(),
+            "n_jobs": self.n_jobs.value(),
         }
         return params
+
 
 class PipelineCard(Card):
     def __init__(self, fid, ftype, fname, fparams, parent=None):
@@ -313,7 +333,7 @@ class PipelineCard(Card):
             self._add_annotations_source()
             self._add_constrain_source()
             self._add_regions_source()
-            
+
             self.ensembles = EnsembleWidget()
             self.ensembles.train_predict.connect(self.compute_pipeline)
             self.svm = SVMWidget()
@@ -321,13 +341,17 @@ class PipelineCard(Card):
 
             self._add_classifier_choice()
             self._add_projection_choice()
-            #self._add_refine_choice()
+            # self._add_refine_choice()
             self._add_param("lam", type="FloatSlider", default=0.15)
-            
+
         elif self.pipeline_type == "generate_blobs":
             self._add_annotations_source()
             self._add_features_source()
             self._add_objects_source()
+
+        elif self.pipeline_type == "watershed":
+            self._add_annotations_source()
+            self._add_feature_source()
 
         elif self.pipeline_type == "predict_segmentation_fcn":
             self._add_annotations_source()
@@ -336,6 +360,15 @@ class PipelineCard(Card):
             self._add_workflow_file()
             self._add_model_type()
             # self._add_patch_params()
+
+        elif self.pipeline_type == "level_combination":
+            self._add_annotations_source(label="Layer Over: ")
+            self._add_annotations_source2(label="Layer Base: ")
+
+        elif self.pipeline_type == "cleaning":
+            # self._add_objects_source()
+            self._add_feature_source()
+            self._add_annotations_source()
 
         else:
             logger.debug(f"Unsupported pipeline type {self.pipeline_type}.")
@@ -401,23 +434,23 @@ class PipelineCard(Card):
         widget = HWidgets("Classifier:", self.classifier_type, Spacing(35), stretch=0)
 
         self.classifier_type.currentIndexChanged.connect(self._on_classifier_changed)
-        
+
         self.clf_container = QtWidgets.QWidget()
         clf_vbox = VBox(self, spacing=4)
         clf_vbox.setContentsMargins(0, 0, 0, 0)
-        self.clf_container.setLayout(clf_vbox) 
+        self.clf_container.setLayout(clf_vbox)
 
         self.add_row(widget)
-        self.add_row(self.clf_container,  max_height=500)
+        self.add_row(self.clf_container, max_height=500)
         self.clf_container.layout().addWidget(self.ensembles)
-        
+
     def _on_classifier_changed(self, idx):
-        if idx==0:
+        if idx == 0:
             self.clf_container.layout().addWidget(self.ensembles)
             self.svm.setParent(None)
 
-        elif idx==1:
-            self.clf_container.layout().addWidget(self.svm)        
+        elif idx == 1:
+            self.clf_container.layout().addWidget(self.svm)
             self.ensembles.setParent(None)
 
     def _add_projection_choice(self):
@@ -430,6 +463,14 @@ class PipelineCard(Card):
         widget = HWidgets("Projection:", self.projection_type, Spacing(35), stretch=0)
         self.add_row(widget)
 
+    def _add_feature_source(self):
+        self.feature_source = FeatureComboBox()
+        self.feature_source.fill()
+        self.feature_source.setMaximumWidth(250)
+
+        widget = HWidgets("Feature:", self.feature_source, Spacing(35), stretch=1)
+        self.add_row(widget)
+
     def _add_features_source(self):
         self.features_source = MultiSourceComboBox()
         self.features_source.fill()
@@ -440,7 +481,9 @@ class PipelineCard(Card):
 
     def _add_constrain_source(self):
         print(self.annotations_source.value())
-        self.constrain_mask_source = AnnotationComboBox(header=(None, "None"), full=True)
+        self.constrain_mask_source = AnnotationComboBox(
+            header=(None, "None"), full=True
+        )
         self.constrain_mask_source.fill()
         self.constrain_mask_source.setMaximumWidth(250)
 
@@ -449,15 +492,30 @@ class PipelineCard(Card):
         )
         self.add_row(widget)
 
-    def _add_annotations_source(self):
-        self.annotations_source = LevelComboBox(full=True)  
+    def _add_annotations_source(self, label="Annotation"):
+        self.annotations_source = LevelComboBox(full=True)
         self.annotations_source.fill()
         self.annotations_source.setMaximumWidth(250)
 
-        widget = HWidgets(
-            "Annotation:", self.annotations_source, Spacing(35), stretch=1
-        )
+        widget = HWidgets(label, self.annotations_source, Spacing(35), stretch=1)
 
+        self.add_row(widget)
+
+    def _add_annotations_source2(self, label="Annotation 2"):
+        self.annotations_source2 = LevelComboBox(full=True)
+        self.annotations_source2.fill()
+        self.annotations_source2.setMaximumWidth(250)
+
+        widget = HWidgets(label, self.annotations_source2, Spacing(35), stretch=1)
+        self.add_row(widget)
+
+    def _add_pipelines_source(self):
+        self.pipelines_source = PipelinesComboBox()
+        self.pipelines_source.fill()
+        self.pipelines_source.setMaximumWidth(250)
+        widget = HWidgets(
+            "Segmentation:", self.pipelines_source, Spacing(35), stretch=1
+        )
         self.add_row(widget)
 
     def _add_regions_source(self):
@@ -507,24 +565,34 @@ class PipelineCard(Card):
         if "anno_id" in params:
             if params["anno_id"] is not None:
                 print(list(self.annotations_source.items()))
-                self.annotations_source.select(os.path.join("annotations/",params["anno_id"]))
+                self.annotations_source.select(
+                    os.path.join("annotations/", params["anno_id"])
+                )
         if "feature_ids" in params:
             for source in params["feature_ids"]:
-                self.features_source.select(os.path.join("features/",source))
+                self.features_source.select(os.path.join("features/", source))
         if "region_id" in params:
             if params["region_id"] is not None:
-                self.regions_source.select(os.path.join("regions/",params["region_id"]))
+                self.regions_source.select(
+                    os.path.join("regions/", params["region_id"])
+                )
         if "constrain_mask" in params:
             print(list(self.constrain_mask_source.items()))
-            if params["constrain_mask"] is not None and params["constrain_mask"] != 'None':
+            if (
+                params["constrain_mask"] is not None
+                and params["constrain_mask"] != "None"
+            ):
                 import ast
+
                 constrain_mask_dict = ast.literal_eval(params["constrain_mask"])
                 print(constrain_mask_dict)
-                
-                constrain_mask_source = constrain_mask_dict["level"] + ":" + str(constrain_mask_dict["idx"])
+
+                constrain_mask_source = (
+                    constrain_mask_dict["level"] + ":" + str(constrain_mask_dict["idx"])
+                )
                 print(f"Constrain mask source {constrain_mask_source}")
                 self.constrain_mask_source.select(constrain_mask_source)
-                
+
     def card_deleted(self):
         params = dict(pipeline_id=self.pipeline_id, workspace=True)
         result = Launcher.g.run("pipelines", "remove", **params)
@@ -542,10 +610,10 @@ class PipelineCard(Card):
 
     def view_pipeline(self):
         logger.debug(f"View pipeline_id {self.pipeline_id}")
-        if self.annotations_source.value() is not None:
+        if self.annotations_source:
             level_id = str(self.annotations_source.value().rsplit("/", 1)[-1])
             logger.debug(f"Assigning annotation level {level_id}")
-            str(self.annotations_source.value().rsplit("/", 1)[-1])
+
             cfg.ppw.clientEvent.emit(
                 {
                     "source": "pipelines",
@@ -621,7 +689,11 @@ class PipelineCard(Card):
                 for v in level_result["labels"].keys():
                     if v in anno_result["labels"]:
                         label_hex = anno_result["labels"][v]["color"]
-                        label = dict(idx=int(v), name=str(v), color=label_hex,)
+                        label = dict(
+                            idx=int(v),
+                            name=str(v),
+                            color=label_hex,
+                        )
                         params = dict(level=result["id"], workspace=True)
                         label_result = Launcher.g.run(
                             "annotations", "update_label", **params, **label
@@ -643,79 +715,134 @@ class PipelineCard(Card):
                 {"source": "workspace_gui", "data": "refresh", "value": None}
             )
 
-    def compute_pipeline(self):
-        dst = DataModel.g.dataset_uri(self.pipeline_id, group="pipelines")
+    def setup_params_superregion_segment(self, dst):
         feature_names_list = [
             n.rsplit("/", 1)[-1] for n in self.features_source.value()
         ]
+        src_grp = (
+            None if self.annotations_source.currentIndex() == 0 else "pipelines"
+        )
+        src = DataModel.g.dataset_uri(
+            self.annotations_source.value().rsplit("/", 1)[-1],
+            group="annotations",
+        )
+        all_params = dict(src=src, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+
+        logger.info(f"Setting src to {self.annotations_source.value()} ")
+        all_params["region_id"] = str(
+            self.regions_source.value().rsplit("/", 1)[-1]
+        )
+        all_params["feature_ids"] = feature_names_list
+        all_params["anno_id"] = str(
+            self.annotations_source.value().rsplit("/", 1)[-1]
+        )
+        print(self.constrain_mask_source.value())
+        if self.constrain_mask_source.value() != None:
+            all_params[
+                "constrain_mask"
+            ] = self.constrain_mask_source.value()  # .rsplit("/", 1)[-1]
+        else:
+            all_params["constrain_mask"] = "None"
+
+        all_params["dst"] = dst
+        all_params["refine"] = self.widgets[
+            "refine"
+        ].value()  # self.refine_checkbox.value()
+        all_params["lam"] = self.widgets["lam"].value()
+        all_params["classifier_type"] = self.classifier_type.value()
+        all_params["projection_type"] = self.projection_type.value()
+
+        if self.classifier_type.value() == "Ensemble":
+            all_params["classifier_params"] = self.ensembles.get_params()
+        else:
+            all_params["classifier_params"] = self.svm.get_params()
+        return all_params
+
+    def setup_params_generate_blobs(self, dst):
+        feature_names_list = [
+            n.rsplit("/", 1)[-1] for n in self.features_source.value()
+        ]
+        src = DataModel.g.dataset_uri(
+            self.features_source.value()[0], group="pipelines"
+        )
+        all_params = dict(src=src, dst=dst, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        # all_params["anno_id"] = str(
+        #    self.annotations_source.value().rsplit("/", 1)[-1]
+        # )
+        all_params["feature_ids"] = feature_names_list
+        all_params["object_id"] = str(self.objects_source.value())
+        all_params["acwe"] = self.widgets["acwe"].value()
+        # all_params["object_scale"] = self.widgets["object_scale"].value()
+        # all_params["object_offset"] = self.widgets["object_offset"].value()
+        all_params["dst"] = self.pipeline_id
+        return all_params
+
+    def setup_params_watershed(self, dst):
+        src = DataModel.g.dataset_uri(
+            self.feature_source.value(), group="features"
+        )
+        all_params = dict(src=src, dst=dst, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["dst"] = self.pipeline_id
+        all_params["anno_id"] = str(
+            self.annotations_source.value().rsplit("/", 1)[-1]
+        )
+        return all_params
+
+    def setup_params_predict_segmentation_fcn(self, dst):
+        feature_names_list = [
+            n.rsplit("/", 1)[-1] for n in self.features_source.value()
+        ]
+        src = DataModel.g.dataset_uri(
+            self.features_source.value()[0], group="pipelines"
+        )
+        all_params = dict(src=src, dst=dst, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["anno_id"] = str(
+            self.annotations_source.value().rsplit("/", 1)[-1]
+        )
+        all_params["feature_ids"] = feature_names_list
+        all_params["model_fullname"] = self.model_fullname
+        all_params["model_type"] = self.model_type.value()
+        all_params["dst"] = self.pipeline_id
+        return all_params
+
+    def setup_params_level_combination(self, dst):
+        all_params = dict(modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["level_over"] = str(
+            self.annotations_source.value().rsplit("/", 1)[-1]
+        )
+        all_params["level_base"] = str(
+            self.annotations_source2.value().rsplit("/", 1)[-1]
+        )
+        all_params["dst"] = dst
+        return all_params
+    def setup_params_cleaning(self,dst):
+        all_params = dict(dst=dst, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_id"] = str(self.feature_source.value())
+        # all_params["object_id"] = str(self.objects_source.value())
+        return all_params
+    def compute_pipeline(self):
+        dst = DataModel.g.dataset_uri(self.pipeline_id, group="pipelines")
 
         try:
             if self.pipeline_type == "superregion_segment":
-                src_grp = (
-                    None if self.annotations_source.currentIndex() == 0 else "pipelines"
-                )
-                src = DataModel.g.dataset_uri(
-                    self.annotations_source.value().rsplit("/", 1)[-1], group="annotations"
-                )
-                all_params = dict(src=src, modal=True)
-                all_params["workspace"] = DataModel.g.current_workspace
-
-                logger.info(f"Setting src to {self.annotations_source.value()} ")
-                all_params["region_id"] = str(
-                    self.regions_source.value().rsplit("/", 1)[-1]
-                )
-                all_params["feature_ids"] = feature_names_list
-                all_params["anno_id"] = str(
-                    self.annotations_source.value().rsplit("/", 1)[-1]
-                )
-                print(self.constrain_mask_source.value())
-                if self.constrain_mask_source.value() != None:
-                    all_params["constrain_mask"] = self.constrain_mask_source.value() #.rsplit("/", 1)[-1]
-                else:
-                    all_params["constrain_mask"] = "None"
-                all_params["dst"] = dst
-                all_params["refine"] = self.widgets["refine"].value() #self.refine_checkbox.value()
-                all_params["lam"] = self.widgets["lam"].value()
-                all_params["classifier_type"] = self.classifier_type.value()
-                all_params["projection_type"] = self.projection_type.value()
-            
-                if self.classifier_type.value() == 'Ensemble':    
-                    all_params["classifier_params"] = self.ensembles.get_params()
-                else:
-                    all_params["classifier_params"] = self.svm.get_params()
-                
-
+                all_params = self.setup_params_superregion_segment(dst)
             elif self.pipeline_type == "generate_blobs":
-                src = DataModel.g.dataset_uri(
-                    self.features_source.value()[0], group="pipelines"
-                )
-                all_params = dict(src=src, dst=dst, modal=True)
-                all_params["workspace"] = DataModel.g.current_workspace
-                #all_params["anno_id"] = str(
-                #    self.annotations_source.value().rsplit("/", 1)[-1]
-                #)
-                all_params["feature_ids"] = feature_names_list
-                all_params["object_id"] = str(self.objects_source.value())
-                all_params["acwe"] = self.widgets["acwe"].value()
-                #all_params["object_scale"] = self.widgets["object_scale"].value()
-                #all_params["object_offset"] = self.widgets["object_offset"].value()
-                all_params["dst"] = self.pipeline_id
-
+                all_params = self.setup_params_generate_blobs(dst)        
+            elif self.pipeline_type == "watershed":
+                all_params = self.setup_params_watershed(dst)
             elif self.pipeline_type == "predict_segmentation_fcn":
-                src = DataModel.g.dataset_uri(
-                    self.features_source.value()[0], group="pipelines"
-                )
-                all_params = dict(src=src, dst=dst, modal=True)
-                all_params["workspace"] = DataModel.g.current_workspace
-                all_params["anno_id"] = str(
-                    self.annotations_source.value().rsplit("/", 1)[-1]
-                )
-                all_params["feature_ids"] = feature_names_list
-                all_params["model_fullname"] = self.model_fullname
-                all_params["model_type"] = self.model_type.value()
-                all_params["dst"] = self.pipeline_id
+                all_params = self.setup_params_predict_segmentation_fcn(dst)
+            elif self.pipeline_type == "level_combination":
+                all_params = self.setup_params_level_combination(dst)
+            elif self.pipeline_type == "cleaning":
+                all_params = self.setup_params_cleaning(dst)
 
-            
             all_params.update({k: v.value() for k, v in self.widgets.items()})
 
             logger.info(f"Computing pipelines {self.pipeline_type} {all_params}")

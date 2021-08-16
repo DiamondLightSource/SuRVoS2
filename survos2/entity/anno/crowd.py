@@ -14,6 +14,112 @@ from survos2.entity.sampler import get_img_in_bbox
 import skimage
 from skimage import img_as_ubyte
 import imageio
+from survos2.entity.entities import make_entity_df
+from sklearn.cluster import DBSCAN
+import hdbscan
+
+
+def aggregate(
+    entity_df,
+    img_shape,
+    outlier_score_thresh=0.9,
+    min_cluster_size=2,
+    min_samples=1,
+    params={"algorithm": "HDBSCAN", "min_cluster_size": 2, "min_samples": 1},
+):
+    entity_df = make_entity_df(np.array(entity_df))
+    X_rescaled, scaling = normalized_coordinates(entity_df, img_shape)
+    if params["algorithm"] == "HDBSCAN":
+        clusterer = hdbscan.HDBSCAN(
+            min_cluster_size=min_cluster_size, min_samples=min_samples
+        ).fit(X_rescaled)
+
+        label_code = clusterer.labels_
+        num_clusters_found = len(np.unique(label_code))
+        print(f"Number of clustered found {num_clusters_found}")
+        core_samples_mask = np.zeros_like(clusterer.labels_, dtype=bool)
+        core_samples_mask = clusterer.outlier_scores_ < outlier_score_thresh
+        # core_samples_mask[db.core_sample_indices_] = True
+
+        labels = clusterer.labels_
+        np.sum(clusterer.outlier_scores_ > outlier_score_thresh)
+        print(clusterer.outlier_scores_.shape, core_samples_mask.shape)
+        unique_labels = set(labels)
+    else:
+        clusterer = DBSCAN(eps=params["eps"], min_samples=params["min_samples"]).fit(
+            X_rescaled
+        )
+        label_code = clusterer.labels_
+        num_clusters_found = len(np.unique(label_code))
+        print(f"Number of clustered found {num_clusters_found}")
+        labels = clusterer.labels_
+        unique_labels = set(labels)
+
+    cluster_coords = []
+    cluster_sizes = []
+
+    other_coords = []
+    for l in np.unique(labels)[0:]:
+        if np.sum(labels == l) < 34:
+            cluster_coords.append(X_rescaled[labels == l])
+            cluster_sizes.append(np.sum(labels == l))
+        else:
+            other_coords.append(X_rescaled[labels == l])
+
+    cluster_coords = np.array(cluster_coords)
+    cluster_sizes = np.array(cluster_sizes)
+    print(f"Mean cluster size: {np.mean(cluster_sizes)}")
+    refined_ent = np.concatenate(cluster_coords)
+    print(f"Refined entity array shape {refined_ent.shape}")
+
+    agg = aggregate_cluster_votes(cluster_coords)
+    refined_ent = np.array([centroid_3d_with_class(c) for c in agg])
+
+    refined_ent[:, 0] = refined_ent[:, 0] * 1 / scaling[0]
+    refined_ent[:, 1] = refined_ent[:, 1] * 1 / scaling[2]
+    refined_ent[:, 2] = refined_ent[:, 2] * 1 / scaling[1]
+    refined_entity_df = make_entity_df(refined_ent, flipxy=False)
+    print(f"Aggregated entity length {len(agg)}")
+    return refined_entity_df
+
+
+def normalized_coordinates(entities_df, img_shape, scale_minmax=False):
+    oe = np.array(entities_df)
+    orig_pts = oe.astype(np.float32)
+    X = orig_pts.copy()
+
+    X_rescaled = orig_pts.copy()
+
+    scale_x = 1.0 / np.max(X[:, 1])
+    scale_y = 1.0 / np.max(X[:, 2])
+    scale_z = (1.0 / np.max(X[:, 0])) * 0.02
+
+    if scale_minmax:
+
+        xlim = (
+            np.min(X_rescaled[:, 1]).astype(np.uint16) - 0.1,
+            np.max(X_rescaled[:, 1]).astype(np.uint16) + 0.1,
+        )
+        ylim = (
+            np.min(X_rescaled[:, 2]).astype(np.uint16) - 0.1,
+            np.max(X_rescaled[:, 2]).astype(np.uint16) + 0.1,
+        )
+        zlim = (
+            np.min(X_rescaled[:, 0]).astype(np.uint16) - 0.1,
+            np.max(X_rescaled[:, 0]).astype(np.uint16) + 0.1,
+        )
+    else:
+        xlim = (0, img_shape[1])
+        ylim = (0, img_shape[2])
+        zlim = (0, img_shape[0])
+
+    X_rescaled[:, 1] *= scale_x
+    X_rescaled[:, 2] *= scale_y
+    X_rescaled[:, 0] *= scale_z
+
+    print(f"Rescaled to {scale_x}, {scale_y}, {scale_z}")
+
+    return X_rescaled, (scale_z, scale_x, scale_y)
 
 
 def normalized_coords(entities_df, img_volume, scale_minmax=False):

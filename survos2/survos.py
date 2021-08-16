@@ -20,6 +20,16 @@ __plugins = {}
 global __api_started
 __api_started = False
 
+from survos2.model.model import DataModel
+
+import warnings
+
+warnings.filterwarnings("ignore")
+
+
+def load_settings():
+    DataModel.g.load_settings()
+
 
 def _parse_uri(uri):
     if type(uri) == str:
@@ -94,16 +104,16 @@ def run_command(plugin, command, uri=None, **kwargs):
         if not __api_started:
             api, plugins_loaded = init_api(return_plugins=True)
             __api_started = True
-            logger.debug(api)
-            logger.debug(f"plugins: {__plugins}")
+        #  logger.debug(api)
+        # logger.debug(f"plugins: {__plugins}")
 
         client = Local(__plugins[plugin]["module"])
         logger.debug(f"Using client {client}")
 
         try:
-            logger.info(f"get request to client: {command}")
+            logger.debug(f"get request to client: {command}")
             response = client.get(command, **kwargs)
-            logger.info(f"Local client gave response {response}")
+            logger.debug(f"Local client gave response {response}")
 
         except APIException as e:
             if not e.critical:

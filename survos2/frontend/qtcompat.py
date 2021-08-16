@@ -1,4 +1,4 @@
 try:
-    from PyQt5 import QtCore, QtWidgets, QtGui
+    pass
 except:
-    from PySide import QtCore, QtWidgets, QtGui
+    pass

@@ -13,8 +13,6 @@ import kornia
 from loguru import logger
 
 
-
-
 def make_gaussian_kernel(kernel_size, sigma, dim=3):
     """Make gaussian kernel
 
@@ -91,7 +89,7 @@ def gaussian_blur_kornia(img: np.ndarray, sigma):
     output
         filtered numpy array
     """
-    logger.info("+ Computing gaussian blur")
+
     img_t = (
         kornia.utils.image_to_tensor(np.array(img)).float().unsqueeze(0).unsqueeze(0)
     )
@@ -102,7 +100,7 @@ def gaussian_blur_kornia(img: np.ndarray, sigma):
 
 
 class GaussianSmoothing(nn.Module):
-    """ Pure pytorch Gaussian smoothing"""
+    """Pure pytorch Gaussian smoothing"""
 
     def __init__(self, channels, kernel_size, sigma, dim=2):
         kernel = make_kernel(kernel_size, sigma, dim=3)
@@ -176,7 +174,7 @@ def gaussian_norm(data, sigma=0.5, **kwargs):
     ----------
     data : 3 dimensional numpy array
         The data to be filtered
-    sigma : float 
+    sigma : float
 
     Returns
     -------
@@ -189,8 +187,6 @@ def gaussian_norm(data, sigma=0.5, **kwargs):
     num /= den
 
     return num
-
-
 
 
 # adapted from kornia.losses.TotalVariation

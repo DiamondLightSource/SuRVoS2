@@ -48,7 +48,7 @@ def dilate_annotations(yy, xx, img_shape, line_width):
         xmax = int(min(data.shape[1], xx.max() + 1 + r))
         mask = data[ymin:ymax, xmin:xmax]
 
-        mask = binary_dilation(mask, disk(line_width / 2).astype(np.bool))
+        mask = binary_dilation(mask, disk(line_width / 2).astype(bool))
         yy, xx = np.where(mask)
         yy += ymin
         xx += xmin
@@ -99,10 +99,10 @@ class AnnotationPlugin(Plugin):
         self.label = AnnotationComboBox()
         self.region = RegionComboBox(header=(None, "Voxels"), full=True)
         self.label.currentIndexChanged.connect(self.set_sv)
-        self.region.currentIndexChanged.connect(self.set_sv)        
+        self.region.currentIndexChanged.connect(self.set_sv)
         self.btn_set = IconButton("fa.pencil", "Set", accent=True)
         self.btn_set.clicked.connect(self.set_sv)
-        
+
         hbox.addWidget(self.btn_set)
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
@@ -138,8 +138,16 @@ class AnnotationPlugin(Plugin):
             self.levels.pop(level).setParent(None)
         _AnnotationNotifier.notify()
 
+    def clear(self):
+        for level in list(self.levels.keys()):
+            self.remove_level(level)
+        self.levels = {}
+
     def setup(self):
-        result = Launcher.g.run("annotations", "get_levels", workspace=True)
+        params = dict(
+            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
+        )
+        result = Launcher.g.run("annotations", "get_levels", **params)
         if not result:
             return
 
@@ -238,10 +246,9 @@ class AnnotationLevel(Card):
         result = Launcher.g.run("annotations", "delete_level", **params)
         if result:
             self.removed.emit(self.level_id)
-            #_AnnotationNotifier.notify()
+            # _AnnotationNotifier.notify()
 
         cfg.current_annotation_layer = None
- 
 
     def remove_label(self, idx):
         if idx in self.labels:
@@ -321,7 +328,6 @@ class AnnotationLabel(QCSWidget):
                 parent_label=self.parent_label,
             )
 
-        
         self.setMinimumHeight(self.__height__)
         self.setFixedHeight(self.__height__)
         self.txt_label_name.editingFinished.connect(self.update_label)
@@ -329,7 +335,6 @@ class AnnotationLabel(QCSWidget):
         self.btn_del.clicked.connect(self.delete)
         # self.btn_select.clicked.connect(self.set_label)
         self.btn_label_parent.colorChanged.connect(self.set_parent)
-
 
         hbox = HBox(self)
         hbox.addWidget(
@@ -385,12 +390,12 @@ class AnnotationLabel(QCSWidget):
             print(e)
 
         cfg.ppw.clientEvent.emit(
-                {
-                    "source": "annotations",
-                    "data": "paint_annotations",
-                    "level_id": self.level_dataset,
-                }
-            )
+            {
+                "source": "annotations",
+                "data": "paint_annotations",
+                "level_id": self.level_dataset,
+            }
+        )
 
     def update_label(self):
         label = dict(

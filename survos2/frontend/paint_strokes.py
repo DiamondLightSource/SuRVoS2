@@ -7,20 +7,27 @@ from survos2.frontend.control.launcher import Launcher
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
+from survos2.frontend.plugins.annotations import dilate_annotations
+
 
 @thread_worker
-def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer, parent_level=None, parent_label_idx=None):
+def paint_strokes(
+    msg,
+    drag_pts,
+    layer,
+    top_layer,
+    anno_layer,
+    parent_level=None,
+    parent_label_idx=None,
+):
     level = msg["level_id"]
     if len(drag_pts) == 0:
         return
-    
 
     try:
         sel_label = int(cfg.label_value["idx"]) - 1
         anno_layer.selected_label = sel_label
         anno_layer.brush_size = int(cfg.brush_size)
- 
-
 
         if layer.mode == "erase":
             sel_label = 0
@@ -37,16 +44,18 @@ def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer, parent_level=None
         else:
             z, px, py = drag_pts[0]
 
+        print(anno_layer.data.shape)
         if len(drag_pts[0]) == 2:
-        # depending on the slice mode we need to handle either 2 or 3 coordinates
+            # depending on the slice mode we need to handle either 2 or 3 coordinates
             for x, y in drag_pts[1:]:
-                if x < anno_layer.data.shape[1] and y < anno_layer.data.shape[2]:
+                print("Painting in slice mode")
+                if x < anno_layer.data.shape[0] and y < anno_layer.data.shape[1]:
                     yy, xx = line(py, px, y, x)
                     line_x.extend(xx)
                     line_y.extend(yy)
                     py, px = y, x
                     anno_shape = (anno_layer.data.shape[0], anno_layer.data.shape[1])
-        else: # cfg.retrieval_mode == 'volume':
+        else:  # cfg.retrieval_mode == 'volume':
             for _, x, y in drag_pts[1:]:
                 if x < anno_layer.data.shape[1] and y < anno_layer.data.shape[2]:
                     yy, xx = line(py, px, y, x)
@@ -57,47 +66,70 @@ def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer, parent_level=None
 
         line_x = np.array(line_x)
         line_y = np.array(line_y)
-        
-        if len(line_y) > 0:
-            from survos2.frontend.plugins.annotations import dilate_annotations
 
+        if len(line_y) > 0:
+            
             all_regions = set()
 
             # Check if we are painting using supervoxels, if not, annotate voxels
             if cfg.current_supervoxels == None:
                 line_y, line_x = dilate_annotations(
-                    line_x, line_y, anno_shape, top_layer.brush_size,
+                    line_x,
+                    line_y,
+                    anno_shape,
+                    top_layer.brush_size,
                 )
                 params = dict(workspace=True, level=level, label=sel_label)
                 yy, xx = list(line_y), list(line_x)
                 yy = [int(e) for e in yy]
                 xx = [int(e) for e in xx]
 
-                n_dimensional = top_layer.n_dimensional
-
                 # todo: preserve existing
-
-                params.update(slice_idx=int(z), 
-                    yy=yy, 
+                params.update(
+                    slice_idx=int(z),
+                    yy=yy,
                     xx=xx,
                     parent_level=parent_level,
                     parent_label_idx=parent_label_idx,
-                    full=False)
+                    full=False,
+                )
 
                 result = Launcher.g.run("annotations", "annotate_voxels", **params)
+
             # we are painting with supervoxels, so check if we have a current supervoxel cache
             # if not, get the supervoxels from the server
             else:
                 line_x, line_y = dilate_annotations(
-                    line_x, line_y, anno_shape, top_layer.brush_size,
+                    line_x,
+                    line_y,
+                    anno_shape,
+                    top_layer.brush_size,
                 )
+
+                supervoxel_size = 20
+                bb = np.array(
+                    [
+                        max(0, int(z) - supervoxel_size),
+                        max(0, min(line_x) - supervoxel_size),
+                        max(0, min(line_y) - supervoxel_size),
+                        int(z) + supervoxel_size,
+                        max(line_x) + supervoxel_size,
+                        max(line_y) + supervoxel_size,
+                    ]
+                )
+                bb = bb.tolist()
+                print(type(bb), type(bb[0]))
+                logger.debug(f"BB: {bb}")
 
                 if cfg.supervoxels_cached == False:
                     regions_dataset = DataModel.g.dataset_uri(
                         cfg.current_regions_name, group="regions"
                     )
                     with DatasetManager(
-                        regions_dataset, out=None, dtype="uint32", fillvalue=0,
+                        regions_dataset,
+                        out=None,
+                        dtype="uint32",
+                        fillvalue=0,
                     ) as DM:
                         src_dataset = DM.sources[0]
                         sv_arr = src_dataset[:]
@@ -111,10 +143,17 @@ def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer, parent_level=None
 
                 for x, y in zip(line_x, line_y):
 
-                    if z >= 0 and z < sv_arr.shape[0] and x >= 0 and x < sv_arr.shape[1] and y >= 0 and y < sv_arr.shape[2]:
+                    if (
+                        z >= 0
+                        and z < sv_arr.shape[0]
+                        and x >= 0
+                        and x < sv_arr.shape[1]
+                        and y >= 0
+                        and y < sv_arr.shape[2]
+                    ):
                         sv = sv_arr[z, x, y]
                         all_regions |= set([sv])
-                
+
                 # Commit annotation to server
                 params = dict(workspace=True, level=level, label=sel_label)
 
@@ -124,9 +163,9 @@ def paint_strokes(msg, drag_pts, layer, top_layer, anno_layer, parent_level=None
                     modal=False,
                     parent_level=parent_level,
                     parent_label_idx=parent_label_idx,
-                    full=False
+                    full=False,
+                    bb=bb,
                 )
                 result = Launcher.g.run("annotations", "annotate_regions", **params)
     except Exception as e:
-        logger.debug(f"Exception: {e}")
- 
+        logger.debug(f"paint_strokes Exception: {e}")

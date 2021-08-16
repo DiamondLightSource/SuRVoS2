@@ -1,5 +1,4 @@
 import os
-import time
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -7,36 +6,33 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.widgets import RectangleSelector
 from numpy import nonzero, zeros
 from numpy.random import permutation
-from PyQt5.QtCore import QPoint, QSettings, Qt, QThread, QTimer, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QSettings, Qt, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
-    QApplication,
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
     QHBoxLayout,
     QLineEdit,
-    QSlider,
-    QToolTip,
     QVBoxLayout,
-    QWidget,
+    QWidget
 )
 from survos2.server.state import cfg
 from loguru import logger
-from survos2.improc.utils import DatasetManager
-from survos2.model import DataModel, Workspace
 
 DEFAULT_DIR_KEY = "default_dir"
 DEFAULT_DATA_KEY = "default_data_dir"
 
 
-
 def remove_masked_pts(bg_mask, entities):
     pts_vol = np.zeros_like(bg_mask)
-    
-    #bg_mask = binary_dilation(bg_mask * 1.0, disk(2).astype(np.bool))
+
     for pt in entities:
-        if pt[0] < bg_mask.shape[0] and pt[1] < bg_mask.shape[1] and pt[2] < bg_mask.shape[2]:
+        if (
+            pt[0] < bg_mask.shape[0]
+            and pt[1] < bg_mask.shape[1]
+            and pt[2] < bg_mask.shape[2]
+        ):
             pts_vol[pt[0], pt[1], pt[2]] = 1
         else:
             print(pt)
@@ -50,15 +46,13 @@ def remove_masked_pts(bg_mask, entities):
     return np.array(masked_entities)
 
 
-
-
 def get_array_from_dataset(src_dataset, axis=0):
-    if cfg.retrieval_mode == 'slice':
+    if cfg.retrieval_mode == "slice":
         print(f"src_dataset shape {src_dataset.shape}")
         dataset = src_dataset.copy(order="C")
         dataset = np.transpose(dataset, np.array(cfg.order)).astype(np.float32)
         src_arr = dataset[cfg.current_slice, :, :]
-    elif cfg.retrieval_mode == 'volume':
+    elif cfg.retrieval_mode == "volume":
         src_arr = src_dataset[:]
 
     return src_arr
@@ -68,7 +62,11 @@ class WorkerThread(QThread):
     def run(self):
         def work():
             cfg.ppw.clientEvent.emit(
-                {"source": "save_annotation", "data": "save_annotation", "value": None,}
+                {
+                    "source": "save_annotation",
+                    "data": "save_annotation",
+                    "value": None,
+                }
             )
             cfg.ppw.clientEvent.emit(
                 {"source": "save_annotation", "data": "refresh", "value": None}

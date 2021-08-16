@@ -8,7 +8,6 @@ from qtpy.QtWidgets import QRadioButton, QPushButton
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from survos2.helpers import prepare_3channel, simple_norm, norm1
 from survos2.frontend.components.base import *
 from survos2.frontend.control import Launcher
 

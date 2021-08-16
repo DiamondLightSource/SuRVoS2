@@ -10,7 +10,6 @@ import numpy as np
 import h5py as h5
 from skimage import io
 
-from functools import partial
 
 from .io import dataset_from_uri
 
