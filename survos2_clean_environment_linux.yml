@@ -201,5 +201,6 @@ dependencies:
     - wcwidth
     - wget
     - wrapt
+    - xgboost
     - zipp
 
