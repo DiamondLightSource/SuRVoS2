@@ -6,20 +6,17 @@ import numpy
 import survos2
 import sys
 import warnings
-from loguru import logger 
+from loguru import logger
 
 warnings.filterwarnings("ignore")
-
 
 
 # fmt = "{time} - {name} - {level} - {message}"
 fmt = "<level>{level} - {message} </level><green> - {name}</green>:<cyan>{function}</cyan>:<cyan>{line}</cyan>"
 logger.remove()  # remove default logger
-logger.add(
-    sys.stderr, level="DEBUG", format=fmt, colorize=True
-)  
+logger.add(sys.stderr, level="DEBUG", format=fmt, colorize=True)
 # logger.add("logs/main.log", level="DEBUG", format=fmt) #compression='zip')
-#logger.level("CUSTOM", no=15, color="<blue>", icon="@")
+# logger.level("CUSTOM", no=15, color="<blue>", icon="@")
 
 
 class Workspace(QWidget):

@@ -34,12 +34,9 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QTabWidget,
     QVBoxLayout,
-    QWidget
+    QWidget,
 )
-from pyqtgraph.parametertree import (
-    Parameter,
-    ParameterTree
-)
+from pyqtgraph.parametertree import Parameter, ParameterTree
 from survos2.frontend.main import init_ws
 from survos2.frontend.utils import ComboDialog, FileWidget, MplCanvas
 from survos2.frontend.plugins.base import ComboBox

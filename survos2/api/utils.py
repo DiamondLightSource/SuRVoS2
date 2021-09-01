@@ -61,20 +61,25 @@ def save_metadata(func):
 
     @wraps(func)
     def wrapper(src, dst, *args, **kwargs):
-        logger.debug(f"Wrapper: src {src}, dst {dst}")
+        logger.debug(f"save_metadata wrapper: src {src}, dst {dst}")
+        from pprint import pprint
+
+        pprint(args)
+        pprint(kwargs)
         result = func(src, dst, *args, **kwargs)
         ds = dataset_from_uri(dst, mode="r+")
         if ds.supports_metadata():
             for param in ["kind", "name"]:
                 if not ds.has_attr(param):
+                    print(f"Setting param {param} {fname}")
                     ds.set_attr(param, fname)
             for k, v in kwargs.items():
+                print(f"Setting key value {k}, {v}")
                 ds.set_attr(k, v)
             if type(src) == list:
                 src_id = [dataset_from_uri(s, mode="r").id for s in src]
             else:
                 src_id = dataset_from_uri(src, mode="r").id
-            logger.debug(f"src_id: {src_id}")
             ds.set_attr("source", src_id)
         else:
             logger.debug("Dataset doesn't support metadata.")

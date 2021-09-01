@@ -90,21 +90,30 @@ class ObjectsPlugin(Plugin):
 
     def add_objects(self, idx):
         logger.debug(f"Add objects with idx {idx}")
-        
-        
+
         if idx == 0 or idx == -1:
             return
 
         # self.objects_combo.setCurrentIndex(0)
         print(idx)
-        order = idx-2
+        order = idx - 2
 
-
-        params = dict(
-            order=order,
-            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
-            fullname="survos2/entity/blank_entities.csv",
-        )
+        if order == 1:
+            params = dict(
+                order=order,
+                workspace=DataModel.g.current_session
+                + "@"
+                + DataModel.g.current_workspace,
+                fullname="survos2/entity/blank_boxes.csv",
+            )
+        else:
+            params = dict(
+                order=order,
+                workspace=DataModel.g.current_session
+                + "@"
+                + DataModel.g.current_workspace,
+                fullname="survos2/entity/blank_entities.csv",
+            )
         result = Launcher.g.run("objects", "create", **params)
 
         if result:
@@ -217,7 +226,6 @@ class ObjectsCard(Card):
 
         self.flipxy_checkbox = CheckBox(checked=True)
         self.add_row(HWidgets(None, self.flipxy_checkbox, Spacing(35)))
-
         self.add_row(HWidgets(None, self.view_btn, self.get_btn, Spacing(35)))
 
         self.view_btn.clicked.connect(self.view_objects)
@@ -231,26 +239,25 @@ class ObjectsCard(Card):
         self.table_control = TableWidget()
         self.add_row(self.table_control.w, max_height=500)
 
-        if objectstype == "points":
-            tabledata, self.entities_df = setup_entity_table(
-                objectsfullname,
-                scale=cfg.object_scale,
-                offset=cfg.object_offset,
-                crop_start=cfg.object_crop_start,
-                crop_end=cfg.object_crop_end,
-            )
-        elif objectstype == "boxes":
-            tabledata, self.entities_df = setup_bb_table(
-                objectsfullname,
-                scale=cfg.object_scale,
-                offset=cfg.object_offset,
-                crop_start=cfg.object_crop_start,
-                crop_end=cfg.object_crop_end,
-            )
-        
+        # if objectstype == "points":
+        #     tabledata, self.entities_df = setup_entity_table(
+        #         objectsfullname,
+        #         scale=cfg.object_scale,
+        #         offset=cfg.object_offset,
+        #         crop_start=cfg.object_crop_start,
+        #         crop_end=cfg.object_crop_end,
+        #     )
+        # elif objectstype == "boxes":
+        #     tabledata, self.entities_df = setup_bb_table(
+        #         objectsfullname,
+        #         scale=cfg.object_scale,
+        #         offset=cfg.object_offset,
+        #         crop_start=cfg.object_crop_start,
+        #         crop_end=cfg.object_crop_end,
+        #     )
 
-        cfg.tabledata = tabledata
-        self.table_control.set_data(tabledata)
+        # cfg.tabledata = tabledata
+        # self.table_control.set_data(tabledata)
         cfg.entity_table = self.table_control
 
     def _add_param(self, name, title=None, type="String", default=None):

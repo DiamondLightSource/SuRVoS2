@@ -6,7 +6,7 @@ from loguru import logger
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
 
-from survos2.entity.entities import make_entity_df
+from survos2.entity.entities import make_entity_df, make_entity_bvol, make_entity_boxes
 from survos2.server.state import cfg
 from survos2.entity.sampler import crop_pts_bb
 
@@ -124,28 +124,12 @@ def setup_bb_table(
         axis=1,
         inplace=True,
     )
-    # entities_df.drop(
-    #     entities_df.columns[entities_df.columns.str.contains("index", case=False)],
-    #     axis=1,
-    #     inplace=True,
-    # )
-    # class_code_column = (
-    #     len([col for col in entities_df.columns if "class_code" in col]) > 0
-    # )
 
-    # if not class_code_column:
-    #     entities_df["class_code"] = 0
-
-    # cropped_pts = crop_pts_bb(np.array(entities_df), [crop_start[0],crop_end[0],crop_start[1], crop_end[1], crop_start[2], crop_end[2]])
-    # print(cropped_pts)
-    entities_df = make_entity_df(np.array(entities_df), flipxy=flipxy)
+    entities_df = make_entity_boxes(np.array(entities_df), flipxy=flipxy)
     logger.debug(
         f"Loaded entities {entities_df.shape} applying scale {scale} and offset {offset} and crop start {crop_start}, crop_end {crop_end}"
     )
     tabledata = []
-    entities_df["z"] = (entities_df["z"] * scale) + offset[0]
-    entities_df["x"] = (entities_df["x"] * scale) + offset[1]
-    entities_df["y"] = (entities_df["y"] * scale) + offset[2]
 
     print("-" * 100)
 
@@ -157,6 +141,12 @@ def setup_bb_table(
                 entities_df.iloc[i]["z"],
                 entities_df.iloc[i]["x"],
                 entities_df.iloc[i]["y"],
+                entities_df.iloc[i]["bb_s_z"],
+                entities_df.iloc[i]["bb_s_x"],
+                entities_df.iloc[i]["bb_s_y"],
+                entities_df.iloc[i]["bb_f_z"],
+                entities_df.iloc[i]["bb_f_x"],
+                entities_df.iloc[i]["bb_f_y"],
                 0,
             )
             tabledata.append(entry)
@@ -166,10 +156,16 @@ def setup_bb_table(
         for i in range(len(entities_df)):
             entry = (
                 i,
+                entities_df.iloc[i]["class_code"],
                 entities_df.iloc[i]["z"],
                 entities_df.iloc[i]["x"],
                 entities_df.iloc[i]["y"],
-                entities_df.iloc[i]["class_code"],
+                entities_df.iloc[i]["bb_s_z"],
+                entities_df.iloc[i]["bb_s_x"],
+                entities_df.iloc[i]["bb_s_y"],
+                entities_df.iloc[i]["bb_f_z"],
+                entities_df.iloc[i]["bb_f_x"],
+                entities_df.iloc[i]["bb_f_y"],
             )
             tabledata.append(entry)
 
@@ -177,14 +173,20 @@ def setup_bb_table(
         tabledata,
         dtype=[
             ("index", int),
+            ("class_code", int),
             ("z", float),
             ("x", float),
             ("y", float),
-            ("class_code", int),
+            ("bb_s_z", float),
+            ("bb_s_x", float),
+            ("bb_s_y", float),
+            ("bb_f_z", float),
+            ("bb_f_x", float),
+            ("bb_f_y", float),
         ],
     )
 
-    logger.debug(f"Loaded {len(tabledata)} entities.")
+    logger.debug(f"Loaded {len(tabledata)} box entities.")
     return tabledata, entities_df
 
 

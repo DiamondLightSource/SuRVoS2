@@ -8,7 +8,7 @@ from hug.use import HTTP, Local
 from survos2.model import DataModel
 from survos2.model.singleton import Singleton
 from survos2.frontend.modal import ModalManager
-from survos2.utils import format_yaml, Timer
+from survos2.utils import encode_numpy, format_yaml, Timer
 from survos2.survos import remote_client, parse_response, init_api
 from survos2.api.utils import APIException, handle_exceptions, handle_api_exceptions
 from importlib import import_module
@@ -16,6 +16,7 @@ from importlib import import_module
 from loguru import logger
 from survos2.survos import run_command
 
+import requests
 
 # needed as separate function rather than method for multiprocessing
 def _run_command(plugin, command, client, uri=None, out=None, **kwargs):
@@ -29,6 +30,7 @@ def _run_command(plugin, command, client, uri=None, out=None, **kwargs):
         return result
 
 
+
 @Singleton
 class Launcher(QtCore.QObject):
     def __init__(self):
@@ -37,11 +39,25 @@ class Launcher(QtCore.QObject):
         self.terminated = False
         self.queue = None
         self.client = None
+        self.remote_ip_port = None
 
     def set_remote(self, uri):
         self.client = remote_client(uri)
         self.modal = False
         self.pending = []
+        self.remote_ip_port = uri
+
+    def set_current_workspace_shape(self, workspace_shape, **kwargs):
+        print(f"Setting workspace shape to {workspace_shape}")
+        DataModel.g.current_workspace_shape = workspace_shape        
+
+    def post_array(self, arr, group, name="ndarray", **kwargs):
+        response = requests.post('http://' + self.remote_ip_port +'/' +  group + '/upload', files={'file': arr}, 
+        data={'shape' : str(tuple(arr.shape)), 'name' : name})
+        
+    def post_file(self, fullname, group, **kwargs):
+        with open(fullname, 'rb') as file_handle:
+            response = requests.post('http://' + self.remote_ip_port +'/' +  group + '/upload', files={'file': file_handle})
 
     def run(self, plugin, command, modal=False, **kwargs):
         if self.client:

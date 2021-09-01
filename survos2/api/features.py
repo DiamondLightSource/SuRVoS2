@@ -17,22 +17,43 @@ from survos2.api.types import (
     IntOrVector,
 )
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
-
 from survos2.improc import map_blocks
 from survos2.io import dataset_from_uri
-from survos2.utils import encode_numpy
-
+from survos2.utils import encode_numpy, decode_numpy
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
 from survos2.server.filtering import rescale_denan
-
-
 from survos2.server.state import cfg
-
+from survos2.frontend.control.launcher import Launcher
+from survos2.model import DataModel
 
 __feature_group__ = "features"
 __feature_dtype__ = "float32"
 __feature_fill__ = 0
+
+
+@hug.post()
+def upload(body, request, response):
+    print(f"Request: {request}")
+    print(f"Response: {response}")
+    encoded_feature = body['file']
+    array_shape = body['shape']
+    print(f"shape {array_shape}")
+    feature = np.frombuffer(encoded_feature, dtype="float32")
+    from ast import literal_eval 
+    feature.shape = literal_eval(array_shape)
+    print(f"Uploaded feature of shape {feature.shape}")
+    
+    params = dict(feature_type="raw", workspace=DataModel.g.current_workspace)
+    result = create(**params)
+    fid = result["id"]
+    ftype = result["kind"]
+    fname = result["name"]
+    logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
+    result = DataModel.g.dataset_uri(fid, group="features")
+    with DatasetManager(result, out=result, dtype="float32", fillvalue=0) as DM:
+        DM.out[:] = feature
+
 
 
 @hug.get()
@@ -54,9 +75,7 @@ def get_crop(src: DataURI, roi: IntList):
 @hug.get()
 def get_slice(src: DataURI, slice_idx: Int, order: tuple):
     order = np.array(order)
-    print(order)
     ds = dataset_from_uri(src, mode="r")[:]
-    print(ds.shape)
     ds = np.transpose(ds, order).astype(np.float32)
     data = ds[slice_idx]
     return encode_numpy(data.astype(np.float32))
@@ -354,7 +373,7 @@ def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "ED
         src,
         out=dst,
         kernel_size=kernel_size,
-        pad=max(4, int(kernel_size) * 3),
+        pad=max(4, int(max(kernel_size)) * 3),
         normalize=False,
     )
 
@@ -409,6 +428,31 @@ def median(
         out=dst,
         pad=max(4, int((median_size * 2))),
         normalize=False,
+    )
+
+
+@hug.get()
+@save_metadata
+def wavelet(
+    src: DataURI,
+    dst: DataURI,
+    threshold: Float = 64.0,
+    level: Int = 1,
+    wavelet: String = "sym3",
+    hard: SmartBoolean = True,
+) -> "WAVELET":
+    from ..server.filtering import wavelet
+
+    map_blocks(
+        wavelet,
+        src,
+        level=level,
+        out=dst,
+        normalize=True,
+        wavelet="sym3",
+        threshold=threshold,
+        hard=hard,
+        pad=max(4, int(level * 2)),
     )
 
 
@@ -474,6 +518,7 @@ def available():
             "get_volume",
             "get_slice",
             "get_crop",
+            "upload",
         ]:
             continue
         name = name[1:]
@@ -483,3 +528,5 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
+

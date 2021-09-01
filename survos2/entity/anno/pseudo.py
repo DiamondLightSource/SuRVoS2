@@ -47,6 +47,7 @@ from survos2.server.state import cfg
 
 from survos2.entity.entities import make_entity_df
 
+
 def organize_entities(
     img_vol, clustered_pts, entity_meta, flipxy=False, plot_all=False
 ):
@@ -76,7 +77,6 @@ def organize_entities(
     return combined_clustered_pts, entity_meta
 
 
-
 def make_acwe(patch: Patch, params: dict):
     """
     Active Contour
@@ -89,7 +89,7 @@ def make_acwe(patch: Patch, params: dict):
     edge_map = 1.0 - patch.image_layers["Main"]
     edge_map -= np.min(edge_map)
     edge_map = edge_map / np.max(edge_map)
-    #edge_map = exposure.adjust_sigmoid(edge_map, cutoff=1.0)
+    # edge_map = exposure.adjust_sigmoid(edge_map, cutoff=1.0)
     logger.debug("Calculating ACWE")
     import morphsnakes as ms
 
@@ -112,6 +112,7 @@ def make_acwe(patch: Patch, params: dict):
     # show_images([outer_mask[outer_mask.shape[0] // 2, :]], figsize=(12, 12))
 
     return patch
+
 
 def generate_annotation_volume(
     wf,

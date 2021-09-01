@@ -1,12 +1,10 @@
-name: survos2_env
+name: survos2_env_aug4b
 channels:
   - pytorch
   - anaconda
   - defaults
   - conda-forge
 dependencies:
-  - _libgcc_mutex
-  - _pytorch_select
   - addict
   - begins
   - blas
@@ -62,6 +60,7 @@ dependencies:
   - lcms2
   - libaec
   - libffi
+  - libgcc
   - libllvm9
   - libpng
   - libtiff
@@ -73,7 +72,6 @@ dependencies:
   - locket
   - loguru
   - lz4-c
-  - magicgui
   - markupsafe
   - matplotlib
   - matplotlib-base
@@ -103,8 +101,6 @@ dependencies:
   - pycparser
   - pyopenssl
   - pyparsing
-  - pyqt
-  - pyqtgraph
   - pysocks
   - python
   - python-dateutil
@@ -114,9 +110,6 @@ dependencies:
   - pytz
   - pywavelets
   - pyyaml
-  - qt
-  - qtawesome
-  - qtpy
   - requests
   - scikit-image
   - scikit-learn
@@ -153,7 +146,6 @@ dependencies:
     - babel
     - backcall
     - cachey
-    - cuda-slic
     - docutils
     - freetype-py
     - humanize
@@ -183,9 +175,9 @@ dependencies:
     - pickleshare
     - pluggy
     - prompt-toolkit
-    - ptyprocess
     - py
-    - pycuda==2020.1
+    - pyqt5
+    - pyqtgraph
     - pydantic
     - pygments
     - pyopengl
@@ -193,20 +185,17 @@ dependencies:
     - python-deprecated
     - pytools
     - pyzmq
+    - qtawesome
     - qtconsole
+    - qtpy
     - simpleitk
     - snowballstemmer
     - sphinx
-    - sphinxcontrib-applehelp
-    - sphinxcontrib-devhelp
-    - sphinxcontrib-htmlhelp
-    - sphinxcontrib-jsmath
-    - sphinxcontrib-qthelp
-    - sphinxcontrib-serializinghtml
     - tensorly
     - toml
     - torchio
     - tqdm
+    - unet
     - traitlets
     - vispy
     - wcwidth

@@ -230,6 +230,7 @@ class EnsembleWidget(QtWidgets.QWidget):
         self.type_combo.addItem("ExtraRandom Forest")
         self.type_combo.addItem("AdaBoost")
         self.type_combo.addItem("GradientBoosting")
+        self.type_combo.addItem("XGBoost")
 
         self.type_combo.currentIndexChanged.connect(self.on_ensemble_changed)
         vbox.addWidget(self.type_combo)
@@ -278,7 +279,7 @@ class EnsembleWidget(QtWidgets.QWidget):
             self.depth.setDefault(15)
 
     def on_train_predict_clicked(self):
-        ttype = ["rf", "erf", "ada", "gbf"]
+        ttype = ["rf", "erf", "ada", "gbf", "xgb"]
         params = {
             "clf": "ensemble",
             "type": ttype[self.type_combo.currentIndex()],
@@ -291,7 +292,7 @@ class EnsembleWidget(QtWidgets.QWidget):
         self.train_predict.emit(params)
 
     def get_params(self):
-        ttype = ["rf", "erf", "ada", "gbf"]
+        ttype = ["rf", "erf", "ada", "gbf", "xgb"]
         if self.type_combo.currentIndex() - 1 == 0:
             current_index = 0
         else:
@@ -341,12 +342,11 @@ class PipelineCard(Card):
 
             self._add_classifier_choice()
             self._add_projection_choice()
-            # self._add_refine_choice()
             self._add_param("lam", type="FloatSlider", default=0.15)
 
         elif self.pipeline_type == "generate_blobs":
             self._add_annotations_source()
-            self._add_features_source()
+            self._add_feature_source()
             self._add_objects_source()
 
         elif self.pipeline_type == "watershed":
@@ -361,7 +361,7 @@ class PipelineCard(Card):
             self._add_model_type()
             # self._add_patch_params()
 
-        elif self.pipeline_type == "level_combination":
+        elif self.pipeline_type == "label_postprocess":
             self._add_annotations_source(label="Layer Over: ")
             self._add_annotations_source2(label="Layer Base: ")
 
@@ -529,9 +529,9 @@ class PipelineCard(Card):
 
     def _add_param(self, name, title=None, type="String", default=None):
         if type == "Int":
-            p = LineEdit(default=default, parse=int)
+            p = LineEdit(default=0, parse=int)
         elif type == "FloatSlider":
-            p = RealSlider(value=default, vmax=1, vmin=0)
+            p = RealSlider(value=0.0, vmax=1, vmin=0)
             title = "MRF Refinement Amount:"
         elif type == "Float":
             p = LineEdit(default=0.0, parse=float)
@@ -539,7 +539,7 @@ class PipelineCard(Card):
         elif type == "FloatOrVector":
             p = LineEdit3D(default=0, parse=float)
         elif type == "IntOrVector":
-            p = LineEdit3D(default=default, parse=int)
+            p = LineEdit3D(default=0, parse=int)
         elif type == "SmartBoolean":
             p = CheckBox(checked=True)
         else:
@@ -564,10 +564,18 @@ class PipelineCard(Card):
                 self.widgets[k].setValue(v)
         if "anno_id" in params:
             if params["anno_id"] is not None:
-                print(list(self.annotations_source.items()))
+
                 self.annotations_source.select(
                     os.path.join("annotations/", params["anno_id"])
                 )
+        if "object_id" in params:
+            if params["object_id"] is not None:
+                self.objects_source.select(
+                    os.path.join("objects/", params["object_id"])
+                )
+        if "feature_id" in params:
+            for source in params["feature_id"]:
+                self.feature_source.select(os.path.join("features/", source))
         if "feature_ids" in params:
             for source in params["feature_ids"]:
                 self.features_source.select(os.path.join("features/", source))
@@ -577,7 +585,7 @@ class PipelineCard(Card):
                     os.path.join("regions/", params["region_id"])
                 )
         if "constrain_mask" in params:
-            print(list(self.constrain_mask_source.items()))
+
             if (
                 params["constrain_mask"] is not None
                 and params["constrain_mask"] != "None"
@@ -611,7 +619,10 @@ class PipelineCard(Card):
     def view_pipeline(self):
         logger.debug(f"View pipeline_id {self.pipeline_id}")
         if self.annotations_source:
-            level_id = str(self.annotations_source.value().rsplit("/", 1)[-1])
+            if self.annotations_source.value():
+                level_id = str(self.annotations_source.value().rsplit("/", 1)[-1])
+            else:
+                level_id = '001_level'
             logger.debug(f"Assigning annotation level {level_id}")
 
             cfg.ppw.clientEvent.emit(
@@ -719,9 +730,7 @@ class PipelineCard(Card):
         feature_names_list = [
             n.rsplit("/", 1)[-1] for n in self.features_source.value()
         ]
-        src_grp = (
-            None if self.annotations_source.currentIndex() == 0 else "pipelines"
-        )
+        src_grp = None if self.annotations_source.currentIndex() == 0 else "pipelines"
         src = DataModel.g.dataset_uri(
             self.annotations_source.value().rsplit("/", 1)[-1],
             group="annotations",
@@ -730,14 +739,9 @@ class PipelineCard(Card):
         all_params["workspace"] = DataModel.g.current_workspace
 
         logger.info(f"Setting src to {self.annotations_source.value()} ")
-        all_params["region_id"] = str(
-            self.regions_source.value().rsplit("/", 1)[-1]
-        )
+        all_params["region_id"] = str(self.regions_source.value().rsplit("/", 1)[-1])
         all_params["feature_ids"] = feature_names_list
-        all_params["anno_id"] = str(
-            self.annotations_source.value().rsplit("/", 1)[-1]
-        )
-        print(self.constrain_mask_source.value())
+        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         if self.constrain_mask_source.value() != None:
             all_params[
                 "constrain_mask"
@@ -760,35 +764,26 @@ class PipelineCard(Card):
         return all_params
 
     def setup_params_generate_blobs(self, dst):
-        feature_names_list = [
-            n.rsplit("/", 1)[-1] for n in self.features_source.value()
-        ]
-        src = DataModel.g.dataset_uri(
-            self.features_source.value()[0], group="pipelines"
-        )
-        all_params = dict(src=src, dst=dst, modal=True)
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        all_params = dict(src=src, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         # all_params["anno_id"] = str(
         #    self.annotations_source.value().rsplit("/", 1)[-1]
         # )
-        all_params["feature_ids"] = feature_names_list
+        all_params["feature_id"] = self.feature_source.value()
         all_params["object_id"] = str(self.objects_source.value())
         all_params["acwe"] = self.widgets["acwe"].value()
         # all_params["object_scale"] = self.widgets["object_scale"].value()
         # all_params["object_offset"] = self.widgets["object_offset"].value()
-        all_params["dst"] = self.pipeline_id
+        all_params["dst"] = dst
         return all_params
 
     def setup_params_watershed(self, dst):
-        src = DataModel.g.dataset_uri(
-            self.feature_source.value(), group="features"
-        )
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["dst"] = self.pipeline_id
-        all_params["anno_id"] = str(
-            self.annotations_source.value().rsplit("/", 1)[-1]
-        )
+        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         return all_params
 
     def setup_params_predict_segmentation_fcn(self, dst):
@@ -800,16 +795,14 @@ class PipelineCard(Card):
         )
         all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
-        all_params["anno_id"] = str(
-            self.annotations_source.value().rsplit("/", 1)[-1]
-        )
+        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         all_params["feature_ids"] = feature_names_list
         all_params["model_fullname"] = self.model_fullname
         all_params["model_type"] = self.model_type.value()
         all_params["dst"] = self.pipeline_id
         return all_params
 
-    def setup_params_level_combination(self, dst):
+    def setup_params_label_postprocess(self, dst):
         all_params = dict(modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["level_over"] = str(
@@ -820,12 +813,14 @@ class PipelineCard(Card):
         )
         all_params["dst"] = dst
         return all_params
-    def setup_params_cleaning(self,dst):
+
+    def setup_params_cleaning(self, dst):
         all_params = dict(dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
         # all_params["object_id"] = str(self.objects_source.value())
         return all_params
+
     def compute_pipeline(self):
         dst = DataModel.g.dataset_uri(self.pipeline_id, group="pipelines")
 
@@ -833,13 +828,13 @@ class PipelineCard(Card):
             if self.pipeline_type == "superregion_segment":
                 all_params = self.setup_params_superregion_segment(dst)
             elif self.pipeline_type == "generate_blobs":
-                all_params = self.setup_params_generate_blobs(dst)        
+                all_params = self.setup_params_generate_blobs(dst)
             elif self.pipeline_type == "watershed":
                 all_params = self.setup_params_watershed(dst)
             elif self.pipeline_type == "predict_segmentation_fcn":
                 all_params = self.setup_params_predict_segmentation_fcn(dst)
-            elif self.pipeline_type == "level_combination":
-                all_params = self.setup_params_level_combination(dst)
+            elif self.pipeline_type == "label_postprocess":
+                all_params = self.setup_params_label_postprocess(dst)
             elif self.pipeline_type == "cleaning":
                 all_params = self.setup_params_cleaning(dst)
 

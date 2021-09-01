@@ -21,11 +21,10 @@ default_uri = "{}:{}".format(Config["api.host"], Config["api.port"])
 fmt = " <green>{name}</green> - <level>{level} - {message}</level>"
 logger.remove()  # remove default logger
 # logger.add(sys.stderr, level="DEBUG")
-logger.add(
-    sys.stderr, level="INFO", format=fmt, colorize=True
-)  # minimal stderr logger
+logger.add(sys.stderr, level="INFO", format=fmt, colorize=True)  # minimal stderr logger
 # logger.add("logs/main.log", level="DEBUG", format=fmt) #compression='zip')
-#logger.add(send_udp, format="{time} {level} {message}", filter="my_module", level="DEBUG")
+# logger.add(send_udp, format="{time} {level} {message}", filter="my_module", level="DEBUG")
+
 
 @begin.subcommand
 def start_server(
@@ -34,7 +33,7 @@ def start_server(
     CHROOT: "Path to Image Data",
 ):
     """
-    Start a SuRVoS API Server listeting for requests.
+    Start a SuRVoS API Server for requests.
     """
     from hug.store import InMemoryStore
     from hug.middleware import SessionMiddleware, CORSMiddleware
@@ -57,7 +56,8 @@ def start_server(
         session_store, cookie_name="survos_sid", cookie_secure=False, cookie_path="/"
     )
     api.http.add_middleware(middleware)
-    CORSMiddleware(api)
+    api.http.add_middleware(CORSMiddleware(api, max_age=10))
+
     logger.debug(f"Starting server on port {port} with workspace {workspace}")
     api.http.serve(port=int(port), display_intro=False)
 

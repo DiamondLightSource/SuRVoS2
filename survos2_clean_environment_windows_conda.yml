@@ -5,8 +5,6 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - _libgcc_mutex
-  - _pytorch_select
   - addict
   - begins
   - blas

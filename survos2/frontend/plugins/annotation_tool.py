@@ -3,9 +3,9 @@ import numpy as np
 from skimage.draw import line
 from skimage.morphology import disk
 from scipy.ndimage import binary_dilation
-
 from matplotlib.colors import ListedColormap
 import numpy as np
+from loguru import logger
 
 from survos2.frontend.control.launcher import Launcher
 from survos2.frontend.plugins.viewer import ViewerExtension, Tool
@@ -19,10 +19,7 @@ from survos2.frontend.components.base import (
 )
 from survos2.frontend.plugins.regions import RegionComboBox
 from survos2.model.model import DataModel
-
 from survos2.utils import decode_numpy
-
-from loguru import logger
 
 _AnnotationNotifier = PluginNotifier()
 

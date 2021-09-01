@@ -52,7 +52,87 @@ __pipeline_fill__ = 0
 
 
 @hug.get()
-def level_combination(
+def predict_segmentation_fcn(
+    feature_ids: DataURIList,
+    model_fullname: String,
+    dst: DataURI,
+    patch_size: IntOrVector = 64,
+    patch_overlap: IntOrVector = 8,
+    threshold: Float = 0.5,
+    model_type: String = "unet3d",
+):
+    from survos2.entity.pipeline_ops import make_proposal
+
+    logger.debug(
+        f"FCN segmentation with features {feature_ids} and model {model_fullname}"
+    )
+
+    features = []
+    for feature_id in feature_ids:
+        src = DataModel.g.dataset_uri(feature_id, group="features")
+        logger.debug(f"Getting features {src}")
+
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            logger.debug(f"Adding feature of shape {src_dataset.shape}")
+            features.append(src_dataset[:])
+
+    proposal = make_proposal(
+        features[0],
+        model_fullname,
+        model_type=model_type,
+        patch_size=patch_size,
+        patch_overlap=patch_overlap,
+    )
+
+    proposal -= np.min(proposal)
+    proposal = proposal / np.max(proposal)
+    proposal = ((proposal < threshold) * 1) + 1
+
+    # store resulting segmentation in dst
+    dst = DataModel.g.dataset_uri(dst, group="pipelines")
+    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+        DM.out[:] = proposal
+
+
+@hug.get()
+def cleaning(
+    # object_id : DataURI,
+    feature_id: DataURI,
+    dst: DataURI,
+    min_component_size: Int = 100,
+):
+    from survos2.entity.saliency import (
+        single_component_cleaning,
+        filter_small_components,
+    )
+
+    # src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
+    # logger.debug(f"Getting objects {src}")
+    # with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+    #     ds_objects = DM.sources[0]
+    # entities_fullname = ds_objects.get_metadata("fullname")
+    # tabledata, entities_df = setup_entity_table(entities_fullname)
+    # selected_entities = np.array(entities_df)
+
+    logger.debug(f"Calculating stats on feature: {feature_id}")
+    src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        feature_dataset_arr = DM.sources[0][:]
+
+    seg_cleaned, tables, labeled_images = filter_small_components(
+        [feature_dataset_arr], min_component_size=min_component_size
+    )
+    # seg_cleaned = single_component_cleaning(selected_entities, feature_dataset_arr, bvol_dim=(42,42,42))
+
+    # map_blocks(pass_through, (seg_cleaned > 0) * 1.0, out=dst, normalize=False)
+
+    with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
+        DM.out[:] = (seg_cleaned > 0) * 1.0
+
+
+@hug.get()
+def label_postprocess(
     level_over: DataURI,
     level_base: DataURI,
     dst: DataURI,
@@ -83,42 +163,6 @@ def level_combination(
 
 
 @hug.get()
-def cleaning(
-    # object_id : DataURI,
-    feature_id: DataURI,
-    dst: DataURI,
-    min_component_size: Int = 100,
-):
-    from survos2.entity.components import (
-        single_component_cleaning,
-        filter_small_components,
-    )
-
-    # src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
-    # logger.debug(f"Getting objects {src}")
-    # with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-    #     ds_objects = DM.sources[0]
-    # entities_fullname = ds_objects.get_metadata("fullname")
-    # tabledata, entities_df = setup_entity_table(entities_fullname)
-    # selected_entities = np.array(entities_df)
-
-    logger.debug(f"Calculating stats on feature: {feature_id}")
-    src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        feature_dataset_arr = DM.sources[0][:]
-
-    seg_cleaned, tables, labeled_images = filter_small_components(
-        [feature_dataset_arr], min_component_size=min_component_size
-    )
-    # seg_cleaned = single_component_cleaning(selected_entities, feature_dataset_arr, bvol_dim=(42,42,42))
-
-    # map_blocks(pass_through, (seg_cleaned > 0) * 1.0, out=dst, normalize=False)
-
-    with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
-        DM.out[:] = (seg_cleaned > 0) * 1.0
-
-
-@hug.get()
 def watershed(src: DataURI, anno_id: DataURI, dst: DataURI):
     from ..server.filtering import watershed
 
@@ -142,33 +186,33 @@ def watershed(src: DataURI, anno_id: DataURI, dst: DataURI):
 
 
 @hug.get()
+@save_metadata
 def generate_blobs(
-    workspace: String,
-    feature_ids: DataURIList,
-    object_id: DataURI,
+    src: DataURI,
     dst: DataURI,
-    acwe: SmartBoolean = False,
-    size: FloatOrVector = (5.0, 5.0, 5.0),
-    balloon: Float = 1.1,
-    threshold: Float = 0.1,
-    iterations: Int = 1,
-    smoothing: Int = 1,
+    workspace: String,
+    feature_id: DataURI,
+    object_id: DataURI,
+    acwe: SmartBoolean,
+    size: FloatOrVector,
+    balloon: Float,
+    threshold: Float,
+    iterations: Int,
+    smoothing: Int,
 ):
 
     from survos2.entity.anno.pseudo import (
         organize_entities,
     )
 
-    # get features
-    features = []
-    for feature_id in feature_ids:
-        src = DataModel.g.dataset_uri(feature_id, group="features")
-        logger.debug(f"Getting features {src}")
+    src = DataModel.g.dataset_uri(feature_id, group="features")
+    logger.debug(f"Getting features {src}")
 
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_dataset = DM.sources[0]
-            logger.debug(f"Adding feature of shape {src_dataset.shape}")
-            features.append(src_dataset[:])
+    features = []
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        logger.debug(f"Adding feature of shape {src_dataset.shape}")
+        features.append(src_dataset[:])
 
     src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -218,7 +262,6 @@ def generate_blobs(
         params: dict
         gold: np.ndarray
 
-
     wf = PatchWorkflow(
         features,
         combined_clustered_pts,
@@ -254,7 +297,7 @@ def generate_blobs(
     combined_anno = (combined_anno > 0.1) * 1.0
 
     # store in dst
-    dst = DataModel.g.dataset_uri(dst, group="pipelines")
+    # dst = DataModel.g.dataset_uri(dst, group="pipelines")
 
     with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
         DM.out[:] = combined_anno

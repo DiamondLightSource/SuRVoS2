@@ -1,4 +1,4 @@
-
+from survos2.entity.entities import make_entity_df
 from loguru import logger
 import numpy as np
 from survos2.improc.utils import DatasetManager
@@ -6,13 +6,8 @@ from survos2.model import DataModel, Workspace
 from survos2.frontend.control.launcher import Launcher
 from survos2.server.state import cfg
 from survos2.utils import decode_numpy
-from survos2.frontend.utils import (
-    get_array_from_dataset,
-    get_color_mapping
-)
-from survos2.frontend.components.entity import (
-    setup_entity_table
-)
+from survos2.frontend.utils import get_array_from_dataset, get_color_mapping
+from survos2.frontend.components.entity import setup_entity_table
 from skimage.segmentation import find_boundaries
 import seaborn as sns
 
@@ -26,12 +21,11 @@ def remove_layer(viewer, layer_name):
 
 def view_feature(viewer, msg, new_name=None):
     logger.debug(f"view_feature {msg['feature_id']}")
-    existing_feature_layer = [
-        v for v in viewer.layers if v.name == msg["feature_id"]
-    ]
+    existing_feature_layer = [v for v in viewer.layers if v.name == msg["feature_id"]]
 
     if cfg.retrieval_mode == "slice":
         features_src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
+        cfg.current_feature_name = msg["feature_id"]
         params = dict(
             workpace=True,
             src=features_src,
@@ -53,6 +47,7 @@ def view_feature(viewer, msg, new_name=None):
 
     elif cfg.retrieval_mode == "volume_http":
         features_src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
+        cfg.current_feature_name = msg["feature_id"]
         params = dict(
             workpace=True,
             src=features_src,
@@ -79,6 +74,7 @@ def view_feature(viewer, msg, new_name=None):
         with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
             src_dataset = DM.sources[0][:]
             src_arr = get_array_from_dataset(src_dataset)
+            src_arr = np.nan_to_num(src_arr)
             if new_name:
                 viewer.add_image(src_arr, name=new_name)
             else:
@@ -153,8 +149,6 @@ def view_regions(viewer, msg):
     cfg.supervoxels_cached = False
 
 
-
-
 def view_pipeline(viewer, msg):
     logger.debug(f"view_pipeline {msg['pipeline_id']} using {msg['level_id']}")
     source = msg["source"]
@@ -167,15 +161,11 @@ def view_pipeline(viewer, msg):
     if result:
         cmapping, _ = get_color_mapping(result, level_id=msg["level_id"])
 
-    existing_pipeline_layer = [
-        v for v in viewer.layers if v.name == msg["pipeline_id"]
-    ]
+    existing_pipeline_layer = [v for v in viewer.layers if v.name == msg["pipeline_id"]]
     cfg.current_pipeline_name = msg["pipeline_id"]
 
     if cfg.retrieval_mode == "slice":
-        pipeline_src = DataModel.g.dataset_uri(
-            cfg.current_pipeline_name, group=source
-        )
+        pipeline_src = DataModel.g.dataset_uri(cfg.current_pipeline_name, group=source)
         params = dict(
             workpace=True,
             src=pipeline_src,
@@ -186,7 +176,7 @@ def view_pipeline(viewer, msg):
         if result:
             src_arr = decode_numpy(result)
             if len(existing_pipeline_layer) > 0:
-                existing_pipeline_layer[0].data = src_arr.copy()
+                existing_pipeline_layer[0].data = src_arr.astype(np.uint32).copy()
             else:
                 viewer.add_labels(
                     src_arr.astype(np.uint32),
@@ -194,15 +184,13 @@ def view_pipeline(viewer, msg):
                     color=cmapping,
                 )
     elif cfg.retrieval_mode == "volume_http":
-        pipeline_src = DataModel.g.dataset_uri(
-            cfg.current_pipeline_name, group=source
-        )
+        pipeline_src = DataModel.g.dataset_uri(cfg.current_pipeline_name, group=source)
         params = dict(workpace=True, src=pipeline_src)
         result = Launcher.g.run("features", "get_volume", **params)
         if result:
             src_arr = decode_numpy(result)
             if len(existing_pipeline_layer) > 0:
-                existing_pipeline_layer[0].data = src_arr.copy()
+                existing_pipeline_layer[0].data = src_arr.astype(np.uint32).copy()
             else:
                 viewer.add_labels(
                     src_arr.astype(np.uint32),
@@ -215,9 +203,7 @@ def view_pipeline(viewer, msg):
             src_dataset = DM.sources[0][:]
             src_arr = get_array_from_dataset(src_dataset)
 
-            existing_layer = [
-                v for v in viewer.layers if v.name == msg["pipeline_id"]
-            ]
+            existing_layer = [v for v in viewer.layers if v.name == msg["pipeline_id"]]
 
             if len(existing_layer) > 0:
                 logger.debug(
@@ -237,28 +223,41 @@ def view_pipeline(viewer, msg):
                     color=cmapping,
                 )
 
+
 def view_objects(viewer, msg):
     logger.debug(f"view_objects {msg['objects_id']}")
-    src = DataModel.g.dataset_uri(msg["objects_id"], group="objects")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        ds_objects = DM.sources[0]
-
-    logger.debug(f"Using dataset {ds_objects}")
-    objects_fullname = ds_objects.get_metadata("fullname")
-    objects_scale = ds_objects.get_metadata("scale")
-    objects_offset = ds_objects.get_metadata("offset")
-    objects_crop_start = ds_objects.get_metadata("crop_start")
-    objects_crop_end = ds_objects.get_metadata("crop_end")
-
-    logger.info(f"Viewing entities {objects_fullname}")
-    tabledata, entities_df = setup_entity_table(
-        objects_fullname,
-        scale=objects_scale,
-        offset=objects_offset,
-        crop_start=objects_crop_start,
-        crop_end=objects_crop_end,
-        flipxy=msg["flipxy"],
+    objects_src = DataModel.g.dataset_uri(msg["objects_id"], group="objects")
+    
+    params = dict(
+        workpace=True,
+        src=objects_src,
     )
+    result = Launcher.g.run("objects", "get_entities", **params)
+    if result:
+        entities_arr = decode_numpy(result)
+      
+    #with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+    #    ds_objects = DM.sources[0]
+
+    logger.debug(f"Got entities_arr of shape {entities_arr.shape}")
+    
+    # objects_fullname = entities_metadata["fullname"]
+    # objects_scale = entities_metadata["scale"]
+    # objects_offset = entities_metadata["offset"]
+    # objects_crop_start = entities_metadata["crop_start"]
+    # objects_crop_end = entities_metadata["crop_end"]
+
+    entities_df = make_entity_df(entities_arr)
+
+    # tabledata, entities_df = setup_entity_table(
+    #     entities_fullname=None,
+    #     entities_df=object_entities,
+    #     scale=objects_scale,
+    #     offset=objects_offset,
+    #     crop_start=objects_crop_start,
+    #     crop_end=objects_crop_end,
+    #     flipxy=msg["flipxy"],
+    # )
     sel_start, sel_end = 0, len(entities_df)
 
     centers = np.array(
@@ -273,11 +272,10 @@ def view_objects(viewer, msg):
     )
 
     num_classes = max(9, len(np.unique(entities_df["class_code"]))) + 2
+
     logger.debug(f"Number of entity classes {num_classes}")
     palette = np.array(sns.color_palette("hls", num_classes))
-    face_color_list = [
-        palette[class_code] for class_code in entities_df["class_code"]
-    ]
+    face_color_list = [palette[class_code] for class_code in entities_df["class_code"]]
 
     entity_layer = viewer.add_points(
         centers, size=[10] * len(centers), opacity=0.5, face_color=face_color_list

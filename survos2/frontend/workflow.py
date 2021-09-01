@@ -1,13 +1,12 @@
 import yaml
 import os
 from loguru import logger
-from napari.qt.threading import thread_worker
 
 from survos2.frontend.control.launcher import Launcher
 from survos2.model import DataModel
 from survos2.server.state import cfg
 
-
+from napari.qt.threading import thread_worker
 from napari.qt import progress
 
 

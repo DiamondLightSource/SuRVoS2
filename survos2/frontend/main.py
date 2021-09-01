@@ -6,12 +6,10 @@ from skimage import io
 import mrcfile
 import tempfile
 
-
 from survos2 import survos
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
 from survos2.model.workspace import WorkspaceException
-
 from survos2.entity.sampler import crop_vol_and_pts_centered
 from survos2.entity.entities import make_entity_df
 

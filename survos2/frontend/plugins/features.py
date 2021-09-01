@@ -167,8 +167,43 @@ class FeatureCard(Card):
 
         self._add_source()
         for pname, params in fparams.items():
-            if pname not in ["src", "dst"]:
+            if pname not in ["src", "dst", "threshold"]:
                 self._add_param(pname, **params)
+
+        if self.feature_type == "wavelet":
+            self.wavelet_type = ComboBox()
+            self.wavelet_type.addItem(key="sym2")
+            self.wavelet_type.addItem(key="sym3")
+            self.wavelet_type.addItem(key="sym4")
+            self.wavelet_type.addItem(key="sym6")
+            self.wavelet_type.addItem(key="sym7")
+            self.wavelet_type.addItem(key="sym8")
+            self.wavelet_type.addItem(key="sym9")
+            self.wavelet_type.addItem(key="haar")
+            self.wavelet_type.addItem(key="db3")
+            self.wavelet_type.addItem(key="db4")
+            self.wavelet_type.addItem(key="db5")
+            self.wavelet_type.addItem(key="db6")
+            self.wavelet_type.addItem(key="db7")
+            self.wavelet_type.addItem(key="db35")
+            self.wavelet_type.addItem(key="coif1")
+            self.wavelet_type.addItem(key="coif3")
+            self.wavelet_type.addItem(key="coif7")
+            self.wavelet_type.addItem(key="bior1.1")
+            self.wavelet_type.addItem(key="bior2.2")
+            self.wavelet_type.addItem(key="bior3.5")
+
+            widget = HWidgets(
+                "Wavelet type:", self.wavelet_type, Spacing(35), stretch=0
+            )
+            self.add_row(widget)
+
+            self.wavelet_threshold = RealSlider(value=0.0, vmax=128, vmin=0)
+            widget = HWidgets(
+                "Threshold:", self.wavelet_threshold, Spacing(35), stretch=0
+            )
+            self.add_row(widget)
+
         self._add_compute_btn()
         self._add_view_btn()
 
@@ -188,6 +223,8 @@ class FeatureCard(Card):
             feature = LineEdit3D(default=default, parse=float)
         elif type == "IntOrVector":
             feature = LineEdit3D(default=default, parse=int)
+        elif type == "SmartBoolean":
+            feature = CheckBox(checked=True)
         else:
             feature = None
 
@@ -267,12 +304,17 @@ class FeatureCard(Card):
             pbar.update(1)
 
             all_params = dict(src=src, dst=dst, modal=True)
+
+            if self.feature_type == "wavelet":
+                all_params["wavelet"] = str(self.wavelet_type.value())
+                all_params["threshold"] = self.wavelet_threshold.value()
+
             all_params.update({k: v.value() for k, v in self.widgets.items()})
 
             logger.info(f"Computing features: {self.feature_type} {all_params}")
             # result = Launcher.g.run("features", self.feature_type, **all_params)
             Launcher.g.run("features", self.feature_type, **all_params)
-            
+
             # pbar.update(1)
             # if result is not None:
             #     self.pbar.setValue(100)

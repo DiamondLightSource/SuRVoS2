@@ -21,6 +21,7 @@ from sklearn.ensemble import (
     IsolationForest,
     RandomForestClassifier,
 )
+from xgboost import XGBClassifier
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -42,6 +43,13 @@ PRED_MIN = 0  # label value to use as minimum prediction label
 def obtain_classifier(clf_p):
     if clf_p["clf"] == "Ensemble":
         mode = "ensemble"
+
+        if clf_p["type"] == "xgb":
+            clf = XGBClassifier(
+                n_estimators=clf_p["n_estimators"],
+                max_depth=clf_p["max_depth"],
+                n_jobs=clf_p["n_jobs"],
+            )
 
         if clf_p["type"] == "rf":
             clf = RandomForestClassifier(

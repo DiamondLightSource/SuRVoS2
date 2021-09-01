@@ -1,12 +1,10 @@
-name: survos2_env
+name: survos2_env_fc
 channels:
   - pytorch
   - anaconda
   - defaults
   - conda-forge
 dependencies:
-  - _libgcc_mutex
-  - _pytorch_select
   - addict
   - begins
   - blas

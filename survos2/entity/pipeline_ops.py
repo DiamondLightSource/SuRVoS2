@@ -28,7 +28,6 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 
 
-
 def load_model(detmod, file_path):
     def load_model_parameters(full_path):
         checkpoint = torch.load(full_path)
@@ -151,8 +150,6 @@ def make_features(patch: Patch, params: dict):
     return patch
 
 
-
-
 def predict_agg_3d(
     input_array,
     model3d,
@@ -202,9 +199,6 @@ def predict_agg_3d(
         for patches_batch in tqdm(patch_loader):
             input_tensor = patches_batch["img"]["data"]
             locations = patches_batch[LOCATION]
-
-            # print(f"Input tensor {input_tensor.shape}")
-
             inputs_t = input_tensor
             inputs_t = inputs_t.to(device)
 
@@ -222,7 +216,6 @@ def predict_agg_3d(
             aggregator1.add_batch(output, locations)
 
     return aggregator1
-
 
 
 def prepare_unet3d(existing_model_fname=None, num_epochs=2, initial_lr=0.001, device=0):

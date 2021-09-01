@@ -145,4 +145,3 @@ def remove_padding(vol, padding):
         padding[2] : vol.shape[2] + padding[2],
     ]
     return unpadded_vol
-

@@ -1,8 +1,4 @@
-from survos2.frontend.plugins.pipelines import PipelinesComboBox
-from survos2.frontend.plugins.features import FeatureComboBox
 import numpy as np
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
 
@@ -20,6 +16,13 @@ from survos2.server.state import cfg
 from survos2.utils import decode_numpy
 from survos2.frontend.components.entity import TableWidget
 from survos2.frontend.utils import FileWidget
+from survos2.frontend.plugins.pipelines import PipelinesComboBox
+from survos2.frontend.plugins.features import FeatureComboBox
+
+from survos2.api.analyzer import __analyzer_names__
+
+
+feature_names = ["z", "x", "y", "Sum", "Mean", "Std", "Var", "bb_vol"]
 
 
 def _fill_analyzers(combo, full=False, filter=True, ignore=None):
@@ -152,6 +155,7 @@ class AnalyzerPlugin(Plugin):
                 return
             self.analyzers_combo.setCurrentIndex(0)
             logger.debug(f"Adding analyzer {analyzer_type}")
+            
             from survos2.api.analyzer import __analyzer_names__
 
             order = __analyzer_names__.index(analyzer_type)
@@ -219,12 +223,21 @@ class AnalyzerPlugin(Plugin):
                         )
                     )
 
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 class MplCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
-        super(MplCanvas, self).__init__(fig)
+    def __init__(self, parent=None, width=5, height=4, dpi=100, suptitle="Feature"):
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = self.fig.add_subplot(111)
+        self.suptitle = suptitle
+        if self.suptitle:
+            self.fig.suptitle(self.suptitle)
+        super(MplCanvas, self).__init__(self.fig)
+    def set_suptitle(self,suptitle):
+        self.suptitle = suptitle
+        self.fig.suptitle(self.suptitle)
 
 
 class AnalyzerCard(Card):
@@ -248,7 +261,7 @@ class AnalyzerCard(Card):
             self._add_pipelines_source()
             self._add_feature_source()
             self.feature_name_combo_box = SimpleComboBox(
-                full=True, values=["z", "x", "y", "Sum", "Mean", "Std", "Var", "bb_vol"]
+                full=True, values=feature_names
             )
             self.feature_name_combo_box.fill()
             self.split_op_combo_box = SimpleComboBox(
@@ -256,7 +269,7 @@ class AnalyzerCard(Card):
             )
             self.split_op_combo_box.fill()
 
-            self.split_threshold = LineEdit(default=0, parse=int)
+            self.split_threshold = LineEdit(default=0, parse=float)
             widget = HWidgets(
                 "Measurement:", self.feature_name_combo_box, Spacing(35), stretch=1
             )
@@ -280,6 +293,12 @@ class AnalyzerCard(Card):
             self.plot_btn.clicked.connect(self.clustering_plot)
         elif self.analyzer_type == "level_image_stats":
             self._add_annotations_source()
+            self.statistic_name_combo_box = SimpleComboBox(
+                full=True, values=["Mean", "Std", "Var"]
+            )
+            widget = HWidgets(
+                "Statistic:", self.statistic_name_combo_box, Spacing(35), stretch=1
+            )
             self.label_index = LineEdit(default=1, parse=float)
             widget = HWidgets("Level index:", self.label_index, Spacing(35), stretch=1)
             self.add_row(widget)
@@ -336,6 +355,7 @@ class AnalyzerCard(Card):
             self.add_row(HWidgets(None, *additional_buttons, Spacing(35)))
         self.calc_btn.clicked.connect(self.calculate_analyzer)
         self.table_control = None
+        self.plot = None
 
     def _add_model_file(self):
         self.filewidget = FileWidget(extensions="*.pt", save=False)
@@ -348,9 +368,9 @@ class AnalyzerCard(Card):
 
     def load_as_objects(self):
         logger.debug("Load analyzer result as objects")
-        from survos2.entity.entities import load_entities_as_objects
+        from survos2.entity.entities import load_entities_via_file
 
-        load_entities_as_objects(self.entities_arr, flipxy=False)
+        load_entities_via_file(self.entities_arr, flipxy=False)
         cfg.ppw.clientEvent.emit(
             {"source": "analyzer_plugin", "data": "refresh", "value": None}
         )
@@ -655,188 +675,30 @@ class AnalyzerCard(Card):
 
         self.entities_arr = np.array(entities)
 
-    def calculate_analyzer(self):
-        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+    def display_splitter_plot(self, feature_array, title="Something"):
+        if self.plot is None:
+            self.plot = MplCanvas(self, width=5, height=4, dpi=100)
+            self.add_row(self.plot, max_height=500)
 
-        if self.analyzer_type == "label_splitter":
-            src = DataModel.g.dataset_uri(self.pipelines_source.value())
+        #fig = Figure()
+        #canvas = FigureCanvasAgg(fig)
+        #ax = fig.gca()
+        # ax.axis("off")
+        
+        y, x, _ = self.plot.axes.hist(feature_array, bins=16)
+        self.plot.set_suptitle(title)
+        
+        
+        #if vert_line_at:
+        #    print(f"Plotting vertical line at: {vert_line_at} {y.max()}")
+        #    sc.axes.axvline(x=vert_line_at, ymin=0, ymax=y.max(), color="r")
 
-            all_params = dict(src=src, dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["pipelines_id"] = str(self.pipelines_source.value())
-            all_params["feature_id"] = str(self.feature_source.value())
-            all_params["split_feature_name"] = self.feature_name_combo_box.value()
-            all_params["split_op"] = self.split_op_combo_box.value()
-            all_params["split_threshold"] = self.split_threshold.value()
+        #canvas.draw()
 
-            logger.debug(f"Running analyzer with params {all_params}")
-            result = Launcher.g.run("analyzer", "label_splitter", **all_params)
-            if result:
-                logger.debug(f"Segmentation stats result table {len(result)}")
-                self.display_splitter_results(result)
 
-        if self.analyzer_type == "find_connected_components":
-            src = DataModel.g.dataset_uri(self.pipelines_source.value())
 
-            all_params = dict(src=src, dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["pipelines_id"] = str(self.pipelines_source.value())
-            all_params["label_index"] = self.label_index.value()
-            logger.debug(f"Running analyzer with params {all_params}")
-            result = Launcher.g.run(
-                "analyzer", "find_connected_components", **all_params
-            )
-            if result:
-                logger.debug(f"Segmentation stats result table {len(result)}")
-                self.display_component_results(result)
 
-        if self.analyzer_type == "level_image_stats":
-            anno_id = DataModel.g.dataset_uri(self.annotations_source.value())
-            all_params = dict(dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["anno_id"] = anno_id
-            all_params["label_index"] = self.label_index.value()
-            logger.debug(f"Running analyzer with params {all_params}")
-            result = Launcher.g.run("analyzer", "level_image_stats", **all_params)
-            if result:
-                logger.debug(f"Level Image stats result table {len(result)}")
-                self.display_component_results(result)
-
-        if self.analyzer_type == "binary_image_stats":
-            src = DataModel.g.dataset_uri(self.feature_source.value())
-            all_params = dict(src=src, dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["feature_id"] = str(self.feature_source.value())
-            all_params["threshold"] = self.threshold.value()
-
-            logger.debug(f"Running analyzer with params {all_params}")
-            result = Launcher.g.run("analyzer", "binary_image_stats", **all_params)
-            if result:
-                logger.debug(f"Segmentation stats result table {len(result)}")
-                self.display_component_results(result)
-
-        if self.analyzer_type == "image_stats":
-            src = DataModel.g.dataset_uri(self.features_source.value())
-            all_params = dict(src=src, dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-
-            all_params["feature_ids"] = str(self.features_source.value()[-1])
-
-            logger.debug(f"Running analyzer with params {all_params}")
-            result = Launcher.g.run("analyzer", "image_stats", **all_params)
-            if result:
-                src_arr = decode_numpy(result)
-                sc = MplCanvas(self, width=5, height=4, dpi=100)
-                sc.axes.imshow(src_arr)
-                self.add_row(sc, max_height=300)
-
-        elif self.analyzer_type == "object_stats2":
-            src = DataModel.g.dataset_uri(self.features_source.value())
-            all_params = dict(src=src, dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["feature_ids"] = str(self.features_source.value()[-1])
-            all_params["object_id"] = str(self.objects_source.value())
-            logger.debug(f"Running analyzer with params {all_params}")
-            result = Launcher.g.run("analyzer", "object_stats", **all_params)
-            if result:
-                src_arr = decode_numpy(result)
-                sc = MplCanvas(self, width=5, height=4, dpi=100)
-                sc.axes.imshow(src_arr)
-                self.add_row(sc, max_height=300)
-
-        elif self.analyzer_type == "object_stats":
-            src = DataModel.g.dataset_uri(self.features_source.value())
-            all_params = dict(src=src, dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["feature_ids"] = str(self.features_source.value()[-1])
-            all_params["object_id"] = str(self.objects_source.value())
-            all_params["stat_name"] = self.stat_name_combo_box.value()
-            logger.debug(f"Running analyzer with params {all_params}")
-            result = Launcher.g.run("analyzer", "object_stats", **all_params)
-            (point_features, img) = result
-            if result:
-                logger.debug(f"Object stats result table {len(point_features)}")
-
-                tabledata = []
-                for i in range(len(point_features)):
-                    entry = (i, point_features[i])
-                    tabledata.append(entry)
-
-                tabledata = np.array(
-                    tabledata,
-                    dtype=[
-                        ("index", int),
-                        ("z", float),
-                    ],
-                )
-
-                src_arr = decode_numpy(img)
-                sc = MplCanvas(self, width=6, height=5, dpi=80)
-                sc.axes.imshow(src_arr)
-                sc.axes.axis("off")
-
-                self.add_row(sc, max_height=500)
-
-                if self.table_control is None:
-                    self.table_control = TableWidget()
-                    self.add_row(self.table_control.w, max_height=500)
-
-                self.table_control.set_data(tabledata)
-                self.collapse()
-                self.expand()
-
-        elif self.analyzer_type == "object_detection_stats":
-            src = DataModel.g.dataset_uri(self.features_source.value())
-            all_params = dict(src=src, dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["predicted_objects_id"] = str(
-                self.predicted_objects_source.value()
-            )
-            all_params["gold_objects_id"] = str(self.gold_objects_source.value())
-
-            logger.debug(f"Running object detection analyzer with params {all_params}")
-            result = Launcher.g.run("analyzer", "object_detection_stats", **all_params)
-
-            # if result:
-            #     src_arr = decode_numpy(result)
-            #     sc = MplCanvas(self, width=5, height=4, dpi=100)
-            #     sc.axes.imshow(src_arr)
-            #     self.add_row(sc, max_height=300)
-
-        elif self.analyzer_type == "detector_predict":
-            feature_names_list = [
-                n.rsplit("/", 1)[-1] for n in self.features_source.value()
-            ]
-            src = DataModel.g.dataset_uri(
-                self.features_source.value()[0], group="pipelines"
-            )
-            all_params = dict(src=src, dst=dst, modal=True)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["object_id"] = str(self.objects_source.value())
-            all_params["feature_ids"] = feature_names_list
-            all_params["model_fullname"] = self.model_fullname
-            all_params["dst"] = self.pipeline_id
-            result = Launcher.g.run("pipelines", self.analyzer_type, **all_params)
-
-        elif self.analyzer_type == "spatial_clustering":
-            src = DataModel.g.dataset_uri(self.feature_source.value())
-            all_params = dict(src=src, dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["feature_id"] = str(self.feature_source.value())
-            all_params["object_id"] = str(self.objects_source.value())
-            result = Launcher.g.run("analyzer", "spatial_clustering", **all_params)
-            logger.debug(f"spatial clustering result table {len(result)}")
-            self.display_component_results2(result)
-        elif self.analyzer_type == "remove_masked_objects":
-            src = DataModel.g.dataset_uri(self.feature_source.value())
-            all_params = dict(src=src, dst=dst, modal=False)
-            all_params["workspace"] = DataModel.g.current_workspace
-            all_params["feature_id"] = str(self.feature_source.value())
-            all_params["object_id"] = str(self.objects_source.value())
-            result = Launcher.g.run("analyzer", "remove_masked_objects", **all_params)
-            logger.debug(f"remove_masked_objects result table {len(result)}")
-            self.display_component_results2(result)
-
+        
     def clustering_plot(self):
         src = DataModel.g.dataset_uri(self.features_source.value())
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
@@ -862,3 +724,227 @@ class AnalyzerCard(Card):
         out_df = pd.DataFrame(self.tabledata)
         out_df.to_csv(full_path)
         logger.debug(f"Exported to csv {full_path}")
+
+
+    def calc_label_splitter(self):
+        split_feature_index = int(self.feature_name_combo_box.value())
+
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        src = DataModel.g.dataset_uri(self.pipelines_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["pipelines_id"] = str(self.pipelines_source.value())
+        all_params["feature_id"] = str(self.feature_source.value())
+        all_params["split_feature_index"] = str(split_feature_index)
+        all_params["split_op"] = self.split_op_combo_box.value()
+        all_params["split_threshold"] = self.split_threshold.value()
+
+        logger.debug(f"Running analyzer with params {all_params}")
+        features_array = Launcher.g.run(
+            "analyzer", "label_splitter", **all_params
+        )
+        features_ndarray = np.array(features_array)
+        print(f"Shape of features_array {features_ndarray.shape}")
+        feature_array = features_ndarray[:, int(split_feature_index)]
+        feature_name = feature_names[split_feature_index]
+        if features_array:
+            logger.debug(f"Segmentation stats result table {len(features_array)}")                
+            # src_arr = decode_numpy(histplot)
+            # if self.plot is None:
+            #     self.plot = MplCanvas(self, width=5, height=4, dpi=120)
+            #     self.add_row(self.plot, max_height=500)
+            # self.plot.axes.imshow(src_arr)
+            # self.plot.axes.axis("off")
+
+            self.display_splitter_results(features_array)
+            self.display_splitter_plot(feature_array, feature_name)
+
+    def calc_level_image_stats(self):
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        anno_id = DataModel.g.dataset_uri(self.annotations_source.value())
+        all_params = dict(dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["anno_id"] = anno_id
+        all_params["label_index"] = self.label_index.value()
+        logger.debug(f"Running analyzer with params {all_params}")
+        result = Launcher.g.run("analyzer", "level_image_stats", **all_params)
+        if result:
+            logger.debug(f"Level Image stats result table {len(result)}")
+            self.display_component_results(result)
+
+    def calc_find_connected_components(self):
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        src = DataModel.g.dataset_uri(self.pipelines_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["pipelines_id"] = str(self.pipelines_source.value())
+        all_params["label_index"] = self.label_index.value()
+        logger.debug(f"Running analyzer with params {all_params}")
+        result = Launcher.g.run(
+            "analyzer", "find_connected_components", **all_params
+        )
+        if result:
+            logger.debug(f"Segmentation stats result table {len(result)}")
+            self.display_component_results(result)
+    
+    def calc_binary_image_stats(self):
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        src = DataModel.g.dataset_uri(self.feature_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_id"] = str(self.feature_source.value())
+        all_params["threshold"] = self.threshold.value()
+
+        logger.debug(f"Running analyzer with params {all_params}")
+        result = Launcher.g.run("analyzer", "binary_image_stats", **all_params)
+        if result:
+            logger.debug(f"Segmentation stats result table {len(result)}")
+            self.display_component_results(result)
+
+    def calc_image_stats(self):
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        src = DataModel.g.dataset_uri(self.features_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+
+        all_params["feature_ids"] = str(self.features_source.value()[-1])
+
+        logger.debug(f"Running analyzer with params {all_params}")
+        result = Launcher.g.run("analyzer", "image_stats", **all_params)
+        if result:
+            src_arr = decode_numpy(result)
+            sc = MplCanvas(self, width=5, height=4, dpi=100)
+            sc.axes.imshow(src_arr)
+            self.add_row(sc, max_height=300)
+
+    def calc_object_stats2(self):
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        src = DataModel.g.dataset_uri(self.features_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_ids"] = str(self.features_source.value()[-1])
+        all_params["object_id"] = str(self.objects_source.value())
+        logger.debug(f"Running analyzer with params {all_params}")
+        result = Launcher.g.run("analyzer", "object_stats", **all_params)
+        if result:
+            src_arr = decode_numpy(result)
+            sc = MplCanvas(self, width=5, height=4, dpi=100)
+            sc.axes.imshow(src_arr)
+            self.add_row(sc, max_height=300)
+
+    def calc_object_stats(self):
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        src = DataModel.g.dataset_uri(self.features_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_ids"] = str(self.features_source.value()[-1])
+        all_params["object_id"] = str(self.objects_source.value())
+        all_params["stat_name"] = self.stat_name_combo_box.value()
+        logger.debug(f"Running analyzer with params {all_params}")
+        result = Launcher.g.run("analyzer", "object_stats", **all_params)
+        (point_features, img) = result
+        if result:
+            logger.debug(f"Object stats result table {len(point_features)}")
+            tabledata = []
+            for i in range(len(point_features)):
+                entry = (i, point_features[i])
+                tabledata.append(entry)
+            tabledata = np.array(
+                tabledata,
+                dtype=[
+                    ("index", int),
+                    ("z", float),
+                ],
+            )
+            src_arr = decode_numpy(img)
+            sc = MplCanvas(self, width=6, height=5, dpi=80)
+            sc.axes.imshow(src_arr)
+            sc.axes.axis("off")
+            self.add_row(sc, max_height=500)
+            if self.table_control is None:
+                self.table_control = TableWidget()
+                self.add_row(self.table_control.w, max_height=500)
+
+            self.table_control.set_data(tabledata)
+            self.collapse()
+            self.expand()
+
+
+    def calc_object_detection_stats(self):  
+        src = DataModel.g.dataset_uri(self.features_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["predicted_objects_id"] = str(
+            self.predicted_objects_source.value()
+        )
+        all_params["gold_objects_id"] = str(self.gold_objects_source.value())
+
+        logger.debug(f"Running object detection analyzer with params {all_params}")
+        result = Launcher.g.run("analyzer", "object_detection_stats", **all_params)
+        # if result:
+        #     src_arr = decode_numpy(result)
+        #     sc = MplCanvas(self, width=5, height=4, dpi=100)
+        #     sc.axes.imshow(src_arr)
+        #     self.add_row(sc, max_height=300)
+
+    def calc_detector_predict(self):
+        src = DataModel.g.dataset_uri(
+            self.features_source.value()[0], group="pipelines"
+        )
+        feature_names_list = [
+            n.rsplit("/", 1)[-1] for n in self.features_source.value()
+        ]
+        all_params = dict(src=src, dst=dst, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["object_id"] = str(self.objects_source.value())
+        all_params["feature_ids"] = feature_names_list
+        all_params["model_fullname"] = self.model_fullname
+        all_params["dst"] = self.pipeline_id
+        result = Launcher.g.run("pipelines", self.analyzer_type, **all_params)
+
+    def calc_spatial_clustering(self):
+        src = DataModel.g.dataset_uri(self.feature_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_id"] = str(self.feature_source.value())
+        all_params["object_id"] = str(self.objects_source.value())
+        result = Launcher.g.run("analyzer", "spatial_clustering", **all_params)
+        logger.debug(f"spatial clustering result table {len(result)}")
+        self.display_component_results2(result)
+
+    def calc_removed_masked_objects(self):
+        src = DataModel.g.dataset_uri(self.feature_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_id"] = str(self.feature_source.value())
+        all_params["object_id"] = str(self.objects_source.value())
+        result = Launcher.g.run("analyzer", "remove_masked_objects", **all_params)
+        logger.debug(f"remove_masked_objects result table {len(result)}")
+        self.display_component_results2(result)
+
+
+    def calculate_analyzer(self):
+        if self.analyzer_type == "label_splitter":
+            self.calc_label_splitter()
+        elif self.analyzer_type == "find_connected_components":
+            self.calc_find_connected_components()    
+        elif self.analyzer_type == "level_image_stats":
+            self.calc_level_image_stats()
+        elif self.analyzer_type == "binary_image_stats":
+            self.calc_binary_image_stats()
+        elif self.analyzer_type == "image_stats":
+            self.calc_image_stats()
+        elif self.analyzer_type == "object_stats2":
+            self.calc_object_stats2()
+        elif self.analyzer_type == "object_stats":
+            self.calc_object_stats2()
+        elif self.analyzer_type == "object_detection_stats":
+            self.calc_object_detection_stats()
+        elif self.analyzer_type == "detector_predict":
+            self.calc_detector_predict()
+        elif self.analyzer_type == "spatial_clustering":
+            self.calc_spatial_clustering()
+        elif self.analyzer_type == "remove_masked_objects":
+            self.calc_removed_masked_objects()
+
+

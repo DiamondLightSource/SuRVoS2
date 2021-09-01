@@ -31,25 +31,26 @@ from survos2.improc.utils import DatasetManager
 import tempfile
 
 
-def load_entities_as_objects(entities_arr, flipxy=True):
+def load_entities_via_file(entities_arr, flipxy=True):
     entities_df = make_entity_df(entities_arr, flipxy=flipxy)
     tmp_fullpath = os.path.abspath(
         os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
     )
+    print(entities_df)
     print(f"Creating temp file: {tmp_fullpath}")
     entities_df.to_csv(tmp_fullpath, line_terminator="")
 
     object_scale = 1.0
     object_offset = (0.0, 0.0, 0.0)
     object_crop_start = (0.0, 0.0, 0.0)
-    object_crop_end = (1e5, 1e5, 1e5)
+    object_crop_end = (1e9, 1e9, 1e9)
 
     params = dict(
         order=0,
         workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
         fullname=tmp_fullpath,
     )
-    print(params)
+
     result = Launcher.g.run("objects", "create", **params)
     print(result)
     if result:
@@ -236,6 +237,55 @@ def make_entity_bvol(bbs, flipxy=False):
             "bb_f_x": "int32",
             "bb_f_y": "int32",
             "area": "int32",
+        }
+    )
+    return entities_df
+
+
+def make_entity_boxes(bbs, flipxy=False):
+    if flipxy:
+        entities_df = pd.DataFrame(
+            {
+                "class_code": bbs[:, 0],
+                "z": bbs[:, 1],
+                "x": bbs[:, 3],
+                "y": bbs[:, 2],
+                "bb_s_z": bbs[:, 4],
+                "bb_s_x": bbs[:, 5],
+                "bb_s_y": bbs[:, 6],
+                "bb_f_z": bbs[:, 7],
+                "bb_f_x": bbs[:, 8],
+                "bb_f_y": bbs[:, 9],
+            }
+        )
+    else:
+        entities_df = pd.DataFrame(
+            {
+                "class_code": bbs[:, 0],
+                "z": bbs[:, 1],
+                "x": bbs[:, 2],
+                "y": bbs[:, 3],
+                "bb_s_z": bbs[:, 4],
+                "bb_s_x": bbs[:, 5],
+                "bb_s_y": bbs[:, 6],
+                "bb_f_z": bbs[:, 7],
+                "bb_f_x": bbs[:, 8],
+                "bb_f_y": bbs[:, 9],
+            }
+        )
+
+    entities_df = entities_df.astype(
+        {
+            "class_code": "int32",
+            "x": "int32",
+            "y": "int32",
+            "z": "int32",
+            "bb_s_z": "int32",
+            "bb_s_x": "int32",
+            "bb_s_y": "int32",
+            "bb_f_z": "int32",
+            "bb_f_x": "int32",
+            "bb_f_y": "int32",
         }
     )
     return entities_df

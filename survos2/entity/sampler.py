@@ -202,7 +202,6 @@ def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
         (z_start, x_start, y_start, z_fin, x_fin, y_fin)
     """
     d, w, h = bvol_dim
-    # print(d,w,h)
     if flipxy:
         bvols = np.array(
             [
@@ -214,6 +213,42 @@ def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
         bvols = np.array(
             [
                 (cz - d, cx - w, cy - h, cz + d, cx + w, cy + h)
+                for cz, cy, cx, _ in centers
+            ]
+        )
+
+    return bvols
+
+
+def centroid_to_boxes(centers, bvol_dim=(10, 10, 10), flipxy=False):
+    """Centroid to bounding volume
+
+    Parameters
+    ----------
+    centers : np.ndarray, (nx3)
+        3d coordinates of the point to use as the centroid of the bounding box
+    bvol_dim : tuple, optional
+        Dimensions of the bounding volume centered at the points given by centers, by default (10, 10, 10)
+    flipxy : bool, optional
+        Flip x and y coordinates, by default False
+
+    Returns
+    -------
+    np.ndarray, (nx6)
+        (z_start, x_start, y_start, z_fin, x_fin, y_fin)
+    """
+    d, w, h = bvol_dim
+    if flipxy:
+        bvols = np.array(
+            [
+                (0, cz, cx, cy, cz - d, cx - w, cy - h, cz + d, cx + w, cy + h)
+                for cz, cx, cy, _ in centers
+            ]
+        )
+    else:
+        bvols = np.array(
+            [
+                (0, cz, cx, cy, cz - d, cx - w, cy - h, cz + d, cx + w, cy + h)
                 for cz, cy, cx, _ in centers
             ]
         )

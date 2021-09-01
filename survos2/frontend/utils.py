@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLineEdit,
     QVBoxLayout,
-    QWidget
+    QWidget,
 )
 from survos2.server.state import cfg
 from loguru import logger

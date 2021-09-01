@@ -1,4 +1,3 @@
-
 from .qtcompat import QtWidgets, QtCore
 
 from survos2.frontend.components.base import *

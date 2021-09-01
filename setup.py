@@ -5,12 +5,11 @@ import os
 from numpy.distutils.core import setup
 from numpy.distutils.misc_util import Configuration, get_numpy_include_dirs
 from pathlib import Path
+
 # https://github.com/pypa/setuptools_scm
 use_scm = {"write_to": "survos2/_version.py"}
 
 base_path = os.path.abspath(os.path.dirname(__file__))
-
-
 
 
 # Add your dependencies in requirements.txt
@@ -25,17 +24,16 @@ with open(filename) as f:
             requirements.append(stripped)
 
 
-
 if __name__ == "__main__":
     setup(
-        #name="SuRVoS2",
+        # name="SuRVoS2",
         version="0.0.1",
         # author='DLS',
         # author_email='',
         # license='CC-BY-NC-4.0',
         # url='',
         description="Volumetric Image Segmentation",
-        #packages=find_packages(),
+        # packages=find_packages(),
         python_requires=">=3.8",
         install_requires=requirements,
         use_scm_version=use_scm,
@@ -48,10 +46,11 @@ if __name__ == "__main__":
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Operating System :: OS Independent",
-            "Framework :: snapari"
+            "Framework :: snapari",
         ],
         entry_points={
             "napari.plugin": [
                 "SuRVoS2 = survos2",
             ],
-        })
+        },
+    )

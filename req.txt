@@ -74,4 +74,5 @@ tqdm
 traitlets
 vispy
 wget
+xgboost
 

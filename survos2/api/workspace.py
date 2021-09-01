@@ -7,19 +7,17 @@ from loguru import logger
 from survos2.api.types import Int, IntOrNone, String, IntList, DataURI
 from survos2.api.utils import APIException
 from survos2.config import Config
-
-# from survos2.utils import get_logger
 from survos2.io import dataset_from_uri
 from survos2.model import Dataset, Workspace
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
+from survos2.frontend.main import roi_ws
 
 ### Workspace
 
 
 @hug.get()
 def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name: String):
-    from survos2.frontend.main import roi_ws
 
     # get raw from current workspace
     src = DataModel.g.dataset_uri(feature_id, group="features")
@@ -48,7 +46,7 @@ def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name: String):
     roi_ws(src_dataset, roi_name)
     src_ws = get(current_workspace_name)
     target_ws = get(roi_name)
-    src_ws.replicate_workspace(target_ws.path)
+    # src_ws.replicate_workspace(target_ws.path)
 
     return roi_name
 
@@ -57,6 +55,15 @@ def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name: String):
 def set_workspace(workspace: String):
     logger.debug(f"Setting workspace to {workspace}")
     DataModel.g.current_workspace = workspace
+
+
+
+
+@hug.get()
+def set_workspace_shape(shape: IntList):
+    logger.debug(f"Setting workspace shape to {shape}")
+    DataModel.g.current_workspace_shape = shape
+    return DataModel.g.current_workspace_shape
 
 
 @hug.get()

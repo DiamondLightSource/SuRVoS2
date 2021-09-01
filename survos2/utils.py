@@ -22,14 +22,15 @@ logger.opt(colors=True)
 
 
 def encode_numpy(ndarray):
+    ndarray = ndarray.copy(order='C')
     dtype = np.dtype(ndarray.dtype).name
-    data = base64.b64encode(ndarray).decode()
+    data = base64.b64encode(ndarray)  #.decode()
     return dict(data=data, dtype=dtype, shape=ndarray.shape)
 
 
 def decode_numpy(dictarray):
     data = base64.b64decode(dictarray.pop("data"))
-    data = np.fromstring(data, dtype=dictarray["dtype"])
+    data = np.frombuffer(data, dtype=dictarray["dtype"])
     data.shape = dictarray["shape"]
     return data
 

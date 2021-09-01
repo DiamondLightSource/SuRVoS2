@@ -21,7 +21,6 @@ from paramiko.ssh_exception import AuthenticationException
 import socket
 import h5py as h5
 
-# import pyqtgraph.parametertree.parameterTypes as pTypes
 import yaml
 from skimage import io
 import mrcfile
@@ -52,12 +51,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-# from pyqtgraph.parametertree import (
-#     Parameter,
-#     ParameterItem,
-#     ParameterTree,
-#     registerParameterType,
-# )
+
 from survos2.frontend.main import init_ws
 from survos2.frontend.utils import ComboDialog, FileWidget, MplCanvas
 from survos2.model.workspace import WorkspaceException
@@ -828,6 +822,9 @@ class ServerPlugin(Plugin):
         self.run_button = QPushButton("Start Server")
         self.stop_button = QPushButton("Stop Server")
 
+        self.existing_button = QPushButton("Use Existing Server")
+
+
         advanced_button = QRadioButton("Advanced")
 
         run_fields = QGroupBox("Run SuRVoS:")
@@ -850,12 +847,13 @@ class ServerPlugin(Plugin):
         run_layout.addWidget(self.adv_run_fields, 2, 1)
         run_layout.addWidget(self.run_button, 3, 0, 1, 3)
         run_layout.addWidget(self.stop_button, 4, 0, 1, 3)
-
+        run_layout.addWidget(self.existing_button, 5, 0, 1, 3)
         run_fields.setLayout(run_layout)
 
         advanced_button.toggled.connect(self.toggle_advanced)
         self.run_button.clicked.connect(self.run_clicked)
         self.stop_button.clicked.connect(self.stop_clicked)
+        self.existing_button.clicked.connect(self.existing_clicked)
 
         return run_fields
 
@@ -866,18 +864,20 @@ class ServerPlugin(Plugin):
             user = ""
         return user
 
+
+    def refresh_chroot(self):
+        workspaces = os.listdir(DataModel.g.CHROOT)
+        self.workspaces_list.clear()
+        for s in workspaces:
+            self.workspaces_list.addItem(key=s)
+
     @pyqtSlot()
     def set_chroot(self):
         CHROOT = self.given_chroot_linedt.text()
         Config.update({"model": {"chroot": CHROOT}})
-
         logger.debug(f"Setting CHROOT to {CHROOT}")
         DataModel.g.CHROOT = CHROOT
-
-        workspaces = os.listdir(CHROOT)
-        self.workspaces_list.clear()
-        for s in workspaces:
-            self.workspaces_list.addItem(key=s)
+        self.refresh_chroot()
 
     @pyqtSlot()
     def launch_data_loader(self):
@@ -1152,6 +1152,26 @@ class ServerPlugin(Plugin):
             cfg.ppw.clientEvent.emit(
                 {"source": "panel_gui", "data": "refresh", "value": None}
             )
+            #cfg.ppw.clientEvent.emit({'data' : 'view_feature', 'feature_id' : '001_raw'})
+
+    @pyqtSlot()
+    def existing_clicked(self):
+        ssh_ip = self.server_ip_linedt.text()
+        remote_ip_port = ssh_ip + ":" + self.server_port_linedt.text()
+        logger.info(f"setting remote: {remote_ip_port}")
+        resp = Launcher.g.set_remote(remote_ip_port)
+        logger.info(f"Response from server to setting remote: {resp}")
+
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "server_tab",
+                "data": "set_workspace",
+                "workspace": self.ws_name_linedt_2.text(),
+            }
+        )
+        cfg.ppw.clientEvent.emit(
+            {"source": "panel_gui", "data": "refresh", "value": None}
+        )
 
     def start_client(self):
         if not self.ssh_error:

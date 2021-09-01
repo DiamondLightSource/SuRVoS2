@@ -22,7 +22,7 @@ mako
 more-itertools
 morphsnakes
 mrcfile
-napari==0.4.7
+napari
 napari-plugin-engine
 napari-svg
 nibabel
@@ -36,6 +36,7 @@ pluggy
 prompt-toolkit
 ptyprocess
 py
+pyqtgraph
 pydantic
 pygments
 pyopengl
@@ -44,6 +45,7 @@ python-deprecated
 pytools
 pyzmq
 qtconsole
+qtawesome
 simpleitk
 snowballstemmer
 sphinx

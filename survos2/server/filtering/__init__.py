@@ -26,3 +26,5 @@ from .blob import (
     hessian_eigvals,
     hessian_eigvals_image,
 )
+
+from .wavelet import wavelet

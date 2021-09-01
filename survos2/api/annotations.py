@@ -13,6 +13,7 @@ from survos2.improc import map_blocks
 from survos2.io import dataset_from_uri
 from survos2.utils import encode_numpy
 from survos2.model import DataModel
+from survos2.improc.utils import DatasetManager
 
 __level_fill__ = 0
 __level_dtype__ = "uint32"
@@ -25,6 +26,28 @@ CHUNK_SIZE = Config["computing.chunk_size_sparse"]
 def to_label(idx=0, name="Label", color="#000000", visible=True, **kwargs):
     return dict(idx=idx, name=name, color=color, visible=visible)
 
+@hug.post()
+def upload(body, request, response):
+    print(f"Request: {request}")
+    print(f"Response: {response}")
+    
+    encoded_array = body['file']
+    
+    array_shape = body['shape']
+    anno_id = body['name']
+    print(f"shape {array_shape}")
+    level_arr = np.frombuffer(encoded_array, dtype="uint32")
+    
+    from ast import literal_eval 
+    level_arr.shape = literal_eval(array_shape)
+    print(f"Uploaded feature of shape {level_arr.shape}")
+
+    dst = DataModel.g.dataset_uri(anno_id, group="annotations")
+    print(dst)
+    with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
+        DM.out[:] = level_arr
+            
+    
 
 @hug.get()
 def get_volume(src: DataURI):
@@ -113,6 +136,12 @@ def get_level(workspace: String, level: String, full: SmartBoolean = False):
         return ws.get_dataset(workspace, level, group=__group_pattern__)
     return ws.get_dataset(workspace, level)
 
+@hug.get()
+@hug.local()
+def get_single_level(workspace: String, level: String):
+    ds = ws.get_dataset(workspace, level, group=__group_pattern__)
+    return dataset_repr(ds)
+
 
 @hug.get()
 @hug.local()
@@ -120,6 +149,7 @@ def get_levels(workspace: String, full: SmartBoolean = False):
     datasets = ws.existing_datasets(workspace, group=__group_pattern__)
     datasets = [dataset_repr(v) for k, v in datasets.items()]
 
+    # TODO: unreached
     if full:
         for ds in datasets:
             ds["id"] = "{}/{}".format(__group_pattern__, ds["id"])
@@ -224,6 +254,7 @@ def annotate_voxels(
     full: SmartBoolean,
     parent_level: String,
     parent_label_idx: Int,
+    viewer_order: tuple,
 ):
     from survos2.api.annotate import annotate_voxels
 
@@ -236,17 +267,26 @@ def annotate_voxels(
             {"level_id": parent_level}, retrieval_mode="volume"
         )
         parent_arr = parent_arr & 15
-        print(parent_annotations_dataset)
-        print(parent_arr)
         parent_mask = parent_arr == parent_label_idx
-        print(parent_mask)
     else:
         parent_arr = None
         parent_mask = None
 
+    logger.info(f"slice_idx {slice_idx} Viewer order: {viewer_order}")
     annotate_voxels(
-        ds, slice_idx=slice_idx, yy=yy, xx=xx, label=label, parent_mask=parent_mask
+        ds,
+        slice_idx=slice_idx,
+        yy=yy,
+        xx=xx,
+        label=label,
+        parent_mask=parent_mask,
+        viewer_order=viewer_order,
     )
+
+    dst = DataModel.g.dataset_uri(level, group="annotations")
+    modified_ds = dataset_from_uri(dst, mode="r")
+    modified = [1]
+    modified_ds.set_attr("modified", modified)
 
 
 @hug.get()
@@ -260,6 +300,7 @@ def annotate_regions(
     parent_level: String,
     parent_label_idx: Int,
     bb: IntList,
+    viewer_order: tuple,
 ):
     from survos2.api.annotate import annotate_regions
 
@@ -275,7 +316,6 @@ def annotate_regions(
         parent_arr = parent_arr & 15
         # print(f"Using parent dataset for masking {parent_annotations_dataset}")
         parent_mask = parent_arr == parent_label_idx
-        # print(parent_mask)
     else:
         # print("Not masking using parent level")
         parent_arr = None
@@ -283,15 +323,19 @@ def annotate_regions(
 
     logger.debug(f"BB in annotate_regions {bb}")
     anno = annotate_regions(
-        ds, region, r=r, label=label, parent_mask=parent_mask, bb=bb
+        ds,
+        region,
+        r=r,
+        label=label,
+        parent_mask=parent_mask,
+        bb=bb,
+        viewer_order=viewer_order,
     )
 
     def pass_through(x):
         return x
 
-    print(anno.shape)
-    dst = src = DataModel.g.dataset_uri(level, group="annotations")
-
+    dst = DataModel.g.dataset_uri(level, group="annotations")
     map_blocks(pass_through, anno, out=dst, normalize=False)
     modified_ds = dataset_from_uri(dst, mode="r")
     modified = [1]

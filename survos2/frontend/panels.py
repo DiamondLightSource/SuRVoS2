@@ -51,14 +51,12 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         from survos2.config import Config
 
-        CHROOT = Config["model.chroot"]
-        workspaces = os.listdir(CHROOT)
-
+        workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list = ComboBox()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
         workspaces_widget = HWidgets(
-            "Workspaces:", self.workspaces_list, Spacing(35), stretch=0
+            "Switch Workspaces:", self.workspaces_list, Spacing(35), stretch=0
         )
         self.workspaces_list.activated[str].connect(self.workspaces_selected)
 
@@ -87,19 +85,17 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         vbox.addLayout(hbox_layout2)
         vbox.addLayout(hbox_layout3)
 
-        # self.roi_start = LineEdit3D(default=0, parse=int)
-        # self.roi_end = LineEdit3D(default=0, parse=int)
-        # button_setroi= QPushButton("Set ROI", self)
-        # button_setroi.clicked.connect(self.button_setroi_clicked)
-        # self.roi_start_row = HWidgets("ROI Start:", self.roi_start)
-        # self.roi_end_row = HWidgets("Roi End: ", self.roi_end)
-
-        # self.roi_layout = QtWidgets.QVBoxLayout()
-        # self.roi_layout.addWidget(self.roi_start_row)
-        # self.roi_layout.addWidget(self.roi_end_row)
-        # self.roi_layout.addWidget(button_setroi)
-
-        # vbox.addLayout(self.roi_layout)
+        self.roi_start = LineEdit3D(default=0, parse=int)
+        self.roi_end = LineEdit3D(default=0, parse=int)
+        button_setroi = QPushButton("Set ROI", self)
+        button_setroi.clicked.connect(self.button_setroi_clicked)
+        self.roi_start_row = HWidgets("ROI Start:", self.roi_start)
+        self.roi_end_row = HWidgets("Roi End: ", self.roi_end)
+        self.roi_layout = QtWidgets.QVBoxLayout()
+        self.roi_layout.addWidget(self.roi_start_row)
+        self.roi_layout.addWidget(self.roi_end_row)
+        self.roi_layout.addWidget(button_setroi)
+        vbox.addLayout(self.roi_layout)
 
     def load_workflow(self, path):
         self.workflow_fullname = path
@@ -110,16 +106,17 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             {"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()}
         )
 
-    def workspaces_selected(self):
-        selected_workspace = self.workspaces_list.value()
-        from survos2.config import Config
-
-        CHROOT = DataModel.g.CHROOT
-        workspaces = os.listdir(CHROOT)
-
+    def refresh_workspaces(self):
+        workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list.clear()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
+        
+
+    def workspaces_selected(self):
+        selected_workspace = self.workspaces_list.value()
+        from survos2.config import Config
+        self.refresh_workspaces()
         cfg.ppw.clientEvent.emit(
             {
                 "source": "panel_gui",
@@ -148,11 +145,16 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             roi_end[1],
             roi_end[2],
         ]
+        self.refresh_workspaces()
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "goto_roi", "roi": roi}
         )
 
     def button_refresh_clicked(self):
+        self.refresh_workspaces()
+        cfg.ppw.clientEvent.emit(
+            {"source": "panel_gui", "data": "empty_viewer", "value": None}
+        )
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "refresh", "value": None}
         )
