@@ -64,5 +64,6 @@ vispy
 wcwidth
 wget
 wrapt
+xgboost
 zipp
 
