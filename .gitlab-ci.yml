@@ -14,10 +14,11 @@ windows-build:
   before_script:
     - C:\ProgramData\Miniconda3\shell\condabin\conda-hook.ps1
   script:
-    - "conda env create -f survos2_clean_environment_windows_conda.yml -p $WINDOWS_CONDA_PATH"
+    - "conda create -y -p $WINDOWS_CONDA_PATH python=3"
     - "conda activate $WINDOWS_CONDA_PATH"
-    - pip install -r survos2_clean_environment_windows_pip.txt
+    - pip install --no-cache-dir -r req.txt
     - python .\survos2\improc\setup.py build_ext --inplace
+    - pip install -e .
     - conda deactivate
   artifacts:
     expire_in: 1 week
@@ -58,10 +59,12 @@ linux-build:
   script:
     - "module load cuda/10.1"
     - "mkdir -p $LINUX_CONDA_PATH"
-    - "conda env create -f survos2_clean_environment_linux.yml -p $LINUX_CONDA_PATH"
-    - conda activate $LINUX_CONDA_PATH
-    - bash make_script.sh
-    - conda deactivate
+    - "conda create -p $LINUX_CONDA_PATH python=3"
+    - "conda activate $LINUX_CONDA_PATH"
+    - "pip install --no-cache-dir -r req.txt"
+    - "python survos2/improc/setup.py build_ext --inplace"
+    - "pip install -e ."
+    - "conda deactivate"
   artifacts:
     expire_in: 1 week
     name: "$CI_JOB_STAGE-$CI_COMMIT_REF_NAME"
