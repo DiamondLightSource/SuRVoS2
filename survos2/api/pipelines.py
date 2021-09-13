@@ -13,6 +13,7 @@ import numpy as np
 from loguru import logger
 from scipy import ndimage
 from skimage.morphology.selem import octahedron
+from pathlib import Path
 
 from survos2.api import workspace as ws
 from survos2.api.types import (
@@ -407,6 +408,54 @@ def superregion_segment(
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = conf_map
+
+
+@hug.get()
+@save_metadata
+def train_2d_unet(
+    src: DataURI,
+    dst: DataURI,
+    workspace: String,
+    anno_id: DataURI,
+    feature_id: DataURI
+):
+    logger.debug(
+        f"Train_2d_unet using anno {anno_id} and feature {feature_id}"
+    )
+
+    # get anno
+    src = DataModel.g.dataset_uri(anno_id, group="annotations")
+    with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        anno_level = src_dataset[:] & 15
+
+        logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
+
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        logger.debug(f"Adding feature of shape {src_dataset.shape}")
+        feature = src_dataset[:]
+
+    logger.info(
+        f"Train_2d_unet with feature shape {feature.shape} and anno shape {anno_level.shape}"
+    )
+    from survos2.server.unet2d.data_utils import TrainingDataSlicer
+    slicer = TrainingDataSlicer(feature, anno_level, clip_data=True)
+    ws_object = ws.get(workspace)
+    data_out_path = Path(ws_object.path, "unet2d")
+    data_slice_path = data_out_path / "data"
+    anno_slice_path = data_out_path / "seg"
+    logger.info(f"Making output folders for slices in {data_out_path}")
+    data_slice_path.mkdir(exist_ok=True, parents=True)
+    anno_slice_path.mkdir(exist_ok=True, parents=True)
+    slicer.output_data_slices(data_slice_path, "data")
+    slicer.output_label_slices(anno_slice_path, "seg")
+
+
+    def pass_through(x):
+        return x
+
+    #map_blocks(pass_through, segmentation, out=dst, normalize=False)
 
 
 @hug.get()

@@ -376,6 +376,10 @@ class PipelineCard(Card):
             # self._add_objects_source()
             self._add_feature_source()
             self._add_annotations_source()
+        
+        elif self.pipeline_type == "train_2d_unet":
+            self._add_annotations_source()
+            self._add_feature_source()
 
         else:
             logger.debug(f"Unsupported pipeline type {self.pipeline_type}.")
@@ -843,6 +847,14 @@ class PipelineCard(Card):
         # all_params["object_id"] = str(self.objects_source.value())
         return all_params
 
+    def setup_params_train_2d_unet(self, dst):
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        all_params = dict(src=src, dst=dst, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_id"] = str(self.feature_source.value())
+        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
+        return all_params
+
     def compute_pipeline(self):
         dst = DataModel.g.dataset_uri(self.pipeline_id, group="pipelines")
         
@@ -862,6 +874,10 @@ class PipelineCard(Card):
                     all_params = self.setup_params_label_postprocess(dst)
                 elif self.pipeline_type == "cleaning":
                     all_params = self.setup_params_cleaning(dst)
+                elif self.pipeline_type == "train_2d_unet":
+                	all_params = self.setup_params_train_2d_unet(dst)
+            	else:
+                	logger.warn(f"No action exists for pipeline: {self.pipeline_type}")
 
                 all_params.update({k: v.value() for k, v in self.widgets.items()})
 
