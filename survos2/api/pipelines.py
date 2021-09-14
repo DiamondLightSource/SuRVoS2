@@ -4,6 +4,7 @@ import ntpath
 import os
 from typing import List
 from dataclasses import dataclass
+from datetime import datetime
 
 
 import dask.array as da
@@ -428,9 +429,10 @@ def train_2d_unet(
     with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         anno_level = src_dataset[:] & 15
-
-        logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
-
+    logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
+    
+    src = DataModel.g.dataset_uri(feature_id, group="features")
+    logger.debug(f"Getting features {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         logger.debug(f"Adding feature of shape {src_dataset.shape}")
@@ -440,6 +442,7 @@ def train_2d_unet(
         f"Train_2d_unet with feature shape {feature.shape} and anno shape {anno_level.shape}"
     )
     from survos2.server.unet2d.data_utils import TrainingDataSlicer
+    from survos2.server.unet2d.unet2d import Unet2dTrainer
     slicer = TrainingDataSlicer(feature, anno_level, clip_data=True)
     ws_object = ws.get(workspace)
     data_out_path = Path(ws_object.path, "unet2d")
@@ -450,7 +453,19 @@ def train_2d_unet(
     anno_slice_path.mkdir(exist_ok=True, parents=True)
     slicer.output_data_slices(data_slice_path, "data")
     slicer.output_label_slices(anno_slice_path, "seg")
-
+    trainer = Unet2dTrainer(data_slice_path, anno_slice_path, ['brain', 'not brain'])
+    trainer.train_model()
+    # Save the model
+    now = datetime.now()
+    dt_string = now.strftime("%d%m%Y_%H_%M_%S")
+    model_fn = f"{dt_string}_trained_2dUnet_model"
+    model_out = Path(data_out_path, model_fn)
+    trainer.save_model_weights(model_out)
+    # Save a figure showing the predictions
+    trainer.output_prediction_figure(model_out)
+    # Clean up all the saved slices
+    slicer.clean_up_slices()
+    #segmentation = trainer.return_fast_prediction_volume(slicer.data_vol)
 
     def pass_through(x):
         return x

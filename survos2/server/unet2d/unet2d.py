@@ -2,7 +2,7 @@
 """Classes for 2d U-net training and prediction.
 """
 import json
-import logging
+from loguru import logger
 import os
 import sys
 import warnings
@@ -11,18 +11,18 @@ from pathlib import Path
 from zipfile import ZipFile
 
 import numpy as np
-from pytorch3dunet.unet3d.losses import GeneralizedDiceLoss
+#from pytorch3dunet.unet3d.losses import GeneralizedDiceLoss
 import torch
 import torch.nn.functional as F
 from fastai.callbacks import CSVLogger, SaveModelCallback
 from fastai.utils.mem import gpu_mem_get_free_no_cache
 from fastai.vision import (SegmentationItemList, dice, get_transforms,
                            imagenet_stats, lr_find, models, open_image,
-                           unet_learner, crop_pad)
+                           unet_learner, crop_pad, Image, pil2tensor)
 import matplotlib as mpl
 mpl.use('Agg')
 from matplotlib import pyplot as plt
-from skimage import exposure, img_as_ubyte, io
+from skimage import exposure, img_as_ubyte, io, img_as_float
 from tqdm import tqdm
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -41,24 +41,24 @@ class Unet2dTrainer:
         weight_decay (float): Value of the weight decay regularisation term to use.
     """
 
-    def __init__(self, data_im_out_dir, seg_im_out_dir, codes, settings):
+    def __init__(self, data_im_out_dir, seg_im_out_dir, codes, use_gdl=False):
         self.data_dir = data_im_out_dir
         self.label_dir = seg_im_out_dir
         self.codes = codes
         self.multilabel = len(codes) > 2
-        self.image_size = settings.image_size
+        self.image_size = 256
         # Params for learning rate finder
         self.lr_find_lr_diff = 15
         self.lr_find_loss_threshold = 0.05
         self.lr_find_adjust_value = 1
         self.gdl = None
-        if settings.use_gdl:
-            self.gdl = GeneralizedDiceLoss(sigmoid_normalization=False)
+        # if use_gdl:
+        #     self.gdl = GeneralizedDiceLoss(sigmoid_normalization=False)
         # Params for model training
-        self.weight_decay = float(settings.weight_decay)
-        self.num_cyc_frozen = settings.num_cyc_frozen
-        self.num_cyc_unfrozen = settings.num_cyc_unfrozen
-        self.pct_lr_inc = settings.pct_lr_inc
+        self.weight_decay = float(1e-2)
+        self.num_cyc_frozen = 3
+        self.num_cyc_unfrozen = 0
+        self.pct_lr_inc = 0.3
         # Set up model ready for training
         self.batch_size = self.get_batchsize()
         self.create_training_dataset()
@@ -72,27 +72,27 @@ class Unet2dTrainer:
         """
         
         if self.multilabel:
-            logging.info("Setting up for multilabel segmentation since there are "
+            logger.info("Setting up for multilabel segmentation since there are "
                          f"{len(self.codes)} classes")
             self.metrics = self.accuracy
             self.monitor = 'accuracy'
             self.loss_func = None
         else:
-            logging.info("Setting up for binary segmentation since there are "
+            logger.info("Setting up for binary segmentation since there are "
                          f"{len(self.codes)} classes")
             self.metrics = [partial(dice, iou=True)]
             self.monitor = 'dice'
             self.loss_func = self.bce_loss
         # If Generalised dice loss is selected, overwrite loss function
         if self.gdl:
-            logging.info("Using generalised dice loss.")
+            logger.info("Using generalised dice loss.")
             self.loss_func = self.generalised_dice_loss
            
     def create_training_dataset(self):
         """Creates a fastai segmentation dataset and stores it as an instance
         attribute.
         """
-        logging.info("Creating training dataset from saved images.")
+        logger.info("Creating training dataset from saved images.")
         src = (SegmentationItemList.from_folder(self.data_dir)
                .split_by_rand_pct()
                .label_from_func(self.get_label_name, classes=self.codes))
@@ -104,7 +104,7 @@ class Unet2dTrainer:
         """Creates a deep learning model linked to the dataset and stores it as
         an instance attribute.
         """
-        logging.info("Creating 2d U-net model for training.")
+        logger.info("Creating 2d U-net model for training.")
         self.model = unet_learner(self.data, models.resnet34, metrics=self.metrics,
                                   wd=self.weight_decay, loss_func=self.loss_func,
                                   callback_fns=[partial(CSVLogger,
@@ -119,17 +119,17 @@ class Unet2dTrainer:
         with parameters frozen or unfrozen and a learning rate that is determined automatically.
         """
         if self.num_cyc_frozen > 0:
-            logging.info("Finding learning rate for frozen Unet model.")
+            logger.info("Finding learning rate for frozen Unet model.")
             lr_to_use = self.find_appropriate_lr()
-            logging.info(
+            logger.info(
                 f"Training frozen Unet for {self.num_cyc_frozen} cycles with learning rate of {lr_to_use}.")
             self.model.fit_one_cycle(self.num_cyc_frozen, slice(
                 lr_to_use/50, lr_to_use), pct_start=self.pct_lr_inc)
         if self.num_cyc_unfrozen > 0:
             self.model.unfreeze()
-            logging.info("Finding learning rate for unfrozen Unet model.")
+            logger.info("Finding learning rate for unfrozen Unet model.")
             lr_to_use = self.find_appropriate_lr()
-            logging.info(
+            logger.info(
                 f"Training unfrozen Unet for {self.num_cyc_unfrozen} cycles with learning rate of {lr_to_use}.")
             self.model.fit_one_cycle(self.num_cyc_unfrozen, slice(
                 lr_to_use/50, lr_to_use), pct_start=self.pct_lr_inc)
@@ -144,7 +144,7 @@ class Unet2dTrainer:
         self.model.save(model_filepath)
         json_path = model_filepath.parent/f"{model_filepath.name}_codes.json"
         zip_path = model_filepath.with_suffix('.zip')
-        logging.info(
+        logger.info(
             f"Zipping the model weights to: {zip_path}")
         with open(json_path, 'w') as jf:
             json.dump(self.codes, jf)
@@ -154,6 +154,31 @@ class Unet2dTrainer:
                      arcname=model_filepath.with_suffix('.pth').name)
         os.remove(json_path)
         os.remove(model_filepath.with_suffix('.pth'))
+
+    def predict_single_slice(self, data):
+        """Takes in a 2d data array and returns the max and argmax of the predicted probabilities.
+
+        Args:
+            data (numpy.array): The 2d data array to be fed into the U-net.
+
+        Returns:
+            torch.tensor: A 3d torch tensor containing a 2d array with max probabilities
+            and a 2d array with argmax indices.
+        """
+        data = img_as_float(data)
+        data = Image(pil2tensor(data, dtype=np.float32))
+        flags = self.fix_odd_sides(data)
+        prediction = self.model.predict(data)[2]
+        return self.revert_image_dimensions(flags, torch.max(prediction, dim=0))
+
+    def revert_image_dimensions(self, flags, prediction):
+        if 'y' in flags:
+            ymax = list(prediction.shape)[1]
+            prediction = prediction[:, :ymax-1, :]
+        if 'x' in flags:
+            xmax = list(prediction.shape)[2]
+            prediction = prediction[:, :, :xmax-1]
+        return prediction
 
     def output_prediction_figure(self, model_path):
         """Saves a figure containing image slice data for three random images
@@ -205,8 +230,17 @@ class Unet2dTrainer:
                 col3.title.set_text('Prediction')
         plt.suptitle(f"Predictions for {model_path.name}", fontsize=16)
         plt_out_pth = model_path.parent/f'{model_path.stem}_prediction_image.png'
-        logging.info(f"Saving example image predictions to {plt_out_pth}")
+        logger.info(f"Saving example image predictions to {plt_out_pth}")
         plt.savefig(plt_out_pth, dpi=300)
+
+    def return_fast_prediction_volume(self, data_volume):
+        """Predicts slices in a volume and returns segmented volume.
+        """
+        vol_out = np.zeros_like(data_volume)
+        for i, z_slice in enumerate(data_volume):
+            vol_out[i] = self.predict_single_slice(z_slice)[1]
+        return vol_out
+
 
     def find_appropriate_lr(self):
         """Function taken from https://forums.fast.ai/t/automated-learning-rate-suggester/44199
@@ -249,7 +283,7 @@ class Unet2dTrainer:
             batch_size = 8
         else:
             batch_size = 4
-        logging.info(f"Using batch size of {batch_size}, have {gpu_free_mem} MB" \
+        logger.info(f"Using batch size of {batch_size}, have {gpu_free_mem} MB" \
             " of GPU RAM free.")
         return batch_size
 
@@ -331,7 +365,7 @@ class Unet2dPredictor:
         self.root_dir = root_dir
 
     def create_dummy_files(self):
-        logging.info(f"Creating dummy images in {self.dummy_dir}.")
+        logger.info(f"Creating dummy images in {self.dummy_dir}.")
         os.makedirs(self.dummy_dir, exist_ok=True)
         for fn in self.dummy_fns:
             dummy_im = np.random.randint(256, size=(256, 256))
@@ -341,7 +375,7 @@ class Unet2dPredictor:
         """Creates a fastai segmentation dataset and stores it as an instance
         attribute.
         """
-        logging.info("Creating training dataset from dummy images.")
+        logger.info("Creating training dataset from dummy images.")
         src = (SegmentationItemList.from_folder(self.dummy_dir)
                 .split_by_rand_pct()
                .label_from_func(self.get_label_name, classes=self.codes))
@@ -366,7 +400,7 @@ class Unet2dPredictor:
         an instance attribute.
         """
         weights_fn = weights_fn.resolve()
-        logging.info(f"Unzipping the model weights and label classes from {weights_fn}")
+        logger.info(f"Unzipping the model weights and label classes from {weights_fn}")
         output_dir = "extracted_model_files"
         os.makedirs(output_dir, exist_ok=True)
         with ZipFile(weights_fn, mode='r') as zf:
@@ -378,10 +412,10 @@ class Unet2dPredictor:
         # Have to create dummy files and datset before loading in model weights 
         self.create_dummy_files()
         self.create_dummy_dataset()
-        logging.info("Creating 2d U-net model for prediction.")
+        logger.info("Creating 2d U-net model for prediction.")
         self.model = unet_learner(
             self.data, models.resnet34, model_dir=out_path)
-        logging.info("Loading in the saved weights.")
+        logger.info("Loading in the saved weights.")
         self.model.load(weights_fn.stem)
         # Remove the restriction on the model prediction size
         self.model.data.single_ds.tfmargs['size'] = None
