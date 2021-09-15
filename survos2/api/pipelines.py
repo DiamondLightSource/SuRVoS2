@@ -465,12 +465,12 @@ def train_2d_unet(
     trainer.output_prediction_figure(model_out)
     # Clean up all the saved slices
     slicer.clean_up_slices()
-    #segmentation = trainer.return_fast_prediction_volume(slicer.data_vol)
-
+    segmentation = trainer.return_fast_prediction_volume(slicer.data_vol)
+    segmentation += np.ones_like(segmentation)
     def pass_through(x):
         return x
 
-    #map_blocks(pass_through, segmentation, out=dst, normalize=False)
+    map_blocks(pass_through, segmentation, out=dst, normalize=False)
 
 
 @hug.get()

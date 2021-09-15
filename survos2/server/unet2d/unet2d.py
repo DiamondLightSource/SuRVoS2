@@ -167,18 +167,9 @@ class Unet2dTrainer:
         """
         data = img_as_float(data)
         data = Image(pil2tensor(data, dtype=np.float32))
-        flags = self.fix_odd_sides(data)
+        self.fix_odd_sides(data)
         prediction = self.model.predict(data)[2]
-        return self.revert_image_dimensions(flags, torch.max(prediction, dim=0))
-
-    def revert_image_dimensions(self, flags, prediction):
-        if 'y' in flags:
-            ymax = list(prediction.shape)[1]
-            prediction = prediction[:, :ymax-1, :]
-        if 'x' in flags:
-            xmax = list(prediction.shape)[2]
-            prediction = prediction[:, :, :xmax-1]
-        return prediction
+        return torch.max(prediction, dim=0)
 
     def output_prediction_figure(self, model_path):
         """Saves a figure containing image slice data for three random images
@@ -236,7 +227,14 @@ class Unet2dTrainer:
     def return_fast_prediction_volume(self, data_volume):
         """Predicts slices in a volume and returns segmented volume.
         """
-        vol_out = np.zeros_like(data_volume)
+        logger.info("Predicting output for training volume.")
+        zdim, ydim, xdim = data_volume.shape
+        if ydim%2 != 0:
+            ydim += 1
+        if xdim%2 != 0:
+            xdim += 1
+        
+        vol_out = np.zeros((zdim, ydim, xdim))
         for i, z_slice in enumerate(data_volume):
             vol_out[i] = self.predict_single_slice(z_slice)[1]
         return vol_out
