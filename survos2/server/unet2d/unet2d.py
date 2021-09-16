@@ -56,9 +56,7 @@ class Unet2dTrainer:
         #     self.gdl = GeneralizedDiceLoss(sigmoid_normalization=False)
         # Params for model training
         self.weight_decay = float(1e-2)
-        self.num_cyc_frozen = 3
-        self.num_cyc_unfrozen = 0
-        self.pct_lr_inc = 0.3
+        self.pct_lr_inc = 0.4
         # Set up model ready for training
         self.batch_size = self.get_batchsize()
         self.create_training_dataset()
@@ -114,24 +112,24 @@ class Unet2dTrainer:
                                                 monitor=self.monitor, mode='max',
                                                 name="best_unet_model")])
 
-    def train_model(self):
+    def train_model(self, num_cyc_frozen=10, num_cyc_unfrozen=5):
         """Performs transfer learning training of model for a number of cycles
         with parameters frozen or unfrozen and a learning rate that is determined automatically.
         """
-        if self.num_cyc_frozen > 0:
+        if num_cyc_frozen > 0:
             logger.info("Finding learning rate for frozen Unet model.")
             lr_to_use = self.find_appropriate_lr()
             logger.info(
-                f"Training frozen Unet for {self.num_cyc_frozen} cycles with learning rate of {lr_to_use}.")
-            self.model.fit_one_cycle(self.num_cyc_frozen, slice(
+                f"Training frozen Unet for {num_cyc_frozen} cycles with learning rate of {lr_to_use}.")
+            self.model.fit_one_cycle(num_cyc_frozen, slice(
                 lr_to_use/50, lr_to_use), pct_start=self.pct_lr_inc)
-        if self.num_cyc_unfrozen > 0:
+        if num_cyc_unfrozen > 0:
             self.model.unfreeze()
             logger.info("Finding learning rate for unfrozen Unet model.")
             lr_to_use = self.find_appropriate_lr()
             logger.info(
-                f"Training unfrozen Unet for {self.num_cyc_unfrozen} cycles with learning rate of {lr_to_use}.")
-            self.model.fit_one_cycle(self.num_cyc_unfrozen, slice(
+                f"Training unfrozen Unet for {num_cyc_unfrozen} cycles with learning rate of {lr_to_use}.")
+            self.model.fit_one_cycle(num_cyc_unfrozen, slice(
                 lr_to_use/50, lr_to_use), pct_start=self.pct_lr_inc)
 
     def save_model_weights(self, model_filepath):

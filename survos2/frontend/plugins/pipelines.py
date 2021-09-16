@@ -380,6 +380,7 @@ class PipelineCard(Card):
         elif self.pipeline_type == "train_2d_unet":
             self._add_annotations_source()
             self._add_feature_source()
+            self._add_unet_2d_training_params()
 
         else:
             logger.debug(f"Unsupported pipeline type {self.pipeline_type}.")
@@ -401,6 +402,15 @@ class PipelineCard(Card):
     def _add_patch_params(self):
         self.patch_size = LineEdit3D(default=64, parse=int)
         self.add_row(HWidgets("Patch Size:", self.patch_size, Spacing(35), stretch=1))
+
+    def _add_unet_2d_training_params(self):
+        self.add_row(HWidgets("Training Parameters:", Spacing(35), stretch=1))
+        self.cycles_frozen = LineEdit(default=8, parse=int)
+        self.cycles_unfrozen = LineEdit(default=5, parse=int)
+        self.add_row(HWidgets("No. Cycles Frozen:", self.cycles_frozen,
+                              "No. Cycles Unfrozen", self.cycles_unfrozen,
+                              stretch=1))
+
 
     def _add_workflow_file(self):
         self.filewidget = FileWidget(extensions="*.pt", save=False)
@@ -853,6 +863,8 @@ class PipelineCard(Card):
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
+        all_params["unet_train_params"] = dict(cyc_frozen=self.cycles_frozen.value(),
+                                               cyc_unfrozen=self.cycles_unfrozen.value())
         return all_params
 
     def compute_pipeline(self):

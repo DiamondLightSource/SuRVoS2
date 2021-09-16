@@ -418,7 +418,8 @@ def train_2d_unet(
     dst: DataURI,
     workspace: String,
     anno_id: DataURI,
-    feature_id: DataURI
+    feature_id: DataURI,
+    unet_train_params: dict
 ):
     logger.debug(
         f"Train_2d_unet using anno {anno_id} and feature {feature_id}"
@@ -454,7 +455,9 @@ def train_2d_unet(
     slicer.output_data_slices(data_slice_path, "data")
     slicer.output_label_slices(anno_slice_path, "seg")
     trainer = Unet2dTrainer(data_slice_path, anno_slice_path, ['brain', 'not brain'])
-    trainer.train_model()
+    cyc_frozen = unet_train_params["cyc_frozen"]
+    cyc_unfrozen = unet_train_params["cyc_unfrozen"]
+    trainer.train_model(num_cyc_frozen=cyc_frozen, num_cyc_unfrozen=cyc_unfrozen)
     # Save the model
     now = datetime.now()
     dt_string = now.strftime("%d%m%Y_%H_%M_%S")
