@@ -381,6 +381,10 @@ class PipelineCard(Card):
             self._add_annotations_source()
             self._add_feature_source()
             self._add_unet_2d_training_params()
+        
+        elif self.pipeline_type == "predict_2d_unet":
+            self._add_feature_source()
+            self._add_unet_2d_prediction_params()
 
         else:
             logger.debug(f"Unsupported pipeline type {self.pipeline_type}.")
@@ -410,7 +414,13 @@ class PipelineCard(Card):
         self.add_row(HWidgets("No. Cycles Frozen:", self.cycles_frozen,
                               "No. Cycles Unfrozen", self.cycles_unfrozen,
                               stretch=1))
-
+    
+    def _add_unet_2d_prediction_params(self):
+        self.model_file_line_edit = LineEdit(default="Filepath", parse=str)
+        model_input_btn = PushButton("Select Model", accent=True)
+        model_input_btn.clicked.connect(self.get_model_path)
+        self.add_row(HWidgets(self.model_file_line_edit, model_input_btn, Spacing(35)))
+        self.add_row(HWidgets("Prediction Parameters:", Spacing(35), stretch=1))
 
     def _add_workflow_file(self):
         self.filewidget = FileWidget(extensions="*.pt", save=False)
@@ -663,6 +673,9 @@ class PipelineCard(Card):
                 )
             pbar.update(1)
 
+    def get_model_path(self):
+        logger.info("Button pressed!")
+
     def load_as_float(self):
         logger.debug(f"Loading prediction {self.pipeline_id} as float image.")
 
@@ -865,6 +878,13 @@ class PipelineCard(Card):
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         all_params["unet_train_params"] = dict(cyc_frozen=self.cycles_frozen.value(),
                                                cyc_unfrozen=self.cycles_unfrozen.value())
+        return all_params
+
+    def setup_params_predict_2d_unet(self, dst):
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        all_params = dict(src=src, dst=dst, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_id"] = str(self.feature_source.value())
         return all_params
 
     def compute_pipeline(self):

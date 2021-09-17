@@ -475,6 +475,29 @@ def train_2d_unet(
 
     map_blocks(pass_through, segmentation, out=dst, normalize=False)
 
+@hug.get()
+@save_metadata
+def predict_2d_unet(
+    src: DataURI,
+    dst: DataURI,
+    workspace: String,
+    feature_id: DataURI
+):
+    logger.debug(
+        f"Predict_2d_unet with feature {feature_id}"
+    )
+
+    
+    src = DataModel.g.dataset_uri(feature_id, group="features")
+    logger.debug(f"Getting features {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        logger.debug(f"Adding feature of shape {src_dataset.shape}")
+        feature = src_dataset[:]
+
+    logger.info(
+        f"Predict_2d_unet with feature shape {feature.shape}"
+    )
 
 @hug.get()
 def create(workspace: String, pipeline_type: String):
