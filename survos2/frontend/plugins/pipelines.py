@@ -675,6 +675,9 @@ class PipelineCard(Card):
 
     def get_model_path(self):
         logger.info("Button pressed!")
+        self.model_path, _ = QtWidgets.QFileDialog.getOpenFileName(self,
+        ("Select model"), "/home/vvw07985", ("Model files (*.zip)"))
+        self.model_file_line_edit.setValue(self.model_path)
 
     def load_as_float(self):
         logger.debug(f"Loading prediction {self.pipeline_id} as float image.")
@@ -885,6 +888,7 @@ class PipelineCard(Card):
         all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
+        all_params["model_path"] = str(self.model_file_line_edit.value())
         return all_params
 
     def compute_pipeline(self):

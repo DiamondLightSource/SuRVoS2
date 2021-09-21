@@ -397,20 +397,19 @@ class Unet2dPredictor:
         """
         weights_fn = weights_fn.resolve()
         logger.info(f"Unzipping the model weights and label classes from {weights_fn}")
-        output_dir = "extracted_model_files"
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = self.root_dir/"extracted_model_files"
+        output_dir.mkdir(exist_ok=True)
         with ZipFile(weights_fn, mode='r') as zf:
             zf.extractall(output_dir)
-        out_path = self.root_dir/output_dir
         # Load in the label classes from the json file
-        with open(out_path/f"{weights_fn.stem}_codes.json") as jf:
+        with open(output_dir/f"{weights_fn.stem}_codes.json") as jf:
             self.codes = json.load(jf)
         # Have to create dummy files and datset before loading in model weights 
         self.create_dummy_files()
         self.create_dummy_dataset()
         logger.info("Creating 2d U-net model for prediction.")
         self.model = unet_learner(
-            self.data, models.resnet34, model_dir=out_path)
+            self.data, models.resnet34, model_dir=output_dir)
         logger.info("Loading in the saved weights.")
         self.model.load(weights_fn.stem)
         # Remove the restriction on the model prediction size

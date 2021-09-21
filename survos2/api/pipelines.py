@@ -481,13 +481,13 @@ def predict_2d_unet(
     src: DataURI,
     dst: DataURI,
     workspace: String,
-    feature_id: DataURI
+    feature_id: DataURI,
+    model_path: str
 ):
     logger.debug(
         f"Predict_2d_unet with feature {feature_id}"
     )
 
-    
     src = DataModel.g.dataset_uri(feature_id, group="features")
     logger.debug(f"Getting features {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -496,8 +496,15 @@ def predict_2d_unet(
         feature = src_dataset[:]
 
     logger.info(
-        f"Predict_2d_unet with feature shape {feature.shape}"
+        f"Predict_2d_unet with feature shape {feature.shape} using model {model_path}"
     )
+    from survos2.server.unet2d.unet2d import Unet2dPredictor
+    ws_object = ws.get(workspace)
+    root_path = Path(ws_object.path, "unet2d")
+    root_path.mkdir(exist_ok=True, parents=True)
+    predictor = Unet2dPredictor(root_path)
+    predictor.create_model_from_zip(Path(model_path))
+    
 
 @hug.get()
 def create(workspace: String, pipeline_type: String):
