@@ -383,6 +383,7 @@ class PipelineCard(Card):
             self._add_unet_2d_training_params()
         
         elif self.pipeline_type == "predict_2d_unet":
+            self._add_annotations_source()
             self._add_feature_source()
             self._add_unet_2d_prediction_params()
 
@@ -419,8 +420,17 @@ class PipelineCard(Card):
         self.model_file_line_edit = LineEdit(default="Filepath", parse=str)
         model_input_btn = PushButton("Select Model", accent=True)
         model_input_btn.clicked.connect(self.get_model_path)
+        self.radio_group = QtWidgets.QButtonGroup()
+        self.radio_group.setExclusive(True)
+        single_pp_rb = QRadioButton("Single plane")
+        single_pp_rb.setChecked(True)
+        self.radio_group.addButton(single_pp_rb, 1)
+        triple_pp_rb = QRadioButton("Three plane")
+        self.radio_group.addButton(triple_pp_rb, 3)
         self.add_row(HWidgets(self.model_file_line_edit, model_input_btn, Spacing(35)))
         self.add_row(HWidgets("Prediction Parameters:", Spacing(35), stretch=1))
+        self.add_row(HWidgets(single_pp_rb, triple_pp_rb, stretch=1))
+
 
     def _add_workflow_file(self):
         self.filewidget = FileWidget(extensions="*.pt", save=False)
@@ -674,9 +684,9 @@ class PipelineCard(Card):
             pbar.update(1)
 
     def get_model_path(self):
-        logger.info("Button pressed!")
+        workspace_path = os.path.join(DataModel.g.CHROOT, DataModel.g.current_workspace)
         self.model_path, _ = QtWidgets.QFileDialog.getOpenFileName(self,
-        ("Select model"), "/home/vvw07985", ("Model files (*.zip)"))
+        ("Select model"), workspace_path, ("Model files (*.zip)"))
         self.model_file_line_edit.setValue(self.model_path)
 
     def load_as_float(self):
@@ -888,7 +898,9 @@ class PipelineCard(Card):
         all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
+        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         all_params["model_path"] = str(self.model_file_line_edit.value())
+        all_params["no_of_planes"] = self.radio_group.checkedId()
         return all_params
 
     def compute_pipeline(self):

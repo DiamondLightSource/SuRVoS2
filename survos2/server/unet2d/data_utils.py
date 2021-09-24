@@ -10,6 +10,7 @@ import warnings
 from datetime import date
 from itertools import chain, product
 from pathlib import Path
+from enum import Enum
 
 import h5py as h5
 import imageio
@@ -24,6 +25,11 @@ from tqdm import tqdm
 from . import config as cfg
 
 warnings.filterwarnings("ignore", category=UserWarning)
+
+class PredictionQuality(Enum):
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
 
 
 class SettingsData:
@@ -368,15 +374,14 @@ class PredictionDataSlicer(DataSlicerBase):
         2d U-net as an attribute.
     """
 
-    def __init__(self, settings, predictor, data_vol_path):
-        self.data_vol_path = Path(data_vol_path)
-        self.data_vol =  self.get_numpy_from_path(self.data_vol_path,
-        										  internal_path=settings.predict_data_hdf5_path)
-        self.check_data_dims(self.data_vol.shape)
-        super().__init__(settings)
-        self.consensus_vals = map(int, settings.consensus_vals)
+    def __init__(self, predictor, data_vol, clip_data=False, downsample=False,
+                 consensus_vals=[7, 8, 9], del_vols=True):
+        self.data_vol =  data_vol
+        #self.check_data_dims(self.data_vol.shape)
+        super().__init__(clip_data, downsample)
+        self.consensus_vals = map(int, consensus_vals)
         self.predictor = predictor
-        self.delete_vols = settings.del_vols # Whether to clean up predicted vols
+        self.delete_vols = del_vols # Whether to clean up predicted vols
 
     def check_data_dims(self, data_vol_shape):
         """Terminates program if one or more data dimensions is not even.
@@ -388,7 +393,7 @@ class PredictionDataSlicer(DataSlicerBase):
         if any(odd_dims):
             logger.error(f"One or more data dimensions is not even: {data_vol_shape}. "
                             "Cannot currently predict odd-sized shapes, please change dimensions and try again.")
-            sys.exit(1)
+            pass
 
     def setup_folder_stucture(self, root_path):
         """Sets up a folder structure to store the predicted images.
@@ -594,11 +599,13 @@ class PredictionDataSlicer(DataSlicerBase):
 
 class PredictionHDF5DataSlicer(PredictionDataSlicer):
 
-    def __init__(self, settings, predictor, data_vol_path):
+    def __init__(self, predictor, data_vol, clip_data=False,
+                 output_probs=False, quality=PredictionQuality.LOW):
         logger.info(f"Using {self.__class__.__name__}")
-        super().__init__(settings, predictor, data_vol_path)
-        self.output_probs = settings.output_probs
-        self.quality = settings.quality
+        super().__init__(predictor, data_vol, clip_data=clip_data)
+        self.output_probs = output_probs
+        self.quality = quality
+        self.adjusted_data_dims = None
 
     def create_target_hdf5_files(self, directory, shape_tup):
         for axis in ("z", "y", "x"):
@@ -608,18 +615,18 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
                 f['/data'] = f['/labels']
                 f.create_dataset("probabilities", shape_tup, dtype=np.float16)
 
-    def setup_folder_stucture(self, root_path):
+    def setup_folder_stucture(self, root_path, output_prefix):
         """OVERRIDES METHOD IN PARENT CLASS.
         Sets up a folder structure to store the predicted images.
 
         Args:
             root_path (Path): The top level directory for data output.
         """
-        vol_dir = root_path/f'{date.today()}_predicted_volumes'
-        non_rotated = vol_dir/f'{date.today()}_non_rotated_volumes'
-        rot_90_seg = vol_dir/f'{date.today()}_rot_90_volumes'
-        rot_180_seg = vol_dir/f'{date.today()}_rot_180_volumes'
-        rot_270_seg = vol_dir/f'{date.today()}_rot_270_volumes'
+        vol_dir = root_path/f"{output_prefix}_predicted_volumes"
+        non_rotated = vol_dir/"non_rotated_volumes"
+        rot_90_seg = vol_dir/"rot_90_volumes"
+        rot_180_seg = vol_dir/"rot_180_volumes"
+        rot_270_seg = vol_dir/"rot_270_volumes"
 
         self.dir_list = [
             ('non_rotated', non_rotated),
@@ -647,8 +654,52 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
         self.fix_odd_sides(data)
         prediction = self.predictor.model.predict(data)[2]
         return torch.max(prediction, dim=0)
-            
-    def predict_orthog_slices_to_disk(self, data_arr, output_path, k):
+
+    def adjust_data_dims(self, shape_tuple):
+        shape_tuple = list(shape_tuple)
+        for i, dim in enumerate(shape_tuple):
+            if dim%2 != 0:
+                shape_tuple[i] += 1
+        return tuple(shape_tuple)
+
+    def predict_z_slices_to_ram(self, data_arr, z_dim):
+        logger.info("Predicting Z slices:")
+        # Generate axis-index pairs
+        z_ax_idx_pairs = product('z', range(z_dim))
+        for axis, index in tqdm(z_ax_idx_pairs, total=z_dim):
+            prob, label = self.predict_single_slice(
+                self.axis_index_to_slice(data_arr, axis, index))
+            self.prob_container[0, index] = prob
+            self.label_container[0, index] = label
+
+    def predict_y_slices_to_ram(self, data_arr, y_dim):
+        logger.info("Predicting Y slices:")
+        # Generate axis-index pairs
+        y_ax_idx_pairs = product('y', range(y_dim))
+        for axis, index in tqdm(y_ax_idx_pairs, total=y_dim):
+            prob, label = self.predict_single_slice(
+                self.axis_index_to_slice(data_arr, axis, index))
+            self.prob_container[1, :, index] = prob
+            self.label_container[1, :, index] = label
+
+    def predict_x_slices_to_ram(self, data_arr, x_dim):
+        logger.info("Predicting X slices:")
+        # Generate axis-index pairs
+        x_ax_idx_pairs = product('x', range(x_dim))
+        for axis, index in tqdm(x_ax_idx_pairs, total=x_dim):
+            prob, label = self.predict_single_slice(
+                self.axis_index_to_slice(data_arr, axis, index))
+            self.prob_container[1, :, :, index] = prob
+            self.label_container[1, :, :, index] = label
+
+    def create_vols_in_ram(self, shape_tuple):
+        logger.info("Creating empty data volumes in RAM")
+        label_container = np.empty((2, *shape_tuple), dtype=np.uint8)
+        prob_container = np.empty((2, *shape_tuple), dtype=np.float16)
+        return label_container, prob_container
+
+    def predict_orthog_slices_to_disk(self, data_arr, output_path, k,
+                                      output_prefix):
         """OVERRIDES METHOD IN PARENT CLASS.
         Outputs slices from data or ground truth seg volumes sliced in
          all three of the orthogonal planes
@@ -657,73 +708,48 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
         data_array (numpy.array): The 3d data volume to be sliced and predicted.
         output_path (pathlib.Path): A Path to the output directory.
          """
-        shape_tup = data_arr.shape
-        # Axis by axis
-        z_ax_idx_pairs = product('z', range(shape_tup[0]))
-        y_ax_idx_pairs = product('y', range(shape_tup[1]))
-        x_ax_idx_pairs = product('x', range(shape_tup[2]))
+        original_shape_tup = data_arr.shape
+        # Add one to odd-sized data dimensions
+        adj_shape_tup = self.adjust_data_dims(data_arr.shape)
         # Create volumes for label and prob data
-        logger.info("Creating empty data volumes in RAM")
-        label_container = np.empty((2, *shape_tup), dtype=np.uint8)
-        prob_container = np.empty((2, *shape_tup), dtype=np.float16)
-        logger.info("Predicting Z slices:")
-        for axis, index in tqdm(z_ax_idx_pairs, total=shape_tup[0]):
-            prob, label = self.predict_single_slice(
-                self.axis_index_to_slice(data_arr, axis, index))
-            prob_container[0, index] = prob
-            label_container[0, index] = label
+        self.label_container, self.prob_container = self.create_vols_in_ram(adj_shape_tup)
+        self.predict_z_slices_to_ram(data_arr, original_shape_tup[0])
         # Hacky output of first volume
         if k==0:
-            fastz_out_path = output_path.parent.parent/f"{self.data_vol_path.stem}_1_plane_prediction.h5"
+            fastz_out_path = output_path.parent/f"{output_prefix}_1_plane_prediction.h5"
             logger.info(f"Saving single plane prediction to {fastz_out_path}")
             with h5.File(fastz_out_path, 'w') as f:
                     # Upsample segmentation if data has been downsampled
                 if self.downsample:
-                    f['/labels'] = self.upsample_segmentation(label_container[0])
+                    f['/labels'] = self.upsample_segmentation(self.label_container[0])
                 else:
-                    f['/labels'] = label_container[0]
+                    f['/labels'] = self.label_container[0]
                 f['/data'] = f['/labels']
-            if self.quality == 'low':
-                logger.info("Quality set to low. Ending processing.")
-                sys.exit(0)
-        logger.info("Predicting Y slices:")
-        for axis, index in tqdm(y_ax_idx_pairs, total=shape_tup[1]):
-            prob, label = self.predict_single_slice(
-                self.axis_index_to_slice(data_arr, axis, index))
-            prob_container[1, :, index] = prob
-            label_container[1, :, index] = label
+        self.predict_y_slices_to_ram(data_arr, original_shape_tup[1])
         logger.info("Merging Z and Y volumes.")
         # Merge these volumes and replace the volume at index 0 in the container
-        self.merge_vols_in_mem(prob_container, label_container)
-        logger.info("Predicting X slices:")
-        for axis, index in tqdm(x_ax_idx_pairs, total=shape_tup[2]):
-            prob, label = self.predict_single_slice(
-                self.axis_index_to_slice(data_arr, axis, index))
-            prob_container[1, :, :, index] = prob
-            label_container[1, :, :, index]=label
+        self.merge_vols_in_mem(self.prob_container, self.label_container)
+        self.predict_x_slices_to_ram(data_arr, original_shape_tup[2])
         logger.info("Merging max of Z and Y with the X volume.")
         # Merge these volumes and replace the volume at index 0 in the container
-        self.merge_vols_in_mem(prob_container, label_container)
+        self.merge_vols_in_mem(self.prob_container, self.label_container)
         logger.info("Saving combined labels and probabilities to disk.")
         combined_out = output_path/"max_out.h5"
         with h5.File(combined_out, 'w') as f:
-            f['/probabilities'] = prob_container[0]
-            f['/labels'] = label_container[0]
+            f['/probabilities'] = self.prob_container[0]
+            f['/labels'] = self.label_container[0]
             f['/data'] = f['/labels']
         if k == 0:
-            fast3_vol_out_path = output_path.parent.parent/f"{self.data_vol_path.stem}_3_plane_prediction.h5"
+            fast3_vol_out_path = output_path.parent/f"{output_prefix}_3_plane_prediction.h5"
             logger.info(f"Saving 3 plane prediction to {fast3_vol_out_path}")
             with h5.File(fast3_vol_out_path, 'w') as f:
                 # Upsample segmentation if data has been downsampled
                 if self.downsample:
                     f['/labels'] = self.upsample_segmentation(
-                        label_container[0])
+                        self.label_container[0])
                 else:
-                    f['/labels'] = label_container[0]
+                    f['/labels'] = self.label_container[0]
                 f['/data'] = f['/labels']
-            if self.quality == 'medium':
-                logger.info("Quality set to medium. Ending processing.")
-                sys.exit(0)
         return combined_out
 
     def merge_vols_in_mem(self, prob_container, label_container):
@@ -749,17 +775,17 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
             data = np.swapaxes(data, 0, 1)
         return data
 
-    def merge_final_vols(self, file_list):
+    def merge_final_vols(self, file_list, output_prefix):
 
         output_path = file_list[0].parent
         combined_label_out_path = output_path.parent / \
-                f"{self.data_vol_path.stem}_12_plane_prediction.h5"
+                f"{output_prefix}_12_plane_prediction.h5"
         combined_prob_out_path = output_path.parent / \
-            f"{self.data_vol_path.stem}_12_plane_prediction_probs.h5"
+            f"{output_prefix}_12_plane_prediction_probs.h5"
         logger.info("Merging final output data using maximum probabilties:")
         logger.info("Creating empty data volumes in RAM")
-        label_container = np.empty((2, *self.data_vol_shape), dtype=np.uint8)
-        prob_container = np.empty((2, *self.data_vol_shape), dtype=np.float16)
+        label_container = np.empty((2, *self.adjusted_data_dims), dtype=np.uint8)
+        prob_container = np.empty((2, *self.adjusted_data_dims), dtype=np.float16)
         logger.info(f"Starting with {file_list[0].parent.name} {file_list[0].name}")
         prob_container[0] = self.hdf5_to_rotated_numpy(
             file_list[0], '/probabilities')
@@ -798,7 +824,7 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
         logger.info(f"Upsampling segmentation by a factor of {factor}.")
         return self.tile_array(data, factor, factor, factor)
 
-    def predict_12_ways(self, root_path):
+    def predict_12_ways(self, root_path, output_prefix="unet2d"):
         """OVERRIDES METHOD IN PARENT CLASS.
         Runs the loop that coordinates the prediction of a 3d data volume
         by a 2d U-net in 12 orientations and then combination of the segmented
@@ -808,17 +834,20 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
             root_path (pathlib.Path): Path to the top level directory for data
             output.
         """
-        self.setup_folder_stucture(root_path)
+        # TODO: FInd a solution to odd sized dimensions
+        self.adjusted_data_dims = self.adjust_data_dims(self.data_vol_shape)
+        self.setup_folder_stucture(root_path, output_prefix)
         combined_vol_paths = []
         for k in tqdm(range(4), ncols=100, desc='Total progress', postfix="\n"):
             _, output_path = self.dir_list[k]
             logger.info(f'Rotating volume {k * 90} degrees')
             rotated = np.rot90(self.data_vol, k)
             logger.info("Predicting slices to HDF5 files.")
-            fp =  self.predict_orthog_slices_to_disk(rotated, output_path, k)
+            fp =  self.predict_orthog_slices_to_disk(rotated, output_path, k,
+                                                     output_prefix)
             combined_vol_paths.append(fp)
         # Combine all the volumes
-        self.merge_final_vols(combined_vol_paths)
+        self.merge_final_vols(combined_vol_paths, output_prefix)
         if self.delete_vols:
             # Remove source volumes
             logger.info("Removing maximum probability h5 files.")
@@ -826,3 +855,33 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
                 os.remove(h5_file)
             for _, vol_dir in self.dir_list:
                 os.rmdir(vol_dir)
+
+    def predict_1_way(self, root_path, output_prefix="unet2d"):
+        logger.info("Performing single plane prediction.")
+        self.adjusted_data_dims = self.adjust_data_dims(self.data_vol_shape)
+        self.label_container, self.prob_container = self.create_vols_in_ram(self.adjusted_data_dims)
+        # TODO: Crop adjusted data dims back to original
+        self.predict_z_slices_to_ram(self.data_vol, self.data_vol_shape[0])
+        labels = self.label_container[0]
+        if self.downsample:
+            labels = self.upsample_segmentation(labels)
+        return labels
+
+    def predict_3_ways(self, root_path, output_prefix="unet2d"):
+        logger.info("Performing 3-plane prediction.")
+        self.adjusted_data_dims = self.adjust_data_dims(self.data_vol_shape)
+        self.label_container, self.prob_container = self.create_vols_in_ram(self.adjusted_data_dims)
+        # TODO: Crop adjusted data dims back to original
+        self.predict_z_slices_to_ram(self.data_vol, self.data_vol_shape[0])
+        self.predict_y_slices_to_ram(self.data_vol, self.data_vol_shape[1])
+        logger.info("Merging Z and Y volumes.")
+        # Merge these volumes and replace the volume at index 0 in the container
+        self.merge_vols_in_mem(self.prob_container, self.label_container)
+        self.predict_x_slices_to_ram(self.data_vol, self.data_vol_shape[2])
+        logger.info("Merging max of Z and Y with the X volume.")
+        # Merge these volumes and replace the volume at index 0 in the container
+        self.merge_vols_in_mem(self.prob_container, self.label_container)
+        labels = self.label_container[0]
+        if self.downsample:
+            labels = self.upsample_segmentation(labels)
+        return labels

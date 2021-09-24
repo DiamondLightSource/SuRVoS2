@@ -481,12 +481,20 @@ def predict_2d_unet(
     src: DataURI,
     dst: DataURI,
     workspace: String,
+    anno_id: DataURI,
     feature_id: DataURI,
-    model_path: str
+    model_path: str,
+    no_of_planes: int
 ):
     logger.debug(
-        f"Predict_2d_unet with feature {feature_id}"
+        f"Predict_2d_unet with feature {feature_id} in {no_of_planes} planes"
     )
+
+    src = DataModel.g.dataset_uri(anno_id, group="annotations")
+    with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        anno_level = src_dataset[:] & 15
+    logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
 
     src = DataModel.g.dataset_uri(feature_id, group="features")
     logger.debug(f"Getting features {src}")
@@ -499,11 +507,24 @@ def predict_2d_unet(
         f"Predict_2d_unet with feature shape {feature.shape} using model {model_path}"
     )
     from survos2.server.unet2d.unet2d import Unet2dPredictor
+    from survos2.server.unet2d.data_utils import PredictionHDF5DataSlicer, PredictionQuality
     ws_object = ws.get(workspace)
     root_path = Path(ws_object.path, "unet2d")
     root_path.mkdir(exist_ok=True, parents=True)
     predictor = Unet2dPredictor(root_path)
     predictor.create_model_from_zip(Path(model_path))
+    now = datetime.now()
+    dt_string = now.strftime("%d%m%Y_%H_%M_%S")
+    slicer = PredictionHDF5DataSlicer(predictor, feature, clip_data=True)
+    if no_of_planes == 1:
+        segmentation = slicer.predict_1_way(root_path, output_prefix=dt_string)
+    elif no_of_planes == 3:
+        segmentation = slicer.predict_3_ways(root_path, output_prefix=dt_string)
+    segmentation += np.ones_like(segmentation)
+    def pass_through(x):
+        return x
+
+    map_blocks(pass_through, segmentation, out=dst, normalize=False)
     
 
 @hug.get()
