@@ -26,10 +26,10 @@ from . import config as cfg
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-class PredictionQuality(Enum):
-    LOW = 1
-    MEDIUM = 2
-    HIGH = 3
+class Axis(Enum):
+    Z = 0
+    Y = 1
+    X = 2
 
 
 class SettingsData:
@@ -195,28 +195,28 @@ class DataSlicerBase:
             and image index that are found in the volume.
         """
         return chain(
-            product('z', range(vol_shape[0])),
-            product('y', range(vol_shape[1])),
-            product('x', range(vol_shape[2]))
+            product(Axis.Z.name, range(vol_shape[0])),
+            product(Axis.Y.name, range(vol_shape[1])),
+            product(Axis.X.name, range(vol_shape[2]))
         )
 
-    def axis_index_to_slice(self, vol, axis, index):
+    def axis_index_to_slice(self, vol, axis_enum, index):
         """Converts an axis and image slice index for a 3d volume into a 2d 
         data array (slice). 
 
         Args:
             vol (3d array): The data volume to be sliced.
-            axis (str): One of 'z', 'y' and 'x'.
+            axis_enum (Enum): Enum, descirbing the axis.
             index (int): An image slice index found in that axis. 
 
         Returns:
             2d array: A 2d image slice corresponding to the axis and index.
         """
-        if axis == 'z':
+        if axis_enum == Axis.Z:
             return vol[index, :, :]
-        if axis == 'y':
+        if axis_enum == Axis.Y:
             return vol[:, index, :]
-        if axis == 'x':
+        if axis_enum == Axis.X:
             return vol[:, :, index]
 
     def get_num_of_ims(self, vol_shape):
@@ -307,9 +307,9 @@ class TrainingDataSlicer(DataSlicerBase):
         shape_tup = data_arr.shape
         ax_idx_pairs = self.get_axis_index_pairs(shape_tup)
         num_ims = self.get_num_of_ims(shape_tup)
-        for axis, index in tqdm(ax_idx_pairs, total=num_ims):
-            out_path = output_path/f"{name_prefix}_{axis}_stack_{index}"
-            self.output_im(self.axis_index_to_slice(data_arr, axis, index),
+        for axis_name, index in tqdm(ax_idx_pairs, total=num_ims):
+            out_path = output_path/f"{name_prefix}_{axis_name}_stack_{index}"
+            self.output_im(self.axis_index_to_slice(data_arr, Axis[axis_name], index),
                            out_path, label)
 
     def output_im(self, data, path, label=False):
@@ -600,11 +600,10 @@ class PredictionDataSlicer(DataSlicerBase):
 class PredictionHDF5DataSlicer(PredictionDataSlicer):
 
     def __init__(self, predictor, data_vol, clip_data=False,
-                 output_probs=False, quality=PredictionQuality.LOW):
+                 output_probs=False):
         logger.info(f"Using {self.__class__.__name__}")
         super().__init__(predictor, data_vol, clip_data=clip_data)
         self.output_probs = output_probs
-        self.quality = quality
         self.adjusted_data_dims = None
 
     def create_target_hdf5_files(self, directory, shape_tup):
@@ -662,35 +661,22 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
                 shape_tuple[i] += 1
         return tuple(shape_tuple)
 
-    def predict_z_slices_to_ram(self, data_arr, z_dim):
-        logger.info("Predicting Z slices:")
+    def predict_slices_to_ram(self, data_arr, axis_enum, axis_dim):
+        logger.info(f"Predicting {axis_enum} slices:")
         # Generate axis-index pairs
-        z_ax_idx_pairs = product('z', range(z_dim))
-        for axis, index in tqdm(z_ax_idx_pairs, total=z_dim):
+        ax_idx_pairs = product(axis_enum.name, range(axis_dim))
+        for axis_name, index in tqdm(ax_idx_pairs, total=axis_dim):
             prob, label = self.predict_single_slice(
-                self.axis_index_to_slice(data_arr, axis, index))
-            self.prob_container[0, index] = prob
-            self.label_container[0, index] = label
-
-    def predict_y_slices_to_ram(self, data_arr, y_dim):
-        logger.info("Predicting Y slices:")
-        # Generate axis-index pairs
-        y_ax_idx_pairs = product('y', range(y_dim))
-        for axis, index in tqdm(y_ax_idx_pairs, total=y_dim):
-            prob, label = self.predict_single_slice(
-                self.axis_index_to_slice(data_arr, axis, index))
-            self.prob_container[1, :, index] = prob
-            self.label_container[1, :, index] = label
-
-    def predict_x_slices_to_ram(self, data_arr, x_dim):
-        logger.info("Predicting X slices:")
-        # Generate axis-index pairs
-        x_ax_idx_pairs = product('x', range(x_dim))
-        for axis, index in tqdm(x_ax_idx_pairs, total=x_dim):
-            prob, label = self.predict_single_slice(
-                self.axis_index_to_slice(data_arr, axis, index))
-            self.prob_container[1, :, :, index] = prob
-            self.label_container[1, :, :, index] = label
+                self.axis_index_to_slice(data_arr, Axis[axis_name], index))
+            if Axis[axis_name] == Axis.Z:
+                self.prob_container[0, index] = prob
+                self.label_container[0, index] = label
+            elif Axis[axis_name] == Axis.Y:
+                self.prob_container[1, :, index] = prob
+                self.label_container[1, :, index] = label
+            elif Axis[axis_name] == Axis.X:
+                self.prob_container[1, :, :, index] = prob
+                self.label_container[1, :, :, index]=label
 
     def create_vols_in_ram(self, shape_tuple):
         logger.info("Creating empty data volumes in RAM")
@@ -713,7 +699,7 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
         adj_shape_tup = self.adjust_data_dims(data_arr.shape)
         # Create volumes for label and prob data
         self.label_container, self.prob_container = self.create_vols_in_ram(adj_shape_tup)
-        self.predict_z_slices_to_ram(data_arr, original_shape_tup[0])
+        self.predict_slices_to_ram(data_arr, Axis.Z, original_shape_tup[0])
         # Hacky output of first volume
         if k==0:
             fastz_out_path = output_path.parent/f"{output_prefix}_1_plane_prediction.h5"
@@ -725,11 +711,11 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
                 else:
                     f['/labels'] = self.label_container[0]
                 f['/data'] = f['/labels']
-        self.predict_y_slices_to_ram(data_arr, original_shape_tup[1])
+        self.predict_slices_to_ram(data_arr, Axis.Y, original_shape_tup[1])
         logger.info("Merging Z and Y volumes.")
         # Merge these volumes and replace the volume at index 0 in the container
         self.merge_vols_in_mem(self.prob_container, self.label_container)
-        self.predict_x_slices_to_ram(data_arr, original_shape_tup[2])
+        self.predict_slices_to_ram(data_arr, Axis.X, original_shape_tup[2])
         logger.info("Merging max of Z and Y with the X volume.")
         # Merge these volumes and replace the volume at index 0 in the container
         self.merge_vols_in_mem(self.prob_container, self.label_container)
@@ -861,7 +847,7 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
         self.adjusted_data_dims = self.adjust_data_dims(self.data_vol_shape)
         self.label_container, self.prob_container = self.create_vols_in_ram(self.adjusted_data_dims)
         # TODO: Crop adjusted data dims back to original
-        self.predict_z_slices_to_ram(self.data_vol, self.data_vol_shape[0])
+        self.predict_slices_to_ram(self.data_vol, Axis.Z, self.data_vol_shape[0])
         labels = self.label_container[0]
         if self.downsample:
             labels = self.upsample_segmentation(labels)
@@ -872,12 +858,12 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
         self.adjusted_data_dims = self.adjust_data_dims(self.data_vol_shape)
         self.label_container, self.prob_container = self.create_vols_in_ram(self.adjusted_data_dims)
         # TODO: Crop adjusted data dims back to original
-        self.predict_z_slices_to_ram(self.data_vol, self.data_vol_shape[0])
-        self.predict_y_slices_to_ram(self.data_vol, self.data_vol_shape[1])
+        self.predict_slices_to_ram(self.data_vol, Axis.Z, self.data_vol_shape[0])
+        self.predict_slices_to_ram(self.data_vol, Axis.Y, self.data_vol_shape[1])
         logger.info("Merging Z and Y volumes.")
         # Merge these volumes and replace the volume at index 0 in the container
         self.merge_vols_in_mem(self.prob_container, self.label_container)
-        self.predict_x_slices_to_ram(self.data_vol, self.data_vol_shape[2])
+        self.predict_slices_to_ram(self.data_vol, Axis.X, self.data_vol_shape[2])
         logger.info("Merging max of Z and Y with the X volume.")
         # Merge these volumes and replace the volume at index 0 in the container
         self.merge_vols_in_mem(self.prob_container, self.label_container)

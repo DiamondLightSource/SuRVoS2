@@ -454,7 +454,7 @@ def train_2d_unet(
     anno_slice_path.mkdir(exist_ok=True, parents=True)
     slicer.output_data_slices(data_slice_path, "data")
     slicer.output_label_slices(anno_slice_path, "seg")
-    trainer = Unet2dTrainer(data_slice_path, anno_slice_path, ['brain', 'not brain'])
+    trainer = Unet2dTrainer(data_slice_path, anno_slice_path, slicer.codes)
     cyc_frozen = unet_train_params["cyc_frozen"]
     cyc_unfrozen = unet_train_params["cyc_unfrozen"]
     trainer.train_model(num_cyc_frozen=cyc_frozen, num_cyc_unfrozen=cyc_unfrozen)
@@ -507,7 +507,7 @@ def predict_2d_unet(
         f"Predict_2d_unet with feature shape {feature.shape} using model {model_path}"
     )
     from survos2.server.unet2d.unet2d import Unet2dPredictor
-    from survos2.server.unet2d.data_utils import PredictionHDF5DataSlicer, PredictionQuality
+    from survos2.server.unet2d.data_utils import PredictionHDF5DataSlicer
     ws_object = ws.get(workspace)
     root_path = Path(ws_object.path, "unet2d")
     root_path.mkdir(exist_ok=True, parents=True)
