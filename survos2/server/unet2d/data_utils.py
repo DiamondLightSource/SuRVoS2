@@ -842,13 +842,22 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
             for _, vol_dir in self.dir_list:
                 os.rmdir(vol_dir)
 
+    def crop_output_volume(self, data, current_dims, required_dims):
+        if current_dims != required_dims:
+            z_max, y_max, x_max = required_dims
+            logger.info(f"Cropping label volume from {current_dims}"
+                        f" to {required_dims}.")
+            return data[:z_max, :y_max, :x_max]
+        return data
+        
     def predict_1_way(self, root_path, output_prefix="unet2d"):
         logger.info("Performing single plane prediction.")
         self.adjusted_data_dims = self.adjust_data_dims(self.data_vol_shape)
         self.label_container, self.prob_container = self.create_vols_in_ram(self.adjusted_data_dims)
-        # TODO: Crop adjusted data dims back to original
         self.predict_slices_to_ram(self.data_vol, Axis.Z, self.data_vol_shape[0])
         labels = self.label_container[0]
+        labels = self.crop_output_volume(labels, self.adjusted_data_dims,
+                                         self.data_vol_shape)
         if self.downsample:
             labels = self.upsample_segmentation(labels)
         return labels
@@ -857,7 +866,6 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
         logger.info("Performing 3-plane prediction.")
         self.adjusted_data_dims = self.adjust_data_dims(self.data_vol_shape)
         self.label_container, self.prob_container = self.create_vols_in_ram(self.adjusted_data_dims)
-        # TODO: Crop adjusted data dims back to original
         self.predict_slices_to_ram(self.data_vol, Axis.Z, self.data_vol_shape[0])
         self.predict_slices_to_ram(self.data_vol, Axis.Y, self.data_vol_shape[1])
         logger.info("Merging Z and Y volumes.")
@@ -868,6 +876,8 @@ class PredictionHDF5DataSlicer(PredictionDataSlicer):
         # Merge these volumes and replace the volume at index 0 in the container
         self.merge_vols_in_mem(self.prob_container, self.label_container)
         labels = self.label_container[0]
+        labels = self.crop_output_volume(labels, self.adjusted_data_dims,
+                                         self.data_vol_shape)
         if self.downsample:
             labels = self.upsample_segmentation(labels)
         return labels
