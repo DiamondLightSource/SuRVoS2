@@ -244,7 +244,7 @@ class Tests(object):
             "create",
             uri=None,
             workspace=DataModel.g.current_workspace,
-            fullname="./tests/data/test.csv",
+            fullname="test.csv",
             scale=1.0,
             offset=0.0,
         )
@@ -257,7 +257,7 @@ class Tests(object):
             uri=None,
             workspace=DataModel.g.current_workspace,
             dtype="float32",
-            fullname="./data/test.csv",
+            fullname="test.csv",
             dst=dst,
             scale=1.0,
             offset=(0.0, 0.0, 0.0),
