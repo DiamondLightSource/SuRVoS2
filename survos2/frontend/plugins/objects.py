@@ -21,6 +21,8 @@ from survos2.model import DataModel
 from survos2.server.state import cfg
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
+from survos2.entity.patches import PatchWorkflow, organize_entities, make_patches
+
 
 
 class ObjectComboBox(LazyComboBox):
@@ -236,7 +238,7 @@ class ObjectsCard(Card):
 
         if self.objectstype == "patches":
             self._add_annotations_source()
-            self.entity_mask_bvol_size = LineEdit3D(default=10, parse=int)
+            self.entity_mask_bvol_size = LineEdit3D(default=64, parse=int)
             self._add_feature_source()
             
             self.make_entity_mask_btn = PushButton("Make entity mask", accent=True)
@@ -446,7 +448,7 @@ class ObjectsCard(Card):
     
         entity_arr = np.array(self.entities_df)
 
-        from entityseg.training.patches import PatchWorkflow, organize_entities, make_patches
+        
         combined_clustered_pts, classwise_entities = organize_entities(
             src_array, entity_arr, entity_meta, plot_all=False
         )
@@ -484,11 +486,11 @@ class ObjectsCard(Card):
         from survos2.entity.pipeline_ops import make_proposal
         
         wf_params = {}
-        wf_params["torch_models_fullpath"] = "/home/avery_pennington/experiments"
+        wf_params["torch_models_fullpath"] = "/experiments"
         model_file = train_seg(self.patches, wf_params, num_epochs=1)
 
-        patch_size=(128, 128, 128)
-        patch_overlap=(32, 32, 32)
+        patch_size=(64,64,64)
+        patch_overlap=(16, 16, 16)
         overlap_mode="crop"
         model_type="fpn3d"
 

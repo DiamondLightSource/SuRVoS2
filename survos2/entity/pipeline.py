@@ -23,7 +23,6 @@ from survos2.entity.sampler import crop_vol_and_pts_centered
 from survos2.frontend.control import Launcher
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
-from survos2.server.model import SRFeatures
 
 
 @dataclass

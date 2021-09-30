@@ -21,12 +21,10 @@ from survos2.helpers import AttrDict
 from survos2.server.features import features_factory, generate_features
 from survos2.server.model import SRData, SRFeatures, SRPrediction
 from survos2.entity.pipeline import Patch
-from survos2.server.superseg import mrf_refinement, sr_predict
-from survos2.server.supervoxels import generate_supervoxels, superregion_factory
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 from tqdm import tqdm
-import unet
+
 
 
 def load_model(detmod, file_path):
