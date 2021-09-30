@@ -312,7 +312,7 @@ def label_splitter(
                 rules.append((int(feature_index), s, split_threshold))
                 print(f"Adding split rule: {split_feature_index} {split_op} {split_threshold}")
             
-    masked_out = apply_rules(
+    masked_out, result_features = apply_rules(
         features_array, -1, rules, np.array(objlabels), num_objects
     )
 
@@ -327,8 +327,7 @@ def label_splitter(
 
     map_blocks(pass_through, new_labels, out=dst, normalize=False)
     
-    return features_array #, hist_plot
-
+    return result_features, features_array 
 
 def apply_rules(
     features: np.ndarray, label: int, rules: tuple, out: np.ndarray, num_objects: int
@@ -345,11 +344,13 @@ def apply_rules(
     for f, s, t in rules:
         if s == 0:
             np.logical_and(mask, features[:, f] > t, out=mask)
+            result_features = features[features[:, f] > t]
         else:
             np.logical_and(mask, features[:, f] < t, out=mask)
+            result_features = features[features[:, f] < t]
 
     out[mask] = label
-    return out
+    return out, result_features
 
 
 def detect_blobs(

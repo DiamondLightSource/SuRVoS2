@@ -223,7 +223,10 @@ class AnalyzerCard(Card):
             self.add_row(widget)
 
             self.export_csv_btn = PushButton("Export CSV")
-            self.add_row(HWidgets(None, self.export_csv_btn, Spacing(35)))
+            self.load_as_objects_btn = PushButton("Load as Objects")
+
+            self.add_row(HWidgets(None, self.load_as_objects_btn, self.export_csv_btn, Spacing(35)))
+            self.load_as_objects_btn.clicked.connect(self.load_as_objects)
             self.export_csv_btn.clicked.connect(self.export_csv)
 
             self._add_view_btn()
@@ -357,6 +360,7 @@ class AnalyzerCard(Card):
     def load_data(self, path):
         self.model_fullname = path
         print(f"Setting model fullname: {self.model_fullname}")
+
 
     def load_as_objects(self):
         logger.debug("Load analyzer result as objects")
@@ -594,7 +598,7 @@ class AnalyzerCard(Card):
             )
             tabledata.append(entry)
 
-            entity = (result[i][0], result[i][1], result[i][2], 0)
+            entity = (result[i][0], result[i][2], result[i][1], 0)
             entities.append(entity)
 
         tabledata = np.array(
@@ -633,9 +637,7 @@ class AnalyzerCard(Card):
         self.table_control.set_data(tabledata)
         self.collapse()
         self.expand()
-
         self.tabledata = tabledata
-
         self.entities_arr = np.array(entities)
 
     def display_component_results(self, result):
@@ -777,7 +779,7 @@ class AnalyzerCard(Card):
         all_params["split_ops"] = split_ops
 
         logger.debug(f"Running analyzer with params {all_params}")
-        features_array = Launcher.g.run(
+        result_features, features_array = Launcher.g.run(
             "analyzer", "label_splitter", **all_params
         )
         features_ndarray = np.array(features_array)
@@ -786,7 +788,7 @@ class AnalyzerCard(Card):
         if features_array:
             logger.debug(f"Segmentation stats result table {len(features_array)}")                
             
-            self.display_splitter_results(features_array)
+            self.display_splitter_results(result_features)
             feature_arrays = []
             feature_titles = []
             
