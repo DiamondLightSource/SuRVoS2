@@ -9,13 +9,11 @@ from tqdm.notebook import tqdm
 from unet import UNet3D
 
 from survos2.entity.models.fpn import CNNConfigs
-from entityseg.training.agg import predict_agg_3d
+from survos2.entity.pipeline_ops import predict_agg_3d
 from survos2.frontend.nb_utils import slice_plot, show_images
 from torch import optim
 from torch.optim import lr_scheduler
-from entityseg.training.utils import load_model
-
-
+from survos2.entity.utils import load_model
 
 
 

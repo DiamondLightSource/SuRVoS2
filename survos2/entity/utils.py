@@ -29,6 +29,22 @@ from loguru import logger
 from survos2.frontend.main import init_ws, roi_ws
 
 
+
+import torch
+
+def load_model(detmod, file_path):
+    def load_model_parameters(full_path):
+        checkpoint = torch.load(full_path)
+        return checkpoint
+
+    checkpoint = load_model_parameters(file_path)
+    detmod.load_state_dict(checkpoint["model_state"])
+    detmod.eval()
+
+    print(f"Loaded model from {file_path}")
+    return detmod
+    
+
 def remove_masked_entities(bg_mask, entities):
     pts_vol = np.zeros_like(bg_mask)
     for pt in entities:
@@ -120,22 +136,7 @@ def get_surface(img_vol, plot3d=False):
     return mesh, s, v, sphericity
 
 
-def pad_vol(vol, padding):
-    padded_vol = np.zeros(
-        (
-            vol.shape[0] + padding[0] * 2,
-            vol.shape[1] + padding[1] * 2,
-            vol.shape[2] + padding[2] * 2,
-        )
-    )
 
-    padded_vol[
-        padding[0] : vol.shape[0] + padding[0],
-        padding[1] : vol.shape[1] + padding[1],
-        padding[2] : vol.shape[2] + padding[2],
-    ] = vol
-
-    return padded_vol
 
 
 def remove_padding(vol, padding):
@@ -145,3 +146,11 @@ def remove_padding(vol, padding):
         padding[2] : vol.shape[2] + padding[2],
     ]
     return unpadded_vol
+
+
+
+def accuracy(prediction, groundtruth):
+    FP, FN, TP, TN = numeric_score(prediction, groundtruth)
+    N = FP + FN + TP + TN
+    accuracy = np.divide(TP + TN, N)
+    return accuracy * 100.0

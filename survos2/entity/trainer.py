@@ -7,7 +7,7 @@ from datetime import datetime
 import numpy as np
 from loguru import logger
 
-from entityseg.models.fpn_util import accuracy
+from survos2.entity.utils import accuracy
 from survos2.frontend.nb_utils import show_images
 from medicaltorch import losses as mt_losses
 from medicaltorch import metrics as mt_metrics

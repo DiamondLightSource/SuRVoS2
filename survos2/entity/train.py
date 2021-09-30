@@ -6,14 +6,14 @@ import torch
 
 from survos2.entity.pipeline_ops import save_model
 from survos2.entity.pipeline_ops import save_model
-from entityseg.training.patches import load_patch_vols, prepare_dataloaders
-from entityseg.models.unet3d import prepare_unet3d,display_unet_pred # , train_unet3d
+from survos2.entity.patches import load_patch_vols, prepare_dataloaders
+#from entityseg.models.unet3d import prepare_unet3d,display_unet_pred # , train_unet3d
 from survos2.entity.models.head_cnn import (
     display_fpn3d_pred,
     prepare_fpn3d,
     
 )
-from entityseg.training.trainer import (
+from survos2.entity.trainer import (
     train_fpn3d,
 )
 
@@ -142,7 +142,7 @@ def train_all(
         )
 
         from functools import partial
-        from entityseg.training.trainer import (
+        from survos2.entity.trainer import (
             Trainer,
             MetricCallback,
             unet3d_loss,
