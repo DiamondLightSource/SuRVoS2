@@ -17,7 +17,7 @@ from survos2.frontend.components.base import (
     PluginNotifier,
     Slider,
 )
-from survos2.frontend.plugins.regions import RegionComboBox
+from survos2.frontend.plugins.superregions import RegionComboBox
 from survos2.model.model import DataModel
 from survos2.utils import decode_numpy
 
@@ -299,7 +299,7 @@ class AnnotationTool(Tool):
             region = DataModel.g.dataset_uri(region)
             print(idx)
             params = dict(workpace=True, src=region, slice_idx=idx)
-            result = Launcher.g.run("regions", "get_slice", **params)
+            result = Launcher.g.run("superregions", "get_slice", **params)
             if result:
                 region = decode_numpy(result)
                 self.annotator.set_region(region)

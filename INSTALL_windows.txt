@@ -4,19 +4,23 @@
 	
 3. In <INSTALLDIR>/SuRVoS2, use survos2_clean_environment_windows_conda.yml to create a new environment by:
 
-	conda env create -f survos2_clean_environment_windows_conda.yml 
+	conda env create -f survos2_clean_conda.yml
 
 	conda activate survos2_env
 
 4. Perform the pip installs using:
 	
-	pip install -r survos2_clean_environment_windows_pip.txt
+	pip install -r req.txt
 
 5. Build survos:
 
 	python ./survos2/improc/setup.py build_ext --inplace
 
-6. Change the CHROOT in survos2/config.py to something appropriate for the machine and network settings.
+6. Change the CHROOT in settings.yaml to something appropriate for the machine and network settings.
 
+7. Run Napari:
+	napari
+
+8. Start SuRVoS Plugin from Plugins dropdown
 7. Run:
 	 python -m survos2.frontend.runner

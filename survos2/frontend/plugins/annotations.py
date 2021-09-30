@@ -29,9 +29,10 @@ from survos2.frontend.plugins.base import (
     Plugin,
     register_plugin,
 )
-from survos2.frontend.plugins.regions import RegionComboBox
+from survos2.frontend.plugins.superregions import RegionComboBox
 from survos2.model import DataModel
 from survos2.server.state import cfg
+from napari.qt import progress
 
 _AnnotationNotifier = PluginNotifier()
 
@@ -89,6 +90,9 @@ class AnnotationPlugin(Plugin):
         super().__init__(parent=parent)
         self.btn_addlevel = IconButton("fa.plus", "Add Level", accent=True)
         self.vbox = VBox(self, spacing=10)
+        self.button_pause_save = QPushButton("Pause Save to Server", self)
+        self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
+        self.vbox.addWidget(self.button_pause_save)
         self.vbox.addWidget(self.btn_addlevel)
         self.levels = {}
         self.btn_addlevel.clicked.connect(self.add_level)
@@ -143,6 +147,14 @@ class AnnotationPlugin(Plugin):
             self.remove_level(level)
         self.levels = {}
 
+    def button_pause_save_clicked(self):
+        if cfg.pause_save:
+            self.button_pause_save.setText("Pause Saving Annotations to Server")
+        else:
+            self.button_pause_save.setText("Resume Saving Annotations to Server")
+            
+        cfg.pause_save = not cfg.pause_save
+        
     def setup(self):
         params = dict(
             workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
@@ -173,32 +185,49 @@ class AnnotationPlugin(Plugin):
         self.timer_id = self.startTimer(2000)
 
     def set_sv(self):
-        cfg.current_supervoxels = self.region.value()
-        cfg.label_value = self.label.value()
-        cfg.brush_size = self.width.value()
-        print(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
+        with progress(total=3) as pbar:
+            pbar.set_description("Viewing feature")
+            pbar.update(1)
+            cfg.current_supervoxels = self.region.value()
+            cfg.label_value = self.label.value()
+            cfg.brush_size = self.width.value()
+            print(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
 
-        if cfg.label_value is not None:
-            # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
-            cfg.ppw.clientEvent.emit(
-                {
-                    "source": "annotations",
-                    "data": "set_paint_params",
-                    "paint_params": {
-                        "current_supervoxels": self.region.value(),
-                        "label_value": self.label.value(),
-                        "brush_size": self.width.value(),
-                    },
-                }
-            )
-
-            cfg.ppw.clientEvent.emit(
-                {
-                    "source": "annotations",
-                    "data": "paint_annotations",
-                    "level_id": self.label.value()["level"],
-                }
-            )
+            if cfg.label_value is not None:
+                # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
+                cfg.ppw.clientEvent.emit(
+                    {
+                        "source": "annotations",
+                        "data": "set_paint_params",
+                        "paint_params": {
+                            "current_supervoxels": self.region.value(),
+                            "label_value": self.label.value(),
+                            "brush_size": self.width.value(),
+                            "level_id": self.label.value()["level"],
+                        },
+                    }
+                )
+                pbar.update(1)
+                cfg.ppw.clientEvent.emit(
+                    {
+                        "source": "annotations",
+                        "data": "paint_annotations",
+                        "level_id": self.label.value()["level"],
+                    }
+                )
+                cfg.ppw.clientEvent.emit(
+                    {
+                        "source": "annotations",
+                        "data": "set_paint_params",
+                        "paint_params": {
+                            "current_supervoxels": self.region.value(),
+                            "label_value": self.label.value(),
+                            "brush_size": self.width.value(),
+                            "level_id": self.label.value()["level"],
+                        },
+                    }
+                )
+            pbar.update(1)
 
 
 class AnnotationLevel(Card):
@@ -271,14 +300,17 @@ class AnnotationLevel(Card):
                     self._add_label_widget(label)
 
     def view_level(self):
-        cfg.ppw.clientEvent.emit(
-            {
-                "source": "annotations",
-                "data": "paint_annotations",
-                "level_id": self.level_id,
-            }
-        )
-
+        with progress(total=2) as pbar:
+            pbar.set_description("Viewing feature")
+            pbar.update(1)
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "paint_annotations",
+                    "level_id": self.level_id,
+                }
+            )
+            pbar.update(1)
     def _add_view_btn(self):
         btn_view = PushButton("View", accent=True)
         btn_view.clicked.connect(self.view_level)

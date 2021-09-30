@@ -277,14 +277,17 @@ class FeatureCard(Card):
 
     def view_feature(self):
         logger.debug(f"View feature_id {self.feature_id}")
-
-        cfg.ppw.clientEvent.emit(
-            {
-                "source": "features",
-                "data": "view_feature",
-                "feature_id": self.feature_id,
-            }
-        )
+        with progress(total=2) as pbar:
+            pbar.set_description("Viewing feature")
+            pbar.update(1)
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "features",
+                    "data": "view_feature",
+                    "feature_id": self.feature_id,
+                }
+            )
+            pbar.update(1)    
 
     def compute_feature(self):
         with progress(total=3) as pbar:

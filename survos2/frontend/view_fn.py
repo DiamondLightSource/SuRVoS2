@@ -93,14 +93,14 @@ def view_regions(viewer, msg):
         remove_layer(viewer, cfg.current_regions_name)
         cfg.current_regions_name = None
     if cfg.retrieval_mode == "slice":
-        regions_src = DataModel.g.dataset_uri(region_name, group="regions")
+        regions_src = DataModel.g.dataset_uri(region_name, group="superregions")
         params = dict(
             workpace=True,
             src=regions_src,
             slice_idx=cfg.current_slice,
             order=cfg.order,
         )
-        result = Launcher.g.run("regions", "get_slice", **params)
+        result = Launcher.g.run("superregions", "get_slice", **params)
         if result:
             src_arr = decode_numpy(result)
             src_arr = find_boundaries(src_arr) * 1.0
@@ -112,14 +112,14 @@ def view_regions(viewer, msg):
                 sv_layer.opacity = region_opacity
                 sv_layer.colormap = "bop orange"
     elif cfg.retrieval_mode == "volume_http":
-        regions_src = DataModel.g.dataset_uri(region_name, group="regions")
+        regions_src = DataModel.g.dataset_uri(region_name, group="superregions")
         params = dict(
             workpace=True,
             src=regions_src,
             slice_idx=cfg.current_slice,
             order=cfg.order,
         )
-        result = Launcher.g.run("regions", "get_volume", **params)
+        result = Launcher.g.run("superregions", "get_volume", **params)
         if result:
             src_arr = decode_numpy(result)
             src_arr = find_boundaries(src_arr) * 1.0
@@ -131,7 +131,7 @@ def view_regions(viewer, msg):
                 sv_layer.opacity = region_opacity
                 sv_layer.colormap = "bop orange"
     elif cfg.retrieval_mode == "volume":
-        src = DataModel.g.dataset_uri(region_name, group="regions")
+        src = DataModel.g.dataset_uri(region_name, group="superregions")
         with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
             src_dataset = DM.sources[0][:]
             src_arr = get_array_from_dataset(src_dataset)

@@ -9,21 +9,31 @@ from survos2.model import DataModel
 from survos2.server.state import cfg
 from survos2.frontend.plugins.annotations import dilate_annotations
 from survos2.utils import decode_numpy
+from survos2.api.annotate import get_order
+
+_MaskSize = 4  # 4 bits per history label
+_MaskCopy = 15  # 0000 1111
+_MaskPrev = 240  # 1111 0000
+
 
 @thread_worker
 def paint_strokes(
     msg,
     drag_pts,
-    layer,
-    top_layer,
     anno_layer,
     parent_level=None,
     parent_label_idx=None,
     viewer_order=(0, 1, 2),
 ):
+    """ 
+    Gather all information required from viewer and build and execute the annotation command
+    """
     level = msg["level_id"]
     anno_layer_shape = anno_layer.data.shape
     anno_layer_shape = [anno_layer_shape[i] for i in viewer_order]
+
+    if len(viewer_order) == 2:
+        viewer_order=(0, 1, 2)
 
     if len(drag_pts) == 0:
         return
@@ -33,7 +43,7 @@ def paint_strokes(
         anno_layer.selected_label = sel_label
         anno_layer.brush_size = int(cfg.brush_size)
 
-        if layer.mode == "erase":
+        if anno_layer.mode == "erase":
             sel_label = 0
             cfg.current_mode = "erase"
         else:
@@ -45,6 +55,7 @@ def paint_strokes(
         if len(drag_pts[0]) == 2:
             px, py = drag_pts[0]
             z = cfg.current_slice
+            print(f"Using z {z}")
         else:
             logger.info(f"drag_pts[0] {drag_pts}")
             pt_data = drag_pts[0]
@@ -80,16 +91,15 @@ def paint_strokes(
         line_y = np.array(line_y)
 
         if len(line_y) > 0:
-
             all_regions = set()
-
             # Check if we are painting using supervoxels, if not, annotate voxels
             if cfg.current_supervoxels == None:
+                #cfg.local_sv = False
                 line_y, line_x = dilate_annotations(
                     line_x,
                     line_y,
                     anno_shape,
-                    top_layer.brush_size,
+                    anno_layer.brush_size,
                 )
                 params = dict(workspace=True, level=level, label=sel_label)
                 yy, xx = list(line_y), list(line_x)
@@ -116,10 +126,10 @@ def paint_strokes(
                     line_x,
                     line_y,
                     anno_shape,
-                    top_layer.brush_size,
+                    anno_layer.brush_size,
                 )
 
-                supervoxel_size = 40
+                supervoxel_size = cfg.supervoxel_size * 2
                 bb = np.array(
                     [
                         max(0, int(z) - supervoxel_size),
@@ -134,9 +144,9 @@ def paint_strokes(
                 logger.debug(f"BB: {bb}")
 
                 if cfg.supervoxels_cached == False:                    
-                    if cfg.retrieval_mode == 'volume':
+                    if cfg.retrieval_mode == 'volume' or cfg.retrieval_mode == "volume_http":
                         regions_dataset = DataModel.g.dataset_uri(
-                            cfg.current_regions_name, group="regions"
+                            cfg.current_regions_name, group="superregions"
                         )
                         with DatasetManager(
                             regions_dataset,
@@ -148,7 +158,7 @@ def paint_strokes(
                             sv_arr = src_dataset[:]
                     else:
                         regions_dataset = DataModel.g.dataset_uri(
-                            cfg.current_regions_name, group="regions"
+                            cfg.current_regions_name, group="superregions"
                         )
                         params = dict(
                             workpace=True,
@@ -156,7 +166,7 @@ def paint_strokes(
                             slice_idx=cfg.current_slice,
                             order=cfg.order,
                         )
-                        result = Launcher.g.run("regions", "get_slice", **params)
+                        result = Launcher.g.run("superregions", "get_slice", **params)
                         if result:
                             sv_arr = decode_numpy(result)
                         
@@ -199,16 +209,126 @@ def paint_strokes(
                 # Commit annotation to server
                 params = dict(workspace=True, level=level, label=sel_label)
 
-                params.update(
-                    region=cfg.current_regions_dataset,
-                    r=list(map(int, all_regions)),
-                    modal=False,
-                    parent_level=parent_level,
-                    parent_label_idx=parent_label_idx,
-                    full=False,
-                    bb=bb,
-                    viewer_order=viewer_order,
-                )
-                result = Launcher.g.run("annotations", "annotate_regions", **params)
+
+                if cfg.remote_annotation:
+                    params.update(
+                        region=cfg.current_regions_dataset,
+                        r=list(map(int, all_regions)),
+                        modal=False,
+                        parent_level=parent_level,
+                        parent_label_idx=parent_label_idx,
+                        full=False,
+                        bb=bb,
+                        viewer_order=viewer_order,
+                    )
+                    result = Launcher.g.run("annotations", "annotate_regions", **params)
+                else: 
+                    cfg.local_sv = True
+                    _annotate_regions_local(
+                                    cfg.anno_data.copy(),
+                                    sv_arr,
+                                    list(map(int, all_regions)),
+                                    label=sel_label,
+                                    parent_level=parent_level,
+                                    parent_label_idx=parent_label_idx,
+                                    bb=bb,
+                                    viewer_order=viewer_order)
+                    
     except Exception as e:
         logger.debug(f"paint_strokes Exception: {e}")
+
+
+
+def _annotate_regions_local(
+    level : np.ndarray,
+    region: np.ndarray,
+    r : list,
+    label: int,
+    parent_level: str,
+    parent_label_idx: int,
+    bb: list,
+    viewer_order=(0, 1, 2),
+):
+    from survos2.frontend.frontend import get_level_from_server
+
+    if parent_level != "-1" and parent_level != -1:
+        parent_arr, parent_annotations_dataset = get_level_from_server(
+            {"level_id": parent_level}, retrieval_mode="volume"
+        )
+        parent_arr = parent_arr & 15
+        parent_mask = parent_arr == parent_label_idx
+    else:
+        parent_arr = None
+        parent_mask = None
+
+    logger.debug(f"BB in annotate_regions {bb}")
+    
+    if label >= 16 or label < 0 or type(label) != int:
+        raise ValueError("Label has to be in bounds [0, 15]")
+    if r is None or len(r) == 0:
+        return
+
+    mbit = 2 ** (np.dtype(level.dtype).itemsize * 8 // _MaskSize) - 1
+    rmax = np.max(r)
+    #modified = dataset.get_attr("modified")
+    cfg.modified = [0]
+    ds = level[:]
+    reg = region[:]
+    print(f"reg shape {reg.shape} ds shape {ds.shape}")
+
+    viewer_order_str = "".join(map(str, viewer_order))
+    if viewer_order_str != "012" and len(viewer_order_str) == 3:
+        print(f"Viewer order {viewer_order} Performing viewer_order transform {ds.shape}")
+        ds_t = np.transpose(ds, viewer_order)
+        
+    else:
+        print(f"Viewer order {viewer_order} No viewer_order transform {ds.shape}")
+        ds_t = ds
+        
+    mask = np.zeros_like(reg)
+
+    # print(f"BB: {bb}")
+    try:
+        if not bb:
+            # print("No mask")
+            bb = [0, 0, 0, ds_t.shape[0], ds_t.shape[1], ds_t.shape[2]]
+
+        # else:
+        # print(f"Masking using bb: {bb}")
+        for r_idx in r:
+            mask[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] += (
+                reg[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] == r_idx
+            )
+    except Exception as e:
+        print(f"__annotate_regions_local exception {e}")
+
+    if parent_mask is not None:
+        parent_mask_t = np.transpose(parent_mask, viewer_order)
+        print(f"Using parent mask of shape: {parent_mask.shape}")
+        mask = mask * parent_mask_t
+
+
+    mask = (mask > 0) * 1.0        
+    mask = mask > 0
+    #if not np.any(mask):
+    #    modified[i] = (modified[i] << 1) & mbit
+
+    ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
+    ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
+    
+    print(f"Returning annotated region ds {ds.shape}")
+
+    if viewer_order_str != "012" and len(viewer_order_str) == 3:
+        new_order = get_order(viewer_order)
+        logger.info(
+            f"new order {new_order} Dataset before second transpose: {ds_t.shape}"
+        )
+        ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
+        logger.info(f"Dataset after second transpose: {ds_o.shape}")
+    else:
+        ds_o = ds_t
+
+    
+    cfg.modified = [1]
+
+

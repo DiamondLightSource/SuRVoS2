@@ -542,6 +542,7 @@ class Card(QCSWidget):
         self.vbox = VBox(self, margin=5, spacing=self.spacing)
         self.total_height = 0
         self.prev_title = title
+        self.widget_list = []
 
         if removable:
             btn_del = DelIconButton()
@@ -584,6 +585,15 @@ class Card(QCSWidget):
         self.vbox.addWidget(widget)
         self.total_height += max_height + self.spacing
         self.setMinimumHeight(self.total_height)
+        
+    def add_to_widget_list(self, widget):
+        self.widget_list.append(widget)
+
+    def clear_widgets(self):
+        for widget in self.widget_list:
+            self.vbox.removeWidget(widget)
+            widget.setParent(None)
+        self.widget_list = []
 
     def update_height(self, max_height=30):
         self.total_height -= max_height + self.spacing
@@ -1142,3 +1152,57 @@ class Label(QtWidgets.QLabel):
 
     def value(self):
         return self.text()
+
+
+
+class SimpleComboBox(QtWidgets.QComboBox):
+    def __init__(self, full=False, parent=None, values=["one", "two"]):
+        self.full = full
+        self.values = values
+        self._items = []
+        super().__init__(parent=parent)
+        self.setStyleSheet(
+            """
+            QComboBox::item:disabled, QMenu[combo=true]::item:disabled {
+                background-color: #00838F;
+                color: #AACAFF;
+            }
+
+            QComboBox::item:selected, QMenu[combo=true]::item:selected
+            {
+                background-color: #B2EBF2;
+            }
+
+        """
+        )
+
+    def key(self):
+        return self.value(key=True)
+
+    def keys(self):
+        return [self.key()]
+
+    def items(self):
+        return (item for item in self._items)
+
+    def removeItem(self, idx):
+        self._items.pop(idx)
+        super().removeItem(idx)
+
+    def value(self, key=False):
+        if self.currentIndex() < 0:
+            return None
+        item = self._items[self.currentIndex()]
+        return item[0] if key or item[2] is None else item[2]
+
+    def fill(self):
+        for i, feature in enumerate(self.values):
+            self.addItem(str(i), feature)
+
+    def addItem(self, key, value=None, icon=None, data=None):
+        self._items.append((key, value, data))
+        if icon:
+            super().addItem(icon, value if value else key)
+        else:
+            super().addItem(value if value else key)
+

@@ -75,7 +75,7 @@ from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
-
+from napari.qt import progress
 
 CHROOT = Config["model.chroot"]
 
@@ -785,6 +785,7 @@ class ServerPlugin(Plugin):
         adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
         self.server_port_linedt = QLineEdit(self.run_config["server_port"])
         adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
+        
         # SSH Info
         self.ssh_button = QRadioButton("Use SSH")
         self.ssh_button.setAutoExclusive(False)
@@ -810,7 +811,8 @@ class ServerPlugin(Plugin):
         adv_ssh_layout.addWidget(ssh_port_label, 2, 0)
         adv_ssh_layout.addWidget(self.ssh_port_linedt, 2, 1, 1, 2)
         self.adv_ssh_fields.setLayout(adv_ssh_layout)
-        adv_run_layout.addWidget(self.adv_ssh_fields, 1, 2, 2, 5)
+        #adv_run_layout.addWidget(self.adv_ssh_fields, 1, 2, 2, 5)
+        
         self.adv_run_fields.setLayout(adv_run_layout)
 
     def get_run_fields(self):
@@ -972,6 +974,7 @@ class ServerPlugin(Plugin):
                 self.button_feedback_response(
                     str(e), self.create_workspace_button, "maroon"
                 )
+            self.refresh_chroot()
 
     def button_feedback_response(self, message, button, colour_str, timeout=2):
         """Changes button colour and displays feedback message for a limited time period.
@@ -1084,6 +1087,10 @@ class ServerPlugin(Plugin):
         Raises:
             Exception: If survos.py not found.
         """
+        with progress(total=3) as pbar:
+            pbar.set_description("Starting server...")
+            pbar.update(1)
+
         self.ssh_error = (
             False  # Flag which will be set to True if there is an SSH error
         )
@@ -1115,6 +1122,7 @@ class ServerPlugin(Plugin):
                 "maroon",
             )
             return
+        pbar.update(1)
         # Try some fancy SSH stuff here
         if self.ssh_button.isChecked():
             self.start_server_over_ssh()
@@ -1153,7 +1161,7 @@ class ServerPlugin(Plugin):
                 {"source": "panel_gui", "data": "refresh", "value": None}
             )
             #cfg.ppw.clientEvent.emit({'data' : 'view_feature', 'feature_id' : '001_raw'})
-
+        pbar.update(1)
     @pyqtSlot()
     def existing_clicked(self):
         ssh_ip = self.server_ip_linedt.text()

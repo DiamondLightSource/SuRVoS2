@@ -49,8 +49,11 @@ zstd
 appdirs
 attrdict
 attrs
+ipywidgets
+jupyterlab
 kornia
 mako
+medicaltorch
 morphsnakes
 mrcfile
 nibabel
@@ -72,7 +75,9 @@ tensorly
 torchio
 tqdm
 traitlets
+unet
 vispy
 wget
 xgboost
+unet
 

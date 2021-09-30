@@ -2,6 +2,8 @@ import logging
 import ntpath
 import os.path as op
 import pandas as pd
+import dask.array as da
+from numba.core.types.scalars import Integer
 import hug
 import matplotlib.patheffects as PathEffects
 import numpy as np
@@ -46,12 +48,19 @@ from scipy.ndimage import measurements as measure
 from scipy.stats import binned_statistic
 from sklearn.decomposition import PCA
 
-#from torch.utils.data import DataLoader
+# from survos2.entity.instanceseg.detector import prepare_filtered_patch_dataset, prepare_patch_dataloaders_and_entities, prepare_patch_dataset, prepare_patch_dataloaders
+# from survos2.entity.instanceseg.head_cnn import make_classifications
+# from survos2.entity.instanceseg.utils import pad_vol
+# from survos2.entity.instanceseg.detector import setup_training
 
-#from survos2.improc import map_blocks
-#from survos2.api.utils import dataset_repr, get_function_api, save_metadata
+from torch.utils.data import DataLoader
+from survos2.improc import map_blocks
+from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.entity.components import measure_components
 
+
+def pass_through(x):
+    return x
 
 __analyzer_fill__ = 0
 __analyzer_dtype__ = "uint32"
@@ -69,9 +78,6 @@ __analyzer_names__ = [
     "spatial_clustering",
     "remove_masked_objects",
 ]
-
-def pass_through(x):
-    return x
 
 
 def component_bounding_boxes(images):
@@ -133,14 +139,14 @@ FEATURE_TYPES = [
 
 
 
-
 @hug.get()
 def label_splitter(
     pipelines_id: DataURI,
     feature_id: DataURI,
-    split_feature_index: String,
-    split_op: String,
-    split_threshold: Float,
+    split_ops : dict,
+    #split_feature_index: String,
+    #split_op: String,
+    #split_threshold: Float,
     dst: DataURI,
 ) -> "SEGMENTATION":
     src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id), group="pipelines")
@@ -253,11 +259,11 @@ def label_splitter(
             "bb_depth": feature_bb_depth,
             "bb_height": feature_bb_height,
             "bb_width": feature_bb_width,
-            "ori": feature_ori,
+            "ori_volume": feature_ori,
+            "ori_vol_log10": feature_ori_log10,
             "ori_depth": feature_ori_depth,
             "ori_height": feature_ori_height,
             "ori_width": feature_ori_width,
-            "ori_log10": feature_ori_log10,
         }
     )
 
@@ -273,22 +279,42 @@ def label_splitter(
                 np.float32(np.float32(features_df.iloc[i]["Std"])),
                 np.float32(np.float32(features_df.iloc[i]["Var"])),
                 np.float32(np.float32(features_df.iloc[i]["bb_volume"])),
+                np.float32(np.float32(features_df.iloc[i]["bb_vol_log10"])),
+                np.float32(np.float32(features_df.iloc[i]["bb_depth"])),
+                np.float32(np.float32(features_df.iloc[i]["bb_height"])),
+                np.float32(np.float32(features_df.iloc[i]["bb_width"])),
+                np.float32(np.float32(features_df.iloc[i]["ori_volume"])),
+                np.float32(np.float32(features_df.iloc[i]["ori_vol_log10"])),
+                np.float32(np.float32(features_df.iloc[i]["ori_depth"])),
+                np.float32(np.float32(features_df.iloc[i]["ori_height"])),
+                np.float32(np.float32(features_df.iloc[i]["ori_width"]))
             ]
             for i in range(sel_start, sel_end)
         ]
     )
-    if int(split_op) > 0:
-        s = int(split_op) - 1  # split_op starts at 1
-        feature_names = ["z", "x", "y","Sum","Mean","Std","Var","bb_volume"]
-        feature_index = int(
-            split_feature_index
-        )  # feature_names.index(split_feature_index)
-        rules = [(int(feature_index), s, split_threshold)]
-        print(f"Split rule: {split_feature_index} {split_op} {split_threshold}")
-        print(f"objlabels: {objlabels}")
-        masked_out = apply_rules(
-            features_array, -1, rules, np.array(objlabels), num_objects
-        )
+
+    print(split_ops)
+    rules = []
+    for k in split_ops.keys():
+        if k != 'context':
+            split_op_card = split_ops[k]
+            print(split_op_card)
+            split_feature_index = int(split_op_card["split_feature_index"])
+            split_op = int(split_op_card["split_op"])
+            split_threshold = float(split_op_card["split_threshold"])
+            
+            if int(split_op) > 0:
+                s = int(split_op) - 1  # split_op starts at 1
+                feature_names = ["z", "x", "y", "Sum", "Mean", "Std", "Var", "bb_vol", "bb_vol_log10", "bb_vol_depth", "bb_vol_depth","bb_vol_height", "bb_vol_width", "ori_vol", "ori_vol_log10", "ori_vol_depth", "ori_vol_depth","ori_vol_height", "ori_vol_width"]
+                feature_index = int(
+                    split_feature_index
+                )  # feature_names.index(split_feature_index)
+                rules.append((int(feature_index), s, split_threshold))
+                print(f"Adding split rule: {split_feature_index} {split_op} {split_threshold}")
+            
+    masked_out = apply_rules(
+        features_array, -1, rules, np.array(objlabels), num_objects
+    )
 
     bg_label = max(np.unique(new_labels))
     print(f"Masking out bg label {bg_label}")
@@ -300,13 +326,7 @@ def label_splitter(
     new_labels = (new_labels > 0) * 1.0
 
     map_blocks(pass_through, new_labels, out=dst, normalize=False)
-    # hist_plot = encode_numpy(
-    #     plot_to_image(
-    #         features_array[:, feature_index].flatten(),
-    #         feature_names[feature_index],
-    #         vert_line_at=split_threshold,
-    #     )
-    # )
+    
     return features_array #, hist_plot
 
 
@@ -315,7 +335,6 @@ def apply_rules(
 ):
     logger.debug("Applying rules")
     mask = np.ones(num_objects, dtype=np.bool)
-    # out[out == label] = -1
 
     print(f"Label selected {label}")
     print(mask.shape)

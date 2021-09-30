@@ -4,7 +4,7 @@
 	
 3. In <INSTALLDIR>/SuRVoS2, use survos2_clean_environment_windows_conda.yml to create a new environment by:
 
-	conda env create -f survos2_clean_environment_linux.yml 
+	conda env create -f survos2_clean_conda.yml 
 
 	conda activate [CREATED ENVIRONMENT NAME]
 

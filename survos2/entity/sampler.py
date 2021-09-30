@@ -14,175 +14,6 @@ from survos2.entity.anno.geom import centroid_3d, rescale_3d
 from survos2.frontend.nb_utils import summary_stats
 
 
-def entitybvol_to_cropbvol(bvol):
-    """
-    from z1 z2 x1 x2 y1 y2
-    to z1 x1 y1 z2 x2 y2
-    """
-    b = np.zeros_like(bvol)
-    b[0] = bvol[0]
-    b[1] = bvol[3]
-    b[2] = bvol[1]
-    b[3] = bvol[4]
-    b[4] = bvol[2]
-    b[5] = bvol[5]
-
-    return b
-
-
-def detnetbvol_to_cropbvol(bvol):
-    """
-    from x1 y1 x2 y2 z1 z2
-    to z1 x1 y1 z2 x2 y2
-
-    """
-    b = np.zeros_like(bvol)
-    b[0] = bvol[4]
-    b[1] = bvol[0]
-    b[2] = bvol[1]
-    b[3] = bvol[5]
-    b[4] = bvol[2]
-    b[5] = bvol[3]
-    return b
-
-
-def cropbvol_to_detnet_bvol(bvol):
-    """
-    from z1 x1 y1 z2 x2 y2
-    to x1 y1 x2 y2 z1 z2
-    """
-    b = np.zeros_like(bvol)
-    b[0] = bvol[1]
-    b[1] = bvol[2]
-    b[2] = bvol[4]
-    b[3] = bvol[5]
-    b[4] = bvol[0]
-    b[5] = bvol[3]
-    return b
-
-
-def produce_patches(padded_vol, padded_anno, offset_locs, bvol_grid):
-    patches = []
-    patches_pts = []
-    patches_bvols = []
-    patches_anno = []
-
-    for i in range(len(bvol_grid)):
-        patch, patch_pts = crop_vol_and_pts_bb(
-            padded_vol, offset_locs, entitybvol_to_cropbvol(bvol_grid[i]), offset=True
-        )
-        patch_anno, patch_pts = crop_vol_and_pts_bb(
-            padded_anno, offset_locs, entitybvol_to_cropbvol(bvol_grid[i]), offset=True
-        )
-        patch_bvol = centroid_to_detnet_bvol(patch_pts, bvol_dim=(10, 10, 10))
-        patches.append(patch)
-        patches_bvols.append(patch_bvol)
-        patches_pts.append(patch_pts)
-        patches_anno.append(patch_anno)
-
-    return patches, patches_anno, patches_bvols, patches_pts
-
-
-def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16), sample_grid=False):
-
-    z_dim, x_dim, y_dim = grid_dim
-    spacez = np.linspace(0, padded_vol.shape[0] - (2 * padding[0]), z_dim)
-    spacex = np.linspace(0, padded_vol.shape[1] - (2 * padding[1]), x_dim)
-    spacey = np.linspace(0, padded_vol.shape[2] - (2 * padding[2]), y_dim)
-
-    zv, xv, yv = np.meshgrid(spacez, spacex, spacey)
-    print(zv.shape, xv.shape, yv.shape)
-
-    zv = zv + padding[0]
-    xv = xv + padding[1]
-    yv = yv + padding[2]
-
-    gridarr = np.stack((zv, xv, yv)).astype(np.uint32)
-    gridarr[:, 1, 1, 1]
-
-    zv_f = zv.reshape((z_dim * x_dim * y_dim))
-    xv_f = xv.reshape((z_dim * x_dim * y_dim))
-    yv_f = yv.reshape((z_dim * x_dim * y_dim))
-
-    class_code = [0] * len(zv_f)
-
-    trans_pts = np.stack((zv_f, xv_f, yv_f, class_code)).T.astype(np.uint32)
-
-    return trans_pts
-
-
-def generate_random_points(vol, num_pts, patch_size):
-    pts = np.random.random((num_pts, 4))
-    z_size, x_size, y_size = patch_size
-    pts[:, 0] = pts[:, 0] * (vol.shape[0] - z_size * 2) + z_size // 2
-    pts[:, 1] = pts[:, 1] * (vol.shape[1] - y_size * 2) + x_size // 2
-    pts[:, 2] = pts[:, 2] * (vol.shape[2] - x_size * 2) + y_size // 2
-    pts = np.abs(pts)
-    return pts
-
-
-def generate_random_points_in_volume(vol, num_pts, border=(32, 32, 32)):
-    pts = np.random.random((num_pts, 4))
-    pts[:, 0] = pts[:, 0] * (vol.shape[0] - (2 * border[0])) + border[0]
-    pts[:, 1] = pts[:, 1] * (vol.shape[1] - (2 * border[1])) + border[1]
-    pts[:, 2] = pts[:, 2] * (vol.shape[2] - (2 * border[2])) + border[2]
-    pts = np.abs(pts)
-    return pts
-
-
-def offset_points(pts, offset, scale=32, random_offset=False):
-    trans_pts = pts.copy()
-
-    trans_pts[:, 0] = pts[:, 0] + offset[0]
-    trans_pts[:, 1] = pts[:, 1] + offset[1]
-    trans_pts[:, 2] = pts[:, 2] + offset[2]
-
-    if random_offset:
-
-        offset_rand = np.random.random(trans_pts.shape) * scale
-        offset_rand[:, 3] = np.zeros((len(trans_pts)))
-
-        trans_pts = trans_pts + offset_rand
-
-    return trans_pts
-
-
-def centroid_to_detnet_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
-    """Centroid to bounding volume
-
-    Parameters
-    ----------
-    centers : np.ndarray, (nx3)
-        3d coordinates of the point to use as the centroid of the bounding box
-    bvol_dim : tuple, optional
-        Dimensions of the bounding volume centered at the points given by centers, by default (10, 10, 10)
-    flipxy : bool, optional
-        Flip x and y coordinates, by default False
-
-    Returns
-    -------
-    np.ndarray, (nx6)
-        (x_start, y_start, x_fin, y_fin, z_start, z_fin)
-    """
-    d, w, h = bvol_dim
-
-    if flipxy:
-        bvols = np.array(
-            [
-                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
-                for cz, cx, cy, _ in centers
-            ]
-        )
-    else:
-        bvols = np.array(
-            [
-                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
-                for cz, cy, cx, _ in centers
-            ]
-        )
-
-    return bvols
-
 
 def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
     """Centroid to bounding volume
@@ -219,6 +50,41 @@ def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
 
     return bvols
 
+def centroid_to_detnet_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
+    """Centroid to bounding volume for patches
+
+    Parameters
+    ----------
+    centers : np.ndarray, (nx3)
+        3d coordinates of the point to use as the centroid of the bounding box
+    bvol_dim : tuple, optional
+        Dimensions of the bounding volume centered at the points given by centers, by default (10, 10, 10)
+    flipxy : bool, optional
+        Flip x and y coordinates, by default False
+
+    Returns
+    -------
+    np.ndarray, (nx6)
+        (x_start, y_start, x_fin, y_fin, z_start, z_fin)
+    """
+    d, w, h = bvol_dim
+
+    if flipxy:
+        bvols = np.array(
+            [
+                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
+                for cz, cx, cy, _ in centers
+            ]
+        )
+    else:
+        bvols = np.array(
+            [
+                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
+                for cz, cy, cx, _ in centers
+            ]
+        )
+
+    return bvols
 
 def centroid_to_boxes(centers, bvol_dim=(10, 10, 10), flipxy=False):
     """Centroid to bounding volume
@@ -254,6 +120,63 @@ def centroid_to_boxes(centers, bvol_dim=(10, 10, 10), flipxy=False):
         )
 
     return bvols
+
+
+
+def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16), sample_grid=False):
+    z_dim, x_dim, y_dim = grid_dim
+    spacez = np.linspace(0, padded_vol.shape[0] - (2 * padding[0]), z_dim)
+    spacex = np.linspace(0, padded_vol.shape[1] - (2 * padding[1]), x_dim)
+    spacey = np.linspace(0, padded_vol.shape[2] - (2 * padding[2]), y_dim)
+
+    zv, xv, yv = np.meshgrid(spacez, spacex, spacey)
+    print(zv.shape, xv.shape, yv.shape)
+
+    zv = zv + padding[0]
+    xv = xv + padding[1]
+    yv = yv + padding[2]
+
+    gridarr = np.stack((zv, xv, yv)).astype(np.uint32)
+    gridarr[:, 1, 1, 1]
+
+    zv_f = zv.reshape((z_dim * x_dim * y_dim))
+    xv_f = xv.reshape((z_dim * x_dim * y_dim))
+    yv_f = yv.reshape((z_dim * x_dim * y_dim))
+
+    class_code = [0] * len(zv_f)
+
+    trans_pts = np.stack((zv_f, xv_f, yv_f, class_code)).T.astype(np.uint32)
+
+    return trans_pts
+
+
+
+def generate_random_points_in_volume(vol, num_pts, border=(32, 32, 32)):
+    pts = np.random.random((num_pts, 4))
+    pts[:, 0] = pts[:, 0] * (vol.shape[0] - (2 * border[0])) + border[0]
+    pts[:, 1] = pts[:, 1] * (vol.shape[1] - (2 * border[1])) + border[1]
+    pts[:, 2] = pts[:, 2] * (vol.shape[2] - (2 * border[2])) + border[2]
+    pts = np.abs(pts)
+    return pts
+
+
+def offset_points(pts, offset, scale=32, random_offset=False):
+    trans_pts = pts.copy()
+
+    trans_pts[:, 0] = pts[:, 0] + offset[0]
+    trans_pts[:, 1] = pts[:, 1] + offset[1]
+    trans_pts[:, 2] = pts[:, 2] + offset[2]
+
+    if random_offset:
+
+        offset_rand = np.random.random(trans_pts.shape) * scale
+        offset_rand[:, 3] = np.zeros((len(trans_pts)))
+
+        trans_pts = trans_pts + offset_rand
+
+    return trans_pts
+
+
 
 
 def sample_volumes(sel_entities, precropped_vol):
@@ -493,13 +416,11 @@ def sample_marked_patches(
         sel_pts[:, 2] = sel_pts[:, 2] - (y - h)
 
         if img.shape == patch_size:
-            # print(f"Number of points cropped in bounding box: {sel_pts.shape}")
             vols.append(img)
 
         else:
             incomplete_img = np.zeros(patch_size)
             incomplete_img[0 : img.shape[0], 0 : img.shape[1], 0 : img.shape[2]] = img
-            # print(img.shape)
             vols.append(incomplete_img)
         vols_pts.append(sel_pts)
         vols_bbs.append([slice_start, slice_end, x - w, x + w, y - h, y + h])
@@ -546,7 +467,6 @@ def crop_vol_and_pts(
     cropped_pts = np.array(np.delete(pts, out_of_bounds_w, axis=0))
 
     if offset:
-
         cropped_pts[:, 0] = cropped_pts[:, 0] - location[0]
         cropped_pts[:, 1] = cropped_pts[:, 1] - location[1]
         cropped_pts[:, 2] = cropped_pts[:, 2] - location[2]
@@ -744,3 +664,52 @@ def sample_patch2d(img_volume, pts, patch_size=(40, 40)):
         img_titles.append(str(int(x)) + "_" + str(int(y)) + "_" + str(sliceno))
 
     return img_shortlist, img_titles
+
+
+
+def entitybvol_to_cropbvol(bvol):
+    """
+    from z1 z2 x1 x2 y1 y2
+    to z1 x1 y1 z2 x2 y2
+    """
+    b = np.zeros_like(bvol)
+    b[0] = bvol[0]
+    b[1] = bvol[3]
+    b[2] = bvol[1]
+    b[3] = bvol[4]
+    b[4] = bvol[2]
+    b[5] = bvol[5]
+
+    return b
+
+
+def detnetbvol_to_cropbvol(bvol):
+    """
+    from x1 y1 x2 y2 z1 z2
+    to z1 x1 y1 z2 x2 y2
+
+    """
+    b = np.zeros_like(bvol)
+    b[0] = bvol[4]
+    b[1] = bvol[0]
+    b[2] = bvol[1]
+    b[3] = bvol[5]
+    b[4] = bvol[2]
+    b[5] = bvol[3]
+    return b
+
+
+def cropbvol_to_detnet_bvol(bvol):
+    """
+    from z1 x1 y1 z2 x2 y2
+    to x1 y1 x2 y2 z1 z2
+    """
+    b = np.zeros_like(bvol)
+    b[0] = bvol[1]
+    b[1] = bvol[2]
+    b[2] = bvol[4]
+    b[3] = bvol[5]
+    b[4] = bvol[0]
+    b[5] = bvol[3]
+    return b
+

@@ -123,7 +123,5 @@ def test_feature_generation():
     ]
 
 
-
-
 if __name__ == "__main__":
     pytest.main()

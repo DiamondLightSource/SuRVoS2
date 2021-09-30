@@ -15,18 +15,18 @@ import seaborn as sns
 
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
+from survos2 import survos
 
 
-def view_dataset(dataset_name, group, z):
+def view_dataset(dataset_name, group, z=None):
     src = DataModel.g.dataset_uri(dataset_name, group=group)
 
     with DatasetManager(src, out=None, dtype="float32") as DM:
         src_dataset = DM.sources[0]
         src_arr = src_dataset[:]
-    from matplotlib import pyplot as plt
-
-    plt.figure()
-    plt.imshow(src_arr[z, :])
+    if z:
+        plt.figure()
+        plt.imshow(src_arr[z, :])
 
     return src_arr
 
@@ -38,18 +38,8 @@ def add_anno(anno_vol, new_name, workspace_name):
         uri=None,
         workspace=workspace_name,
     )
-    print(result)
     new_anno_id = result[0]["id"]
-    print(new_anno_id)
-    # result = survos.run_command(
-    #     "annotations",
-    #     "rename",
-    #     uri=None,
-    #     feature_id=new_anno_id,
-    #     new_name=new_name,
-    #     workspace=workspace_name,
-    # )
-
+    
     src = DataModel.g.dataset_uri(new_anno_id, group="annotations")
 
     with DatasetManager(src, out=src, dtype="int32", fillvalue=0) as DM:
@@ -478,25 +468,3 @@ def show_images_and_points(
     return fig
 
 
-def show_images_and_points2(
-    images,
-    points,
-    cluster_classes,
-    titles=None,
-    figsize=(12, 4),
-):
-    n_ims = len(images)
-    if titles is None:
-        titles = ["(%d)" % i for i in range(1, n_ims + 1)]
-    fig = plt.figure(figsize=figsize)
-    n = 1
-    plt.style.use("ggplot")
-    for image, title in zip(images, titles):
-
-        a = fig.add_subplot(1, n_ims, n)
-        plt.imshow(image, cmap="gray")
-        scat = a.scatter(points[:, 0], points[:, 1], c=cluster_classes, cmap="jet_r")
-        a.legend(handles=scat.legend_elements()[0], labels=cats_classes)
-
-        a.set_title(title)
-        n += 1

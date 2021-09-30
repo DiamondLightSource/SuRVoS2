@@ -11,11 +11,12 @@ from survos2.frontend.plugins.annotations import *
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.base import ComboBox
 from survos2.frontend.plugins.features import *
-from survos2.frontend.plugins.regions import *
+from survos2.frontend.plugins.superregions import *
 from survos2.frontend.utils import FileWidget
 from survos2.server.state import cfg
 from survos2.model.model import DataModel
 
+from napari.qt import progress
 
 class ButtonPanelWidget(QtWidgets.QWidget):
     clientEvent = Signal(object)
@@ -30,7 +31,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         button_refresh = QPushButton("Refresh", self)
         button_refresh.clicked.connect(self.button_refresh_clicked)
-
+    
         button_transfer = QPushButton("Transfer Layer")
         button_transfer.clicked.connect(self.button_transfer_clicked)
 
@@ -42,6 +43,11 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         button_runworkflow = QPushButton("Run workflow", self)
         button_runworkflow.clicked.connect(self.button_runworkflow_clicked)
+
+  
+        #self.button_pause_save = QPushButton("Pause Save to Server", self)
+        #self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
+
 
         # self.session_list = ComboBox()
         # for s in cfg.sessions:
@@ -69,42 +75,36 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.hbox_layout0.addWidget(self.slider)
         self.slider.hide()
 
-        vbox = VBox(self, margin=(1, 1, 1, 1), spacing=2)
-
         hbox_layout_ws.addWidget(workspaces_widget)
         hbox_layout1.addWidget(button_refresh)
         hbox_layout1.addWidget(self.button_slicemode)
         hbox_layout1.addWidget(button_transfer)
-
+        #hbox_layout2.addWidget(self.button_pause_save)
         hbox_layout2.addWidget(self.filewidget)
         hbox_layout2.addWidget(button_runworkflow)
-
+        
+        vbox = VBox(self, margin=(1, 1, 1, 1), spacing=2)
         vbox.addLayout(self.hbox_layout0)
         vbox.addLayout(hbox_layout1)
         vbox.addLayout(hbox_layout_ws)
         vbox.addLayout(hbox_layout2)
-        vbox.addLayout(hbox_layout3)
+#        vbox.addLayout(hbox_layout3)
 
-        self.roi_start = LineEdit3D(default=0, parse=int)
-        self.roi_end = LineEdit3D(default=0, parse=int)
-        button_setroi = QPushButton("Set ROI", self)
-        button_setroi.clicked.connect(self.button_setroi_clicked)
-        self.roi_start_row = HWidgets("ROI Start:", self.roi_start)
-        self.roi_end_row = HWidgets("Roi End: ", self.roi_end)
-        self.roi_layout = QtWidgets.QVBoxLayout()
-        self.roi_layout.addWidget(self.roi_start_row)
-        self.roi_layout.addWidget(self.roi_end_row)
-        self.roi_layout.addWidget(button_setroi)
-        vbox.addLayout(self.roi_layout)
-
+        # self.roi_start = LineEdit3D(default=0, parse=int)
+        # self.roi_end = LineEdit3D(default=0, parse=int)
+        # button_setroi = QPushButton("Set ROI", self)
+        # button_setroi.clicked.connect(self.button_setroi_clicked)
+        # self.roi_start_row = HWidgets("ROI Start:", self.roi_start)
+        # self.roi_end_row = HWidgets("Roi End: ", self.roi_end)
+        # self.roi_layout = QtWidgets.QVBoxLayout()
+        # self.roi_layout.addWidget(self.roi_start_row)
+        # self.roi_layout.addWidget(self.roi_end_row)
+        # self.roi_layout.addWidget(button_setroi)
+        # vbox.addLayout(self.roi_layout)
+        
     def load_workflow(self, path):
         self.workflow_fullname = path
         print(f"Setting workflow fullname: {self.workflow_fullname}")
-
-    def _params_updated(self):
-        cfg.ppw.clientEvent.emit(
-            {"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()}
-        )
 
     def refresh_workspaces(self):
         workspaces = os.listdir(DataModel.g.CHROOT)
@@ -147,7 +147,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         ]
         self.refresh_workspaces()
         cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "goto_roi", "roi": roi}
+            {"source": "panel_gui", "data": "make_roi_ws", "roi": roi}
         )
 
     def button_refresh_clicked(self):
@@ -159,6 +159,14 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             {"source": "panel_gui", "data": "refresh", "value": None}
         )
 
+    def button_pause_save_clicked(self):
+        if cfg.pause_save:
+            self.button_pause_save.setText("Pause Saving to Server")
+        else:
+            self.button_pause_save.setText("Resume saving to Server")
+            
+        cfg.pause_save = not cfg.pause_save
+        
     def button_transfer_clicked(self):
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "transfer_layer", "value": None}
@@ -182,6 +190,11 @@ class ButtonPanelWidget(QtWidgets.QWidget):
                 "source": "button_slicemode",
                 "data": "slice_mode",
             }
+        )
+
+    def _params_updated(self):
+        cfg.ppw.clientEvent.emit(
+            {"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()}
         )
 
     def button_runworkflow_clicked(self):
@@ -220,13 +233,22 @@ class PluginPanelWidget(QtWidgets.QWidget):
         self.cfg = cfg  # access in survos console: viewer.window._dock_widgets['Workspace'].children()[4].cfg
 
     def setup(self):
-        for plugin_name in list_plugins():
-            plugin = get_plugin(plugin_name)
-            name = plugin["name"]
-            title = plugin["title"]
-            plugin_cls = plugin["cls"]  # full classname
-            tab = plugin["tab"]
-            self.pluginContainer.show_plugin(name, tab)
+        with progress(total=len(list_plugins())) as pbar:
+            pbar.set_description("Refreshing viewer")
+            pbar.update(1)
+
+            for plugin_name in list_plugins():
+                pbar.update(1)
+                plugin = get_plugin(plugin_name)
+                name = plugin["name"]
+                title = plugin["title"]
+                plugin_cls = plugin["cls"]  # full classname
+                tab = plugin["tab"]
+                self.pluginContainer.show_plugin(name, tab)
+
+        for l in cfg.viewer.layers:
+                cfg.viewer.layers.remove(l)
+        cfg.emptying_viewer = False
 
 
 class QtPlotWidget(QtWidgets.QWidget):

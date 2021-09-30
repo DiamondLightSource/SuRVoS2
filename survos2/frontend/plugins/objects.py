@@ -77,7 +77,6 @@ class ObjectsPlugin(Plugin):
         logger.debug(f"objects available: {result}")
         if result:
             all_categories = sorted(set(p["category"] for p in result))
-
             for i, category in enumerate(all_categories):
                 self.objects_combo.addItem(category)
                 self.objects_combo.model().item(
@@ -90,7 +89,6 @@ class ObjectsPlugin(Plugin):
 
     def add_objects(self, idx):
         logger.debug(f"Add objects with idx {idx}")
-
         if idx == 0 or idx == -1:
             return
 
@@ -236,28 +234,25 @@ class ObjectsCard(Card):
         cfg.object_crop_start = self.widgets["crop_start"].value()
         cfg.object_crop_end = self.widgets["crop_end"].value()
 
+        if self.objectstype == "patches":
+            self._add_annotations_source()
+            self.entity_mask_bvol_size = LineEdit3D(default=10, parse=int)
+            self._add_feature_source()
+            
+            self.make_entity_mask_btn = PushButton("Make entity mask", accent=True)
+            self.make_entity_mask_btn.clicked.connect(self.make_entity_mask)
+            self.make_patches_btn = PushButton("Make patches", accent=True)
+            self.make_patches_btn.clicked.connect(self.make_patches)
+            self.train_fpn_btn = PushButton("Train FPN", accent=True)
+            self.train_fpn_btn.clicked.connect(self.train_fpn)
+
+            self.add_row(HWidgets(None, self.entity_mask_bvol_size, self.make_entity_mask_btn, Spacing(35)))
+            self.add_row(HWidgets(None,  self.make_patches_btn, Spacing(35)))
+            self.add_row(HWidgets(None, self.train_fpn_btn, Spacing(35)))
+
+
         self.table_control = TableWidget()
         self.add_row(self.table_control.w, max_height=500)
-
-        # if objectstype == "points":
-        #     tabledata, self.entities_df = setup_entity_table(
-        #         objectsfullname,
-        #         scale=cfg.object_scale,
-        #         offset=cfg.object_offset,
-        #         crop_start=cfg.object_crop_start,
-        #         crop_end=cfg.object_crop_end,
-        #     )
-        # elif objectstype == "boxes":
-        #     tabledata, self.entities_df = setup_bb_table(
-        #         objectsfullname,
-        #         scale=cfg.object_scale,
-        #         offset=cfg.object_offset,
-        #         crop_start=cfg.object_crop_start,
-        #         crop_end=cfg.object_crop_end,
-        #     )
-
-        # cfg.tabledata = tabledata
-        # self.table_control.set_data(tabledata)
         cfg.entity_table = self.table_control
 
     def _add_param(self, name, title=None, type="String", default=None):
@@ -296,7 +291,6 @@ class ObjectsCard(Card):
         widget = HWidgets(
             "Annotation:", self.annotations_source, Spacing(35), stretch=1
         )
-
         self.add_row(widget)
 
     def card_title_edited(self, newtitle):
@@ -345,18 +339,54 @@ class ObjectsCard(Card):
             crop_end=cfg.object_crop_end,
         )
         logger.debug(f"Getting objects with params {params}")
-        Launcher.g.run("objects", "points", **params)
+        result = Launcher.g.run("objects", "update_metadata", workspace=True, **params)
+          
+        if self.objectstype == "points":
+            
+            tabledata, self.entities_df = setup_entity_table(
+                 self.objectsfullname,
+                 scale=cfg.object_scale,
+                 offset=cfg.object_offset,
+                 crop_start=cfg.object_crop_start,
+                 crop_end=cfg.object_crop_end,
+                 flipxy=self.flipxy_checkbox.value()
+             )
+            
+        elif self.objectstype == "boxes":
+            tabledata, self.entities_df = setup_bb_table(
+                self.objectsfullname,
+                scale=cfg.object_scale,
+                offset=cfg.object_offset,
+                crop_start=cfg.object_crop_start,
+                crop_end=cfg.object_crop_end,
+                flipxy=self.flipxy_checkbox.value()
+            )
+        elif self.objectstype == "patches":
+            tabledata, self.entities_df = setup_entity_table(
+                self.objectsfullname,
+                scale=cfg.object_scale,
+                offset=cfg.object_offset,
+                crop_start=cfg.object_crop_start,
+                crop_end=cfg.object_crop_end,
+                flipxy=self.flipxy_checkbox.value()
+            )
+        
+      
 
-        tabledata, self.entities_df = setup_entity_table(
-            self.objectsfullname,
-            entities_df=None,
-            scale=cfg.object_scale,
-            offset=cfg.object_offset,
-            crop_start=cfg.object_crop_start,
-            crop_end=cfg.object_crop_end,
-            flipxy=self.flipxy_checkbox.value(),
-        )
-        cfg.tabledata = tabledata  # for show_roi in frontend
+        cfg.tabledata = tabledata
+        self.table_control.set_data(tabledata)
+
+
+        # tabledata, self.entities_df = setup_entity_table(
+        #     self.objectsfullname,
+        #     entities_df=None,
+        #     scale=cfg.object_scale,
+        #     offset=cfg.object_offset,
+        #     crop_start=cfg.object_crop_start,
+        #     crop_end=cfg.object_crop_end,
+        #     flipxy=self.flipxy_checkbox.value(),
+        # )
+        #cfg.tabledata = tabledata  # for show_roi in frontend
 
         print(f"Loaded tabledata {tabledata}")
         self.table_control.set_data(tabledata)
@@ -398,3 +428,101 @@ class ObjectsCard(Card):
             cfg.ppw.clientEvent.emit(
                 {"source": "objects_plugin", "data": "refresh", "value": None}
             )
+
+
+    def make_patches(self):
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_array = DM.sources[0][:]
+
+        objects_scale = 1.0
+        entity_meta = {
+            "0": {
+                "name": "class1",
+                "size": np.array((15, 15, 15)) * objects_scale,
+                "core_radius": np.array((7, 7, 7)) * objects_scale,
+            },
+        }
+    
+        entity_arr = np.array(self.entities_df)
+
+        from entityseg.training.patches import PatchWorkflow, organize_entities, make_patches
+        combined_clustered_pts, classwise_entities = organize_entities(
+            src_array, entity_arr, entity_meta, plot_all=False
+        )
+
+        wparams = {}
+        wparams["entities_offset"] = (0, 0, 0)
+        wparams["entity_meta"] = entity_meta
+        wparams["workflow_name"] = "Make_Patches"
+        wparams["proj"] = DataModel.g.current_workspace
+        wf = PatchWorkflow(
+            [src_array], combined_clustered_pts, classwise_entities, src_array, wparams, combined_clustered_pts
+        )
+
+        src = DataModel.g.dataset_uri(self.annotations_source.value().rsplit("/", 1)[-1], group="annotations")
+        with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            anno_level = src_dataset[:] & 15
+
+        logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
+
+        logger.debug(f"Making patches in path {src_dataset._path}")
+        train_v_density = make_patches(wf, entity_arr, src_dataset._path, 
+        proposal_vol=(anno_level > 0)* 1.0, 
+        padding=(32,32,32), num_augs=0, max_vols=-1)
+
+        self.patches = train_v_density
+
+        cfg.ppw.clientEvent.emit(
+            {"source": "panel_gui", "data": "view_patches", "patches_fullname": train_v_density}
+        )
+
+
+    def train_fpn(self):
+        from survos2.entity.train import train_seg
+        from survos2.entity.pipeline_ops import make_proposal
+        
+        wf_params = {}
+        wf_params["torch_models_fullpath"] = "/home/avery_pennington/experiments"
+        model_file = train_seg(self.patches, wf_params, num_epochs=1)
+
+        patch_size=(128, 128, 128)
+        patch_overlap=(32, 32, 32)
+        overlap_mode="crop"
+        model_type="fpn3d"
+
+        threshold_devs=1.5,
+        invert=True,
+
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_array = DM.sources[0][:]
+        
+        proposal = make_proposal(
+        src_array,
+        os.path.join(wf_params["torch_models_fullpath"],model_file),
+        model_type=model_type,
+        patch_size=patch_size,
+        patch_overlap=patch_overlap,
+        overlap_mode=overlap_mode,
+        )
+
+        # create new float image
+        params = dict(feature_type="raw", workspace=True)
+        result = Launcher.g.run("features", "create", **params)
+
+        if result:
+            fid = result["id"]
+            ftype = result["kind"]
+            fname = result["name"]
+            logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
+
+            dst = DataModel.g.dataset_uri(fid, group="features")
+            with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+                DM.out[:] = proposal
+
+            cfg.ppw.clientEvent.emit(
+                {"source": "workspace_gui", "data": "refresh", "value": None}
+            )
+

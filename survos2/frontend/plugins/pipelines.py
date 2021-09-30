@@ -11,7 +11,7 @@ from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.base import ComboBox, LazyComboBox, LazyMultiComboBox
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
-from survos2.frontend.plugins.regions import RegionComboBox
+from survos2.frontend.plugins.superregions import RegionComboBox
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.utils import (
     get_array_from_dataset,
@@ -22,6 +22,9 @@ from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
 from survos2.frontend.utils import FileWidget
+
+
+from napari.qt import progress
 
 _PipelineNotifier = PluginNotifier()
 
@@ -319,10 +322,10 @@ class PipelineCard(Card):
         self.pipeline_type = ftype
         self.pipeline_name = fname
 
-        from qtpy.QtWidgets import QProgressBar
+        #from qtpy.QtWidgets import QProgressBar
 
-        self.pbar = QProgressBar(self)
-        self.add_row(self.pbar)
+        #self.pbar = QProgressBar(self)
+        #self.add_row(self.pbar)
 
         self.params = fparams
         print(fparams)
@@ -344,7 +347,7 @@ class PipelineCard(Card):
             self._add_projection_choice()
             self._add_param("lam", type="FloatSlider", default=0.15)
 
-        elif self.pipeline_type == "generate_blobs":
+        elif self.pipeline_type == "rasterize_points":
             self._add_annotations_source()
             self._add_feature_source()
             self._add_objects_source()
@@ -355,8 +358,7 @@ class PipelineCard(Card):
 
         elif self.pipeline_type == "predict_segmentation_fcn":
             self._add_annotations_source()
-            self._add_features_source()
-            self._add_objects_source()
+            self._add_feature_source()
             self._add_workflow_file()
             self._add_model_type()
             # self._add_patch_params()
@@ -364,7 +366,10 @@ class PipelineCard(Card):
         elif self.pipeline_type == "label_postprocess":
             self._add_annotations_source(label="Layer Over: ")
             self._add_annotations_source2(label="Layer Base: ")
-
+            self.label_index = LineEdit(default=-1, parse=int)
+            widget = HWidgets("Selected label:", self.label_index, Spacing(35), stretch=1)
+            self.add_row(widget)
+        
         elif self.pipeline_type == "cleaning":
             # self._add_objects_source()
             self._add_feature_source()
@@ -448,7 +453,6 @@ class PipelineCard(Card):
         if idx == 0:
             self.clf_container.layout().addWidget(self.ensembles)
             self.svm.setParent(None)
-
         elif idx == 1:
             self.clf_container.layout().addWidget(self.svm)
             self.ensembles.setParent(None)
@@ -585,7 +589,6 @@ class PipelineCard(Card):
                     os.path.join("regions/", params["region_id"])
                 )
         if "constrain_mask" in params:
-
             if (
                 params["constrain_mask"] is not None
                 and params["constrain_mask"] != "None"
@@ -618,21 +621,25 @@ class PipelineCard(Card):
 
     def view_pipeline(self):
         logger.debug(f"View pipeline_id {self.pipeline_id}")
-        if self.annotations_source:
-            if self.annotations_source.value():
-                level_id = str(self.annotations_source.value().rsplit("/", 1)[-1])
-            else:
-                level_id = '001_level'
-            logger.debug(f"Assigning annotation level {level_id}")
+        with progress(total=2) as pbar:
+            pbar.set_description("Viewing feature")
+            pbar.update(1)
+            if self.annotations_source:
+                if self.annotations_source.value():
+                    level_id = str(self.annotations_source.value().rsplit("/", 1)[-1])
+                else:
+                    level_id = '001_level'
+                logger.debug(f"Assigning annotation level {level_id}")
 
-            cfg.ppw.clientEvent.emit(
-                {
-                    "source": "pipelines",
-                    "data": "view_pipeline",
-                    "pipeline_id": self.pipeline_id,
-                    "level_id": level_id,
-                }
-            )
+                cfg.ppw.clientEvent.emit(
+                    {
+                        "source": "pipelines",
+                        "data": "view_pipeline",
+                        "pipeline_id": self.pipeline_id,
+                        "level_id": level_id,
+                    }
+                )
+            pbar.update(1)
 
     def load_as_float(self):
         logger.debug(f"Loading prediction {self.pipeline_id} as float image.")
@@ -763,7 +770,7 @@ class PipelineCard(Card):
             all_params["classifier_params"] = self.svm.get_params()
         return all_params
 
-    def setup_params_generate_blobs(self, dst):
+    def setup_params_rasterize_points(self, dst):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         all_params = dict(src=src, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
@@ -787,16 +794,13 @@ class PipelineCard(Card):
         return all_params
 
     def setup_params_predict_segmentation_fcn(self, dst):
-        feature_names_list = [
-            n.rsplit("/", 1)[-1] for n in self.features_source.value()
-        ]
         src = DataModel.g.dataset_uri(
-            self.features_source.value()[0], group="pipelines"
+            self.feature_source.value(), group="features"
         )
         all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
-        all_params["feature_ids"] = feature_names_list
+        all_params["feature_id"] = self.feature_source.value()
         all_params["model_fullname"] = self.model_fullname
         all_params["model_type"] = self.model_type.value()
         all_params["dst"] = self.pipeline_id
@@ -805,13 +809,20 @@ class PipelineCard(Card):
     def setup_params_label_postprocess(self, dst):
         all_params = dict(modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
-        all_params["level_over"] = str(
-            self.annotations_source.value().rsplit("/", 1)[-1]
-        )
+        
+        print(self.annotations_source.value())
+
+        if(self.annotations_source.value()):
+            all_params["level_over"] = str(
+                self.annotations_source.value().rsplit("/", 1)[-1]
+            )
+        else:
+            all_params["level_over"] = "None"
         all_params["level_base"] = str(
             self.annotations_source2.value().rsplit("/", 1)[-1]
         )
         all_params["dst"] = dst
+        all_params["selected_label"] = int(self.label_index.value())
         return all_params
 
     def setup_params_cleaning(self, dst):
@@ -823,34 +834,37 @@ class PipelineCard(Card):
 
     def compute_pipeline(self):
         dst = DataModel.g.dataset_uri(self.pipeline_id, group="pipelines")
-
-        try:
-            if self.pipeline_type == "superregion_segment":
-                all_params = self.setup_params_superregion_segment(dst)
-            elif self.pipeline_type == "generate_blobs":
-                all_params = self.setup_params_generate_blobs(dst)
-            elif self.pipeline_type == "watershed":
-                all_params = self.setup_params_watershed(dst)
-            elif self.pipeline_type == "predict_segmentation_fcn":
-                all_params = self.setup_params_predict_segmentation_fcn(dst)
-            elif self.pipeline_type == "label_postprocess":
-                all_params = self.setup_params_label_postprocess(dst)
-            elif self.pipeline_type == "cleaning":
-                all_params = self.setup_params_cleaning(dst)
-
-            all_params.update({k: v.value() for k, v in self.widgets.items()})
-
-            logger.info(f"Computing pipelines {self.pipeline_type} {all_params}")
+        
+        with progress(total=3) as pbar:
+            pbar.set_description("Calculating pipeline")
+            pbar.update(1)
             try:
-                self.pbar.setValue(20)
-                result = Launcher.g.run("pipelines", self.pipeline_type, **all_params)
-            except Exception as err:
-                print(err)
-            if result is not None:
-                self.pbar.setValue(100)
+                if self.pipeline_type == "superregion_segment":
+                    all_params = self.setup_params_superregion_segment(dst)
+                elif self.pipeline_type == "rasterize_points":
+                    all_params = self.setup_params_rasterize_points(dst)
+                elif self.pipeline_type == "watershed":
+                    all_params = self.setup_params_watershed(dst)
+                elif self.pipeline_type == "predict_segmentation_fcn":
+                    all_params = self.setup_params_predict_segmentation_fcn(dst)
+                elif self.pipeline_type == "label_postprocess":
+                    all_params = self.setup_params_label_postprocess(dst)
+                elif self.pipeline_type == "cleaning":
+                    all_params = self.setup_params_cleaning(dst)
 
-        except Exception as e:
-            print(e)
+                all_params.update({k: v.value() for k, v in self.widgets.items()})
+
+                logger.info(f"Computing pipelines {self.pipeline_type} {all_params}")
+                try:
+                    pbar.update(1)
+                    result = Launcher.g.run("pipelines", self.pipeline_type, **all_params)
+                except Exception as err:
+                    print(err)
+                if result is not None:
+                    pbar.update(1)
+
+            except Exception as e:
+                print(e)
 
     def card_title_edited(self, newtitle):
         params = dict(pipeline_id=self.pipeline_id, new_name=newtitle, workspace=True)

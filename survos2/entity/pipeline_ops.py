@@ -26,6 +26,7 @@ from survos2.server.supervoxels import generate_supervoxels, superregion_factory
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 from tqdm import tqdm
+import unet
 
 
 def load_model(detmod, file_path):
@@ -165,7 +166,8 @@ def predict_agg_3d(
     from torchio import IMAGE, LOCATION
     from torchio.data.inference import GridAggregator, GridSampler
 
-    img_tens = torch.FloatTensor(input_array).unsqueeze(0)
+    print(input_array.shape)
+    img_tens = torch.FloatTensor(input_array[:]).unsqueeze(0)
     print(f"Predict and aggregate on volume of {img_tens.shape}")
 
     one_subject = tio.Subject(
@@ -254,10 +256,46 @@ def prepare_unet3d(existing_model_fname=None, num_epochs=2, initial_lr=0.001, de
     return model3d, optimizer, scheduler
 
 
+
+def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
+    from survos2.entity.models.fpn import CNNConfigs
+    from survos2.entity.models.detNet2 import detNet
+    cf = CNNConfigs("mymodel")
+    #metrics = defaultdict(float)
+    #epoch_samples = 0
+    device = torch.device(gpu_id)
+    print(f"Device {device}")
+    print(f"Dim: {cf.dim} {cf.num_seg_classes}")
+    
+    detmod = detNet(cf).to(device)
+
+    if existing_model_fname is not None:
+        print(existing_model_fname)
+        detmod = load_model(detmod, str(existing_model_fname))
+
+    detmod = detmod.train()
+
+    # optimizer_ft = optim.Adam(filter(lambda p: p.requires_grad,
+    #                                 detmod.parameters()), lr=1e-3)
+    # exp_lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer_ft, num_epochs)
+
+    optimizer = optim.AdamW(
+        detmod.parameters(),
+        lr=0.001,
+        betas=(0.9, 0.999),
+        eps=1e-08,
+        weight_decay=0.01,
+        amsgrad=False,
+    )
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.21)
+
+    return detmod, optimizer, scheduler
+
+
 def make_proposal(
     vol,
     model_fullname,
-    model_type,
+    model_type="fpn3d",
     nb=True,
     patch_size=(64, 64, 64),
     patch_overlap=(0, 0, 0),
@@ -266,9 +304,11 @@ def make_proposal(
 ):
 
     if model_type == "unet3d":
-        model3d, optimizer, scheduler = prepare_unet3d(device=gpu_id)
+        print("Using unet3d")
+        model3d, _, _ = prepare_unet3d(device=gpu_id)
     elif model_type == "fpn3d":
-        model3d, optimizer, scheduler = prepare_fpn3d(gpu_id=gpu_id)
+        print("Using fpn3d")
+        model3d, _, _ = prepare_fpn3d(gpu_id=gpu_id)
     print(f"Predicting segmentation on volume of shape {vol.shape}")
 
     if model_type == "unet3d":

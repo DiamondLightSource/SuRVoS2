@@ -13,12 +13,9 @@ from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
 from survos2.frontend.main import roi_ws
 
-### Workspace
-
 
 @hug.get()
-def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name: String):
-
+def make_roi_ws(feature_id: DataURI, roi: IntList, current_workspace_name: String):
     # get raw from current workspace
     src = DataModel.g.dataset_uri(feature_id, group="features")
     logger.debug(f"Getting features {src} and cropping roi {roi}")
@@ -44,8 +41,8 @@ def goto_roi(feature_id: DataURI, roi: IntList, current_workspace_name: String):
         + str(roi[5])
     )
     roi_ws(src_dataset, roi_name)
-    src_ws = get(current_workspace_name)
-    target_ws = get(roi_name)
+    #src_ws = get(current_workspace_name)
+    #target_ws = get(roi_name)
     # src_ws.replicate_workspace(target_ws.path)
 
     return roi_name
@@ -56,21 +53,16 @@ def set_workspace(workspace: String):
     logger.debug(f"Setting workspace to {workspace}")
     DataModel.g.current_workspace = workspace
 
-
-
-
 @hug.get()
 def set_workspace_shape(shape: IntList):
     logger.debug(f"Setting workspace shape to {shape}")
     DataModel.g.current_workspace_shape = shape
     return DataModel.g.current_workspace_shape
 
-
 @hug.get()
 def create(workspace: String):
     workspace, session = parse_workspace(workspace)
     return Workspace.create(workspace)
-
 
 @hug.get()
 def delete(workspace: String):

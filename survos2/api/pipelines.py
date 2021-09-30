@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import dask.array as da
 import hug
-from numba.core.types.scalars import Integer
+#from numba.core.types.scalars import Integer
 import numpy as np
 from loguru import logger
 from scipy import ndimage
@@ -27,20 +27,15 @@ from survos2.api.types import (
     String,
 )
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
-
-
 from survos2.improc import map_blocks
 from survos2.improc.utils import DatasetManager, dask_relabel_chunks
 from survos2.io import dataset_from_uri
 from survos2.model import DataModel
 from survos2.server.state import cfg
 from survos2.utils import encode_numpy
-
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.entity.anno.pseudo import make_pseudomasks
 from survos2.api.features import pass_through
-
-
 from torch.utils.data import DataLoader
 from survos2.frontend.components.entity import setup_entity_table
 
@@ -51,9 +46,12 @@ __pipeline_dtype__ = "float32"
 __pipeline_fill__ = 0
 
 
+def pass_through(x):
+    return x
+
 @hug.get()
 def predict_segmentation_fcn(
-    feature_ids: DataURIList,
+    feature_id: DataURI,
     model_fullname: String,
     dst: DataURI,
     patch_size: IntOrVector = 64,
@@ -63,22 +61,14 @@ def predict_segmentation_fcn(
 ):
     from survos2.entity.pipeline_ops import make_proposal
 
-    logger.debug(
-        f"FCN segmentation with features {feature_ids} and model {model_fullname}"
-    )
+    src = DataModel.g.dataset_uri(feature_id, group="features")
 
-    features = []
-    for feature_id in feature_ids:
-        src = DataModel.g.dataset_uri(feature_id, group="features")
-        logger.debug(f"Getting features {src}")
-
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_dataset = DM.sources[0]
-            logger.debug(f"Adding feature of shape {src_dataset.shape}")
-            features.append(src_dataset[:])
-
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        logger.debug(f"Adding feature of shape {src_dataset.shape}")
+        
     proposal = make_proposal(
-        features[0],
+        src_dataset,
         model_fullname,
         model_type=model_type,
         patch_size=patch_size,
@@ -135,30 +125,38 @@ def cleaning(
 def label_postprocess(
     level_over: DataURI,
     level_base: DataURI,
+    selected_label: DataURI,
     dst: DataURI,
 ):
-
-    src1 = DataModel.g.dataset_uri(level_over, group="annotations")
-    with DatasetManager(src1, out=None, dtype="uint16", fillvalue=0) as DM:
-        src1_dataset = DM.sources[0]
-        anno1_level = src1_dataset[:] & 15
-
-        logger.debug(f"Obtained annotation level with labels {np.unique(anno1_level)}")
+    if level_over != 'None':
+        src1 = DataModel.g.dataset_uri(level_over, group="annotations")
+        with DatasetManager(src1, out=None, dtype="uint16", fillvalue=0) as DM:
+            src1_dataset = DM.sources[0]
+            anno1_level = src1_dataset[:] & 15
+            logger.info(f"Obtained over annotation level with labels {np.unique(anno1_level)}")
 
     src2 = DataModel.g.dataset_uri(level_base, group="annotations")
     with DatasetManager(src2, out=None, dtype="uint16", fillvalue=0) as DM:
         src2_dataset = DM.sources[0]
         anno2_level = src2_dataset[:] & 15
+        logger.info(f"Obtained base annotation level with labels {np.unique(anno2_level)}")
 
-        logger.debug(f"Obtained annotation level with labels {np.unique(anno2_level)}")
+    print(f"Selected label {selected_label}")
+    
+    if int(selected_label) != -1:
+        anno2_level = (anno2_level == int(selected_label)) * 1.0
 
-    def pass_through(x):
-        return x
+    result = anno2_level
 
-    result = anno2_level * (1.0 - (anno1_level > 0))
-    shifted_level = anno1_level
-    result += shifted_level
-
+    if level_over != 'None':
+        print(anno2_level)
+        print(anno1_level)
+        result = anno2_level * (1.0 - ((anno1_level > 0) * 1.0))
+        #result += np.max(np.unique(anno1_level))
+        shifted_level = anno1_level
+        result += shifted_level
+        
+    print(result)
     map_blocks(pass_through, result, out=dst, normalize=False)
 
 
@@ -187,7 +185,7 @@ def watershed(src: DataURI, anno_id: DataURI, dst: DataURI):
 
 @hug.get()
 @save_metadata
-def generate_blobs(
+def rasterize_points(
     src: DataURI,
     dst: DataURI,
     workspace: String,
@@ -224,7 +222,7 @@ def generate_blobs(
     objects_crop_start = ds_objects.get_metadata("crop_start")
     objects_crop_end = ds_objects.get_metadata("crop_end")
 
-    logger.debug(f"Getting objects from {src} and file {objects_fullname}")
+    logger.debug(f"Getting objects from {src} and file {objects_fullname} with scale {objects_scale}")
     from survos2.frontend.components.entity import make_entity_df, setup_entity_table
 
     tabledata, entities_df = setup_entity_table(
@@ -332,7 +330,7 @@ def superregion_segment(
         logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
 
     # get superregions
-    src = DataModel.g.dataset_uri(region_id, group="regions")
+    src = DataModel.g.dataset_uri(region_id, group="superregions")
     with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         supervoxel_image = src_dataset[:]

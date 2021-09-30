@@ -45,7 +45,6 @@ def run_workflow(msg):
                 src = DataModel.g.dataset_uri(src_name, group=plugin)
 
             dst = DataModel.g.dataset_uri(dst_name, group=plugin)
-
             all_params = dict(src=src, dst=dst, modal=True)
             all_params.update(params)
             logger.info(f"Executing workflow {all_params}")

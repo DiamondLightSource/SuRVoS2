@@ -5,7 +5,7 @@ QT Plugins Base
 """
 import numpy as np
 import pandas as pd
-from numba import jit
+#from numba import jit
 import scipy
 import yaml
 from vispy import scene

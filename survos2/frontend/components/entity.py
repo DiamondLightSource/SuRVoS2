@@ -11,7 +11,7 @@ from survos2.server.state import cfg
 from survos2.entity.sampler import crop_pts_bb
 
 import warnings
-
+from survos2.frontend.components import Table
 warnings.filterwarnings("ignore")
 MAX_SIZE = 10000
 
@@ -206,7 +206,7 @@ class TableWidget(QtWidgets.QGraphicsObject):
 
     def __init__(self):
         super().__init__()
-        self.w = pg.TableWidget()
+        self.w = Table.TableWidget()
         self.w.hide()
         self.w.cellClicked.connect(self.cell_clicked)
         self.w.doubleClicked.connect(self.double_clicked)

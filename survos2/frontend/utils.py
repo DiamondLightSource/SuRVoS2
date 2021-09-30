@@ -52,7 +52,7 @@ def get_array_from_dataset(src_dataset, axis=0):
         dataset = src_dataset.copy(order="C")
         dataset = np.transpose(dataset, np.array(cfg.order)).astype(np.float32)
         src_arr = dataset[cfg.current_slice, :, :]
-    elif cfg.retrieval_mode == "volume":
+    elif cfg.retrieval_mode == "volume" or cfg.retrieval_mode == "volume_http":
         src_arr = src_dataset[:]
 
     return src_arr
@@ -71,7 +71,7 @@ class WorkerThread(QThread):
             cfg.ppw.clientEvent.emit(
                 {"source": "save_annotation", "data": "refresh", "value": None}
             )
-            QThread.sleep(5)
+            QThread.sleep(10)
 
         timer = QTimer()
         timer.timeout.connect(work)

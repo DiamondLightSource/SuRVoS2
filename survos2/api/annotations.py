@@ -35,7 +35,7 @@ def upload(body, request, response):
     
     array_shape = body['shape']
     anno_id = body['name']
-    print(f"shape {array_shape}")
+    print(f"shape {array_shape} name {anno_id}")
     level_arr = np.frombuffer(encoded_array, dtype="uint32")
     
     from ast import literal_eval 
@@ -43,12 +43,17 @@ def upload(body, request, response):
     print(f"Uploaded feature of shape {level_arr.shape}")
 
     dst = DataModel.g.dataset_uri(anno_id, group="annotations")
-    print(dst)
+
     with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
         DM.out[:] = level_arr
+
+
+    modified_ds = dataset_from_uri(dst, mode="r")    
+    modified = [1]
+    modified_ds.set_attr("modified", modified)
+
             
     
-
 @hug.get()
 def get_volume(src: DataURI):
     logger.debug("Getting annotation volume")
@@ -260,10 +265,10 @@ def annotate_voxels(
 
     ds = get_level(workspace, level, full)
 
-    from survos2.frontend.frontend import get_annotation_array
+    from survos2.frontend.frontend import get_level_from_server
 
     if parent_level != "-1" and parent_level != -1:
-        parent_arr, parent_annotations_dataset = get_annotation_array(
+        parent_arr, parent_annotations_dataset = get_level_from_server(
             {"level_id": parent_level}, retrieval_mode="volume"
         )
         parent_arr = parent_arr & 15
@@ -307,10 +312,10 @@ def annotate_regions(
     ds = get_level(workspace, level, full)
     region = dataset_from_uri(region, mode="r")
 
-    from survos2.frontend.frontend import get_annotation_array
+    from survos2.frontend.frontend import get_level_from_server
 
     if parent_level != "-1" and parent_level != -1:
-        parent_arr, parent_annotations_dataset = get_annotation_array(
+        parent_arr, parent_annotations_dataset = get_level_from_server(
             {"level_id": parent_level}, retrieval_mode="volume"
         )
         parent_arr = parent_arr & 15
@@ -345,6 +350,5 @@ def annotate_regions(
 @hug.get()
 def annotate_undo(workspace: String, level: String, full: SmartBoolean = False):
     from survos2.api.annotate import undo_annotation
-
     ds = get_level(workspace, level, full)
     undo_annotation(ds)

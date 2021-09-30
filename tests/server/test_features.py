@@ -102,5 +102,6 @@ class Tests(object):
         assert np.max(dst_arr) <= 1.0
         assert np.min(dst_arr) >= 0.0
 
+
 if __name__ == "__main__":
     pytest.main()

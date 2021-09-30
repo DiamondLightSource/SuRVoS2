@@ -132,11 +132,12 @@ def frangi(
 def hessian_eigenvalues(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
     from ..server.filtering.blob import hessian_eigvals_image
 
+    
     map_blocks(
         hessian_eigvals_image,
         src,
         out=dst,
-        pad=max(4, int((sigma * 2))),
+        pad=max(4, int((max(sigma) * 2))),
         sigma=sigma,
         normalize=True,
     )
@@ -358,7 +359,7 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
         src,
         out=dst,
         sigma=sigma,
-        pad=max(4, int((max(sigma) + 1) / 2)),
+        pad=max(4, int(max(sigma))),
         normalize=False,
     )
 
