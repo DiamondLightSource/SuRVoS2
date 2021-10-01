@@ -924,8 +924,10 @@ class PipelineCard(Card):
                     all_params = self.setup_params_cleaning(dst)
                 elif self.pipeline_type == "train_2d_unet":
                 	all_params = self.setup_params_train_2d_unet(dst)
-            	else:
-                	logger.warn(f"No action exists for pipeline: {self.pipeline_type}")
+                elif self.pipeline_type == "predict_2d_unet":
+                	all_params = self.setup_params_predict_2d_unet(dst)
+                else:
+                    logger.warning(f"No action exists for pipeline: {self.pipeline_type}")
 
                 all_params.update({k: v.value() for k, v in self.widgets.items()})
 
