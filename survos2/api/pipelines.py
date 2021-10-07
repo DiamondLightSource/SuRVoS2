@@ -430,7 +430,8 @@ def train_2d_unet(
     with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         anno_level = src_dataset[:] & 15
-    logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
+    anno_labels = np.unique(anno_level)
+    logger.debug(f"Obtained annotation level with labels {anno_labels}")
     
     src = DataModel.g.dataset_uri(feature_id, group="features")
     logger.debug(f"Getting features {src}")
@@ -467,9 +468,11 @@ def train_2d_unet(
     # Save a figure showing the predictions
     trainer.output_prediction_figure(model_out)
     # Clean up all the saved slices
-    slicer.clean_up_slices()
+    slicer.clean_up_slices(dt_string)
     segmentation = trainer.return_fast_prediction_volume(slicer.data_vol)
-    segmentation += np.ones_like(segmentation)
+    # If more than one annotation label is provided add 1 to the segmentation
+    if not np.array_equal(np.array([0, 1]), anno_labels):
+        segmentation += np.ones_like(segmentation)
     def pass_through(x):
         return x
 

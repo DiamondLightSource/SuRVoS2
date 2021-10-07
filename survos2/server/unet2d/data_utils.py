@@ -6,6 +6,7 @@ from loguru import logger
 import os
 import re
 import sys
+import shutil
 import warnings
 from datetime import date
 from itertools import chain, product
@@ -327,15 +328,24 @@ class TrainingDataSlicer(DataSlicerBase):
                 data[data > 1] = 1
         io.imsave(f'{path}.png', data)
 
-    def delete_data_im_slices(self):
+    def delete_data_im_slices(self, prefix):
         """Deletes image slices in the data image output directory. Leaves the
         directory in place since it contains model training history.
         """
         if self.data_im_out_dir:
+            logger.info("Moving unet_training_history.csv")
+            shutil.move(self.data_im_out_dir/"unet_training_history.csv",
+                        self.data_im_out_dir.parent/f"{prefix}_unet_training_history.csv")
+            models = data_ims = glob.glob(f"{str(self.data_im_out_dir) + '/models/*'}")
+            logger.info("Deleting checkpoint models")
+            for fn in models:
+                os.remove(fn)
+            os.rmdir(str(self.data_im_out_dir) + '/models')
             data_ims = glob.glob(f"{str(self.data_im_out_dir) + '/*.png'}")
             logger.info(f"Deleting {len(data_ims)} image slices")
             for fn in data_ims:
                 os.remove(fn)
+            os.rmdir(self.data_im_out_dir)
 
     def delete_label_im_slices(self):
         """Deletes label image slices in the segmented image output directory.
@@ -349,10 +359,10 @@ class TrainingDataSlicer(DataSlicerBase):
             logger.info(f"Deleting the empty segmentation image directory")
             os.rmdir(self.seg_im_out_dir)
 
-    def clean_up_slices(self):
+    def clean_up_slices(self, prefix):
         """Wrapper function that cleans up data and label image slices.
         """
-        self.delete_data_im_slices()
+        self.delete_data_im_slices(prefix)
         self.delete_label_im_slices()
 
 
