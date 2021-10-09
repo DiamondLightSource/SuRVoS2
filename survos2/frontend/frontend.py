@@ -90,7 +90,7 @@ def frontend(viewer):
     cfg.label_ids = [
         0,
     ]
-    cfg.retrieval_mode = "volume_http"  # volume_http | volume | slice
+    cfg.retrieval_mode = "volume"  # volume_http | volume | slice
     cfg.current_slice = 0
     cfg.current_orientation = 0
 
@@ -102,6 +102,7 @@ def frontend(viewer):
     cfg.supervoxels_cache = None
     cfg.current_regions_dataset = None
     cfg.emptying_viewer = False
+    cfg.three_dim = False
 
     cfg.supervoxels_cached = False
     cfg.supervoxel_size = 10

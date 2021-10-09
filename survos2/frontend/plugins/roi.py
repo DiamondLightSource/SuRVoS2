@@ -148,8 +148,12 @@ class ROICard(Card):
         self.add_row(HWidgets(None, self.pull_btn))
 
     def card_deleted(self):
-        logger.debug(f"Deleted ROI {self.title}")
-    
+        logger.debug(f"Deleted ROI {self.rname}")
+        params = dict(roi_fname=self.rname,workspace=True)
+        result = Launcher.g.run("roi", "remove", **params)
+        if result["done"]:
+            self.setParent(None)
+
     def card_title_edited(self, newtitle):
         logger.debug(f"Edited ROI title {newtitle}")
         

@@ -16,13 +16,13 @@ from survos2.api.types import (
     String,
     IntOrVector,
 )
-from survos2.api.utils import dataset_repr, get_function_api, save_metadata
+from survos2.api.utils import dataset_repr, get_function_api
+from survos2.api.utils import save_metadata, dataset_repr
 from survos2.improc import map_blocks
 from survos2.io import dataset_from_uri
 from survos2.utils import encode_numpy, decode_numpy
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
-from survos2.server.filtering import rescale_denan
 from survos2.server.state import cfg
 from survos2.frontend.control.launcher import Launcher
 from survos2.model import DataModel
@@ -31,6 +31,11 @@ __feature_group__ = "features"
 __feature_dtype__ = "float32"
 __feature_fill__ = 0
 
+def rescale_denan(img):
+    img = img - np.min(img)
+    img = img / np.max(img)
+    img = np.nan_to_num(img)
+    return img
 
 @hug.post()
 def upload(body, request, response):

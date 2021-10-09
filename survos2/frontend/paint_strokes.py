@@ -90,17 +90,20 @@ def paint_strokes(
         line_x = np.array(line_x)
         line_y = np.array(line_y)
 
+
+        
         if len(line_y) > 0:
             all_regions = set()
             # Check if we are painting using supervoxels, if not, annotate voxels
             if cfg.current_supervoxels == None:
                 #cfg.local_sv = False
-                line_y, line_x = dilate_annotations(
-                    line_x,
-                    line_y,
-                    anno_shape,
-                    anno_layer.brush_size,
-                )
+                if not cfg.three_dim:
+                    line_y, line_x = dilate_annotations(
+                        line_x,
+                        line_y,
+                        anno_shape,
+                        anno_layer.brush_size,
+                    )
                 params = dict(workspace=True, level=level, label=sel_label)
                 yy, xx = list(line_y), list(line_x)
                 yy = [int(e) for e in yy]
@@ -115,6 +118,9 @@ def paint_strokes(
                     parent_label_idx=parent_label_idx,
                     full=False,
                     viewer_order=viewer_order,
+                    three_dim = cfg.three_dim,
+                    brush_size = int(cfg.brush_size),
+                    centre_point = (int(z), int(px), int(py))
                 )
 
                 result = Launcher.g.run("annotations", "annotate_voxels", **params)

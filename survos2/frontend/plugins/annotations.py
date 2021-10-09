@@ -107,14 +107,21 @@ class AnnotationPlugin(Plugin):
         self.btn_set = IconButton("fa.pencil", "Set", accent=True)
         self.btn_set.clicked.connect(self.set_sv)
 
+        cfg.three_dim_checkbox = CheckBox(checked=False)
+        
         hbox.addWidget(self.btn_set)
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
         self.width = Slider(value=10, vmin=2, vmax=50, step=2, auto_accept=True)
         hbox.addWidget(self.width)
-
+        
+        
+        hbox2 = HBox(self, margin=1, spacing=3)
+        widgets = HWidgets("3d voxel brush:",cfg.three_dim_checkbox, Spacing(35), stretch=1)
+        hbox2.addWidget(widgets)
+        
         self.vbox.addLayout(hbox)
-
+        self.vbox.addLayout(hbox2)
         _AnnotationNotifier.listen(self.set_sv)
 
     def on_created(self):
@@ -192,6 +199,8 @@ class AnnotationPlugin(Plugin):
             cfg.label_value = self.label.value()
             cfg.brush_size = self.width.value()
             print(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
+
+            cfg.three_dim = cfg.three_dim_checkbox.value()
 
             if cfg.label_value is not None:
                 # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
@@ -389,7 +398,6 @@ class AnnotationLabel(QCSWidget):
             "idx": self.label_idx,
             "color": self.label_color,
         }
-
         cfg.ppw.clientEvent.emit(
             {
                 "source": "annotations",

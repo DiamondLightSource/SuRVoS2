@@ -260,6 +260,9 @@ def annotate_voxels(
     parent_level: String,
     parent_label_idx: Int,
     viewer_order: tuple,
+    three_dim: SmartBoolean,
+    brush_size: Int,
+    centre_point: tuple
 ):
     from survos2.api.annotate import annotate_voxels
 
@@ -286,6 +289,9 @@ def annotate_voxels(
         label=label,
         parent_mask=parent_mask,
         viewer_order=viewer_order,
+        three_dim = three_dim,
+        brush_size=brush_size,
+        centre_point=centre_point
     )
 
     dst = DataModel.g.dataset_uri(level, group="annotations")

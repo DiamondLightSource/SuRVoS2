@@ -97,9 +97,13 @@ def existing():
 
 
 @hug.get()
-def remove():
+def remove(workspace: String, roi_fname: String):
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         roi_fnames = src_dataset.get_metadata("roi_fnames")
-        src_dataset.set_attr("roi_fnames", list(roi_fnames))
+        for k,v in roi_fnames.items():
+            if (v==roi_fname):
+                selected = k    
+        del roi_fnames[selected]    
+        src_dataset.set_metadata("roi_fnames", roi_fnames)

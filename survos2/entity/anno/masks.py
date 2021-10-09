@@ -4,6 +4,7 @@ Mask generation functions
 """
 
 # from __future__ import division
+from functools import lru_cache
 from numba import cuda, float32
 import numpy as np
 import math
@@ -65,6 +66,7 @@ def generate_anno(
     classwise_entities,
     cfg,
     padding=(50, 50, 50),
+    eccentricity=(1.0,1.0,1.0),
     remove_padding=False,
     core_mask_radius=(14, 14, 14),
     shell=False,
@@ -86,7 +88,8 @@ def generate_anno(
 
     cfg["pipeline"]["mask_params"]["core_mask_radius"] = core_mask_radius
     cfg["pipeline"]["mask_params"]["padding"] = padding
-    print(f"Using padding {padding}")
+    cfg["pipeline"]["mask_params"]["eccentricity"] = eccentricity
+    print(f"Using padding {padding} eccentricity {eccentricity}")
 
     anno_masks = []
 
@@ -95,7 +98,7 @@ def generate_anno(
             {"Main": padded_vol}, {}, {"Points": classwise_entities[k]["entities"]}, {}
         )
         cfg["pipeline"]["mask_params"]["mask_radius"] = v["size"]
-
+        cfg["pipeline"]["mask_params"]["eccentricity"] = eccentricity
         from survos2.entity.pipeline_ops import make_masks
 
         p = make_masks(p, cfg["pipeline"])
@@ -123,7 +126,7 @@ def generate_anno(
 
     return classwise_entities, padded_vol
 
-
+@lru_cache(maxsize=64)
 def ellipsoidal_mask(
     d: int,
     w: int,
@@ -185,32 +188,6 @@ def ellipsoidal_mask(
     return mask  # , dist_from_center
 
 
-def paint_ellipsoids():
-    cluster_centroids_df = pd.DataFrame(cluster_centroids)
-    cluster_centroids_offset = cluster_centroids.copy() * 1000
-    cluster_centroids_offset = cluster_centroids_offset.astype(np.uint32)
-
-    img_in = np.zeros((99, 256, 256))
-
-    total_mask = 0.1 * np.random.random(
-        (img_in.shape[0], img_in.shape[1], img_in.shape[2])
-    )  # wide_patch.shape[0]))
-
-    for c, ecc in cluster_coords_offset[0:16]:
-
-        sphere_mask = ellipsoidal_mask(
-            img_in.shape[0],
-            img_in.shape[1],
-            img_in.shape[2],
-            center=(c[0], c[1], c[2]),
-            a=ecc[0],
-            b=ecc[1],
-            c=ecc[2],
-            radius=7,
-        )
-        total_mask += sphere_mask
-
-
 def create_rect_mask(
     mask_dim: Tuple[int, int, int] = (100, 100, 100),
     center: Union[None, Tuple[float, float, float]] = None,
@@ -228,7 +205,7 @@ def create_rect_mask(
     mask[
         center[0] - box_dim[0] // 2 : center[0] + box_dim[0] // 2,
         center[1] - box_dim[1] // 2 : center[1] + box_dim[1] // 2,
-        cener[2] - box_dim[2] // 2 : center[2] + box_dim[2] // 2,
+        center[2] - box_dim[2] // 2 : center[2] + box_dim[2] // 2,
     ] == 1
 
     print("Area of mask: {}".format(np.sum(mask)))
@@ -237,40 +214,6 @@ def create_rect_mask(
 
     return mask
 
-
-# ellipse_mask
-def ellipse_mask(w, h, a=1.0, b=1.0, center=None, radius=4.0):
-    """Generate 2d ellipse masks
-
-    Args:
-        w (int): Width of mask
-        h (int): Height of mask
-        a (float, optional): scale of major axis Defaults to 1.0.
-        b (float, optional): scale of minor axis. Defaults to 1.0.
-        center ([type], optional): center of ellipse Defaults to None.
-        radius (float, optional): radius of ellipse Defaults to 4.0.
-
-    Returns:
-        np.ndarry: mask
-    """
-    if center is None:
-        center = [np.int(w / 2.0), np.int(h / 2.0)]
-
-    X, Y = np.ogrid[: int(w), : int(h)]
-
-    # print("At center: {}".format(center))
-
-    dist_from_center = np.sqrt(
-        (((X - center[0]) ** 2) / a + ((Y - center[1]) ** 2) / b)
-    )
-
-    mask = dist_from_center <= float(radius)
-
-    # print("Area of mask: {}".format(np.sum(mask)))
-
-    mask = (mask * 1.0).astype(np.float32)
-
-    return mask
 
 
 def bw_to_points(bwimg, sample_prop):
@@ -328,7 +271,7 @@ def generate_sphere_masks_fast(
     classwise_pts: np.ndarray,
     patch_size=(64, 64, 64),
     radius: int = 24,
-    ecc=(1.0, 0.7, 0.7),
+    ecc=(1.0, 1.0,1.0),
 ):
     """Copies a small sphere mask to locations centered on classwise_pts
 

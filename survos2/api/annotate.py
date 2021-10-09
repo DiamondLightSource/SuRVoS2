@@ -1,5 +1,7 @@
+from matplotlib.pyplot import box
 import numpy as np
 from loguru import logger
+from survos2.entity.anno.masks import ellipsoidal_mask
 
 _MaskSize = 4  # 4 bits per history label
 _MaskCopy = 15  # 0000 1111
@@ -31,6 +33,9 @@ def annotate_voxels(
     label=0,
     parent_mask=None,
     viewer_order=(0, 1, 2),
+    three_dim = False,
+    brush_size= 10,
+    centre_point = (8,8,8)
 ):
     mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
     modified = dataset.get_attr("modified")
@@ -49,26 +54,39 @@ def annotate_voxels(
     else:
         ds_t = ds
 
-    # mask = np.zeros_like(ds)
-    # mask = (mask > 0) * 1.0
-    # if parent_mask is not None:
-    #     # print(f"Using parent mask of shape: {parent_mask.shape}")
-    #     mask = mask * parent_mask
-    # mask = mask > 0
-
     ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
-    data_slice = ds_t[slice_idx, :]
-    data_slice[yy, xx] = (data_slice[yy, xx] & _MaskPrev) | label
 
-    if parent_mask is not None:
-        parent_mask_t = np.transpose(parent_mask, viewer_order)
-        print(f"Using parent mask of shape: {parent_mask.shape}")
-        mask = parent_mask_t
-        mask = mask > 0
-        mask = mask[slice_idx, :]
-        data_slice = data_slice * mask
+    box_half_dim = int(brush_size // 2)
 
-    ds_t[slice_idx, :] = data_slice
+    print(f"Slice idx {slice_idx}")
+    if three_dim:
+        logger.info(f"Drawing voxels in 3d at {centre_point}")
+        ellipse_size = brush_size
+        ellipse_mask = ellipsoidal_mask(ellipse_size,ellipse_size,ellipse_size, radius=box_half_dim, center=(ellipse_size//2, ellipse_size//2, ellipse_size//2 )).astype(np.bool_)   
+        print(ellipse_mask.shape)
+        for i in range(len(yy)):
+            bbsz, bbfz, bbsy,bbfy, bbsx, bbfx = slice_idx-box_half_dim, slice_idx+box_half_dim, xx[i]-box_half_dim, xx[i]+box_half_dim, yy[i]-box_half_dim, yy[i]+box_half_dim     
+            bbsz, bbfz, bbsy,bbfy, bbsx, bbfx = np.max((0,bbsz)), np.min((ds_t.shape[0], bbfz)),np.max((0,bbsy)), np.min((ds_t.shape[1], bbfy)), np.max((0,bbsx)), np.min((ds_t.shape[2], bbfx))
+            d,w,h = bbfz-bbsz, bbfy-bbsy, bbfx-bbsx
+            if ((d != brush_size) | (w != brush_size) | (h != brush_size)):
+                ellipse_mask = ellipse_mask[ellipse_mask.shape[0]-d:(ellipse_mask.shape[0]-d)+d, ellipse_mask.shape[1]-w:(ellipse_mask.shape[1]-w)+w,ellipse_mask.shape[2]-h:(ellipse_mask.shape[2]-h)+h]
+            
+            ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] = ((ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] & _MaskPrev) | label)
+        print(ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx].shape, ellipse_mask.shape)
+            
+    else:
+        data_slice = ds_t[slice_idx, :]
+        data_slice[yy, xx] = (data_slice[yy, xx] & _MaskPrev) | label
+
+        if parent_mask is not None:
+            parent_mask_t = np.transpose(parent_mask, viewer_order)
+            print(f"Using parent mask of shape: {parent_mask.shape}")
+            mask = parent_mask_t
+            mask = mask > 0
+            mask = mask[slice_idx, :]
+            data_slice = data_slice * mask 
+
+        ds_t[slice_idx, :] = data_slice
 
     if len(viewer_order) == 3:
         new_order = get_order(viewer_order)

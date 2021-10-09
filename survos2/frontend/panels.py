@@ -15,8 +15,9 @@ from survos2.frontend.plugins.superregions import *
 from survos2.frontend.utils import FileWidget
 from survos2.server.state import cfg
 from survos2.model.model import DataModel
-
+from survos2.config import Config
 from napari.qt import progress
+from survos2.config import Config
 
 class ButtonPanelWidget(QtWidgets.QWidget):
     clientEvent = Signal(object)
@@ -44,18 +45,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         button_runworkflow = QPushButton("Run workflow", self)
         button_runworkflow.clicked.connect(self.button_runworkflow_clicked)
 
-  
-        #self.button_pause_save = QPushButton("Pause Save to Server", self)
-        #self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
-
-
-        # self.session_list = ComboBox()
-        # for s in cfg.sessions:
-        #    self.session_list.addItem(key=s)
-        # session_widget = HWidgets("Sessions:", self.session_list, Spacing(35), stretch=0)
-        # self.session_list.activated[str].connect(self.sessions_selected)
-
-        from survos2.config import Config
 
         workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list = ComboBox()
@@ -64,6 +53,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         workspaces_widget = HWidgets(
             "Switch Workspaces:", self.workspaces_list, Spacing(35), stretch=0
         )
+        self.workspaces_list.setEditable(True)
         self.workspaces_list.activated[str].connect(self.workspaces_selected)
 
         self.hbox_layout0 = QtWidgets.QHBoxLayout()
@@ -79,7 +69,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         hbox_layout1.addWidget(button_refresh)
         hbox_layout1.addWidget(self.button_slicemode)
         hbox_layout1.addWidget(button_transfer)
-        #hbox_layout2.addWidget(self.button_pause_save)
         hbox_layout2.addWidget(self.filewidget)
         hbox_layout2.addWidget(button_runworkflow)
         
@@ -88,19 +77,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         vbox.addLayout(hbox_layout1)
         vbox.addLayout(hbox_layout_ws)
         vbox.addLayout(hbox_layout2)
-#        vbox.addLayout(hbox_layout3)
-
-        # self.roi_start = LineEdit3D(default=0, parse=int)
-        # self.roi_end = LineEdit3D(default=0, parse=int)
-        # button_setroi = QPushButton("Set ROI", self)
-        # button_setroi.clicked.connect(self.button_setroi_clicked)
-        # self.roi_start_row = HWidgets("ROI Start:", self.roi_start)
-        # self.roi_end_row = HWidgets("Roi End: ", self.roi_end)
-        # self.roi_layout = QtWidgets.QVBoxLayout()
-        # self.roi_layout.addWidget(self.roi_start_row)
-        # self.roi_layout.addWidget(self.roi_end_row)
-        # self.roi_layout.addWidget(button_setroi)
-        # vbox.addLayout(self.roi_layout)
         
     def load_workflow(self, path):
         self.workflow_fullname = path
@@ -115,8 +91,10 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
     def workspaces_selected(self):
         selected_workspace = self.workspaces_list.value()
-        from survos2.config import Config
-        self.refresh_workspaces()
+        self.workspaces_list.blockSignals(True)
+        self.workspaces_list.select(selected_workspace)
+        self.workspaces_list.blockSignals(False)
+        
         cfg.ppw.clientEvent.emit(
             {
                 "source": "panel_gui",

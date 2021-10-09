@@ -141,13 +141,11 @@ FEATURE_TYPES = [
 
 @hug.get()
 def label_splitter(
+    src: DataURI, 
+    dst: DataURI,
     pipelines_id: DataURI,
     feature_id: DataURI,
     split_ops : dict,
-    #split_feature_index: String,
-    #split_op: String,
-    #split_threshold: Float,
-    dst: DataURI,
 ) -> "SEGMENTATION":
     src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id), group="pipelines")
     with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
@@ -415,7 +413,7 @@ def plot_clustered_img(
 
 @hug.get()
 def level_image_stats(
-    workspace: String, anno_id: DataURI, dst: DataURI, label_index: Int
+    src: DataURI, dst: DataURI, anno_id: DataURI, label_index: Int
 ) -> "SEGMENTATION":
     logger.debug(f"Finding connected components on annotation: {anno_id}")
 
@@ -443,8 +441,9 @@ def level_image_stats(
 
 
 @hug.get()
+@save_metadata
 def find_connected_components(
-    workspace: String, pipelines_id: DataURI, dst: DataURI, label_index: Int
+    src: DataURI, dst: DataURI, pipelines_id: DataURI,  label_index: Int
 ) -> "SEGMENTATION":
     logger.debug(f"Finding connected components on segmentation: {pipelines_id}")
     src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id), group="pipelines")
@@ -475,8 +474,9 @@ def find_connected_components(
 
 
 @hug.get()
+@save_metadata
 def binary_image_stats(
-    workspace: String, feature_id: DataURI, dst: DataURI, threshold: Float = 0.5
+    src: DataURI, dst: DataURI, feature_id: DataURI, threshold: Float = 0.5
 ) -> "IMAGE":
     logger.debug(f"Calculating stats on feature: {feature_id}")
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
@@ -520,8 +520,9 @@ def plot_to_image(arr, title="Histogram", vert_line_at=None):
 
 
 @hug.get()
+@save_metadata
 def image_stats(
-    workspace: String, feature_ids: DataURIList, mask_ids: DataURIList, dst: DataURI
+    src: DataURI, dst: DataURI,feature_ids: DataURIList, mask_ids: DataURIList
 ) -> "IMAGE":
     logger.debug(f"Calculating stats on features: {feature_ids}")
     src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
@@ -539,8 +540,9 @@ def image_stats(
 
 
 @hug.get()
+@save_metadata
 def spatial_clustering(
-    workspace: String,
+    src: DataURI, dst: DataURI,
     feature_id: DataURI,
     object_id: DataURI,
     params={"algorithm": "DBSCAN", "eps": 0.011, "min_samples": 1},
@@ -604,8 +606,9 @@ def remove_masked_entities(bg_mask, entities):
 
 
 @hug.get()
+@save_metadata
 def remove_masked_objects(
-    workspace: String,
+    src: DataURI, dst: DataURI,
     feature_id: DataURI,
     object_id: DataURI,
 ) -> "OBJECTS":
@@ -662,12 +665,12 @@ def remove_masked_objects(
 
 
 @hug.get()
+@save_metadata
 def object_stats(
-    workspace: String,
+    src: DataURI, dst: DataURI,
     object_id: DataURI,
     feature_ids: DataURIList,
     stat_name: String,
-    dst: DataURI,
 ) -> "OBJECTS":
     logger.debug(f"Calculating stats on objects: {object_id}")
     logger.debug(f"With features: {feature_ids}")
