@@ -6,9 +6,8 @@ from typing import Callable
 from datetime import datetime
 import numpy as np
 from loguru import logger
+from tqdm.auto import tqdm, trange
 
-from survos2.entity.utils import accuracy
-from survos2.frontend.nb_utils import show_images
 from medicaltorch import losses as mt_losses
 from medicaltorch import metrics as mt_metrics
 import torch
@@ -16,45 +15,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
+from survos2.entity.utils import accuracy
+from survos2.frontend.nb_utils import show_images
 
-from tqdm.notebook import tqdm, trange
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def train_fpn3d(
-    model, dataloaders, optimizer_ft, dice_weight=0.5, num_epochs=10, device=0
-):
-    losses = []
-    for ee in range(num_epochs):
-        epoch_samples = 0
-
-        for img_batch, label_batch in tqdm(dataloaders["train"]):
-            optimizer_ft.zero_grad()
-            # print(f"img_batch, label_batch {img_batch} {label_batch}")
-            img_batch = img_batch.to(device).unsqueeze(1).float()
-            label_batch = label_batch.to(device).unsqueeze(1).float()
-
-            outputs, smax, fmaps = model.train_fwd(img_batch)
-            pred = outputs
-            target = label_batch
-            pred = pred[:, 0:1, :]
-            # print(pred.shape)
-
-            bce = F.binary_cross_entropy_with_logits(pred, target)
-            pred = F.sigmoid(pred)
-            dice = dice_loss(pred, target)
-            loss = bce * (1 - dice_weight) + dice * dice_weight
-
-            # print(metrics)
-            # print(f"Loss bce {bce} dice {dice} \n")
-            losses.append(loss)
-
-            # loss.requires_grad = True
-            loss.backward()
-            optimizer_ft.step()
-        # print(losses)
-    return model, outputs, losses
 
 
 def save_model(model, optimizer, filename, torch_models_fullpath):
@@ -142,35 +109,6 @@ def calc_loss(pred, target, metrics, bce_weight=0.5):
 
     return loss
 
-
-def load_pretrained_model():
-    torch_models_fullpath = "c:/work/experiments"
-    checkpoint_directory = torch_models_fullpath
-    file_path = os.path.join(checkpoint_directory, "resnetUnet_model_0511_b.pt")
-    load_mod = True
-
-    if load_mod:
-
-        def load_model_parameters(full_path):
-            checkpoint = torch.load(full_path)
-            # print(model_load['model_state'])
-            # print(model_load['model_optimizer'])
-            return checkpoint
-
-        checkpoint_file = "model.pt"
-        full_path = os.path.join(checkpoint_directory, checkpoint_file)
-
-        checkpoint = load_model_parameters(file_path)
-
-        model.load_state_dict(checkpoint["model_state"])
-        optimizer_ft.load_state_dict(checkpoint["model_optimizer"])
-
-        # epoch = checkpoint['epoch']
-        # loss = checkpoint['loss']
-
-        model.eval()
-
-
 def predict(test_loader, model, device):
     inputs, label_batch = next(iter(test_loader))
     inputs = inputs.to(device)
@@ -187,7 +125,7 @@ def predict(test_loader, model, device):
 
 def fpn3d_loss(preds, label_batch, bce_weight):
     bce = F.binary_cross_entropy_with_logits(preds, label_batch)
-    pred = F.sigmoid(preds)
+    preds = F.sigmoid(preds)
     dice = dice_loss(preds, label_batch)
     # loss = bce * (1 - dice_weight) + dice * dice_weight
     loss = bce * bce_weight + dice * (1 - bce_weight)
@@ -221,10 +159,6 @@ def prepare_labels_fpn3d(label_batch, input_batch):
 
 
 def prepare_labels_unet3d(labels, input_batch):
-    # label_values = list(np.unique(labels).astype(np.uint32))
-    # label_values.remove(0)
-    # num_out = len(label_values)
-
     label_batch = torch.zeros(
         (
             input_batch.shape[0],
@@ -237,12 +171,6 @@ def prepare_labels_unet3d(labels, input_batch):
 
     label_batch[:, 0, :] = labels.float()
     label_batch[:, 1, :] = labels.float()
-
-    # for idx, label_no in enumerate(label_values):
-    #     # print(label_no, label_batch.shape)
-    #     # l = (label_batch[:,:,:,:] == 1) * 1.0
-    #     label_batch[:, idx, :] = l.float()
-
     return label_batch
 
 
@@ -517,337 +445,7 @@ def log_metrics(metrics: dict, epoch_samples: int, phase: str):
     #    message += "\t{}: {}".format(metric.name(), metric.value())
 
 
-def train_unet3d(
-    model3d,
-    optimizer,
-    scheduler,
-    dataloaders,
-    num_epochs=2,
-    initial_lr=0.001,
-    bce_weight=0.5,
-    patch_size=(48, 96, 96),
-    device=0,
-    validate=True,
-):
-    device = torch.device(device)
-    print(f"Training U-net")
-    for epoch in tqdm(range(1, num_epochs + 1)):
-
-        start_time = time.time()
-        scheduler.step()
-        lr = scheduler.get_lr()[0]
-        model3d.train()
-        train_loss_total = 0.0
-        num_steps = 0
-
-        for batch in dataloaders["train"]:
-            input_batch, labels = batch
-            label_values = list(np.unique(labels).astype(np.uint32))
-            # label_values.remove(0)
-            num_out = 2  # len(label_values)
-
-            input_batch = input_batch.float().to(device).unsqueeze(1)
-
-            label_batch = torch.zeros(
-                (
-                    input_batch.shape[0],
-                    num_out,
-                    patch_size[0],
-                    patch_size[1],
-                    patch_size[2],
-                )
-            )
-
-            label_batch[:, 0, :] = labels.float()
-            label_batch[:, 1, :] = labels.float()
-
-            #             for idx, label_no in enumerate(label_values):
-            #                 #print(label_no, label_batch.shape)
-            #                 l = (label_batch[:,:,:,:] == 1) * 1.0
-            #                 label_batch[:, idx, :] = l.float()
-
-            label_batch = label_batch.to(device)
-            # print(input_batch.shape, label_batch.shape)
-            preds = model3d(input_batch)[:, 0:2, :, :, :]
-
-            # smax = F.softmax(preds, dim=1) # non overlap...
-            pred = F.sigmoid(preds)  # , dim=1)
-            # print(pred.shape)
-
-            bce = F.binary_cross_entropy_with_logits(pred, label_batch)
-            dice = mt_losses.dice_loss(pred, label_batch)
-            loss = bce * bce_weight + dice * (1 - bce_weight)
-
-            train_loss_total += loss.item()
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            num_steps += 1
-
-            print(loss)
-
-        train_loss_total_avg = train_loss_total / num_steps
-        print(f"Total loss: {train_loss_total_avg}")
-
-        model3d.eval()
-        val_loss_total = 0.0
-        num_steps = 0
-
-        train_acc = accuracy(
-            preds.cpu().detach().numpy(), label_batch.cpu().detach().numpy()
-        )
-
-        metric_fns = [
-            mt_metrics.dice_score,
-            mt_metrics.hausdorff_score,
-            mt_metrics.precision_score,
-            mt_metrics.recall_score,
-            mt_metrics.specificity_score,
-            mt_metrics.intersection_over_union,
-            mt_metrics.accuracy_score,
-        ]
-
-        metric_mgr = mt_metrics.MetricManager(metric_fns)
-        tqdm._instances.clear()
-
-        #
-        # Validation
-        #
-
-        if validate:
-            for batch in tqdm(dataloaders["val"]):
-                input_batch, label_batch = batch
-
-                with torch.no_grad():
-
-                    input_batch, labels = batch
-                    num_out = np.unique(labels)
-
-                    print(input_batch.shape, labels.shape, num_out, patch_size)
-                    input_batch = input_batch.float().to(device).unsqueeze(1)
-
-                    label_batch = torch.zeros(
-                        (
-                            input_batch.shape[0],
-                            2,
-                            patch_size[0],
-                            patch_size[1],
-                            patch_size[2],
-                        )
-                    )
-                    label_batch[:, 0, :] = labels.float()
-                    label_batch[:, 1, :] = labels.float()
-                    label_batch = label_batch.to(device)
-
-                    preds = model3d(input_batch)
-                    pred = F.sigmoid(preds)  # , dim=1)
-                    bce = F.binary_cross_entropy_with_logits(pred, label_batch)
-
-                    dice = mt_losses.dice_loss(pred, label_batch)
-                    loss = bce * bce_weight + dice * (1 - bce_weight)
-                    val_loss_total += loss.item()
-
-                num_steps += 1
-
-            val_loss_total_avg = val_loss_total / num_steps
-
-            print(
-                "\nTrain loss: {:.4f}, Training Accuracy: {:.4f} ".format(
-                    train_loss_total_avg, train_acc
-                )
-            )
-            # print('Val Loss: {:.4f}, Validation Accuracy: {:.4f} '.format(val_loss_total_avg))
-    return model3d
-
-
-def train_unet3d2(
-    model3d,
-    optimizer,
-    scheduler,
-    dataloaders,
-    num_epochs=2,
-    initial_lr=0.001,
-    bce_weight=0.5,
-    patch_size=(64, 64, 64),
-    device=0,
-    validate=True,
-):
-    device = torch.device(device)
-
-    for epoch in tqdm(range(1, num_epochs + 1)):
-
-        start_time = time.time()
-        scheduler.step()
-        lr = scheduler.get_lr()[0]
-        model3d.train()
-        train_loss_total = 0.0
-        num_steps = 0
-
-        for batch in dataloaders["train"]:
-            input_batch, labels = batch
-            label_values = list(np.unique(labels).astype(np.uint32))
-            # label_values.remove(0)
-            num_out = 2  # len(label_values)
-
-            input_batch = input_batch.float().to(device).unsqueeze(1)
-
-            label_batch = torch.zeros(
-                (
-                    input_batch.shape[0],
-                    num_out,
-                    patch_size[0],
-                    patch_size[1],
-                    patch_size[2],
-                )
-            )
-
-            label_batch[:, 0, :] = labels.float()
-            label_batch[:, 1, :] = labels.float()
-
-            #             for idx, label_no in enumerate(label_values):
-            #                 #print(label_no, label_batch.shape)
-            #                 l = (label_batch[:,:,:,:] == 1) * 1.0
-            #                 label_batch[:, idx, :] = l.float()
-
-            label_batch = label_batch.to(device)
-            # print(input_batch.shape, label_batch.shape)
-            preds = model3d(input_batch)[:, 0:2, :, :, :]
-
-            # smax = F.softmax(preds, dim=1) # non overlap...
-            pred = F.sigmoid(preds)  # , dim=1)
-            # print(pred.shape)
-
-            bce = F.binary_cross_entropy_with_logits(pred, label_batch)
-            dice = loss_dice(pred, label_batch)
-            loss = bce * bce_weight + dice * (1 - bce_weight)
-
-            train_loss_total += loss.item()
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            num_steps += 1
-
-            print(loss)
-
-        train_loss_total_avg = train_loss_total / num_steps
-        print(f"Total loss: {train_loss_total_avg}")
-
-        model3d.eval()
-        val_loss_total = 0.0
-        num_steps = 0
-
-        train_acc = accuracy(
-            preds.cpu().detach().numpy(), label_batch.cpu().detach().numpy()
-        )
-
-        tqdm._instances.clear()
-
-        #
-        # Validation
-        #
-
-        if validate:
-            for batch in tqdm(dataloaders["val"]):
-                input_batch, label_batch = batch
-
-                with torch.no_grad():
-
-                    input_batch, labels = batch
-                    num_out = np.unique(labels)
-
-                    print(input_batch.shape, labels.shape, num_out, patch_size)
-                    input_batch = input_batch.float().to(device).unsqueeze(1)
-
-                    label_batch = torch.zeros(
-                        (
-                            input_batch.shape[0],
-                            2,
-                            patch_size[0],
-                            patch_size[1],
-                            patch_size[2],
-                        )
-                    )
-                    label_batch[:, 0, :] = labels.float()
-                    label_batch[:, 1, :] = labels.float()
-                    label_batch = label_batch.to(device)
-
-                    preds = model3d(input_batch)
-                    pred = F.sigmoid(preds)  # , dim=1)
-                    bce = F.binary_cross_entropy_with_logits(pred, label_batch)
-
-                    dice = dice_loss(pred, label_batch)
-                    loss = bce * bce_weight + dice * (1 - bce_weight)
-                    val_loss_total += loss.item()
-
-                num_steps += 1
-
-            val_loss_total_avg = val_loss_total / num_steps
-
-            print(
-                "\nTrain loss: {:.4f}, Training Accuracy: {:.4f} ".format(
-                    train_loss_total_avg, train_acc
-                )
-            )
-            # print('Val Loss: {:.4f}, Validation Accuracy: {:.4f} '.format(val_loss_total_avg))
-    return model3d
-
-
-def train_fpn(
-    model, dataloaders, optimizer_ft, dice_weight=0.5, num_epochs=10, device=0
-):
-    loss_values = []
-    for ee in range(num_epochs):
-
-        metrics = defaultdict(float)
-        epoch_samples = 0
-
-        for img_batch, label_batch in iter(dataloaders["train"]):
-            # print(f"img_batch, label_batch {img_batch} {label_batch}")
-
-            img_batch = img_batch.to(device)
-            label_batch = label_batch.to(device)
-            # print(img_batch.shape, label_batch.shape)
-            outputs, smax, fmap = model.train_fwd(img_batch)
-
-            # print(outputs.shape, smax.shape, fmap.shape)
-            # print(summary_stats(outputs.cpu().detach().numpy()))
-            # argmaxed = torch.argmax(smax, dim=1).unsqueeze(1).float()
-            # loss = calc_loss(outputs, label_batch, metrics)
-
-            pred = outputs
-            target = label_batch
-
-            pred = pred[:, 0:1, :]
-            # print(pred.shape)
-
-            bce = F.binary_cross_entropy_with_logits(pred, target)
-            pred = F.sigmoid(pred)
-            dice = dice_loss(pred, target)
-
-            loss = bce * (1 - dice_weight) + dice * dice_weight
-
-            metrics["bce"] += bce.data.cpu().numpy() * target.size(0)
-            metrics["dice"] += dice.data.cpu().numpy() * target.size(0)
-            metrics["loss"] += loss.data.cpu().numpy() * target.size(0)
-
-            # print(metrics)
-            # print(f"Loss {loss}\n")
-            loss_values.append(loss.detach().cpu().numpy())
-            optimizer_ft.zero_grad()
-            # loss.requires_grad = True
-            loss.backward()
-            optimizer_ft.step()
-
-        print(np.mean(loss_values))
-
-    return model, outputs
-
-
 def loss_calc(pred: Tensor, target: Tensor, metrics: dict, dice_weight=0.5) -> float:
-    # criterion = default_criterion.get(criterion, criterion)
-    # assert callable(criterion)
     bce = F.binary_cross_entropy_with_logits(pred, target)
     pred = F.sigmoid(pred)
     dice = loss_dice(pred, target)
@@ -860,68 +458,6 @@ def loss_calc(pred: Tensor, target: Tensor, metrics: dict, dice_weight=0.5) -> f
     return loss
 
 
-def train_model(
-    model,
-    optimizer,
-    scheduler,
-    dataloaders,
-    num_epochs=25,
-    dice_weight=0.5,
-    freeze_backbone=False,
-    device=0,
-):
-    best_model_weights = copy.deepcopy(model.state_dict())
-    best_loss = 1e10
-
-    for epoch in range(num_epochs):
-        print("Epoch {}/{}".format(epoch, num_epochs - 1))
-        print("-" * 10)
-
-        start_time = time.time()
-
-        for phase in ["train", "val"]:
-
-            if phase == "train":
-                scheduler.step()
-                for param_group in optimizer.param_groups:
-                    print("Learning rate: ", param_group["lr"])
-                model.train()
-            else:
-                model.eval()
-
-            metrics = defaultdict(float)
-            epoch_samples = 0
-
-            for inputs, label_batch in dataloaders[phase]:
-                inputs = inputs.to(device)
-                label_batch = label_batch.to(device)
-                # print(inputs.shape, label_batch.shape)
-                optimizer.zero_grad()
-
-                with torch.set_grad_enabled(phase == "train"):
-                    outputs = model(inputs)
-                    loss = loss_calc(outputs, label_batch, metrics, dice_weight=0.8)
-
-                    if phase == "train":
-                        loss.backward()
-                        optimizer.step()
-
-                epoch_samples += inputs.size(0)
-
-            log_metrics(metrics, epoch_samples, phase)
-            epoch_loss = metrics["loss"] / epoch_samples
-
-            if phase == "val" and epoch_loss < best_loss:
-                best_loss = epoch_loss
-                best_model_weights = copy.deepcopy(model.state_dict())
-
-        time_elapsed = time.time() - start_time
-        print("{:.0f}m {:.0f}s\n".format(time_elapsed // 60, time_elapsed % 60))
-
-    print("Best validation loss: {:4f}\n".format(best_loss))
-    model.load_state_dict(best_model_weights)
-
-    return model
 
 
 def train_detector_head(
