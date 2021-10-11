@@ -89,7 +89,8 @@ def _transfer_labels(selected_layer):
         fname = result["name"]
         logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
         
-        result = Launcher.g.post_array(selected_layer.data, 
+        print(f"anno_layer: {selected_layer.data.shape}")
+        result = Launcher.g.post_array(selected_layer.data.astype(np.uint32), 
         group='annotations', 
         workspace=DataModel.g.current_workspace, 
         name=result["id"])

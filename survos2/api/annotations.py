@@ -32,12 +32,13 @@ def upload(body, request, response):
     print(f"Response: {response}")
     
     encoded_array = body['file']
-    
     array_shape = body['shape']
     anno_id = body['name']
     print(f"shape {array_shape} name {anno_id}")
+    
     level_arr = np.frombuffer(encoded_array, dtype="uint32")
     
+    print(f"level_arr: {level_arr.shape}")
     from ast import literal_eval 
     level_arr.shape = literal_eval(array_shape)
     print(f"Uploaded feature of shape {level_arr.shape}")
