@@ -75,7 +75,8 @@ def annotate_voxels(
                 ellipse_mask = ellipse_mask[ellipse_mask.shape[0]-d:(ellipse_mask.shape[0]-d)+d, ellipse_mask.shape[1]-w:(ellipse_mask.shape[1]-w)+w,ellipse_mask.shape[2]-h:(ellipse_mask.shape[2]-h)+h]
             
             mask[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx] = ellipse_mask
-            mask = mask * parent_mask_t
+            if parent_mask is not None:
+                mask = mask * parent_mask_t
             mask = mask > 0
             #ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] = ((ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] & _MaskPrev) | label)
             ds_t[mask] = (ds_t[mask] & _MaskPrev) | label

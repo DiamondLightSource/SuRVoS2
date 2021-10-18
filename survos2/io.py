@@ -54,7 +54,6 @@ def dataset_loader(uri):
             return loader
     return None
 
-@lru_cache(maxsize=4)
 def dataset_from_uri(uri, mode="a", shape=None, dtype="float32", fill=0):
     """
     Loads datasets from uris.
