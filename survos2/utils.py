@@ -7,11 +7,12 @@ import base64
 
 import numpy as np
 
+import io
 import time
 import logging
-
 from loguru import logger
-
+from PIL import Image
+from skimage import img_as_ubyte, img_as_float
 # logger.remove()
 __loggers__ = {}
 
@@ -33,6 +34,37 @@ def decode_numpy(dictarray):
     data = np.frombuffer(data, dtype=dictarray["dtype"])
     data.shape = dictarray["shape"]
     return data
+
+
+def encode_numpy_slice(ndarray, convert_float=True):
+    ndarray = ndarray.copy(order='C')
+    dtype = np.dtype(ndarray.dtype).name
+    output = io.BytesIO()
+    if convert_float:
+        with Image.fromarray(img_as_ubyte(ndarray)) as im:   
+            im.save(output, format="JPEG")
+    else:
+        with Image.fromarray(ndarray) as im:   
+            im.save(output, format="JPEG")
+    output.seek(0)
+    #data = base64.b64encode(output.read()) 
+    data = output.read()
+    data = base64.b64encode(data)
+    return dict(data=data, dtype=dtype, shape=ndarray.shape)
+
+
+def decode_numpy_slice(dictarray):
+    #data = dictarray.pop("data")
+    data = base64.b64decode(dictarray.pop("data"))
+    #print(data.shape)
+    data = io.BytesIO(data)
+    data = Image.open(data, formats=['JPEG'])
+    #data = np.frombuffer(data, dtype=dictarray["dtype"])
+    #data.shape = dictarray["shape"]
+    data = np.asarray(data)
+    data = img_as_float(data)
+    return data
+
 
 
 def find_library(libname):

@@ -122,7 +122,7 @@ def paint_strokes(
                     brush_size = int(cfg.brush_size),
                     centre_point = (int(z), int(px), int(py))
                 )
-
+    
                 result = Launcher.g.run("annotations", "annotate_voxels", **params)
 
             # we are painting with supervoxels, so check if we have a current supervoxel cache

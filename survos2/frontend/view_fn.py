@@ -5,10 +5,11 @@ from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel, Workspace
 from survos2.frontend.control.launcher import Launcher
 from survos2.server.state import cfg
-from survos2.utils import decode_numpy
+from survos2.utils import decode_numpy, decode_numpy_slice
 from survos2.frontend.utils import get_array_from_dataset, get_color_mapping
 from survos2.frontend.components.entity import setup_entity_table
 from skimage.segmentation import find_boundaries
+from skimage import img_as_ubyte
 import seaborn as sns
 
 
@@ -25,6 +26,7 @@ def view_feature(viewer, msg, new_name=None):
 
     if cfg.retrieval_mode == "slice":
         features_src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
+        remove_layer(viewer, cfg.current_feature_name)
         cfg.current_feature_name = msg["feature_id"]
         params = dict(
             workpace=True,
@@ -35,7 +37,7 @@ def view_feature(viewer, msg, new_name=None):
 
         result = Launcher.g.run("features", "get_slice", **params)
         if result:
-            src_arr = decode_numpy(result)
+            src_arr = decode_numpy_slice(result)
 
             if len(existing_feature_layer) > 0:
                 existing_feature_layer[0].data = src_arr.copy()
@@ -47,6 +49,7 @@ def view_feature(viewer, msg, new_name=None):
 
     elif cfg.retrieval_mode == "volume_http":
         features_src = DataModel.g.dataset_uri(msg["feature_id"], group="features")
+        remove_layer(viewer, cfg.current_feature_name)
         cfg.current_feature_name = msg["feature_id"]
         params = dict(
             workpace=True,
@@ -56,7 +59,8 @@ def view_feature(viewer, msg, new_name=None):
         result = Launcher.g.run("features", "get_volume", **params)
         if result:
             src_arr = decode_numpy(result)
-
+            cfg.base_dataset_shape = src_arr.shape
+            cfg.slice_max = cfg.base_dataset_shape[0]
             if len(existing_feature_layer) > 0:
                 existing_feature_layer[0].data = src_arr.copy()
             else:
@@ -75,6 +79,8 @@ def view_feature(viewer, msg, new_name=None):
             src_dataset = DM.sources[0][:]
             src_arr = get_array_from_dataset(src_dataset)
             src_arr = np.nan_to_num(src_arr)
+            cfg.base_dataset_shape = src_arr.shape
+            cfg.slice_max = cfg.base_dataset_shape[0]
             if new_name:
                 viewer.add_image(src_arr, name=new_name)
             else:
@@ -149,79 +155,85 @@ def view_regions(viewer, msg):
     cfg.supervoxels_cached = False
 
 
-def view_pipeline(viewer, msg):
-    logger.debug(f"view_pipeline {msg['pipeline_id']} using {msg['level_id']}")
-    source = msg["source"]
+def view_pipeline(viewer, msg, analyzers=False):
+    try:
+        logger.debug(f"view_pipeline {msg['pipeline_id']} using {msg['level_id']}")
+        source = msg["source"]
 
-    result = Launcher.g.run(
-        "annotations", "get_levels", workspace=DataModel.g.current_workspace
-    )
-    logger.debug(f"Result of annotations get_levels: {result}")
-
-    if result:
-        cmapping, _ = get_color_mapping(result, level_id=msg["level_id"])
-
-    existing_pipeline_layer = [v for v in viewer.layers if v.name == msg["pipeline_id"]]
-    cfg.current_pipeline_name = msg["pipeline_id"]
-
-    if cfg.retrieval_mode == "slice":
-        pipeline_src = DataModel.g.dataset_uri(cfg.current_pipeline_name, group=source)
-        params = dict(
-            workpace=True,
-            src=pipeline_src,
-            slice_idx=cfg.current_slice,
-            order=cfg.order,
+        result = Launcher.g.run(
+            "annotations", "get_levels", workspace=DataModel.g.current_workspace
         )
-        result = Launcher.g.run("features", "get_slice", **params)
+
         if result:
-            src_arr = decode_numpy(result)
-            if len(existing_pipeline_layer) > 0:
-                existing_pipeline_layer[0].data = src_arr.astype(np.uint32).copy()
-            else:
-                viewer.add_labels(
-                    src_arr.astype(np.uint32),
-                    name=msg["pipeline_id"],
-                    color=cmapping,
-                )
-    elif cfg.retrieval_mode == "volume_http":
-        pipeline_src = DataModel.g.dataset_uri(cfg.current_pipeline_name, group=source)
-        params = dict(workpace=True, src=pipeline_src)
-        result = Launcher.g.run("features", "get_volume", **params)
-        if result:
-            src_arr = decode_numpy(result)
-            if len(existing_pipeline_layer) > 0:
-                existing_pipeline_layer[0].data = src_arr.astype(np.uint32).copy()
-            else:
-                viewer.add_labels(
-                    src_arr.astype(np.uint32),
-                    name=msg["pipeline_id"],
-                    color=cmapping,
-                )
-    elif cfg.retrieval_mode == "volume":
-        src = DataModel.g.dataset_uri(msg["pipeline_id"], group=source)
-        with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
-            src_dataset = DM.sources[0][:]
-            src_arr = get_array_from_dataset(src_dataset)
+            cmapping, _ = get_color_mapping(result, level_id=msg["level_id"])
 
-            existing_layer = [v for v in viewer.layers if v.name == msg["pipeline_id"]]
+        existing_pipeline_layer = [v for v in viewer.layers if v.name == msg["pipeline_id"]]
+        
+        if analyzers:
+            source = 'analyzer'
+            remove_layer(viewer, cfg.current_analyzers_name)
+            cfg.current_analyzers_name = msg["pipeline_id"]
+            
+        else:
+            remove_layer(viewer, cfg.current_pipeline_name)
+            cfg.current_pipeline_name = msg["pipeline_id"]
+            
+        
 
-            if len(existing_layer) > 0:
-                logger.debug(
-                    f"Removing existing layer and re-adding it with new colormapping. {existing_layer}"
-                )
 
-                viewer.layers.remove(existing_layer[0])
-                viewer.add_labels(
-                    src_arr.astype(np.uint32),
-                    name=msg["pipeline_id"],
-                    color=cmapping,
-                )
-            else:
-                viewer.add_labels(
-                    src_arr.astype(np.uint32),
-                    name=msg["pipeline_id"],
-                    color=cmapping,
-                )
+        pipeline_src = DataModel.g.dataset_uri(msg["pipeline_id"], group=source)
+            
+        if cfg.retrieval_mode == "slice":
+            params = dict(
+                workpace=True,
+                src=pipeline_src,
+                slice_idx=cfg.current_slice,
+                order=cfg.order,
+            )
+            result = Launcher.g.run("features", "get_slice", **params)
+            if result:
+                src_arr = decode_numpy(result)
+                if len(existing_pipeline_layer) > 0:
+                    existing_pipeline_layer[0].data = src_arr.astype(np.uint32).copy()
+                else:
+                    viewer.add_labels(
+                        src_arr.astype(np.uint32),
+                        name=msg["pipeline_id"],
+                        color=cmapping,
+                    )
+        elif cfg.retrieval_mode == "volume_http":
+            params = dict(workpace=True, src=pipeline_src)
+            result = Launcher.g.run("features", "get_volume", **params)
+            if result:
+                src_arr = decode_numpy(result)
+                if len(existing_pipeline_layer) > 0:
+                    existing_pipeline_layer[0].data = src_arr.astype(np.uint32).copy()
+                else:
+                    viewer.add_labels(
+                        src_arr.astype(np.uint32),
+                        name=msg["pipeline_id"],
+                        color=cmapping,
+                    )
+        elif cfg.retrieval_mode == "volume":
+            
+            with DatasetManager(pipeline_src, out=None, dtype="uint32", fillvalue=0) as DM:
+                src_dataset = DM.sources[0][:]
+                src_arr = get_array_from_dataset(src_dataset)
+                existing_layer = [v for v in viewer.layers if v.name == msg["pipeline_id"]]
+
+                if len(existing_layer) > 0:
+                    logger.debug(
+                        f"Removing existing layer and re-adding it with new colormapping. {existing_layer}"
+                    )
+                    existing_layer[0].data = src_arr.astype(np.uint32).copy()
+                else:
+                    viewer.add_labels(
+                        src_arr.astype(np.uint32),
+                        name=msg["pipeline_id"],
+                        color=cmapping,
+                    )
+    except AttributeError as e:
+        print(e)
 
 
 def view_objects(viewer, msg):

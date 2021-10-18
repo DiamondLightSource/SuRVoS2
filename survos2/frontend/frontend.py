@@ -1,4 +1,6 @@
 import ntpath
+
+from skimage.util.dtype import img_as_ubyte
 from survos2.config import Config
 from functools import partial
 import numpy as np
@@ -23,7 +25,7 @@ from survos2.model import DataModel, Workspace
 from survos2.frontend.control.launcher import Launcher
 from survos2.server.state import cfg
 from survos2.config import Config
-from survos2.utils import decode_numpy
+from survos2.utils import decode_numpy, decode_numpy_slice
 from survos2.frontend.paint_strokes import paint_strokes
 from survos2.frontend.workflow import run_workflow
 from survos2.frontend.view_fn import (
@@ -90,7 +92,7 @@ def frontend(viewer):
     cfg.label_ids = [
         0,
     ]
-    cfg.retrieval_mode = "volume"  # volume_http | volume | slice
+    cfg.retrieval_mode =  Config["volume_mode"] # "volume"  # volume_http | volume | slice
     cfg.current_slice = 0
     cfg.current_orientation = 0
 
@@ -98,18 +100,20 @@ def frontend(viewer):
     cfg.current_annotation_name = None
     cfg.current_pipeline_name = None
     cfg.current_regions_name = None
-    cfg.current_supervoxels = None
-    cfg.supervoxels_cache = None
-    cfg.current_regions_dataset = None
+    cfg.current_analyzers_name = None
+
     cfg.emptying_viewer = False
     cfg.three_dim = False
 
+    cfg.current_regions_dataset = None
+    cfg.current_supervoxels = None
+    cfg.supervoxels_cache = None
     cfg.supervoxels_cached = False
     cfg.supervoxel_size = 10
     cfg.local_sv = True
     cfg.pause_save = False
     cfg.remote_annotation = True
-    cfg.object_offset = (0, 0, 0)  # (-16, 170, 165)  # (-16,-350,-350)
+    cfg.object_offset = (0, 0, 0) 
     cfg.num_undo = 0
 
     label_dict = {
@@ -126,7 +130,7 @@ def frontend(viewer):
     dw = AttrDict()
     dw.ppw = PluginPanelWidget()  # Main SuRVoS panel
     dw.bpw = ButtonPanelWidget()  # Additional controls
-    dw.ppw.setMinimumSize(QSize(400, 600))
+    dw.ppw.setMinimumSize(QSize(450, 750))
 
     ws = Workspace(DataModel.g.current_workspace)
     dw.ws = ws
@@ -498,7 +502,7 @@ def frontend(viewer):
             )
             result = Launcher.g.run("features", "get_slice", **params)
             if result:
-                src_arr = decode_numpy(result)
+                src_arr = decode_numpy_slice(result)
                 existing_feature_layer[0].data = src_arr.copy()
 
         existing_regions_layer = [
@@ -532,6 +536,7 @@ def frontend(viewer):
         ]
 
         if existing_pipeline_layer:
+            print(f"loading pipeline {cfg.current_pipeline_name}")
             pipeline_src = DataModel.g.dataset_uri(
                 cfg.current_pipeline_name, group="pipelines"
             )
@@ -546,6 +551,26 @@ def frontend(viewer):
                 src_arr = decode_numpy(result).astype(np.int32)
                 existing_pipeline_layer[0].data = src_arr.copy()
     
+        existing_analyzers_layer = [
+            v for v in viewer.layers if v.name == cfg.current_analyzers_name
+        ]
+
+        if existing_analyzers_layer:
+            print(f"Jumping to analyzer slice {cfg.current_analyzers_name}")
+            analyzers_src = DataModel.g.dataset_uri(
+                cfg.current_analyzers_name, group="analyzer"
+            )
+            params = dict(
+                workpace=True,
+                src=analyzers_src,
+                slice_idx=cfg.current_slice,
+                order=cfg.order,
+            )
+            result = Launcher.g.run("features", "get_slice", **params)
+            if result:
+                src_arr = decode_numpy(result).astype(np.int32)
+                existing_analyzers_layer[0].data = src_arr.copy()
+
     def make_roi_ws(msg):
         logger.debug(f"Goto roi: {msg}")
         params = dict(
@@ -589,12 +614,15 @@ def frontend(viewer):
                 cfg.local_sv = True
                 _switch_to_slice_mode_and_jump()
             else:
-                logger.debug(f"In slice mode changing to volume mode {viewer.layers}")
-                cfg.retrieval_mode = "volume"
-                cfg.local_sv = True
-                for _ in range(len(viewer.layers)):
-                    viewer.layers.pop(0)
-                view_feature(viewer, {"feature_id": cfg.current_feature_name})
+                try:
+                    logger.debug(f"In slice mode changing to volume mode {viewer.layers}")
+                    cfg.retrieval_mode = "volume"
+                    cfg.local_sv = True
+                    for _ in range(len(viewer.layers)):
+                        viewer.layers.pop(0)
+                    view_feature(viewer, {"feature_id": cfg.current_feature_name})
+                except KeyError as e:
+                    print(e)
         elif msg["data"] == "refesh_annotations":
             refresh_annotations_in_viewer(msg)
         elif msg["data"] == "paint_annotations":
@@ -607,7 +635,10 @@ def frontend(viewer):
         elif msg["data"] == "view_feature":
             view_feature(viewer, msg)
         elif msg["data"] == "view_pipeline":
-            view_pipeline(viewer, msg)
+            if msg["source"] == 'analyzer':
+                view_pipeline(viewer, msg, analyzers=True)
+            else:
+                view_pipeline(viewer, msg)
         elif msg["data"] == "view_regions":
             view_regions(viewer, msg)
         elif msg["data"] == "view_objects":
@@ -629,16 +660,7 @@ def frontend(viewer):
                 viewer.layers.remove(l)
             
             cfg.current_feature_name = "001_raw"
-            cfg.current_annotation_name = None
-            cfg.current_pipeline_name = None
-            cfg.current_regions_name = None
-            cfg.supervoxels_cache = None
-            cfg.label_value = None
-            cfg.emptying_viewer = True
-            #cfg.current_supervoxels = None
-            #cfg.current_regions_dataset = None
-            #cfg.anno_data = None
-
+            
         elif msg["data"] == "save_annotation":
             save_annotation(msg)
         elif msg["data"] == "set_paint_params":
@@ -655,21 +677,25 @@ def frontend(viewer):
             transfer_layer(msg)
 
     def _switch_to_slice_mode_and_jump():
+
         cfg.retrieval_mode = "slice"
+        viewer_order = viewer.window.qt_viewer.viewer.dims.order
         for l in viewer.layers:
             viewer.layers.remove(l)
-        viewer_order = viewer.window.qt_viewer.viewer.dims.order
+        
         if len(viewer_order) == 3:
             cfg.order = [int(d) for d in viewer_order]
             logger.debug(f"Setting order to {cfg.order}")
         else:
             cfg.order = [0, 1, 2]
-            logger.debug(f"Resetting order to {cfg.order}")
+            logger.debug(f"Viewer order {viewer_order} Resetting order to {cfg.order}")
         cfg.slice_max = cfg.base_dataset_shape[cfg.order[0]]
         logger.debug(f"Setting slice max to {cfg.slice_max}")
         view_feature(viewer, {"feature_id": cfg.current_feature_name})
-        jump_to_slice({"frame": 0})
-
+        try:
+            jump_to_slice({"frame": 0})
+        except AttributeError as e:
+            print(e)
     dw.ppw.clientEvent.connect(lambda x: processEvents(x))
     cfg.ppw = dw.ppw
     cfg.processEvents = processEvents

@@ -60,6 +60,9 @@ def annotate_voxels(
 
     print(f"Slice idx {slice_idx}")
     if three_dim:
+        if parent_mask is not None:
+            parent_mask_t = np.transpose(parent_mask, viewer_order)
+        mask = np.zeros_like(ds_t)
         logger.info(f"Drawing voxels in 3d at {centre_point}")
         ellipse_size = brush_size
         ellipse_mask = ellipsoidal_mask(ellipse_size,ellipse_size,ellipse_size, radius=box_half_dim, center=(ellipse_size//2, ellipse_size//2, ellipse_size//2 )).astype(np.bool_)   
@@ -71,9 +74,16 @@ def annotate_voxels(
             if ((d != brush_size) | (w != brush_size) | (h != brush_size)):
                 ellipse_mask = ellipse_mask[ellipse_mask.shape[0]-d:(ellipse_mask.shape[0]-d)+d, ellipse_mask.shape[1]-w:(ellipse_mask.shape[1]-w)+w,ellipse_mask.shape[2]-h:(ellipse_mask.shape[2]-h)+h]
             
-            ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] = ((ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] & _MaskPrev) | label)
+            mask[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx] = ellipse_mask
+            mask = mask * parent_mask_t
+            mask = mask > 0
+            #ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] = ((ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] & _MaskPrev) | label)
+            ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
+
+
         print(ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx].shape, ellipse_mask.shape)
-            
+    
+        
     else:
         data_slice = ds_t[slice_idx, :]
         data_slice[yy, xx] = (data_slice[yy, xx] & _MaskPrev) | label

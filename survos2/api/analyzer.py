@@ -48,11 +48,6 @@ from scipy.ndimage import measurements as measure
 from scipy.stats import binned_statistic
 from sklearn.decomposition import PCA
 
-# from survos2.entity.instanceseg.detector import prepare_filtered_patch_dataset, prepare_patch_dataloaders_and_entities, prepare_patch_dataset, prepare_patch_dataloaders
-# from survos2.entity.instanceseg.head_cnn import make_classifications
-# from survos2.entity.instanceseg.utils import pad_vol
-# from survos2.entity.instanceseg.detector import setup_training
-
 from torch.utils.data import DataLoader
 from survos2.improc import map_blocks
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
@@ -143,14 +138,30 @@ FEATURE_TYPES = [
 def label_splitter(
     src: DataURI, 
     dst: DataURI,
+    mode: String,
     pipelines_id: DataURI,
+    analyzers_id: DataURI,
+    annotations_id: DataURI,
     feature_id: DataURI,
     split_ops : dict,
 ) -> "SEGMENTATION":
-    src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id), group="pipelines")
+
+    
+    if mode == '1':
+        src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id), group="pipelines")
+        print(f"Analyzer calc on pipeline src {src}")
+    elif mode == '2':
+        src = DataModel.g.dataset_uri(ntpath.basename(analyzers_id), group="analyzer")
+        print(f"Analyzer calc on analyzer src {src}")
+    elif mode == '3':
+        src = DataModel.g.dataset_uri(ntpath.basename(annotations_id), group="annotations")
+        print(f"Analyzer calc on annotation src {src}")
+    
     with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
         seg = DM.sources[0][:]
         logger.debug(f"src_dataset shape {seg[:].shape}")
+
+    seg = seg.astype(np.uint32) & 15
 
     logger.debug(f"Calculating stats on feature: {feature_id}")
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
@@ -302,6 +313,7 @@ def label_splitter(
             split_threshold = float(split_op_card["split_threshold"])
             
             if int(split_op) > 0:
+                calculate =True
                 s = int(split_op) - 1  # split_op starts at 1
                 feature_names = ["z", "x", "y", "Sum", "Mean", "Std", "Var", "bb_vol", "bb_vol_log10", "bb_vol_depth", "bb_vol_depth","bb_vol_height", "bb_vol_width", "ori_vol", "ori_vol_log10", "ori_vol_depth", "ori_vol_depth","ori_vol_height", "ori_vol_width"]
                 feature_index = int(
@@ -309,22 +321,28 @@ def label_splitter(
                 )  # feature_names.index(split_feature_index)
                 rules.append((int(feature_index), s, split_threshold))
                 print(f"Adding split rule: {split_feature_index} {split_op} {split_threshold}")
-            
-    masked_out, result_features = apply_rules(
-        features_array, -1, rules, np.array(objlabels), num_objects
-    )
+            else:
+                calculate = False
 
-    bg_label = max(np.unique(new_labels))
-    print(f"Masking out bg label {bg_label}")
-    for i, l in enumerate(masked_out):
-        if l != -1:
-            new_labels[new_labels == l] = 0
+    if calculate:
+        masked_out, result_features = apply_rules(
+            features_array, -1, rules, np.array(objlabels), num_objects
+        )
+        print(f"Masking out: {masked_out}")
+        bg_label = max(np.unique(new_labels))
+        print(f"Masking out bg label {bg_label}")
+        for i, l in enumerate(masked_out):
+            if l != -1:
+                new_labels[new_labels == l] = 0
 
-    new_labels[new_labels == bg_label] = 0
-    new_labels = (new_labels > 0) * 1.0
-
-    map_blocks(pass_through, new_labels, out=dst, normalize=False)
+        new_labels[new_labels == bg_label] = 0
+        new_labels = (new_labels > 0) * 1.0
+    else:
+        result_features = features_array
     
+    
+    map_blocks(pass_through, new_labels, out=dst, normalize=False)
+
     return result_features, features_array 
 
 def apply_rules(

@@ -20,7 +20,7 @@ from survos2.api.utils import dataset_repr, get_function_api
 from survos2.api.utils import save_metadata, dataset_repr
 from survos2.improc import map_blocks
 from survos2.io import dataset_from_uri
-from survos2.utils import encode_numpy, decode_numpy
+from survos2.utils import encode_numpy, decode_numpy, encode_numpy_slice
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
 from survos2.server.state import cfg
@@ -83,7 +83,7 @@ def get_slice(src: DataURI, slice_idx: Int, order: tuple):
     ds = dataset_from_uri(src, mode="r")[:]
     ds = np.transpose(ds, order).astype(np.float32)
     data = ds[slice_idx]
-    return encode_numpy(data.astype(np.float32))
+    return encode_numpy_slice(data.astype(np.float32))
 
 
 @hug.get()

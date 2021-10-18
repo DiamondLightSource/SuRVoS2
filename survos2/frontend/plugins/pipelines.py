@@ -47,11 +47,9 @@ class PipelinesComboBox(LazyComboBox):
     def fill(self):
         params = dict(workspace=True, full=self.full)
         result = Launcher.g.run("pipelines", "existing", **params)
-        logger.debug(f"Result of pipelines existing: {result}")
         if result:
             self.addCategory("Segmentations")
             for fid in result:
-                # if result[fid]["kind"] == "pipelines":
                 self.addItem(fid, result[fid]["name"])
 
 
@@ -346,6 +344,7 @@ class PipelineCard(Card):
             self._add_classifier_choice()
             self._add_projection_choice()
             self._add_param("lam", type="FloatSlider", default=0.15)
+            self._add_confidence_choice()
 
         elif self.pipeline_type == "rasterize_points":
             self._add_annotations_source()
@@ -367,8 +366,11 @@ class PipelineCard(Card):
             self._add_annotations_source(label="Layer Over: ")
             self._add_annotations_source2(label="Layer Base: ")
             self.label_index = LineEdit(default=-1, parse=int)
-            widget = HWidgets("Selected label:", self.label_index, Spacing(35), stretch=1)
-            self.add_row(widget)
+            #widget = HWidgets("Selected label:", self.label_index, Spacing(35), stretch=1)
+            #self.add_row(widget)
+            #self.offset = LineEdit(default=-1, parse=int)
+            #widget2 = HWidgets("Offset:", self.offset, Spacing(35), stretch=1)
+            #self.add_row(widget2)
         
         elif self.pipeline_type == "cleaning":
             # self._add_objects_source()
@@ -422,6 +424,12 @@ class PipelineCard(Card):
         self.refine_checkbox = CheckBox(checked=True)
         self.add_row(
             HWidgets("MRF Refinement:", self.refine_checkbox, Spacing(35), stretch=0)
+        )
+
+    def _add_confidence_choice(self):
+        self.confidence_checkbox = CheckBox(checked=False)
+        self.add_row(
+            HWidgets("Confidence Map as Feature:", self.confidence_checkbox, Spacing(35), stretch=0)
         )
 
     def _add_objects_source(self):
@@ -757,12 +765,11 @@ class PipelineCard(Card):
             all_params["constrain_mask"] = "None"
 
         all_params["dst"] = dst
-        all_params["refine"] = self.widgets[
-            "refine"
-        ].value()  # self.refine_checkbox.value()
+        all_params["refine"] = self.widgets["refine"].value()  
         all_params["lam"] = self.widgets["lam"].value()
         all_params["classifier_type"] = self.classifier_type.value()
         all_params["projection_type"] = self.projection_type.value()
+        all_params["confidence"] = self.confidence_checkbox.value()
 
         if self.classifier_type.value() == "Ensemble":
             all_params["classifier_params"] = self.ensembles.get_params()
@@ -822,7 +829,11 @@ class PipelineCard(Card):
             self.annotations_source2.value().rsplit("/", 1)[-1]
         )
         all_params["dst"] = dst
-        all_params["selected_label"] = int(self.label_index.value())
+        
+        #all_params["selected_label"] = int(self.label_index.value())
+        #all_params["offset"] = int(self.offset.value())
+        all_params["selected_label"] = int(self.widgets["selected_label"].value())
+        all_params["offset"] = int(self.widgets["offset"].value())
         return all_params
 
     def setup_params_cleaning(self, dst):
@@ -858,6 +869,7 @@ class PipelineCard(Card):
                 try:
                     pbar.update(1)
                     result = Launcher.g.run("pipelines", self.pipeline_type, **all_params)
+                    print(result)
                 except Exception as err:
                     print(err)
                 if result is not None:

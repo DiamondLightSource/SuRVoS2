@@ -156,7 +156,7 @@ def add_dataset(
 ):
     workspace, session = parse_workspace(workspace)
     if group:
-        dataset = "{}/{}".format(group, dataset)
+        dataset_name = "{}/{}".format(group, dataset_name)
     return get(workspace).add_dataset(
         dataset_name, dtype, session=session, fillvalue=fillvalue, chunks=chunks
     )

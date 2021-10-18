@@ -1,3 +1,4 @@
+from enum import auto
 import logging
 import ntpath
 import os
@@ -35,11 +36,10 @@ from survos2.server.state import cfg
 from survos2.utils import encode_numpy
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.entity.anno.pseudo import make_pseudomasks
-from survos2.api.features import pass_through
 from torch.utils.data import DataLoader
 from survos2.frontend.components.entity import setup_entity_table
+from survos2.api.workspace import add_dataset, auto_create_dataset
 
-from survos2.api.features import pass_through
 
 __pipeline_group__ = "pipelines"
 __pipeline_dtype__ = "float32"
@@ -125,7 +125,8 @@ def cleaning(
 def label_postprocess(
     level_over: DataURI,
     level_base: DataURI,
-    selected_label: DataURI,
+    selected_label: Int,
+    offset: Int,
     dst: DataURI,
 ):
     if level_over != 'None':
@@ -135,28 +136,26 @@ def label_postprocess(
             anno1_level = src1_dataset[:] & 15
             logger.info(f"Obtained over annotation level with labels {np.unique(anno1_level)}")
 
-    src2 = DataModel.g.dataset_uri(level_base, group="annotations")
-    with DatasetManager(src2, out=None, dtype="uint16", fillvalue=0) as DM:
-        src2_dataset = DM.sources[0]
-        anno2_level = src2_dataset[:] & 15
-        logger.info(f"Obtained base annotation level with labels {np.unique(anno2_level)}")
+    src_base = DataModel.g.dataset_uri(level_base, group="annotations")
+    with DatasetManager(src_base, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_base_dataset = DM.sources[0]
+        anno_base_level = src_base_dataset[:] & 15
+        logger.info(f"Obtained base annotation level with labels {np.unique(anno_base_level)}")
 
     print(f"Selected label {selected_label}")
     
-    if int(selected_label) != -1:
-        anno2_level = (anno2_level == int(selected_label)) * 1.0
+    #if int(selected_label) != -1:
+    #    anno_base_level = (anno_base_level == int(selected_label)) * 1.0
 
-    result = anno2_level
+    result = anno_base_level
+    
 
     if level_over != 'None':
-        print(anno2_level)
-        print(anno1_level)
-        result = anno2_level * (1.0 - ((anno1_level > 0) * 1.0))
-        #result += np.max(np.unique(anno1_level))
-        shifted_level = anno1_level
-        result += shifted_level
+        result = anno_base_level * (1.0 - ((anno1_level > 0) * 1.0))
+        anno1_level[anno1_level == selected_label] += offset
+
+        result += anno1_level
         
-    print(result)
     map_blocks(pass_through, result, out=dst, normalize=False)
 
 
@@ -316,6 +315,7 @@ def superregion_segment(
     classifier_type: String,
     projection_type: String,
     classifier_params: dict,
+    confidence : bool
 ):
     logger.debug(
         f"superregion_segment using anno {anno_id} and superregions {region_id} and features {feature_ids}"
@@ -385,7 +385,7 @@ def superregion_segment(
     else:
         mask = None
 
-    segmentation = sr_predict(
+    segmentation, conf_map = sr_predict(
         supervoxel_image,
         anno_level,
         features,
@@ -394,17 +394,19 @@ def superregion_segment(
         refine,
         lam,
     )
+    conf_map = conf_map[:,:,:,1]
+    logger.info(f"Obtained conf map of shape {conf_map.shape}")
 
     def pass_through(x):
         return x
 
     map_blocks(pass_through, segmentation, out=dst, normalize=False)
 
-    # # store in dst
-    # logger.debug(f"Storing segmentation in dst {dst}")
-    # with DatasetManager(dst, out=None, dtype="uint32", fillvalue=0) as DM:
-
-    #     DM.out[:] = segmentation.astype(np.uint32)
+    if confidence:
+        dst = auto_create_dataset(DataModel.g.current_workspace,name="confidence_map", group="features",  dtype="float32")
+        dst.set_attr("kind", "raw")
+        with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+            DM.out[:] = conf_map
 
 
 @hug.get()

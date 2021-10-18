@@ -35,6 +35,7 @@ class _Config(type):
         "filters": {},
         "pipeline": {},
         "slic": "skimage",
+        "volume_mode" : "volume_http"        
     }
 
     def __getitem__(self, key):

@@ -51,16 +51,15 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
         workspaces_widget = HWidgets(
-            "Switch Workspaces:", self.workspaces_list, Spacing(35), stretch=0
-        )
+            "Switch Workspaces:", self.workspaces_list)
         self.workspaces_list.setEditable(True)
         self.workspaces_list.activated[str].connect(self.workspaces_selected)
 
         self.hbox_layout0 = QtWidgets.QHBoxLayout()
         hbox_layout_ws = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
-        hbox_layout2 = QtWidgets.QHBoxLayout()
-        hbox_layout3 = QtWidgets.QHBoxLayout()
+        #hbox_layout2 = QtWidgets.QHBoxLayout()
+        #hbox_layout3 = QtWidgets.QHBoxLayout()
 
         self.hbox_layout0.addWidget(self.slider)
         self.slider.hide()
@@ -69,14 +68,14 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         hbox_layout1.addWidget(button_refresh)
         hbox_layout1.addWidget(self.button_slicemode)
         hbox_layout1.addWidget(button_transfer)
-        hbox_layout2.addWidget(self.filewidget)
-        hbox_layout2.addWidget(button_runworkflow)
+        hbox_layout_ws.addWidget(self.filewidget)
+        hbox_layout_ws.addWidget(button_runworkflow)
         
         vbox = VBox(self, margin=(1, 1, 1, 1), spacing=2)
         vbox.addLayout(self.hbox_layout0)
         vbox.addLayout(hbox_layout1)
         vbox.addLayout(hbox_layout_ws)
-        vbox.addLayout(hbox_layout2)
+        #vbox.addLayout(hbox_layout2)
         
     def load_workflow(self, path):
         self.workflow_fullname = path
@@ -87,6 +86,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.workspaces_list.clear()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
+        self.slider.setMinimumWidth(cfg.base_dataset_shape[0])
         
 
     def workspaces_selected(self):

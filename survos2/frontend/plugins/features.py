@@ -161,10 +161,6 @@ class FeatureCard(Card):
         self.params = fparams
         self.widgets = dict()
 
-        # from qtpy.QtWidgets import QProgressBar
-        # self.pbar = QProgressBar(self)
-        # self.add_row(self.pbar)
-
         self._add_source()
         for pname, params in fparams.items():
             if pname not in ["src", "dst", "threshold"]:
@@ -198,9 +194,9 @@ class FeatureCard(Card):
             )
             self.add_row(widget)
 
-            self.wavelet_threshold = RealSlider(value=0.0, vmax=128, vmin=0)
+            self.wavelet_threshold = RealSlider(value=0.0, vmax=128, vmin=0, n=2000)
             widget = HWidgets(
-                "Threshold:", self.wavelet_threshold, Spacing(35), stretch=0
+                "Threshold:", self.wavelet_threshold, stretch=0
             )
             self.add_row(widget)
 
@@ -259,6 +255,9 @@ class FeatureCard(Card):
         for k, v in params.items():
             if k in self.widgets:
                 self.widgets[k].setValue(v)
+        if "threshold" in params:
+            if params["threshold"] is not None:
+                self.wavelet_threshold.setValue(float(params["threshold"]))
 
     def card_deleted(self):
         params = dict(feature_id=self.feature_id, workspace=True)
