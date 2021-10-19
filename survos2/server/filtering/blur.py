@@ -11,7 +11,7 @@ from torch import nn
 from torch.nn import functional as F
 import kornia
 from loguru import logger
-
+from kornia.filters import filter3d
 
 def make_gaussian_kernel(kernel_size, sigma, dim=3):
     """Make gaussian kernel
@@ -65,11 +65,11 @@ def gaussian_blur_t(img_t: torch.Tensor, sigma):
     kernel_size = 3  # min size, expands to sigma if sigma is larger
     # kernel = torch.ones(1, 3, 3, 3) # example kernel
     kernel = make_gaussian_kernel(kernel_size, sigma, dim=3)
-    from kornia.filters import filter3D
+    
 
     p = int((kernel_size - 1) / 2)
     padded_img_t = F.pad(img_t, (p, p, p, p, p, p))
-    output_t = filter3D(padded_img_t, kernel)
+    output_t = filter3d(padded_img_t, kernel)
     output_t = output_t[:, :, p:-p, p:-p, p:-p]
     return output_t
 

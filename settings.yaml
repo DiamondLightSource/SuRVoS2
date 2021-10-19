@@ -86,3 +86,4 @@ qtui:
   menuKey: \
 slic: skimage
 title: 'SuRVoS2: Super-Region Volume Segmentation Workbench'
+volume_mode: volume

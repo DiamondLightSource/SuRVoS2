@@ -68,7 +68,7 @@ def annotate_voxels(
         ellipse_mask = ellipsoidal_mask(ellipse_size,ellipse_size,ellipse_size, radius=box_half_dim, center=(ellipse_size//2, ellipse_size//2, ellipse_size//2 )).astype(np.bool_)   
         print(ellipse_mask.shape)
         for i in range(len(yy)):
-            bbsz, bbfz, bbsy,bbfy, bbsx, bbfx = slice_idx-box_half_dim, slice_idx+box_half_dim, xx[i]-box_half_dim, xx[i]+box_half_dim, yy[i]-box_half_dim, yy[i]+box_half_dim     
+            bbsz, bbfz, bbsy,bbfy, bbsx, bbfx = slice_idx-box_half_dim, slice_idx+box_half_dim, xx[i]-box_half_dim, xx[i]+box_half_dim,yy[i]-box_half_dim, yy[i]+box_half_dim     
             bbsz, bbfz, bbsy,bbfy, bbsx, bbfx = np.max((0,bbsz)), np.min((ds_t.shape[0], bbfz)),np.max((0,bbsy)), np.min((ds_t.shape[1], bbfy)), np.max((0,bbsx)), np.min((ds_t.shape[2], bbfx))
             d,w,h = bbfz-bbsz, bbfy-bbsy, bbfx-bbsx
             if ((d != brush_size) | (w != brush_size) | (h != brush_size)):
@@ -78,7 +78,6 @@ def annotate_voxels(
             if parent_mask is not None:
                 mask = mask * parent_mask_t
             mask = mask > 0
-            #ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] = ((ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx][ellipse_mask] & _MaskPrev) | label)
             ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
 
 
