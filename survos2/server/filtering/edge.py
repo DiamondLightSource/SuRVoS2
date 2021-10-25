@@ -89,7 +89,7 @@ def laplacian(img: np.ndarray, kernel_size) -> np.ndarray:
     kernel_size = int(kernel_size)
     if kernel_size % 2 == 0:
         kernel_size += 1
-    laplacian: torch.Tensor = kornia.laplacian(img_clean_t, kernel_size=kernel_size)
+    laplacian: torch.Tensor = kornia.filters.laplacian(img_clean_t, kernel_size=kernel_size)
     laplacian_img: np.ndarray = kornia.tensor_to_image(laplacian.float())
     return np.nan_to_num(laplacian_img)
 
