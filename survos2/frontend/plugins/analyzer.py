@@ -247,27 +247,61 @@ class AnalyzerCard(Card):
         self.op_cards = []
 
         if self.analyzer_type == "label_splitter":
-
             # radio buttons to select source type
             self.radio_group = QtWidgets.QButtonGroup()
             self.radio_group.setExclusive(True)
             pipelines_rb = QRadioButton("Pipelines")
             pipelines_rb.setChecked(True)
+            pipelines_rb.toggled.connect(self._pipelines_rb_checked)
             self.radio_group.addButton(pipelines_rb, 1)
             analyzers_rb = QRadioButton("Analyzers")
+            analyzers_rb.toggled.connect(self._analyzers_rb_checked)
             self.radio_group.addButton(analyzers_rb, 2)
-            annotation_rb = QRadioButton("Annotation")
-            self.radio_group.addButton(annotation_rb, 3)
-            self.add_row(HWidgets(pipelines_rb, analyzers_rb, annotation_rb))
-           
-            self._add_pipelines_source()
-            self._add_analyzers_source()
-            self._add_annotations_source()
+            annotations_rb = QRadioButton("Annotation")
+            self.radio_group.addButton(annotations_rb, 3)
+            annotations_rb.toggled.connect(self._annotations_rb_checked)
+            self.add_row(HWidgets(pipelines_rb, analyzers_rb, annotations_rb))
+            
+            self.source_container = QtWidgets.QWidget()
+            source_vbox = VBox(self, spacing=4)
+            source_vbox.setContentsMargins(0, 0, 0, 0)
+            self.source_container.setLayout(source_vbox)
+            self.add_row(self.source_container)
+            self.pipelines_source = PipelinesComboBox()
+            self.pipelines_source.fill()
+            self.pipelines_source.setMaximumWidth(250)
+            self.pipelines_widget = HWidgets(
+            "Segmentation:", self.pipelines_source, Spacing(35), stretch=1
+            )
+            self.pipelines_widget.setParent(None)
+
+            self.annotations_source = LevelComboBox(full=True)
+            self.annotations_source.fill()
+            self.annotations_source.setMaximumWidth(250)
+            self.annotations_widget = HWidgets("Annotation", self.annotations_source, Spacing(35), stretch=1)
+            self.annotations_widget.setParent(None)
+
+            self.analyzers_source = AnalyzersComboBox()
+            self.analyzers_source.fill()
+            self.analyzers_source.setMaximumWidth(250)
+            self.analyzers_widget = HWidgets(
+                "Analyzers:", self.analyzers_source, Spacing(35), stretch=1
+            )
+            self.analyzers_widget.setParent(None)
+
+
+            self.source_container.layout().addWidget(self.pipelines_widget)
+            self.current_widget = self.pipelines_widget
+
+            #self._add_pipelines_source()
+            #self._add_analyzers_source()
+            #self._add_annotations_source()
+            
+            
             self._add_feature_source()
  
             self.add_rules_btn = PushButton("Add Rule")
             self.add_rules_btn.clicked.connect(self._add_rule)
-
             self.refresh_rules_btn = PushButton("Refresh plots")
             self.refresh_rules_btn.clicked.connect(self._setup_ops)
 
@@ -281,7 +315,12 @@ class AnalyzerCard(Card):
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
             self.export_csv_btn.clicked.connect(self.export_csv)
 
+            self.feature_name_combo_box = SimpleComboBox(
+            full=True, values=feature_names
+            )
+            self.feature_name_combo_box.fill()
             self._add_view_btn()            
+            self.add_row(HWidgets(self.feature_name_combo_box, Spacing(35),stretch=0))
 
         elif self.analyzer_type == "image_stats":
             self._add_features_source()
@@ -355,6 +394,27 @@ class AnalyzerCard(Card):
         self.table_control = None
         self.plots = []
 
+
+    def _pipelines_rb_checked(self, enabled):
+        if enabled:
+            self.source_container.layout().addWidget(self.pipelines_widget)
+            if self.current_widget:
+                self.current_widget.setParent(None)
+            self.current_widget = self.pipelines_widget
+    def _analyzers_rb_checked(self, enabled):
+        if enabled:
+            self.source_container.layout().addWidget(self.analyzers_widget)
+            if self.current_widget:
+                self.current_widget.setParent(None)
+            self.current_widget = self.analyzers_widget
+
+    def _annotations_rb_checked(self, enabled):
+        if enabled:
+            self.source_container.layout().addWidget(self.annotations_widget)
+            if self.current_widget:
+                self.current_widget.setParent(None)
+            self.current_widget = self.annotations_widget
+
     def _setup_ops(self):
         print(f"Current number of op cards {len(self.op_cards)}")      
         
@@ -382,7 +442,6 @@ class AnalyzerCard(Card):
     def load_data(self, path):
         self.model_fullname = path
         print(f"Setting model fullname: {self.model_fullname}")
-
 
     def load_as_objects(self):
         logger.debug("Load analyzer result as objects")
@@ -785,8 +844,6 @@ class AnalyzerCard(Card):
                 plot = None
             self.plots = []
 
-
-
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
         src = DataModel.g.dataset_uri(self.pipelines_source.value(), group="pipelines")
         all_params = dict(src=src, dst=dst, modal=False)
@@ -802,17 +859,29 @@ class AnalyzerCard(Card):
         split_feature_indexes = []
         split_feature_thresholds = []
 
-        for j, op_card in enumerate(self.op_cards):
+        if len(self.op_cards) > 0:
+            for j, op_card in enumerate(self.op_cards):
+                split_op = {}
+                split_feature_index = int(op_card.feature_name_combo_box.value())
+                split_op["split_feature_index"] = str(split_feature_index)
+                split_feature_indexes.append(split_feature_index)
+                split_op["split_op"] = op_card.split_op_combo_box.value()
+                split_op["split_threshold"] = op_card.split_threshold.value()
+                split_feature_thresholds.append(float(op_card.split_threshold.value()))
+                split_ops[j] = split_op
+
+        else:
             split_op = {}
-            split_feature_index = int(op_card.feature_name_combo_box.value())
+            split_feature_index = int(self.feature_name_combo_box.value())
             split_op["split_feature_index"] = str(split_feature_index)
             split_feature_indexes.append(split_feature_index)
-            split_op["split_op"] = op_card.split_op_combo_box.value()
-            split_op["split_threshold"] = op_card.split_threshold.value()
-            split_feature_thresholds.append(float(op_card.split_threshold.value()))
-            split_ops[j] = split_op
+            split_op["split_op"] = 1
+            split_op["split_threshold"] = 0
+            split_feature_thresholds.append(0)
+            split_ops[0] = split_op
 
         all_params["split_ops"] = split_ops
+
 
         logger.debug(f"Running analyzer with params {all_params}")
         result_features, features_array = Launcher.g.run(
