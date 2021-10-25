@@ -211,8 +211,8 @@ class TableWidget(QtWidgets.QGraphicsObject):
         self.w.cellClicked.connect(self.cell_clicked)
         self.w.doubleClicked.connect(self.double_clicked)
         self.w.selected_row = 0
-        stylesheet = "QHeaderView::section{Background-color:rgb(30,60,80)}"
-        self.w.setStyleSheet(stylesheet)
+        #stylesheet = "QHeaderView::section{Background-color:rgb(30,60,80)}"
+        #self.w.setStyleSheet(stylesheet)
 
     def set_data(self, data):
         self.w.setData(data)

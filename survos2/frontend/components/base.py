@@ -579,7 +579,7 @@ class Card(QCSWidget):
         self.add_row(HWidgets(*header, stretch=1), header=True)
         self._visible = True
 
-    def add_row(self, widget, max_height=30, header=False):
+    def add_row(self, widget, max_height=60, header=False):
         widget.setProperty("header", header)
         widget.setMaximumHeight(max_height)
         self.vbox.addWidget(widget)
@@ -704,7 +704,7 @@ class LineEdit3D(QCSWidget):
             self.hbox.addWidget(label)
             self.hbox.addWidget(le)
             self.line_edits.append(le)
-            self.setStyleSheet("background-color: #233434")
+            #self.setStyleSheet("background-color: #233434")
 
     def value(self):
         return tuple(le.value() for le in self.line_edits)
