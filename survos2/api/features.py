@@ -447,19 +447,27 @@ def wavelet(
     wavelet: String = "sym3",
     hard: SmartBoolean = True,
 ) -> "WAVELET":
-    from ..server.filtering import wavelet
+    from ..server.filtering import wavelet as wavelet_fn
 
-    map_blocks(
-        wavelet,
-        src,
-        level=level,
-        out=dst,
-        normalize=True,
-        wavelet="sym3",
-        threshold=threshold,
-        hard=hard,
-        pad=max(4, int(level * 2)),
-    )
+    
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset_arr = DM.sources[0][:]
+    
+    result = wavelet_fn(src_dataset_arr, level=level, wavelet=str(wavelet), threshold=threshold, hard=hard)    
+    # map_blocks(
+    #     wavelet,
+    #     src,
+    #     level=level,
+    #     out=dst,
+    #     normalize=True,
+    #     wavelet="sym3",
+    #     threshold=threshold,
+    #     hard=hard,
+    #     pad=max(4, int(level * 2)),
+    # )
+
+    map_blocks(pass_through, result, out=dst, normalize=False)
+
 
 
 @hug.get()
