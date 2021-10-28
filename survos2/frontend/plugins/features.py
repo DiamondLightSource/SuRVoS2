@@ -233,7 +233,7 @@ class FeatureCard(Card):
 
             self.wavelet_threshold = RealSlider(value=0.0, vmax=128, vmin=0, n=2000)
             widget = HWidgets(
-                "Threshold:", self.wavelet_threshold, stretch=0
+                "Threshold:", self.wavelet_threshold, Spacing(35), stretch=0, 
             )
             self.add_row(widget)
 
@@ -271,7 +271,7 @@ class FeatureCard(Card):
         self.add_row(
             HWidgets(
                 None,
-                view_btn,
+                view_btn,Spacing(35)
             )
         )
 
@@ -282,6 +282,7 @@ class FeatureCard(Card):
             HWidgets(
                 None,
                 compute_btn,
+                Spacing(35)
             )
         )
 
