@@ -53,6 +53,7 @@ class ROIPlugin(Plugin):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.vbox = VBox(self, spacing=10)
+
         hbox_layout3 = QtWidgets.QHBoxLayout()
         self.roi_start = LineEdit3D(default=0, parse=int)
         self.roi_end = LineEdit3D(default=0, parse=int)
@@ -64,11 +65,20 @@ class ROIPlugin(Plugin):
         self.roi_layout.addWidget(self.roi_start_row)
         self.roi_layout.addWidget(self.roi_end_row)
         self.roi_layout.addWidget(button_setroi)
+        
+        self.annotations_source = LevelComboBox(full=True)
+        self.annotations_source.fill()
+        self.annotations_source.setMaximumWidth(250)
+        widget = HWidgets("Annotation to copy:", self.annotations_source, Spacing(35), stretch=1)
+        
+        self.vbox.addWidget(widget)
         self.vbox.addLayout(self.roi_layout)
         self.vbox.addLayout(hbox_layout3)
         self.existing_roi = {}
         self.roi_layout = VBox(margin=0, spacing=5)
         self.vbox.addLayout(self.roi_layout)
+
+        
 
     def setup(self):
         result = Launcher.g.run("roi", "existing")
@@ -84,13 +94,15 @@ class ROIPlugin(Plugin):
         self.existing_roi[rid] = widget
         return widget
 
-    def add_roi(self, roi_fname, original_workspace):
-        params = dict(workspace=original_workspace, roi_fname=roi_fname)
+    def add_roi(self, roi_fname, original_workspace, roi):
+        original_level = str(self.annotations_source.value().rsplit("/", 1)[-1])
+        params = dict(workspace=original_workspace, roi_fname=roi_fname, roi=roi, original_workspace=original_workspace, original_level=original_level)
         result = Launcher.g.run("roi", "create", **params)
         if result:
             rid = result["id"]
             rname = result["name"]
             self._add_roi_widget(rid, rname, True)
+        
         cfg.ppw.clientEvent.emit(
                 {"source": "panel_gui", "data": "refresh", "value": None}
             )
@@ -130,9 +142,9 @@ class ROIPlugin(Plugin):
         )
         #self.refresh_workspaces()
         cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "make_roi_ws", "roi": roi}
+           {"source": "panel_gui", "data": "make_roi_ws", "roi": roi}
         )
-        self.add_roi(roi_name, original_workspace)
+        self.add_roi(roi_name, original_workspace, roi)
 
 
 

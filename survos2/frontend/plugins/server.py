@@ -75,7 +75,7 @@ from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
-from napari.qt import progress
+from napari.qt.progress import progress
 
 CHROOT = Config["model.chroot"]
 
@@ -493,7 +493,7 @@ class LoadDataDialog(QDialog):
         self.canvas.ax.set_facecolor((1, 1, 1))
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], "gray")
         self.canvas.ax.grid(False)
-        self.canvas.redraw()
+        #self.canvas.redraw()
 
     def update_est_data_size(self, z_size, y_size, x_size):
         """Updates the estimated datasize label according to the dimensions and the downsampling factor.

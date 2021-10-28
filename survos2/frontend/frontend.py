@@ -11,7 +11,7 @@ from napari.layers import Image
 from napari.layers.image.image import Image
 from napari.layers.points.points import Points
 from napari.layers.labels.labels import Labels
-from napari.qt import progress
+from napari.qt.progress import progress
 
 from qtpy.QtCore import QSize
 

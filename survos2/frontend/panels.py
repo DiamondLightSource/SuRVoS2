@@ -16,7 +16,7 @@ from survos2.frontend.utils import FileWidget
 from survos2.server.state import cfg
 from survos2.model.model import DataModel
 from survos2.config import Config
-from napari.qt import progress
+from napari.qt.progress import progress
 from survos2.config import Config
 
 class ButtonPanelWidget(QtWidgets.QWidget):

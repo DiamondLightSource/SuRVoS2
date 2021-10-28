@@ -32,7 +32,7 @@ from survos2.frontend.plugins.base import (
 from survos2.frontend.plugins.superregions import RegionComboBox
 from survos2.model import DataModel
 from survos2.server.state import cfg
-from napari.qt import progress
+from napari.qt.progress import progress
 
 _AnnotationNotifier = PluginNotifier()
 

@@ -10,7 +10,7 @@ from survos2.frontend.utils import get_array_from_dataset, get_color_mapping
 from survos2.frontend.components.entity import setup_entity_table
 from skimage.segmentation import find_boundaries
 import seaborn as sns
-from napari.qt import progress
+from napari.qt.progress import progress
 
 
 

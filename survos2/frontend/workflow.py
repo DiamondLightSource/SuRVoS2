@@ -7,7 +7,7 @@ from survos2.model import DataModel
 from survos2.server.state import cfg
 
 from napari.qt.threading import thread_worker
-from napari.qt import progress
+from napari.qt.progress import progress
 
 
 @thread_worker
@@ -22,13 +22,8 @@ def run_workflow(msg):
 
     num_workflow_steps = len(workflows.keys())
     minVal, maxVal = 0, num_workflow_steps
-    # with ProgressDialog(
-    #    f"Processing pipeline {workflow_file}", minVal, maxVal
-    # ) as dlg:
     with progress(total=num_workflow_steps) as pbar:
-        # if dlg.wasCanceled():
-        #    raise Exception("Processing canceled")
-
+    
         for step_idx, k in enumerate(workflows):
             workflow = workflows[k]
             action = workflow.pop("action")
@@ -54,7 +49,6 @@ def run_workflow(msg):
             )
 
             Launcher.g.run(plugin, command, **all_params)
-            # dlg.setValue(step_idx)
             pbar.update(1)
     cfg.ppw.clientEvent.emit(
         {"source": "workspace_gui", "data": "refresh", "value": None}

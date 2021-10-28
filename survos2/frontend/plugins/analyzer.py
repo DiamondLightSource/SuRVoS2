@@ -24,7 +24,7 @@ from survos2.frontend.utils import FileWidget
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
-from napari.qt import progress
+from napari.qt.progress import progress
 
 feature_names = ["z", "y","x", "Sum", "Mean", "Std", "Var", "bb_vol", "bb_vol_log10", "bb_vol_depth", "bb_vol_depth","bb_vol_height", "bb_vol_width", "ori_vol", "ori_vol_log10", "ori_vol_depth", "ori_vol_depth","ori_vol_height", "ori_vol_width"]
 
@@ -362,7 +362,7 @@ class AnalyzerCard(Card):
             self._add_features_source()
             self._add_object_detection_stats_source()
         elif self.analyzer_type == "find_connected_components":
-            additional_buttons.append(self._add_pipelines_source())
+            additional_buttons.append(self._add_pipelines_source2())
             self.label_index = LineEdit(default=0, parse=int)
             widget = HWidgets("Label Index:", self.label_index, Spacing(35), stretch=1)
             self.add_row(widget)
@@ -493,6 +493,18 @@ class AnalyzerCard(Card):
             "Segmentation:", self.pipelines_source, Spacing(35), stretch=1
         )
         self.add_row(widget)
+
+
+    def _add_pipelines_source2(self):
+        self.pipelines_source = PipelinesComboBox()
+        self.pipelines_source.fill()
+        self.pipelines_source.setMaximumWidth(250)
+        widget = HWidgets(
+            "Segmentation:", self.pipelines_source, Spacing(35), stretch=1
+        )
+        self.add_row(widget)
+        load_as_objects = PushButton("Load as Objects")
+        return load_as_objects
 
     def _add_analyzers_source(self):
         self.analyzers_source = AnalyzersComboBox()
@@ -893,7 +905,7 @@ class AnalyzerCard(Card):
         if features_array:
             logger.debug(f"Segmentation stats result table {len(features_array)}")                
             
-            self.display_splitter_results(result_features)
+            
             feature_arrays = []
             feature_titles = []
             
@@ -907,6 +919,7 @@ class AnalyzerCard(Card):
                 print(f"Titles of feature names{feature_titles}")
                 print(f"Split feature thresholds: {split_feature_thresholds}")
             self.display_splitter_plot(feature_arrays, titles=feature_titles, vert_line_at=split_feature_thresholds)
+            self.display_splitter_results(result_features)
 
     def calc_level_image_stats(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")

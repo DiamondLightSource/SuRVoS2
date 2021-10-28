@@ -233,7 +233,6 @@ def sr_predict(
     )
 
     prob_map = srprediction.prob_map
-    # logger.debug(f"Made sr prediction: {srprediction}")
 
     if refine:
         prob_map = mrf_refinement(
@@ -241,7 +240,7 @@ def sr_predict(
         )
         logger.debug(f"Calculated MRF Refinement")
 
-    return prob_map
+    return prob_map, srprediction.conf_map
 
 
 def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):

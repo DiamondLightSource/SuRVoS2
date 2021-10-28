@@ -246,7 +246,7 @@ class MplCanvas(QWidget):
     def on_press(self, event):
         self.setFocus()
         if event.button == 1 or event.button == 3 and not self.rs.active:
-            self.redraw()
+            #   self.redraw()
             self.rs.set_active(True)
         else:
             self.rs.set_active(False)

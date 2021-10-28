@@ -1,6 +1,5 @@
-name: survos2_env_c
+name: survos2_env_j
 channels:
-  - pytorch
   - anaconda
   - defaults
   - conda-forge

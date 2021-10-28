@@ -1,8 +1,8 @@
 import numpy as np
 from loguru import logger
-
+import os
 from qtpy import QtWidgets
-from qtpy.QtWidgets import QRadioButton, QPushButton
+from qtpy.QtWidgets import QRadioButton, QPushButton,QFileDialog
 from qtpy.QtCore import QSize, Signal
 
 from survos2.frontend.components.base import *
@@ -11,9 +11,9 @@ from survos2.model import DataModel
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.plugins_components import SourceComboBox
 from survos2.server.state import cfg
-
-from napari.qt import progress
-
+from survos2.frontend.utils import FileWidget
+from napari.qt.progress import progress
+import yaml
 
 _FeatureNotifier = PluginNotifier()
 
@@ -53,10 +53,18 @@ class FeaturesPlugin(Plugin):
         super().__init__(parent=parent)
         self.feature_combo = ComboBox()
         self.vbox = VBox(self, spacing=4)
+        self.vbox2 = VBox(self, spacing=4)
+
         self.vbox.addWidget(self.feature_combo)
         self.feature_combo.currentIndexChanged.connect(self.add_feature)
         self.existing_features = dict()
+        
         self._populate_features()
+        self.vbox.addLayout(self.vbox2)
+        self.workflow_button = PushButton("Save workflow", accent=True)
+        self.workflow_button.clicked.connect(self.save_workflow)
+        self.vbox.addWidget(self.workflow_button)
+        self.filewidget = FileWidget(extensions="*.yaml", save=False)
 
     def _populate_features(self):
         self.feature_params = {}
@@ -98,7 +106,7 @@ class FeaturesPlugin(Plugin):
         if ftype in self.feature_params:
             widget = FeatureCard(fid, ftype, fname, self.feature_params[ftype])
             widget.showContent(expand)
-            self.vbox.addWidget(widget)
+            self.vbox2.addWidget(widget)
             self.existing_features[fid] = widget
             return widget
 
@@ -106,6 +114,35 @@ class FeaturesPlugin(Plugin):
         for feature in list(self.existing_features.keys()):
             self.existing_features.pop(feature).setParent(None)
         self.existing_features = {}
+
+    def save_workflow(self):
+        fname_filter, ext = "YAML (*.yaml)", ".yaml"
+        filename = "workflow" + ext
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Workflow", filename, fname_filter
+        )
+        if path is not None and len(path) > 0:
+            workflow = {}
+            for i,(k,v) in enumerate(self.existing_features.items()):
+                print(k,v)
+                print(v.feature_type)
+                print(v.params)
+                for x,y in v.widgets.items():
+                    print(x,y.value())
+                    workflow["f"+str(i)] = {}
+                    workflow["f"+str(i)]["action"] = "features." + str(v.feature_type)
+                    workflow["f"+str(i)]["src"] = "001_raw"
+                    workflow["f"+str(i)]["dst"] = "00" + str(i) + "_" + v.feature_type
+                    workflow["f"+str(i)]["params"] = {}
+                    param_value = y.value()
+                    if isinstance(param_value, tuple):
+                        param_value = list(param_value)
+                    workflow["f"+str(i)]["params"][x] = param_value 
+            
+            workflow_yaml = path #os.path.join(os.path.dirname(__file__), "../../..", "workflow.yaml")
+            with open(workflow_yaml, "w") as outfile:
+                yaml.dump(workflow, outfile, default_flow_style=False)
+
 
     def setup(self):
         self._populate_features()

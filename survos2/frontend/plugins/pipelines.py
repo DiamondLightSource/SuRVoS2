@@ -24,7 +24,7 @@ from survos2.server.state import cfg
 from survos2.frontend.utils import FileWidget
 
 
-from napari.qt import progress
+from napari.qt.progress import progress
 
 _PipelineNotifier = PluginNotifier()
 
