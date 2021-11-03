@@ -761,7 +761,6 @@ class FrontEndRunner(QWidget):
         self.workspaces_list = ComboBox()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
-        prnt("bob")
         run_layout.addWidget(self.workspaces_list, 0, 0)
 
         self.ws_name_linedt_2 = QLineEdit(self.workspace_config["workspace_name"])
