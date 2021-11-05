@@ -238,6 +238,7 @@ class LoadDataDialog(QDialog):
         """Changes Z value label when slider moved."""
         idx = self.sender().value()
         self.slider_z_label.setNum(idx)
+        self.canvas.redraw()
 
     @pyqtSlot()
     def on_roi_reset_clicked(self):
@@ -368,6 +369,7 @@ class LoadDataDialog(QDialog):
         self.yend_linedt.setText(str(y_end))
         self.zstart_linedt.setText(str(z_start))
         self.zend_linedt.setText(str(z_end))
+        self.canvas.redraw()
 
     def clip_roi_box_vals(self, vals):
         """Clip ROI values to ensure that they lie within the data shape.
@@ -691,6 +693,7 @@ class ServerPlugin(Plugin):
 
     def get_chroot_fields(self):
         chroot_fields = QGroupBox("Set Dataset Root:")
+        chroot_fields.setMaximumHeight(130)
         chroot_layout = QGridLayout()
         self.given_chroot_linedt = QLineEdit(CHROOT)
         chroot_layout.addWidget(self.given_chroot_linedt, 1, 0, 1, 2)

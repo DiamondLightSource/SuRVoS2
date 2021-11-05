@@ -66,6 +66,31 @@ class FeaturesPlugin(Plugin):
         self.vbox.addWidget(self.workflow_button)
         self.filewidget = FileWidget(extensions="*.yaml", save=False)
 
+
+        self.filewidget_open = FileWidget(extensions="*.yaml", save=False)
+        self.filewidget_open.path_updated.connect(self.load_workflow)
+
+        button_runworkflow = QPushButton("Run workflow", self)
+        button_runworkflow.clicked.connect(self.button_runworkflow_clicked)
+    
+        hbox_layout2 = QtWidgets.QHBoxLayout()
+        hbox_layout2.addWidget(self.filewidget_open)
+        hbox_layout2.addWidget(button_runworkflow)
+        self.vbox.addLayout(hbox_layout2)
+        
+    def load_workflow(self, path):
+        self.workflow_fullname = path
+        print(f"Setting workflow fullname: {self.workflow_fullname}")
+
+    def button_runworkflow_clicked(self):
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "panel_gui",
+                "data": "run_workflow",
+                "workflow_file": self.workflow_fullname,
+            }
+        )
+
     def _populate_features(self):
         self.feature_params = {}
         self.feature_combo.clear()

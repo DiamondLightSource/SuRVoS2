@@ -1,12 +1,5 @@
 """"
-Supervoxels 
-
-ISSUES 
-Things that go wrong with supervoxel generation:
-
-The image used is not smooth enough. The algorithm generates far too many supervoxels and 
-crashes if an overly detailed image is used as the source image.
-
+Supervoxels generation
 
 
 """
@@ -25,8 +18,6 @@ import survos2.api.workspace as ws
 # SuRVoS 2 imports
 #
 from survos2.improc import map_blocks
-
-# from survos2.improc.features import gaussian, tvdenoising3d
 from survos2.improc.regions.rag import create_rag
 from survos2.improc.segmentation import _qpbo as qpbo
 from survos2.improc.segmentation.appearance import invrmap, predict, refine, train

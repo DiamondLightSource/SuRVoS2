@@ -39,13 +39,8 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.button_slicemode = QPushButton("Slice mode", self)
         self.button_slicemode.clicked.connect(self.button_slicemode_clicked)
 
-        self.filewidget = FileWidget(extensions="*.yaml", save=False)
-        self.filewidget.path_updated.connect(self.load_workflow)
-
-        button_runworkflow = QPushButton("Run workflow", self)
-        button_runworkflow.clicked.connect(self.button_runworkflow_clicked)
-
-
+        
+        
         workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list = ComboBox()
         for s in workspaces:
@@ -58,28 +53,22 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.hbox_layout0 = QtWidgets.QHBoxLayout()
         hbox_layout_ws = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
-        #hbox_layout2 = QtWidgets.QHBoxLayout()
-        #hbox_layout3 = QtWidgets.QHBoxLayout()
-
+        
         self.hbox_layout0.addWidget(self.slider)
         self.slider.hide()
 
         hbox_layout_ws.addWidget(workspaces_widget)
-        hbox_layout1.addWidget(button_refresh)
-        hbox_layout1.addWidget(self.button_slicemode)
+        hbox_layout_ws.addWidget(button_refresh)
+        
         hbox_layout1.addWidget(button_transfer)
-        hbox_layout_ws.addWidget(self.filewidget)
-        hbox_layout_ws.addWidget(button_runworkflow)
+        hbox_layout1.addWidget(self.button_slicemode)
+        
         
         vbox = VBox(self, margin=(1, 1, 1, 1), spacing=2)
         vbox.addLayout(self.hbox_layout0)
         vbox.addLayout(hbox_layout1)
         vbox.addLayout(hbox_layout_ws)
-        #vbox.addLayout(hbox_layout2)
         
-    def load_workflow(self, path):
-        self.workflow_fullname = path
-        print(f"Setting workflow fullname: {self.workflow_fullname}")
 
     def refresh_workspaces(self):
         workspaces = os.listdir(DataModel.g.CHROOT)
@@ -175,14 +164,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             {"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()}
         )
 
-    def button_runworkflow_clicked(self):
-        cfg.ppw.clientEvent.emit(
-            {
-                "source": "panel_gui",
-                "data": "run_workflow",
-                "workflow_file": self.workflow_fullname,
-            }
-        )
 
 
 class PluginPanelWidget(QtWidgets.QWidget):

@@ -2,9 +2,9 @@
 	
 2. (Install miniconda) then start miniconda prompt. (Python 3.8)
 	
-3. In <INSTALLDIR>/SuRVoS2, use survos2_clean_environment_windows_conda.yml to create a new environment by:
+3. In <INSTALLDIR>/SuRVoS2:
 
-	conda env create -f survos2_clean_conda.yml
+	conda  create --name [ENV NAME] python=3.8
 
 	conda activate survos2_env
 
@@ -12,15 +12,17 @@
 	
 	pip install -r req.txt
 
-5. Build survos:
-
+5. Build survos (WINDOWS): (To build this you might need to download the Visual Studio build tools, which can be got from here https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16)
 	python ./survos2/improc/setup.py build_ext --inplace
 
 6. Change the CHROOT in settings.yaml to something appropriate for the machine and network settings.
+ (For a central install remember to make this somewhere that is readable to everyone)
 
 7. Run Napari:
 	napari
 
 8. Start SuRVoS Plugin from Plugins dropdown
-7. Run:
-	 python -m survos2.frontend.runner
+
+
+
+
