@@ -1,11 +1,5 @@
 # SuRVoS2
 
-[![License](https://img.shields.io/pypi/l/SuRVoS2.svg?color=green)](https://github.com/penningav/SuRVoS2/raw/master/LICENSE)
-[![PyPI](https://img.shields.io/pypi/v/SuRVoS2.svg?color=green)](https://pypi.org/project/SuRVoS2)
-[![Python Version](https://img.shields.io/pypi/pyversions/SuRVoS2.svg?color=green)](https://python.org)
-[![tests](https://github.com/penningav/SuRVoS2/workflows/tests/badge.svg)](https://github.com/penningav/SuRVoS2/actions)
-[![codecov](https://codecov.io/gh/penningav/SuRVoS2/branch/master/graph/badge.svg)](https://codecov.io/gh/penningav/SuRVoS2)
-
 Volumetric Image Segmentation
 
 ----------------------------------
