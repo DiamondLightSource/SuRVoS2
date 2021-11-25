@@ -25,6 +25,7 @@ from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.model import SRData, SRFeatures, SRPrediction
 
+
 @dataclass
 class Patch:
     image_layers: Dict
@@ -71,8 +72,8 @@ def run_workflow(workflow_file):
                 f"+ Running {k}, with {plugin}, {command} on {src}\n to dst {dst} {all_params}\n"
             )
 
+            
             import survos
-
             # Launcher.g.run(plugin, command, **all_params)
             survos.run_command(plugin, command, uri=None, src=src, dst=dst)
 

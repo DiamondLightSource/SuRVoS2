@@ -177,9 +177,6 @@ def view_pipeline(viewer, msg, analyzers=False):
         else:
             remove_layer(viewer, cfg.current_pipeline_name)
             cfg.current_pipeline_name = msg["pipeline_id"]
-            
-        
-
 
         pipeline_src = DataModel.g.dataset_uri(msg["pipeline_id"], group=source)
             

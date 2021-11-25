@@ -55,13 +55,13 @@ def paint_strokes(
         if len(drag_pts[0]) == 2:
             px, py = drag_pts[0]
             z = cfg.current_slice
-            print(f"Using z {z}")
+            #print(f"Using z {z}")
         else:
-            logger.info(f"drag_pts[0] {drag_pts}")
+            #logger.info(f"drag_pts[0] {drag_pts}")
             pt_data = drag_pts[0]
             pt_data = [pt_data[i] for i in viewer_order]
             z, px, py = pt_data
-            logger.debug(f"z px py {z} {px} {py}")
+            #logger.debug(f"z px py {z} {px} {py}")
 
         if len(drag_pts[0]) == 2:
             # depending on the slice mode we need to handle either 2 or 3 coordinates
@@ -147,7 +147,7 @@ def paint_strokes(
                     ]
                 )
                 bb = bb.tolist()
-                logger.debug(f"BB: {bb}")
+                #logger.debug(f"BB: {bb}")
 
                 if cfg.supervoxels_cached == False:                    
                     if cfg.retrieval_mode == 'volume' or cfg.retrieval_mode == "volume_http":
@@ -176,7 +176,7 @@ def paint_strokes(
                         if result:
                             sv_arr = decode_numpy(result)
                         
-                    logger.debug(f"Loaded superregion array of shape {sv_arr.shape}")
+                    #logger.debug(f"Loaded superregion array of shape {sv_arr.shape}")
 
                     cfg.supervoxels_cache = sv_arr
                     cfg.supervoxels_cached = True
@@ -188,7 +188,7 @@ def paint_strokes(
                     viewer_order_str = "".join(map(str, viewer_order))
                     if viewer_order_str != "012" and len(viewer_order_str) == 3:
                         sv_arr = np.transpose(sv_arr, viewer_order)
-                        logger.debug(f"After viewer_order transform {sv_arr.shape}")
+                        #logger.debug(f"After viewer_order transform {sv_arr.shape}")
 
                 for x, y in zip(line_x, line_y):
                     if cfg.retrieval_mode=='slice':
@@ -267,7 +267,7 @@ def _annotate_regions_local(
         parent_arr = None
         parent_mask = None
 
-    logger.debug(f"BB in annotate_regions {bb}")
+    #logger.debug(f"BB in annotate_regions {bb}")
     
     if label >= 16 or label < 0 or type(label) != int:
         raise ValueError("Label has to be in bounds [0, 15]")
@@ -280,15 +280,15 @@ def _annotate_regions_local(
     cfg.modified = [0]
     ds = level[:]
     reg = region[:]
-    print(f"reg shape {reg.shape} ds shape {ds.shape}")
+    #print(f"reg shape {reg.shape} ds shape {ds.shape}")
 
     viewer_order_str = "".join(map(str, viewer_order))
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
-        print(f"Viewer order {viewer_order} Performing viewer_order transform {ds.shape}")
+        #print(f"Viewer order {viewer_order} Performing viewer_order transform {ds.shape}")
         ds_t = np.transpose(ds, viewer_order)
         
     else:
-        print(f"Viewer order {viewer_order} No viewer_order transform {ds.shape}")
+        #print(f"Viewer order {viewer_order} No viewer_order transform {ds.shape}")
         ds_t = ds
         
     mask = np.zeros_like(reg)
@@ -310,7 +310,7 @@ def _annotate_regions_local(
 
     if parent_mask is not None:
         parent_mask_t = np.transpose(parent_mask, viewer_order)
-        print(f"Using parent mask of shape: {parent_mask.shape}")
+        #print(f"Using parent mask of shape: {parent_mask.shape}")
         mask = mask * parent_mask_t
 
 
@@ -322,15 +322,15 @@ def _annotate_regions_local(
     ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
     ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
     
-    print(f"Returning annotated region ds {ds.shape}")
+    #print(f"Returning annotated region ds {ds.shape}")
 
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
         new_order = get_order(viewer_order)
-        logger.info(
-            f"new order {new_order} Dataset before second transpose: {ds_t.shape}"
-        )
+        #logger.info(
+        #    f"new order {new_order} Dataset before second transpose: {ds_t.shape}"
+        #)
         ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
-        logger.info(f"Dataset after second transpose: {ds_o.shape}")
+        #logger.info(f"Dataset after second transpose: {ds_o.shape}")
     else:
         ds_o = ds_t
 

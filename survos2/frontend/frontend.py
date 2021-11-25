@@ -132,11 +132,12 @@ def frontend(viewer):
     dw.bpw = ButtonPanelWidget()  # Additional controls
     dw.ppw.setMinimumSize(QSize(450, 750))
 
-    ws = Workspace(DataModel.g.current_workspace)
-    dw.ws = ws
+    if DataModel.g.current_workspace != '':
+        ws = Workspace(DataModel.g.current_workspace)
+        dw.ws = ws
+    
     dw.datamodel = DataModel.g
     dw.Launcher = Launcher
-
     viewer.theme = "dark"
 
     def set_paint_params(msg):
@@ -242,15 +243,13 @@ def frontend(viewer):
                         result, msg, src_arr
                     )
 
-  
-
             except Exception as e:
                 print(f"Exception {e}")
 
     def _refresh_annotations_in_viewer(result, msg, src_arr):
-        print(f"Refresh annotations in viewer {src_arr.shape}")
+        #logger.debug(f"Refresh annotations in viewer {src_arr.shape}")
         cmapping, label_ids = get_color_mapping(result, msg["level_id"])
-        logger.debug(f"Label ids {label_ids}")
+        #logger.debug(f"Label ids {label_ids}")
         cfg.label_ids = label_ids
         existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
         
@@ -263,7 +262,7 @@ def frontend(viewer):
             label_layer = existing_layer[0]
             existing_layer[0].color = cmapping
         else:
-            print(f"Adding labels {src_arr.shape} {cmapping }")
+            #print(f"Adding labels {src_arr.shape} {cmapping }")
             label_layer = viewer.add_labels(
             src_arr & 15, name=msg["level_id"], color=cmapping
             )
@@ -273,9 +272,7 @@ def frontend(viewer):
         if cfg.label_value is not None:
             label_layer.selected_label = int(cfg.label_value["idx"]) - 1
 
- 
-
-        print(f"Returning label layer {label_layer}")
+        #print(f"Returning label layer {label_layer}")
         return label_layer
 
     def setup_paint_undo_remote(label_layer):
@@ -299,7 +296,7 @@ def frontend(viewer):
     def setup_paint_undo_local(label_layer):
         @label_layer.bind_key("Control-Z", overwrite=True)
         def undo(v):
-            logger.info("Undoing local annotation")
+            #logger.info("Undoing local annotation")
             if cfg.num_undo == 0:
                 print(cfg.anno_data)
                 #cfg.anno_data = cfg.anno_data >> _MaskSize
@@ -382,10 +379,7 @@ def frontend(viewer):
                                 paint_strokes_worker.returned.connect(update)
                                 paint_strokes_worker.start()
                                 
-                                
-                                cfg.num_undo = 0
-     
-                              
+                                cfg.num_undo = 0                              
                         else:
                             
                             cfg.ppw.clientEvent.emit(
@@ -401,11 +395,11 @@ def frontend(viewer):
 
     def paint_annotations(msg):
         if not cfg.emptying_viewer:
-            logger.debug(f"paint_annotation {msg['level_id']}")
+            #logger.debug(f"paint_annotation {msg['level_id']}")
             
             try:
                 label_layer = refresh_annotations_in_viewer(msg)
-                print(f"paint_annotations label_layer {label_layer}")
+                #print(f"paint_annotations label_layer {label_layer}")
                 sel_label = (
                     int(cfg.label_value["idx"]) if cfg.label_value is not None else 1
                 )
@@ -416,7 +410,6 @@ def frontend(viewer):
                     result = Launcher.g.run("annotations", "get_label_parent", **params)
                     parent_level = result[0]
                     parent_label_idx = result[1]
-                    print(f"Got label parent: level {parent_level} label {parent_label_idx}")
                     cfg.parent_level = parent_level
                     cfg.parent_label_idx = parent_label_idx
                     setup_paint_undo_local(label_layer)
@@ -439,7 +432,7 @@ def frontend(viewer):
         result = Launcher.g.run("workspace", "set_workspace", **params)
 
     def view_patches(msg):
-        from entityseg.training.patches import load_patch_vols
+        from survos2.entity.patches import load_patch_vols
         logger.debug(f"view_patches {msg['patches_fullname']}")
         img_vols, label_vols = load_patch_vols(msg["patches_fullname"])
         viewer.add_image(img_vols, name="Patch Image")
@@ -481,11 +474,9 @@ def frontend(viewer):
 
     def jump_to_slice(msg):
         cfg.supervoxels_cached = False
-        logger.debug(f"jump_to_slice Using order {cfg.order}")
         cfg.retrieval_mode = "slice"
         cfg.current_slice = int(msg["frame"])
-        logger.debug(f"Jump around to {cfg.current_slice}, msg {msg['frame']}")
-
+        
         existing_feature_layer = [
             v for v in viewer.layers if v.name == cfg.current_feature_name
         ]
@@ -580,10 +571,10 @@ def frontend(viewer):
             roi=msg["roi"],
         )
         result = Launcher.g.run("workspace", "make_roi_ws", **params)
-        if result:
-            logger.debug(f"Switching to make_roi_ws created workspace {result}")
-            DataModel.g.current_workspace = result
-            processEvents({"data": "refresh"})
+        #if result:
+        #    logger.debug(f"Switching to make_roi_ws created workspace {result}")
+        #    DataModel.g.current_workspace = result
+        #    processEvents({"data": "refresh"})
 
     def get_crop(msg):
         logger.debug(f"Getting crop roi: {msg}")
@@ -609,13 +600,13 @@ def frontend(viewer):
         if msg["data"] == "jump_to_slice":
             jump_to_slice(msg)
         elif msg["data"] == "slice_mode":
-            logger.debug(f"Slice mode changing from: {cfg.retrieval_mode}")
+            #logger.debug(f"Slice mode changing from: {cfg.retrieval_mode}")
             if cfg.retrieval_mode != "slice":
                 cfg.local_sv = True
                 _switch_to_slice_mode_and_jump()
             else:
                 try:
-                    logger.debug(f"In slice mode changing to volume mode {viewer.layers}")
+                    #logger.debug(f"In slice mode changing to volume mode {viewer.layers}")
                     cfg.retrieval_mode = "volume"
                     cfg.local_sv = True
                     for _ in range(len(viewer.layers)):
@@ -658,9 +649,7 @@ def frontend(viewer):
             logger.debug("\n\nEmptying viewer")
             for l in viewer.layers:
                 viewer.layers.remove(l)
-            
             cfg.current_feature_name = "001_raw"
-            
         elif msg["data"] == "save_annotation":
             save_annotation(msg)
         elif msg["data"] == "set_paint_params":
@@ -677,7 +666,6 @@ def frontend(viewer):
             transfer_layer(msg)
 
     def _switch_to_slice_mode_and_jump():
-
         cfg.retrieval_mode = "slice"
         viewer_order = viewer.window.qt_viewer.viewer.dims.order
         for l in viewer.layers:
@@ -685,12 +673,12 @@ def frontend(viewer):
         
         if len(viewer_order) == 3:
             cfg.order = [int(d) for d in viewer_order]
-            logger.debug(f"Setting order to {cfg.order}")
+            #logger.debug(f"Setting order to {cfg.order}")
         else:
             cfg.order = [0, 1, 2]
-            logger.debug(f"Viewer order {viewer_order} Resetting order to {cfg.order}")
+            #logger.debug(f"Viewer order {viewer_order} Resetting order to {cfg.order}")
         cfg.slice_max = cfg.base_dataset_shape[cfg.order[0]]
-        logger.debug(f"Setting slice max to {cfg.slice_max}")
+        #logger.debug(f"Setting slice max to {cfg.slice_max}")
         view_feature(viewer, {"feature_id": cfg.current_feature_name})
         try:
             jump_to_slice({"frame": 0})

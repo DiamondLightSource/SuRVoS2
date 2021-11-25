@@ -78,8 +78,6 @@ class ROIPlugin(Plugin):
         self.roi_layout = VBox(margin=0, spacing=5)
         self.vbox.addLayout(self.roi_layout)
 
-        
-
     def setup(self):
         result = Launcher.g.run("roi", "existing")
         logger.debug(f"roi result {result}")
@@ -95,7 +93,10 @@ class ROIPlugin(Plugin):
         return widget
 
     def add_roi(self, roi_fname, original_workspace, roi):
-        original_level = str(self.annotations_source.value().rsplit("/", 1)[-1])
+        if self.annotations_source.value():
+            original_level = str(self.annotations_source.value().rsplit("/", 1)[-1])
+        else:
+            original_level = None
         params = dict(workspace=original_workspace, roi_fname=roi_fname, roi=roi, original_workspace=original_workspace, original_level=original_level)
         result = Launcher.g.run("roi", "create", **params)
         if result:

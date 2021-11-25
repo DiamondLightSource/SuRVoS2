@@ -665,10 +665,8 @@ class ServerPlugin(Plugin):
 
         tab1.layout = QVBoxLayout()
         tab1.setLayout(tab1.layout)
-
         chroot_fields = self.get_chroot_fields()
         tab1.layout.addWidget(chroot_fields)
-
         workspace_fields = self.get_workspace_fields()
         tab1.layout.addWidget(workspace_fields)
 
@@ -677,7 +675,6 @@ class ServerPlugin(Plugin):
 
         run_fields = self.get_run_fields()
         tab1.layout.addWidget(run_fields)
-
         output_config_button = QPushButton("Save config")
 
         self.create_workspace_button.clicked.connect(self.create_workspace_clicked)
@@ -692,16 +689,14 @@ class ServerPlugin(Plugin):
         self.show()
 
     def get_chroot_fields(self):
-        chroot_fields = QGroupBox("Set Dataset Root:")
+        chroot_fields = QGroupBox("Set Main Directory for Storing Workspaces:")
         chroot_fields.setMaximumHeight(130)
         chroot_layout = QGridLayout()
         self.given_chroot_linedt = QLineEdit(CHROOT)
         chroot_layout.addWidget(self.given_chroot_linedt, 1, 0, 1, 2)
-
-        set_chroot_button = QPushButton("Set")
+        set_chroot_button = QPushButton("Set Workspaces Root")
         chroot_layout.addWidget(set_chroot_button, 1, 2)
         chroot_fields.setLayout(chroot_layout)
-
         set_chroot_button.clicked.connect(self.set_chroot)
         return chroot_fields
 
@@ -712,7 +707,7 @@ class ServerPlugin(Plugin):
             PyQt5.QWidgets.GroupBox: GroupBox with workspace fields.
         """
         select_data_button = QPushButton("Select")
-        workspace_fields = QGroupBox("Create Workspace:")
+        workspace_fields = QGroupBox("Create New Workspace:")
         wf_layout = QGridLayout()
         wf_layout.addWidget(QLabel("Data File Path:"), 0, 0)
         current_data_path = Path(
@@ -829,9 +824,7 @@ class ServerPlugin(Plugin):
 
         self.existing_button = QPushButton("Use Existing Server")
 
-
         advanced_button = QRadioButton("Advanced")
-
         run_fields = QGroupBox("Run SuRVoS:")
         run_layout = QGridLayout()
 

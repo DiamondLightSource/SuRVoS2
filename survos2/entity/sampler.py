@@ -123,7 +123,22 @@ def centroid_to_boxes(centers, bvol_dim=(10, 10, 10), flipxy=False):
 
 
 
-def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16), sample_grid=False):
+def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16)):
+    """Grid of points
+
+    Parameters
+    ----------
+    padded_vol : np.ndarray
+        Input image
+    padding : Tuple
+        Three-element tuple giving padding to add to both size per dimension
+    grid_dim : tuple, optional
+        Grid dimensions, by default (4, 16, 16)
+    Returns
+    -------
+    np.ndarray
+        Grid of points in x,y,z as a numpy array
+    """
     z_dim, x_dim, y_dim = grid_dim
     spacez = np.linspace(0, padded_vol.shape[0] - (2 * padding[0]), z_dim)
     spacex = np.linspace(0, padded_vol.shape[1] - (2 * padding[1]), x_dim)
@@ -152,6 +167,22 @@ def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16), sample_grid=False)
 
 
 def generate_random_points_in_volume(vol, num_pts, border=(32, 32, 32)):
+    """Generate a set of random points within a given image volume
+
+    Parameters
+    ----------
+    vol : np.ndarray
+        Input image
+    num_pts : Int
+        Number of points to generate
+    border : tuple, optional
+        Don't generate points within this border, by default (32, 32, 32)
+
+    Returns
+    -------
+    np.ndarray
+        Array of points
+    """
     pts = np.random.random((num_pts, 4))
     pts[:, 0] = pts[:, 0] * (vol.shape[0] - (2 * border[0])) + border[0]
     pts[:, 1] = pts[:, 1] * (vol.shape[1] - (2 * border[1])) + border[1]
@@ -161,6 +192,24 @@ def generate_random_points_in_volume(vol, num_pts, border=(32, 32, 32)):
 
 
 def offset_points(pts, offset, scale=32, random_offset=False):
+    """Offset points
+
+    Parameters
+    ----------
+    pts : Input array of z,x,y points
+        [description]
+    offset : Tuple
+        (Z,X,Y) giving offset in each axis
+    scale : int, optional
+        Value to scale image dimensions by, by default 32
+    random_offset : bool, optional
+        Whether to add a random offset, by default False
+
+    Returns
+    -------
+    np.ndarray
+        Array of offset points
+    """
     trans_pts = pts.copy()
 
     trans_pts[:, 0] = pts[:, 0] + offset[0]

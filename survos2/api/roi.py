@@ -36,19 +36,20 @@ __export_group__ = "roi"
 @hug.get()
 def create(workspace: String, roi_fname: String, roi: list, original_workspace: String, original_level):
     DataModel.g.current_workspace = original_workspace
-    print(f"Original workspace: {original_workspace}")
-    anno_ds = ws.get_dataset(original_workspace, original_level, group="annotations")
-    anno_ds_crop = anno_ds[roi[0]:roi[3],roi[1]:roi[4], roi[2]:roi[5]] & 15
-    original_labels = get_labels(original_workspace,original_level)
-    print(original_labels)
-
-    print(anno_ds_crop)
+    logger.debug(f"Original workspace: {original_workspace}")
+    logger.debug(original_level)
+    if original_level:
+        anno_ds = ws.get_dataset(original_workspace, original_level, group="annotations")
+        anno_ds_crop = anno_ds[roi[0]:roi[3],roi[1]:roi[4], roi[2]:roi[5]] & 15
+        original_labels = get_labels(original_workspace,original_level)
     roi_dict = {}
     DataModel.g.current_workspace = workspace
-    add_level(roi_fname)
-    new_anno_ds = get_level(roi_fname, level="001_level")
-    print(f"Switching to new workspace: {workspace}")
-    print(roi)
+    
+    if original_level:
+        add_level(roi_fname)
+        new_anno_ds = get_level(roi_fname, level="001_level")
+    
+    logger.debug(f"Switching to new workspace: {workspace}")
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
@@ -60,47 +61,42 @@ def create(workspace: String, roi_fname: String, roi: list, original_workspace: 
             roi_dict = src_dataset.get_metadata("roi_fnames")
         num_entries = len(roi_dict.keys())
         roi_dict[num_entries+1] = roi_fname
-        print(roi_dict)
         src_dataset.set_metadata("roi_fnames", roi_dict)
         metadata = dict()
         metadata['id'] = len(roi_dict.keys())
         metadata['name'] = roi_fname
          
-    print(anno_ds_crop.shape)
+    if original_level:
+        label_values = np.unique(anno_ds_crop)
 
-    
-    label_values = np.unique(anno_ds_crop)
-
-    for v in label_values:
-        if v != 0:
-            params = dict(
-                level="001_level",
-                idx=int(v) - 2,
-                name=str(int(v) - 2),
-                color="#11FF11",
-                workspace=True,
-            )
-            label_result = add_label(workspace=roi_fname, level="001_level")
-    
-    levels_result = get_single_level(roi_fname, level="001_level")
-    
-    cmap_colors = []
-    for k,v in original_labels.items():
-        cmap_colors.append(v['color'])
-    print(cmap_colors)
-
-    for i, v in enumerate(levels_result["labels"].keys()):
+        for v in label_values:
+            if v != 0:
+                params = dict(
+                    level="001_level",
+                    idx=int(v) - 2,
+                    name=str(int(v) - 2),
+                    color="#11FF11",
+                    workspace=True,
+                )
+                label_result = add_label(workspace=roi_fname, level="001_level")
         
-        #label_rgb = (255 * label_rgb).astype(np.uint8)
-        #label_hex = "#{:02x}{:02x}{:02x}".format(*label_rgb)
-        label = dict(
-            idx=int(v),
-            name=str(int(v) - 1),
-            color= cmap_colors[i]         )
-        params = dict(level="001_level", workspace=roi_fname)
-        label_result = update_label(**params, **label)
+        levels_result = get_single_level(roi_fname, level="001_level")
+        
+        cmap_colors = []
+        for k,v in original_labels.items():
+            cmap_colors.append(v['color'])
 
-    new_anno_ds[:] = anno_ds_crop
+        for i, v in enumerate(levels_result["labels"].keys()):
+            #label_rgb = (255 * label_rgb).astype(np.uint8)
+            #label_hex = "#{:02x}{:02x}{:02x}".format(*label_rgb)
+            label = dict(
+                idx=int(v),
+                name=str(int(v) - 1),
+                color= cmap_colors[i]         )
+            params = dict(level="001_level", workspace=roi_fname)
+            label_result = update_label(**params, **label)
+
+        new_anno_ds[:] = anno_ds_crop
 
     DataModel.g.current_workspace = original_workspace
     
