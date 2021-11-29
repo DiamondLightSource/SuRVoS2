@@ -243,7 +243,7 @@ class AnalyzerCard(Card):
             "001_level"  # default annotation level to use for labels
         )
         additional_buttons = []
-        
+        self.annotations_selected = False
         self.op_cards = []
 
         if self.analyzer_type == "label_splitter":
@@ -289,17 +289,17 @@ class AnalyzerCard(Card):
             )
             self.analyzers_widget.setParent(None)
 
-
             self.source_container.layout().addWidget(self.pipelines_widget)
             self.current_widget = self.pipelines_widget
 
-            #self._add_pipelines_source()
-            #self._add_analyzers_source()
-            #self._add_annotations_source()
-            
             
             self._add_feature_source()
  
+
+            self.background_label = LineEdit(default=0, parse=float)
+            widget = HWidgets("Background label:", self.background_label, Spacing(35), stretch=1)
+            self.add_row(widget)
+
             self.add_rules_btn = PushButton("Add Rule")
             self.add_rules_btn.clicked.connect(self._add_rule)
             self.refresh_rules_btn = PushButton("Refresh plots")
@@ -319,9 +319,9 @@ class AnalyzerCard(Card):
             full=True, values=feature_names
             )
             self.feature_name_combo_box.fill()
-            self._add_view_btn()            
-            self.add_row(HWidgets(self.feature_name_combo_box, Spacing(35),stretch=0))
-
+                       
+            self.add_row(HWidgets("Explore feature name: ", self.feature_name_combo_box, Spacing(35),stretch=0))
+            self._add_view_btn() 
         elif self.analyzer_type == "image_stats":
             self._add_features_source()
             self.plot_btn = PushButton("Plot")
@@ -385,7 +385,6 @@ class AnalyzerCard(Card):
             self.load_as_objects_btn = PushButton("Load as Objects")
             additional_buttons.append(self.load_as_objects_btn)
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
-
         self.calc_btn = PushButton("Compute")
         self.add_row(HWidgets(None, self.calc_btn, Spacing(35)))
         if len(additional_buttons) > 0:
@@ -393,31 +392,29 @@ class AnalyzerCard(Card):
         self.calc_btn.clicked.connect(self.calculate_analyzer)
         self.table_control = None
         self.plots = []
-
-
     def _pipelines_rb_checked(self, enabled):
         if enabled:
             self.source_container.layout().addWidget(self.pipelines_widget)
             if self.current_widget:
                 self.current_widget.setParent(None)
             self.current_widget = self.pipelines_widget
+            self.annotations_selected = False
     def _analyzers_rb_checked(self, enabled):
         if enabled:
             self.source_container.layout().addWidget(self.analyzers_widget)
             if self.current_widget:
                 self.current_widget.setParent(None)
             self.current_widget = self.analyzers_widget
-
+            self.annotations_selected = False
     def _annotations_rb_checked(self, enabled):
         if enabled:
             self.source_container.layout().addWidget(self.annotations_widget)
             if self.current_widget:
                 self.current_widget.setParent(None)
             self.current_widget = self.annotations_widget
-
+            self.annotations_selected = True
     def _setup_ops(self):
         print(f"Current number of op cards {len(self.op_cards)}")      
-        
         if self.table_control:
             self.table_control.w.setParent(None)
             self.table_control = None
@@ -427,7 +424,6 @@ class AnalyzerCard(Card):
                 plot = None
             self.plots = []
         #self.clear_widgets()
-        
     def _add_rule(self):
         op_card = RuleCard(title="Rule", editable=True, collapsible=False, removable=True, parent=self)
         self.op_cards.append(op_card)
@@ -550,8 +546,12 @@ class AnalyzerCard(Card):
         with progress(total=2) as pbar:
             pbar.set_description("Viewing analyzer")
             pbar.update(1)
+            
             if self.annotations_source:
-                level_id = self.annotations_source.value().rsplit("/", 1)[-1]
+                if self.annotations_selected:
+                    level_id = self.annotations_source.value().rsplit("/", 1)[-1]
+                else:
+                    level_id = "001_level"
                 logger.debug(f"Assigning annotation level {level_id}")
 
                 cfg.ppw.clientEvent.emit(
@@ -562,6 +562,7 @@ class AnalyzerCard(Card):
                         "level_id": level_id,
                     }
                 )
+            
             pbar.update(1)
             
 
@@ -866,7 +867,8 @@ class AnalyzerCard(Card):
         all_params["annotations_id"] = str(self.annotations_source.value())
         
         all_params["mode"] = self.radio_group.checkedId()
-        
+        all_params["background_label"] = self.background_label.value()
+
         split_ops = {}
         split_feature_indexes = []
         split_feature_thresholds = []

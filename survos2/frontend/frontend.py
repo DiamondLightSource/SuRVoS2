@@ -261,7 +261,7 @@ def frontend(viewer):
             existing_layer[0].data = src_arr.astype(np.int32) & 15
             label_layer = existing_layer[0]
             existing_layer[0].color = cmapping
-        else:
+        elif cfg.current_annotation_name:
             #print(f"Adding labels {src_arr.shape} {cmapping }")
             label_layer = viewer.add_labels(
             src_arr & 15, name=msg["level_id"], color=cmapping
@@ -650,6 +650,11 @@ def frontend(viewer):
             for l in viewer.layers:
                 viewer.layers.remove(l)
             cfg.current_feature_name = "001_raw"
+            cfg.current_annotation_name = None
+            cfg.current_pipeline_name = None
+            cfg.current_regions_name = None
+            cfg.current_analyzers_name = None
+
         elif msg["data"] == "save_annotation":
             save_annotation(msg)
         elif msg["data"] == "set_paint_params":

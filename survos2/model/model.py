@@ -12,7 +12,7 @@ class DataModel(object):
     def __init__(self):
         self.server_uri = None
         self.current_session = "default"
-        self.current_workspace = "my_survos_workspace"
+        self.current_workspace = ""
         self.current_workspace_shape = (1, 1, 1)
         self.CHROOT = Config["model.chroot"]
         self.DATABASE = Config["model.dbtype"]

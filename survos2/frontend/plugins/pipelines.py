@@ -231,7 +231,7 @@ class EnsembleWidget(QtWidgets.QWidget):
         self.type_combo.addItem("ExtraRandom Forest")
         self.type_combo.addItem("AdaBoost")
         self.type_combo.addItem("GradientBoosting")
-        self.type_combo.addItem("XGBoost")
+        #self.type_combo.addItem("XGBoost")
 
         self.type_combo.currentIndexChanged.connect(self.on_ensemble_changed)
         vbox.addWidget(self.type_combo)

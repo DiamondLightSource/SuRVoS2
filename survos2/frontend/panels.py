@@ -39,8 +39,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.button_slicemode = QPushButton("Slice mode", self)
         self.button_slicemode.clicked.connect(self.button_slicemode_clicked)
 
-        
-        
         workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list = ComboBox()
         for s in workspaces:

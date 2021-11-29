@@ -144,6 +144,7 @@ def label_splitter(
     annotations_id: DataURI,
     feature_id: DataURI,
     split_ops : dict,
+    background_label : Int
 ) -> "SEGMENTATION":
 
     
@@ -169,7 +170,7 @@ def label_splitter(
         feature_dataset_arr = DM.sources[0][:]
 
     # if labels==None:
-    labels = set(np.unique(seg)) - set([0])
+    labels = set(np.unique(seg)) - set([background_label])
     logger.info(f"Labels in segmentation: {labels}")
 
     new_labels = np.zeros(seg.shape, np.int32)
@@ -189,7 +190,7 @@ def label_splitter(
     print(f"Number of unique labels: {np.unique(new_labels)}")
 
     objs = new_labels
-    objects = new_labels
+    #objects = new_labels
     num_objects = total_labels
     logger.debug(f"Number of objects {num_objects}")
     objlabels = np.arange(1, num_objects + 1)

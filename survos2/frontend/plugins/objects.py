@@ -215,14 +215,14 @@ class ObjectsCard(Card):
         self.view_btn = PushButton("View", accent=True)
         self.get_btn = PushButton("Get", accent=True)
 
-        self._add_param("scale", title="Scale: ", type="Float", default=1)
-        self._add_param("offset", title="Offset: ", type="FloatOrVector", default=0)
-        self._add_param(
-            "crop_start", title="Crop Start: ", type="FloatOrVector", default=0
-        )
-        self._add_param(
-            "crop_end", title="Crop End: ", type="FloatOrVector", default=9000
-        )
+        # self._add_param("scale", title="Scale: ", type="Float", default=1)
+        # self._add_param("offset", title="Offset: ", type="FloatOrVector", default=0)
+        # self._add_param(
+        #     "crop_start", title="Crop Start: ", type="FloatOrVector", default=0
+        # )
+        # self._add_param(
+        #     "crop_end", title="Crop End: ", type="FloatOrVector", default=9000
+        # )
 
         self.flipxy_checkbox = CheckBox(checked=True)
         self.add_row(HWidgets(None, self.flipxy_checkbox, Spacing(35)))
@@ -231,10 +231,15 @@ class ObjectsCard(Card):
         self.view_btn.clicked.connect(self.view_objects)
         self.get_btn.clicked.connect(self.get_objects)
 
-        cfg.object_scale = self.widgets["scale"].value()
-        cfg.object_offset = self.widgets["offset"].value()
-        cfg.object_crop_start = self.widgets["crop_start"].value()
-        cfg.object_crop_end = self.widgets["crop_end"].value()
+        #cfg.object_scale = self.widgets["scale"].value()
+        #cfg.object_offset = self.widgets["offset"].value()
+        #cfg.object_crop_start = self.widgets["crop_start"].value()
+        #cfg.object_crop_end = self.widgets["crop_end"].value()
+
+        cfg.object_scale = 1.0
+        cfg.object_offset = (0,0,0)
+        cfg.object_crop_start = (0,0,0)
+        cfg.object_crop_end = (1e9,1e9,1e9)
 
         if self.objectstype == "patches":
             self._add_annotations_source()
@@ -325,10 +330,10 @@ class ObjectsCard(Card):
         self.add_row(widget)
 
     def get_objects(self):
-        cfg.object_scale = self.widgets["scale"].value()
-        cfg.object_offset = self.widgets["offset"].value()
-        cfg.object_crop_start = self.widgets["crop_start"].value()
-        cfg.object_crop_end = self.widgets["crop_end"].value()
+        #cfg.object_scale = self.widgets["scale"].value()
+        #cfg.object_offset = self.widgets["offset"].value()
+        #cfg.object_crop_start = self.widgets["crop_start"].value()
+        #cfg.object_crop_end = self.widgets["crop_end"].value()
 
         dst = DataModel.g.dataset_uri(self.objectsid, group="objects")
         print(f"objectsfullname: {self.objectsfullname}")
@@ -371,24 +376,10 @@ class ObjectsCard(Card):
                 crop_start=cfg.object_crop_start,
                 crop_end=cfg.object_crop_end,
                 flipxy=self.flipxy_checkbox.value()
-            )
-        
-      
+            )      
 
         cfg.tabledata = tabledata
         self.table_control.set_data(tabledata)
-
-
-        # tabledata, self.entities_df = setup_entity_table(
-        #     self.objectsfullname,
-        #     entities_df=None,
-        #     scale=cfg.object_scale,
-        #     offset=cfg.object_offset,
-        #     crop_start=cfg.object_crop_start,
-        #     crop_end=cfg.object_crop_end,
-        #     flipxy=self.flipxy_checkbox.value(),
-        # )
-        #cfg.tabledata = tabledata  # for show_roi in frontend
 
         print(f"Loaded tabledata {tabledata}")
         self.table_control.set_data(tabledata)

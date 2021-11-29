@@ -122,7 +122,7 @@ class AnnotationPlugin(Plugin):
         
         self.vbox.addLayout(hbox)
         self.vbox.addLayout(hbox2)
-        _AnnotationNotifier.listen(self.set_sv)
+        #_AnnotationNotifier.listen(self.set_sv)
 
     def on_created(self):
         pass
