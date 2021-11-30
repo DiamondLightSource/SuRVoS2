@@ -430,6 +430,7 @@ def frontend(viewer):
         # set on server
         params = dict(workspace=msg["workspace"])
         result = Launcher.g.run("workspace", "set_workspace", **params)
+        viewer.title = msg["workspace"]
 
     def view_patches(msg):
         from survos2.entity.patches import load_patch_vols
