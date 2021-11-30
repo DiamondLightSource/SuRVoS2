@@ -526,6 +526,122 @@ class ParentButton(QtWidgets.QPushButton):
         return self.color
 
 
+
+class CardWithId(QCSWidget):
+    def __init__(
+        self,
+        title=None,
+        id=None,
+        removable=False,
+        editable=False,
+        collapsible=False,
+        addbtn=False,
+        parent=None,
+    ):
+        super().__init__(parent=parent)
+        self.setProperty("card", True)
+        self.spacing = 5
+        self.vbox = VBox(self, margin=5, spacing=self.spacing)
+        self.total_height = 0
+        self.prev_title = title
+        self.widget_list = []
+
+        if removable:
+            btn_del = DelIconButton()
+            btn_del.clicked.connect(self.card_deleted)
+        else:
+            btn_del = Spacing(35)
+
+        if title:
+            if editable:
+                self.txt_title = LineEdit(title, parse=str)
+                self.txt_title.editingFinished.connect(self._title_edited)
+            else:
+                self.txt_title = Label(title)
+        else:
+            self.txt_title = None
+
+        if id:
+            self.id = id
+
+        header = [btn_del, self.txt_title, self.id]
+
+        if addbtn:
+            btn_add = AddIconButton()
+            btn_add.clicked.connect(self.card_add_item)
+            header.append(btn_add)
+
+        if collapsible:
+            self.btn_show = ViewIconButton()
+            self.btn_show.toggled.connect(self.card_toggled)
+            header.append(self.btn_show)
+        else:
+            self.btn_show = None
+
+        if not addbtn and not collapsible:
+            header.append(Spacing(35))
+
+        self.add_row(HWidgets(*header, stretch=1), header=True)
+        self._visible = True
+
+    def add_row(self, widget, max_height=60, header=False):
+        widget.setProperty("header", header)
+        widget.setMaximumHeight(max_height)
+        self.vbox.addWidget(widget)
+        self.total_height += max_height + self.spacing
+        self.setMinimumHeight(self.total_height)
+        
+    def add_to_widget_list(self, widget):
+        self.widget_list.append(widget)
+
+    def clear_widgets(self):
+        for widget in self.widget_list:
+            self.vbox.removeWidget(widget)
+            widget.setParent(None)
+        self.widget_list = []
+
+    def update_height(self, max_height=30):
+        self.total_height -= max_height + self.spacing
+        self.setMinimumHeight(self.total_height)
+
+    def _title_edited(self):
+        title = self.txt_title.text()
+        if title == self.prev_title:
+            return
+        if self.card_title_edited(title):
+            self.prev_title = title
+        else:
+            self.txt_title.setText(self.prev_title)
+
+    def card_deleted(self):
+        pass
+
+    def card_title_edited(self, title):
+        return True
+
+    def card_add_item(self):
+        pass
+
+    def showContent(self, flag):
+        for i in range(1, self.vbox.count()):
+            self.vbox.itemAt(i).widget().setVisible(flag)
+        self.setMinimumHeight(self.total_height if flag else 30)
+        if self.btn_show:
+            self.btn_show.blockSignals(True)
+            self.btn_show.setChecked(flag)
+            self.btn_show.blockSignals(False)
+        self._visible = flag
+
+    def collapse(self):
+        self.showContent(False)
+
+    def expand(self):
+        self.showContent(True)
+
+    def card_toggled(self):
+        self.showContent(not self._visible)
+
+
 class Card(QCSWidget):
     def __init__(
         self,

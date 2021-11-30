@@ -64,9 +64,8 @@ class FeaturesPlugin(Plugin):
         self.workflow_button = PushButton("Save workflow", accent=True)
         self.workflow_button.clicked.connect(self.save_workflow)
         self.vbox.addWidget(self.workflow_button)
+
         self.filewidget = FileWidget(extensions="*.yaml", save=False)
-
-
         self.filewidget_open = FileWidget(extensions="*.yaml", save=False)
         self.filewidget_open.path_updated.connect(self.load_workflow)
 
@@ -149,9 +148,6 @@ class FeaturesPlugin(Plugin):
         if path is not None and len(path) > 0:
             workflow = {}
             for i,(k,v) in enumerate(self.existing_features.items()):
-                print(k,v)
-                print(v.feature_type)
-                print(v.params)
                 for x,y in v.widgets.items():
                     print(x,y.value())
                     workflow["f"+str(i)] = {}
@@ -210,14 +206,14 @@ class FeaturesPlugin(Plugin):
                             self.existing_features[fid] = widget
 
 
-class FeatureCard(Card):
+class FeatureCard(CardWithId):
     def __init__(self, fid, ftype, fname, fparams, parent=None):
         self.feature_id = fid
         self.feature_type = ftype
         self.feature_name = fname
 
         super().__init__(
-            fname, removable=True, editable=True, collapsible=True, parent=parent
+            fname, fid, removable=True, editable=True, collapsible=True, parent=parent
         )
 
         self.params = fparams
