@@ -1,21 +1,11 @@
-Installation of survos2 on a Guacamole VM machine
-Tested on ELS VM.
-This installation assumes that a miniconda is already installed and available to all machine users,
-as a loadable module.
-
 Create a folder (on the Desktop for example) to download the survos2 installer.
 The actual survos2 application will be installed in the miniconda environment later.
 
-	$ mkdir survos2_git
-	
-	(LMAP) $ mkdir /home/ypu66991/workspace-ceph/survos2/
-		$ mkdir /home/ypu66991/workspace-ceph/survos2/survos2_git
-	
+	$ mkdir survos2
 
 Navigate to the folder created
 
-	$ cd survos2_git
-	(LMAP) cd /home/ypu66991/workspace-ceph/survos2/survos2_git
+	$ cd survos2
 
 Download Survos2 using git clone
 
@@ -62,32 +52,5 @@ Perform the survos2 pip installs using:
 	
 	Installation should be completed.
 	The '-e' will install in development mode.
-	If this mode is not used, plugin will fail to load in napari. bug?
-
-
-
-
-To run napari with the plugin, you just need to make sure the conda environment is activated.
-
-	$ napari
-
-Start SuRVoS Plugin from Plugins dropdown
-
-4. Perform the pip installs using:
 	
-	
-
-5. Build survos (WINDOWS): (To build this you might need to download the Visual Studio build tools, which can be got from here https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16)
-	python ./survos2/improc/setup.py build_ext --inplace
-
-6. Change the CHROOT in settings.yaml to something appropriate for the machine and network settings.
- (For a central install remember to make this somewhere that is readable to everyone)
-
-7. Run Napari:
-	napari
-
-8. Start SuRVoS Plugin from Plugins dropdown
-
-
-
 
