@@ -382,6 +382,9 @@ class AnalyzerCard(Card):
         elif self.analyzer_type == "spatial_clustering":
             self._add_feature_source()
             self._add_objects_source()
+            self.eps = LineEdit(default=0.1, parse=float)
+            widget = HWidgets("DBScan EPS:", self.eps, Spacing(35), stretch=1)
+            self.add_row(widget)
             self.load_as_objects_btn = PushButton("Load as Objects")
             additional_buttons.append(self.load_as_objects_btn)
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
@@ -804,7 +807,6 @@ class AnalyzerCard(Card):
         self.entities_arr = np.array(entities)
 
     def display_splitter_plot(self, feature_arrays, titles=[], vert_line_at=None):
-    
         for i, feature_array in enumerate(feature_arrays):
             self.plots.append(MplCanvas(self, width=5, height=5, dpi=100))
             max_height = 600
@@ -906,8 +908,6 @@ class AnalyzerCard(Card):
         
         if features_array:
             logger.debug(f"Segmentation stats result table {len(features_array)}")                
-            
-            
             feature_arrays = []
             feature_titles = []
             
@@ -938,7 +938,7 @@ class AnalyzerCard(Card):
 
     def calc_find_connected_components(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
-        src = DataModel.g.dataset_uri(self.pipelines_source.value())
+        src = DataModel.g.dataset_uri(self.pipelines_source.value(), group="pipelines")
         all_params = dict(src=src, dst=dst, modal=False)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["pipelines_id"] = str(self.pipelines_source.value())
@@ -947,6 +947,7 @@ class AnalyzerCard(Card):
         result = Launcher.g.run(
             "analyzer", "find_connected_components", **all_params
         )
+        print(result)
         if result:
             logger.debug(f"Segmentation stats result table {len(result)}")
             self.display_component_results(result)
@@ -1063,11 +1064,13 @@ class AnalyzerCard(Card):
 
     def calc_spatial_clustering(self):
         src = DataModel.g.dataset_uri(self.feature_source.value())
-        all_params = dict(src=src, dst=dst, modal=False)
+        all_params = dict(src=src, dst=None, modal=False)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["object_id"] = str(self.objects_source.value())
+        all_params["params"] = {"algorithm": "DBSCAN", "eps": self.eps.value(), "min_samples": 1}
         result = Launcher.g.run("analyzer", "spatial_clustering", **all_params)
+        print(result)
         logger.debug(f"spatial clustering result table {len(result)}")
         self.display_component_results2(result)
 

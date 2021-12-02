@@ -61,13 +61,11 @@ __analyzer_fill__ = 0
 __analyzer_dtype__ = "uint32"
 __analyzer_group__ = "analyzer"
 __analyzer_names__ = [
-    "image_stats",
     "find_connected_components",
     "object_stats",
     "object_detection_stats",
     "segmentation_stats",
     "label_splitter",
-    "level_image_stats",
     "binary_image_stats",
     # "detector_predict",
     "spatial_clustering",
@@ -430,42 +428,43 @@ def plot_clustered_img(
     ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=40, zorder=200)
 
 
+# @hug.get()
+# def level_image_stats(
+#     src: DataURI, dst: DataURI, anno_id: DataURI, label_index: Int
+# ) -> "SEGMENTATION":
+#     logger.debug(f"Finding connected components on annotation: {anno_id}")
+
+#     with DatasetManager(anno_id, out=None, dtype="uint16", fillvalue=0) as DM:
+#         src1_dataset = DM.sources[0]
+#         anno_level = src1_dataset[:] & 15
+#         logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
+
+#     bbs_tables, selected_entities = detect_blobs((anno_level == label_index) * 1.0)
+#     print(bbs_tables)
+#     print(selected_entities)
+
+#     result_list = []
+#     for i in range(len(bbs_tables[0])):
+#         result_list.append(
+#             [
+#                 bbs_tables[0].iloc[i]["area"],
+#                 bbs_tables[0].iloc[i]["z"],
+#                 bbs_tables[0].iloc[i]["y"],
+#                 bbs_tables[0].iloc[i]["x"],
+#             ]
+#         )
+
+#     return result_list
+
+
 @hug.get()
-def level_image_stats(
-    src: DataURI, dst: DataURI, anno_id: DataURI, label_index: Int
-) -> "SEGMENTATION":
-    logger.debug(f"Finding connected components on annotation: {anno_id}")
-
-    with DatasetManager(anno_id, out=None, dtype="uint16", fillvalue=0) as DM:
-        src1_dataset = DM.sources[0]
-        anno_level = src1_dataset[:] & 15
-        logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
-
-    bbs_tables, selected_entities = detect_blobs((anno_level == label_index) * 1.0)
-    print(bbs_tables)
-    print(selected_entities)
-
-    result_list = []
-    for i in range(len(bbs_tables[0])):
-        result_list.append(
-            [
-                bbs_tables[0].iloc[i]["area"],
-                bbs_tables[0].iloc[i]["z"],
-                bbs_tables[0].iloc[i]["y"],
-                bbs_tables[0].iloc[i]["x"],
-            ]
-        )
-
-    return result_list
-
-
-@hug.get()
-@save_metadata
 def find_connected_components(
-    src: DataURI, dst: DataURI, pipelines_id: DataURI,  label_index: Int
+    src: DataURI, dst: DataURI, pipelines_id: DataURI,  label_index: Int, workspace: String
 ) -> "SEGMENTATION":
     logger.debug(f"Finding connected components on segmentation: {pipelines_id}")
-    src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id), group="pipelines")
+    print(f"{DataModel.g.current_workspace}")
+    src = DataModel.g.dataset_uri(pipelines_id, group="pipelines")
+    print(src)
     with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
         src_dataset_arr = DM.sources[0][:]
         logger.debug(f"src_dataset shape {src_dataset_arr[:].shape}")
@@ -488,12 +487,12 @@ def find_connected_components(
         )
 
     map_blocks(pass_through, single_label_level, out=dst, normalize=False)
-
+    
+    print(result_list)
     return result_list
 
 
 @hug.get()
-@save_metadata
 def binary_image_stats(
     src: DataURI, dst: DataURI, feature_id: DataURI, threshold: Float = 0.5
 ) -> "IMAGE":
@@ -538,33 +537,33 @@ def plot_to_image(arr, title="Histogram", vert_line_at=None):
     return plot_image
 
 
+# @hug.get()
+# @save_metadata
+# def image_stats(
+#     src: DataURI, dst: DataURI,feature_ids: DataURIList, mask_ids: DataURIList
+# ) -> "IMAGE":
+#     logger.debug(f"Calculating stats on features: {feature_ids}")
+#     src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
+
+#     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+#         src_dataset_arr = DM.sources[0][:]
+#         logger.debug(f"summary_stats {summary_stats(src_dataset_arr)}")
+
+#     mask_src = DataModel.g.dataset_uri(ntpath.basename(mask_ids[0]), group="features")
+#     with DatasetManager(mask_src, out=None, dtype="float32", fillvalue=0) as DM:
+#         mask = DM.sources[0][:]
+
+#     plot_image = plot_to_image((src_dataset_arr * mask).flatten(), "Masked histogram")
+#     return encode_numpy(plot_image)
+
+
 @hug.get()
-@save_metadata
-def image_stats(
-    src: DataURI, dst: DataURI,feature_ids: DataURIList, mask_ids: DataURIList
-) -> "IMAGE":
-    logger.debug(f"Calculating stats on features: {feature_ids}")
-    src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
-
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset_arr = DM.sources[0][:]
-        logger.debug(f"summary_stats {summary_stats(src_dataset_arr)}")
-
-    mask_src = DataModel.g.dataset_uri(ntpath.basename(mask_ids[0]), group="features")
-    with DatasetManager(mask_src, out=None, dtype="float32", fillvalue=0) as DM:
-        mask = DM.sources[0][:]
-
-    plot_image = plot_to_image((src_dataset_arr * mask).flatten(), "Masked histogram")
-    return encode_numpy(plot_image)
-
-
-@hug.get()
-@save_metadata
 def spatial_clustering(
-    src: DataURI, dst: DataURI,
+    src: DataURI, 
     feature_id: DataURI,
     object_id: DataURI,
-    params={"algorithm": "DBSCAN", "eps": 0.011, "min_samples": 1},
+    workspace : String,
+    params : dict,
 ) -> "OBJECTS":
     src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
     logger.debug(f"Getting objects {src}")
