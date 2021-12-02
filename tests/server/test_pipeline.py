@@ -332,7 +332,7 @@ class Tests(object):
         result = survos.run_command(
             "analyzer", "create", uri=None, workspace=DataModel.g.current_workspace
         )
-        assert result[0]["id"] == "002_label_splitter"
+        assert result[0]["id"] == "001_label_splitter"
         result = survos.run_command(
             "analyzer",
             "existing",
@@ -340,8 +340,7 @@ class Tests(object):
             workspace=DataModel.g.current_workspace,
             dtype="float32",
         )
-        print(result)
-        assert len(result[0]) == 2
+        assert len(result[0]) == 1
 
 
 if __name__ == "__main__":
