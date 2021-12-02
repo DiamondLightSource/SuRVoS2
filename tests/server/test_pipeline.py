@@ -332,14 +332,6 @@ class Tests(object):
         result = survos.run_command(
             "analyzer", "create", uri=None, workspace=DataModel.g.current_workspace
         )
-        assert result[0]["id"] == "001_image_stats"
-        result = survos.run_command(
-            "analyzer",
-            "create",
-            uri=None,
-            workspace=DataModel.g.current_workspace,
-            order=5,
-        )
         assert result[0]["id"] == "002_label_splitter"
         result = survos.run_command(
             "analyzer",
