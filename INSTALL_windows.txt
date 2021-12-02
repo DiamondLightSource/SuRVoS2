@@ -10,7 +10,7 @@
 
 4. Perform the pip installs using:
 	
-	pip install -r req.txt
+	pip install -r req_windows.txt -f https://download.pytorch.org/whl/cu113/torch_stable.html
 
 5. Build survos (WINDOWS): (To build this you might need to download the Visual Studio build tools, which can be got from here https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16)
 	python ./survos2/improc/setup.py build_ext --inplace

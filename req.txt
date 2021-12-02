@@ -8,6 +8,7 @@ cython
 dask
 decorator
 falcon
+fastapi==1.0.61
 h5py
 hdbscan
 hug
