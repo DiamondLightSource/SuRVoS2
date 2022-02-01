@@ -57,6 +57,7 @@ linux-build:
   tags:
     - linux
   script:
+    - "module load gcc"
     - "module load cuda/10.1"
     - "mkdir -p $LINUX_CONDA_PATH"
     - "conda create -p $LINUX_CONDA_PATH python=3.9"
