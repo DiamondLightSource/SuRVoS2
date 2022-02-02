@@ -11,7 +11,7 @@ Please follow the instructions in INSTALL.txt
 
 ## Documentation
 
-The [SuRVoS 2 Tutorial]: docs/SuRVoS_Tutorial_Dec2021.pdf
+The [SuRVoS2 Tutorial].
 
 ## Contributing
 
@@ -20,7 +20,7 @@ the coverage at least stays the same before you submit a pull request.
 
 ## License
 
-Distributed under the terms of the [Apache 2.0] license,
+Distributed under the terms of the [Apache Software License 2.0] license,
 "SuRVoS2" is free and open source software
 
 ## Issues
@@ -35,3 +35,4 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/
 [PyPI]: https://pypi.org/
+[SuRVoS2 Tutorial]: docs/SuRVoS_Tutorial_Dec2021.pdf
