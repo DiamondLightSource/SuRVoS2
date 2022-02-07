@@ -429,6 +429,7 @@ def train_2d_unet(
     src = DataModel.g.dataset_uri(anno_id, group="annotations")
     with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
+        labels = src_dataset.get_metadata("labels", {})
         anno_level = src_dataset[:] & 15
     anno_labels = np.unique(anno_level)
     logger.debug(f"Obtained annotation level with labels {anno_labels}")
@@ -455,7 +456,8 @@ def train_2d_unet(
     anno_slice_path.mkdir(exist_ok=True, parents=True)
     slicer.output_data_slices(data_slice_path, "data")
     slicer.output_label_slices(anno_slice_path, "seg")
-    trainer = Unet2dTrainer(data_slice_path, anno_slice_path, slicer.codes)
+    # Create the trainer and pass in the dictionary of label metadata
+    trainer = Unet2dTrainer(data_slice_path, anno_slice_path, labels)
     cyc_frozen = unet_train_params["cyc_frozen"]
     cyc_unfrozen = unet_train_params["cyc_unfrozen"]
     trainer.train_model(num_cyc_frozen=cyc_frozen, num_cyc_unfrozen=cyc_unfrozen)

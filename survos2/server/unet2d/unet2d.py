@@ -93,7 +93,7 @@ class Unet2dTrainer:
         logger.info("Creating training dataset from saved images.")
         src = (SegmentationItemList.from_folder(self.data_dir)
                .split_by_rand_pct()
-               .label_from_func(self.get_label_name, classes=self.codes))
+               .label_from_func(self.get_label_name, classes=list(self.codes.keys())))
         self.data = (src.transform(get_transforms(), size=self.image_size, tfm_y=True)
                      .databunch(bs=self.batch_size)
                      .normalize(imagenet_stats))
