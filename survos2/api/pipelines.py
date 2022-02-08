@@ -41,6 +41,7 @@ from survos2.entity.anno.pseudo import make_pseudomasks
 from torch.utils.data import DataLoader
 from survos2.frontend.components.entity import setup_entity_table
 from survos2.api.workspace import add_dataset, auto_create_dataset
+from survos2.api.annotations import add_level, rename_level, add_label, update_label
 
 
 __pipeline_group__ = "pipelines"
@@ -486,7 +487,6 @@ def predict_2d_unet(
     src: DataURI,
     dst: DataURI,
     workspace: String,
-    anno_id: DataURI,
     feature_id: DataURI,
     model_path: str,
     no_of_planes: int
@@ -494,12 +494,6 @@ def predict_2d_unet(
     logger.debug(
         f"Predict_2d_unet with feature {feature_id} in {no_of_planes} planes"
     )
-
-    src = DataModel.g.dataset_uri(anno_id, group="annotations")
-    with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        anno_level = src_dataset[:] & 15
-    logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
 
     src = DataModel.g.dataset_uri(feature_id, group="features")
     logger.debug(f"Getting features {src}")
@@ -511,13 +505,32 @@ def predict_2d_unet(
     logger.info(
         f"Predict_2d_unet with feature shape {feature.shape} using model {model_path}"
     )
-    from survos2.server.unet2d.unet2d import Unet2dPredictor
-    from survos2.server.unet2d.data_utils import PredictionHDF5DataSlicer
-    ws_object = ws.get(workspace)
-    root_path = Path(ws_object.path, "unet2d")
-    root_path.mkdir(exist_ok=True, parents=True)
-    predictor = Unet2dPredictor(root_path)
-    predictor.create_model_from_zip(Path(model_path))
+    level_result = add_level(workspace)
+    if level_result:
+        from survos2.server.unet2d.unet2d import Unet2dPredictor
+        from survos2.server.unet2d.data_utils import PredictionHDF5DataSlicer
+        level_id = level_result["id"]
+        logger.info(f"New level added with ID {level_id}, changing level name and ID.")
+        rename_level(workspace=workspace, level=level_id, name="U-Net_Prediction")
+        logger.info(f"Unpacking model and labels")
+        ws_object = ws.get(workspace)
+        root_path = Path(ws_object.path, "unet2d")
+        root_path.mkdir(exist_ok=True, parents=True)
+        predictor = Unet2dPredictor(root_path)
+        codes_dict = predictor.create_model_from_zip(Path(model_path))
+        logger.info(f"Labels found: {codes_dict}")
+        for key in codes_dict:
+            label_result = add_label(workspace=workspace,level=level_id)
+            if label_result:
+                update_result = update_label(workspace=workspace, level=level_id, **codes_dict[key])
+                logger.info(f"Label created: {update_result}")
+        
+    src = DataModel.g.dataset_uri(level_id, group="annotations")
+    with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        anno_level = src_dataset[:] & 15
+    logger.info(f"Obtained annotation level with labels {np.unique(anno_level)}")
+
     now = datetime.now()
     dt_string = now.strftime("%d%m%Y_%H_%M_%S")
     slicer = PredictionHDF5DataSlicer(predictor, feature, clip_data=True)

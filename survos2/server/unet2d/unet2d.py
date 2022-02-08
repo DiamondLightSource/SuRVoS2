@@ -393,7 +393,7 @@ class Unet2dPredictor:
 
     def create_model_from_zip(self, weights_fn):
         """Creates a deep learning model linked to the dataset and stores it as
-        an instance attribute.
+        an instance attribute. Returns dictionary of labels. 
         """
         weights_fn = weights_fn.resolve()
         logger.info(f"Unzipping the model weights and label classes from {weights_fn}")
@@ -414,6 +414,7 @@ class Unet2dPredictor:
         self.model.load(weights_fn.stem)
         # Remove the restriction on the model prediction size
         self.model.data.single_ds.tfmargs['size'] = None
+        return self.codes
 
     def get_model_from_trainer(self, trainer):
         self.model = trainer.model

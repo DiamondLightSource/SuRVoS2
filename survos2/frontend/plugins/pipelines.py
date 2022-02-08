@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from loguru import logger
 from qtpy import QtWidgets
@@ -319,6 +320,7 @@ class PipelineCard(Card):
         self.pipeline_id = fid
         self.pipeline_type = ftype
         self.pipeline_name = fname
+        self.annotations_source = None
 
         #from qtpy.QtWidgets import QProgressBar
 
@@ -383,7 +385,9 @@ class PipelineCard(Card):
             self._add_unet_2d_training_params()
         
         elif self.pipeline_type == "predict_2d_unet":
-            self._add_annotations_source()
+            self.annotations_source = LevelComboBox()
+            widget = HWidgets("Levels", self.annotations_source, Spacing(35), stretch=1)
+            self.add_row(widget)
             self._add_feature_source()
             self._add_unet_2d_prediction_params()
 
@@ -682,6 +686,8 @@ class PipelineCard(Card):
                     }
                 )
             pbar.update(1)
+          
+            
 
     def get_model_path(self):
         workspace_path = os.path.join(DataModel.g.CHROOT, DataModel.g.current_workspace)
@@ -898,9 +904,15 @@ class PipelineCard(Card):
         all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
-        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         all_params["model_path"] = str(self.model_file_line_edit.value())
         all_params["no_of_planes"] = self.radio_group.checkedId()
+        levels = Launcher.g.run("annotations", "get_levels", workspace=True)
+        print(f"Levels found in client: {levels}")
+        if levels:
+            last_level = levels[-1]['id']
+        else:
+            last_level = "001_level"
+        print(f"last level is {last_level}")
         return all_params
 
     def compute_pipeline(self):
