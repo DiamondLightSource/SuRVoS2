@@ -248,6 +248,13 @@ def delete_label(
         return dict(done=True)
     raise APIException("Label {}::{} does not exist".format(level, idx))
 
+@hug.get()
+def delete_all_labels(
+    workspace: String, level: String, full: SmartBoolean = False
+):
+    ds = get_level(workspace, level, full)
+    ds.set_metadata("labels", {})
+    return dict(done=True)
 
 @hug.get()
 def annotate_voxels(

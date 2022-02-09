@@ -41,7 +41,8 @@ from survos2.entity.anno.pseudo import make_pseudomasks
 from torch.utils.data import DataLoader
 from survos2.frontend.components.entity import setup_entity_table
 from survos2.api.workspace import add_dataset, auto_create_dataset
-from survos2.api.annotations import add_level, rename_level, add_label, update_label
+from survos2.api.annotations import (add_level, rename_level, get_levels,
+                                     add_label, update_label, delete_all_labels)
 
 
 __pipeline_group__ = "pipelines"
@@ -491,27 +492,43 @@ def predict_2d_unet(
     model_path: str,
     no_of_planes: int
 ):
-    logger.debug(
-        f"Predict_2d_unet with feature {feature_id} in {no_of_planes} planes"
-    )
+    if feature_id:
+        logger.debug(
+            f"Predict_2d_unet with feature {feature_id} in {no_of_planes} planes"
+        )
 
-    src = DataModel.g.dataset_uri(feature_id, group="features")
-    logger.debug(f"Getting features {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        logger.debug(f"Adding feature of shape {src_dataset.shape}")
-        feature = src_dataset[:]
+        src = DataModel.g.dataset_uri(feature_id, group="features")
+        logger.debug(f"Getting features {src}")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            logger.debug(f"Adding feature of shape {src_dataset.shape}")
+            feature = src_dataset[:]
 
-    logger.info(
-        f"Predict_2d_unet with feature shape {feature.shape} using model {model_path}"
-    )
-    level_result = add_level(workspace)
+        logger.info(
+            f"Predict_2d_unet with feature shape {feature.shape} using model {model_path}"
+        )
+    else:
+        logging.error("No feature selected!")
+        return 
+    
+    levels = get_levels(workspace)
+    # If there is already a level for U-net prediction output, don't create a new one
+    anno_exists = any(["U-Net" in x["name"] for x in levels])
+    logging.info(f"Previous U-Net prediction exists: {anno_exists}")
+    if not anno_exists:
+        level_result = add_level(workspace)
+    else:
+        level_result = ([x for x in levels if "U-Net" in x["name"]] or [None])[0]
+        delete_all_labels(workspace, level_result["id"])
     if level_result:
+        import torch
         from survos2.server.unet2d.unet2d import Unet2dPredictor
         from survos2.server.unet2d.data_utils import PredictionHDF5DataSlicer
+        now = datetime.now()
+        dt_string = now.strftime("%d%m%Y_%H_%M_%S")
         level_id = level_result["id"]
-        logger.info(f"New level added with ID {level_id}, changing level name and ID.")
-        rename_level(workspace=workspace, level=level_id, name="U-Net_Prediction")
+        logger.info(f"Using level with ID {level_id}, changing level name.")
+        rename_level(workspace=workspace, level=level_id, name="U-Net prediction")
         logger.info(f"Unpacking model and labels")
         ws_object = ws.get(workspace)
         root_path = Path(ws_object.path, "unet2d")
@@ -525,24 +542,23 @@ def predict_2d_unet(
                 update_result = update_label(workspace=workspace, level=level_id, **codes_dict[key])
                 logger.info(f"Label created: {update_result}")
         
-    src = DataModel.g.dataset_uri(level_id, group="annotations")
-    with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        anno_level = src_dataset[:] & 15
-    logger.info(f"Obtained annotation level with labels {np.unique(anno_level)}")
+        slicer = PredictionHDF5DataSlicer(predictor, feature, clip_data=True)
+        if no_of_planes == 1:
+            segmentation = slicer.predict_1_way(root_path, output_prefix=dt_string)
+        elif no_of_planes == 3:
+            segmentation = slicer.predict_3_ways(root_path, output_prefix=dt_string)
+        segmentation += np.ones_like(segmentation)
+        logger.info("Freeing GPU memory.")
+        del slicer
+        del predictor
+        torch.cuda.empty_cache()
 
-    now = datetime.now()
-    dt_string = now.strftime("%d%m%Y_%H_%M_%S")
-    slicer = PredictionHDF5DataSlicer(predictor, feature, clip_data=True)
-    if no_of_planes == 1:
-        segmentation = slicer.predict_1_way(root_path, output_prefix=dt_string)
-    elif no_of_planes == 3:
-        segmentation = slicer.predict_3_ways(root_path, output_prefix=dt_string)
-    segmentation += np.ones_like(segmentation)
-    def pass_through(x):
-        return x
+        def pass_through(x):
+            return x
 
-    map_blocks(pass_through, segmentation, out=dst, normalize=False)
+        map_blocks(pass_through, segmentation, out=dst, normalize=False)
+    else:
+        logging.error("Unable to add level for output!")
     
 
 @hug.get()

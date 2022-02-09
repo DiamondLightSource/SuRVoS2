@@ -386,8 +386,9 @@ class PipelineCard(Card):
         
         elif self.pipeline_type == "predict_2d_unet":
             self.annotations_source = LevelComboBox()
-            widget = HWidgets("Levels", self.annotations_source, Spacing(35), stretch=1)
-            self.add_row(widget)
+            # widget = HWidgets("Levels", self.annotations_source, Spacing(35), stretch=1)
+            # self.add_row(widget)
+            self.annotations_source.hide()
             self._add_feature_source()
             self._add_unet_2d_prediction_params()
 
@@ -431,9 +432,14 @@ class PipelineCard(Card):
         self.radio_group.addButton(single_pp_rb, 1)
         triple_pp_rb = QRadioButton("Three plane")
         self.radio_group.addButton(triple_pp_rb, 3)
+        refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
+        unet_refresh_btn = PushButton("Refresh Data", accent=True)
+        unet_refresh_btn.clicked.connect(self.refresh_unet_data)
         self.add_row(HWidgets(self.model_file_line_edit, model_input_btn, Spacing(35)))
         self.add_row(HWidgets("Prediction Parameters:", Spacing(35), stretch=1))
         self.add_row(HWidgets(single_pp_rb, triple_pp_rb, stretch=1))
+        self.add_row(HWidgets(refresh_label, stretch=1))
+        self.add_row(HWidgets(unet_refresh_btn, stretch=1))
 
 
     def _add_workflow_file(self):
@@ -695,6 +701,15 @@ class PipelineCard(Card):
         ("Select model"), workspace_path, ("Model files (*.zip)"))
         self.model_file_line_edit.setValue(self.model_path)
 
+    def refresh_unet_data(self):
+        cfg.ppw.clientEvent.emit(
+                {"source": "workspace_gui", "data": "refresh", "value": None}
+            )
+        self.annotations_source.fill()
+        num_annotations = self.annotations_source.count()
+        self.annotations_source.setCurrentIndex(num_annotations -1)
+        logging.info(f"Annotations source selected: {self.annotations_source.value()}")
+
     def load_as_float(self):
         logger.debug(f"Loading prediction {self.pipeline_id} as float image.")
 
@@ -906,13 +921,6 @@ class PipelineCard(Card):
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["model_path"] = str(self.model_file_line_edit.value())
         all_params["no_of_planes"] = self.radio_group.checkedId()
-        levels = Launcher.g.run("annotations", "get_levels", workspace=True)
-        print(f"Levels found in client: {levels}")
-        if levels:
-            last_level = levels[-1]['id']
-        else:
-            last_level = "001_level"
-        print(f"last level is {last_level}")
         return all_params
 
     def compute_pipeline(self):
