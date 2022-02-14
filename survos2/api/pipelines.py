@@ -5,6 +5,7 @@ import os
 from typing import List
 from dataclasses import dataclass
 from datetime import datetime
+import random
 
 
 import dask.array as da
@@ -534,13 +535,24 @@ def predict_2d_unet(
         root_path = Path(ws_object.path, "unet2d")
         root_path.mkdir(exist_ok=True, parents=True)
         predictor = Unet2dPredictor(root_path)
-        codes_dict = predictor.create_model_from_zip(Path(model_path))
-        logger.info(f"Labels found: {codes_dict}")
-        for key in codes_dict:
-            label_result = add_label(workspace=workspace,level=level_id)
-            if label_result:
-                update_result = update_label(workspace=workspace, level=level_id, **codes_dict[key])
-                logger.info(f"Label created: {update_result}")
+        label_codes = predictor.create_model_from_zip(Path(model_path))
+        logger.info(f"Labels found: {label_codes}")
+        # New style codes are in a dictionary
+        if isinstance(label_codes, dict):
+            for key in label_codes:
+                label_result = add_label(workspace=workspace,level=level_id)
+                if label_result:
+                    update_result = update_label(workspace=workspace, level=level_id, **label_codes[key])
+                    logger.info(f"Label created: {update_result}")
+        # Old style codes are in a list
+        elif isinstance(label_codes, list):
+            r = lambda: random.randint(0,255)
+            for idx, code in enumerate(label_codes, start=2):
+                label_result = add_label(workspace=workspace,level=level_id)
+                if label_result:
+                    codes_dict = {"color": f"#{r():02X}{r():02X}{r():02X}", "idx": idx, "name": code, "visible": True}
+                    update_result = update_label(workspace=workspace, level=level_id, **codes_dict)
+                    logger.info(f"Label created: {update_result}")
         
         slicer = PredictionHDF5DataSlicer(predictor, feature, clip_data=True)
         if no_of_planes == 1:
