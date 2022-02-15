@@ -21,7 +21,6 @@ numba
 numpy==1.20
 pandas
 paramiko
-pathlib
 pillow
 pip
 pyqtgraph
