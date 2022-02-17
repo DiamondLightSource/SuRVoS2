@@ -1,0 +1,15 @@
+{
+    "display_plots": false,
+    "gpu_id": 0,
+    "load_saved_model": false,
+    "model_type": "fpn3d",
+    "num_epochs": 1,
+    "project_file": null,
+    "save_current_model": true,
+    "test_on_volume": true,
+    "torch_models_fullpath": "/dls/science/groups/das/SuRVoS/s2/data/braintest2/fcn/17022022_12_05_17_trained_fcn_model",
+    "train_vols": [
+        "/dls/science/groups/das/SuRVoS/s2/data/braintest2/default/annotations/003_level/braintest2_patch_vols300_img_vols_1702_1205.h5",
+        "/dls/science/groups/das/SuRVoS/s2/data/braintest2/default/annotations/003_level/braintest2_patch_vols300_img_labels_1702_1205.h5"
+    ]
+}

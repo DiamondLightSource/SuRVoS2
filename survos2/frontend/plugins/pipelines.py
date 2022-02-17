@@ -378,6 +378,19 @@ class PipelineCard(Card):
             # self._add_objects_source()
             self._add_feature_source()
             self._add_annotations_source()
+        elif self.pipeline_type == "train_3d_fcn":
+            self._add_annotations_source()
+            self._add_feature_source()
+            self._add_objects_source()
+            self._add_3d_fcn_training_params()
+            self._add_fcn_choice()
+        elif self.pipeline_type == "predict_3d_fcn":
+            self._add_annotations_source()
+            self._add_feature_source()
+            self._add_workflow_file()
+            self._add_model_type()
+            self._add_overlap_choice()
+            # self._add_patch_params()
         
         elif self.pipeline_type == "train_2d_unet":
             self._add_annotations_source()
@@ -440,7 +453,10 @@ class PipelineCard(Card):
         self.add_row(HWidgets(single_pp_rb, triple_pp_rb, stretch=1))
         self.add_row(HWidgets(refresh_label, stretch=1))
         self.add_row(HWidgets(unet_refresh_btn, stretch=1))
-
+    def _add_3d_fcn_training_params(self):
+        pass
+    def _add_3d_fcn_prediction_params(self):
+        pass
 
     def _add_workflow_file(self):
         self.filewidget = FileWidget(extensions="*.pt", save=False)
@@ -508,6 +524,13 @@ class PipelineCard(Card):
         elif idx == 1:
             self.clf_container.layout().addWidget(self.svm)
             self.ensembles.setParent(None)
+
+    def _add_fcn_choice(self):
+        self.fcn_type = ComboBox()
+        self.fcn_type.addItem(key="fpn3d")
+        self.fcn_type.addItem(key="unet3d")
+        widget = HWidgets("FCN Type:", self.fcn_type, Spacing(35), stretch=0)
+        self.add_row(widget)
 
     def _add_projection_choice(self):
         self.projection_type = ComboBox()
@@ -581,6 +604,12 @@ class PipelineCard(Card):
 
         widget = HWidgets("Superregions:", self.regions_source, Spacing(35), stretch=1)
         cfg.pipelines_regions_source = self.regions_source
+        self.add_row(widget)
+    def _add_overlap_choice(self):
+        self.overlap_type = ComboBox()
+        self.overlap_type.addItem(key="crop")
+        self.overlap_type.addItem(key="average")
+        widget = HWidgets("Overlap:", self.overlap_type, Spacing(35), stretch=0)
         self.add_row(widget)
 
     def _add_param(self, name, title=None, type="String", default=None):
@@ -860,8 +889,7 @@ class PipelineCard(Card):
         all_params["dst"] = self.pipeline_id
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         return all_params
-
-    def setup_params_predict_segmentation_fcn(self, dst):
+    def setup_params_predict_3d_fcn(self, dst):
         src = DataModel.g.dataset_uri(
             self.feature_source.value(), group="features"
         )
@@ -872,6 +900,8 @@ class PipelineCard(Card):
         all_params["model_fullname"] = self.model_fullname
         all_params["model_type"] = self.model_type.value()
         all_params["dst"] = self.pipeline_id
+        all_params["overlap_mode"] = self.overlap_type.value()
+        
         return all_params
 
     def setup_params_label_postprocess(self, dst):
@@ -902,6 +932,21 @@ class PipelineCard(Card):
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
         # all_params["object_id"] = str(self.objects_source.value())
+        return all_params
+    def setup_params_train_3d_fcn(self, dst):
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        all_params = dict(src=src, dst=dst, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_id"] = str(self.feature_source.value())
+        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
+        print(str(self.objects_source.value())) 
+        if self.objects_source.value() != None:
+            all_params["objects_id"] = str(self.objects_source.value().rsplit("/", 1)[-1])
+        else:
+            all_params["objects_id"] = str(self.objects_source.value())
+        all_params["fpn_train_params"] = {}
+        all_params["fcn_type"] = self.fcn_type.value()
+        
         return all_params
 
     def setup_params_train_2d_unet(self, dst):
@@ -936,8 +981,6 @@ class PipelineCard(Card):
                     all_params = self.setup_params_rasterize_points(dst)
                 elif self.pipeline_type == "watershed":
                     all_params = self.setup_params_watershed(dst)
-                elif self.pipeline_type == "predict_segmentation_fcn":
-                    all_params = self.setup_params_predict_segmentation_fcn(dst)
                 elif self.pipeline_type == "label_postprocess":
                     all_params = self.setup_params_label_postprocess(dst)
                 elif self.pipeline_type == "cleaning":
@@ -946,6 +989,11 @@ class PipelineCard(Card):
                 	all_params = self.setup_params_train_2d_unet(dst)
                 elif self.pipeline_type == "predict_2d_unet":
                 	all_params = self.setup_params_predict_2d_unet(dst)
+                elif self.pipeline_type == "train_3d_fcn":
+                	all_params = self.setup_params_train_3d_fcn(dst)
+                elif self.pipeline_type == "predict_3d_fcn":
+                	all_params = self.setup_params_predict_3d_fcn(dst)
+                
                 else:
                     logger.warning(f"No action exists for pipeline: {self.pipeline_type}")
 

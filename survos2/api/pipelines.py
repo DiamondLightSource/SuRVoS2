@@ -44,6 +44,8 @@ from survos2.frontend.components.entity import setup_entity_table
 from survos2.api.workspace import add_dataset, auto_create_dataset
 from survos2.api.annotations import (add_level, rename_level, get_levels,
                                      add_label, update_label, delete_all_labels)
+from survos2.entity.patches import PatchWorkflow, organize_entities, make_patches
+from survos2.entity.pipeline_ops import make_proposal
 
 
 __pipeline_group__ = "pipelines"
@@ -571,6 +573,159 @@ def predict_2d_unet(
         map_blocks(pass_through, segmentation, out=dst, normalize=False)
     else:
         logging.error("Unable to add level for output!")
+
+
+@hug.get()
+@save_metadata
+def train_3d_fcn(
+    src: DataURI,
+    dst: DataURI,
+    workspace: String,
+    anno_id: DataURI,
+    feature_id: DataURI,
+    objects_id: DataURI,
+    fpn_train_params: dict,
+    num_epochs : Int,
+    num_augs : Int,
+    padding: IntOrVector = 32,
+    grid_dim: IntOrVector = 4,
+    patch_size: IntOrVector = 64,
+    patch_overlap: IntOrVector = 16,
+    fcn_type: String = 'fpn3d'
+):
+    logger.debug(
+        f"Train_3d fcn using anno {anno_id} and feature {feature_id}"
+    )
+
+    src = DataModel.g.dataset_uri(feature_id, group="features")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_array = DM.sources[0][:]
+
+    objects_scale = 1.0
+    entity_meta = {
+        "0": {
+            "name": "class1",
+            "size": np.array((15, 15, 15)) * objects_scale,
+            "core_radius": np.array((7, 7, 7)) * objects_scale,
+        },
+    }
+
+    from survos2.utils import decode_numpy    
+    from survos2.api.objects import get_entities
+    from survos2.entity.sampler import grid_of_points, generate_random_points_in_volume
+    from survos2.entity.utils import pad_vol
+    from survos2.entity.train import train_oneclass_detseg
+    
+    #padding = (32,32, 32)
+    padded_vol = pad_vol(src_array, padding )
+    #grid_dim = (4,4,4)
+    #entity_arr = grid_of_points(padded_vol, padding, grid_dim)
+
+    entity_arr = generate_random_points_in_volume(padded_vol, 100, padding)
+    
+    if objects_id != "None":    
+        objects_src = DataModel.g.dataset_uri(objects_id, group="objects")
+        result = get_entities(objects_src)
+        entity_arr = decode_numpy(result)
+
+    combined_clustered_pts, classwise_entities = organize_entities(
+        src_array, entity_arr, entity_meta, plot_all=False
+    )
+
+    wparams = {}
+    wparams["entities_offset"] = (0, 0, 0)
+    wparams["entity_meta"] = entity_meta
+    wparams["workflow_name"] = "Make_Patches"
+    wparams["proj"] = DataModel.g.current_workspace
+    wf = PatchWorkflow(
+        [src_array], combined_clustered_pts, classwise_entities, src_array, wparams, combined_clustered_pts
+    )
+
+    src = DataModel.g.dataset_uri(anno_id, group="annotations")
+    with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        anno_level = src_dataset[:] & 15
+
+    logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
+    logger.debug(f"Making patches in path {src_dataset._path}")
+    train_v_density = make_patches(wf, entity_arr, src_dataset._path, 
+        proposal_vol=(anno_level == 1)* 1.0, 
+        padding=padding, num_augs=num_augs, max_vols=-1)
+
+    ws_object = ws.get(workspace)
+    data_out_path = Path(ws_object.path, "fcn")
+    now = datetime.now()
+    dt_string = now.strftime("%d%m%Y_%H_%M_%S")
+    model_fn = f"{dt_string}_trained_fcn_model"
+    model_out = str(Path(data_out_path, model_fn).resolve())
+    
+    wf_params = {}
+    wf_params["torch_models_fullpath"] = model_out
+    logger.info(f"Saving fcn model to: {model_out}")
+
+    #patch_size=(32,32,32)
+    #patch_overlap=(16, 16, 16)
+    overlap_mode="crop"
+    model_type=fcn_type
+
+    model_file = train_oneclass_detseg(train_v_density, None, wf_params, num_epochs=num_epochs, model_type=model_type)
+    
+    src = DataModel.g.dataset_uri(feature_id, group="features")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_array = DM.sources[0][:]
+    
+    proposal = make_proposal(
+    src_array,
+    os.path.join(wf_params["torch_models_fullpath"],model_file),
+    model_type=model_type,
+    patch_size=patch_size,
+    patch_overlap=patch_overlap,
+    overlap_mode=overlap_mode,
+    )
+
+    final_seg = (proposal > 0) * 1.0
+    map_blocks(pass_through, final_seg, out=dst, normalize=False)
+    
+
+@hug.get()
+def predict_3d_fcn(
+    feature_id: DataURI,
+    model_fullname: String,
+    dst: DataURI,
+    patch_size: IntOrVector = 64,
+    patch_overlap: IntOrVector = 8,
+    #threshold: Float = 0.5,
+    model_type: String = "unet3d",
+    overlap_mode: String = "crop"
+):
+    from survos2.entity.pipeline_ops import make_proposal
+
+    src = DataModel.g.dataset_uri(feature_id, group="features")
+
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        logger.debug(f"Adding feature of shape {src_dataset.shape}")
+        
+    proposal = make_proposal(
+        src_dataset,
+        model_fullname,
+        model_type=model_type,
+        patch_size=patch_size,
+        patch_overlap=patch_overlap,
+        overlap_mode=overlap_mode,
+    )
+
+    # proposal -= np.min(proposal)
+    # proposal = proposal / np.max(proposal)
+    # proposal = ((proposal < threshold) * 1) + 1
+
+    proposal = (proposal > 0) * 1.0
+
+    # store resulting segmentation in dst
+    dst = DataModel.g.dataset_uri(dst, group="pipelines")
+    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+        DM.out[:] = proposal
+
     
 
 @hug.get()

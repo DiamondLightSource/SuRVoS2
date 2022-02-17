@@ -256,7 +256,7 @@ class AnnotationLevel(Card):
         self.le_title = LineEdit(level["name"])
         self.le_title.setProperty("header", True)
         self.labels = {}
-
+        self._add_view_btn()
         self._populate_labels()
 
     def card_title_edited(self, title):
