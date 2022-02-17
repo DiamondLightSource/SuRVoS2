@@ -507,7 +507,7 @@ class LoadDataDialog(QDialog):
         """
         data_size_tup = tuple(map(int, (z_size, y_size, x_size)))
         est_data_size = (product(data_size_tup) * 4) / 10 ** 6
-        est_data_size /= self.downsample_spinner.value()
+        est_data_size /= self.downsample_spinner.value() ** 3
         self.data_size_label.setText(f"{est_data_size:.2f}")
 
 
