@@ -18,10 +18,7 @@ from torch import Tensor
 from survos2.entity.utils import accuracy
 from survos2.frontend.nb_utils import show_images
 
-
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
 
 
 def save_model(model, optimizer, filename, torch_models_fullpath):

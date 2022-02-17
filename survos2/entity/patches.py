@@ -94,6 +94,14 @@ class SmallVolDataset(Dataset):
 
 
 def get_largest_cc(I):
+    """Return the largest connected component
+
+    Args:
+        I (np.ndarray): Image volume
+
+    Returns:
+        np.ndarray: Int array of the largest connected component
+    """
     img = I > 0
     label_im, nb_labels = ndimage.label(img)
     sizes = ndimage.sum(I, label_im, range(nb_labels + 1))
@@ -106,6 +114,15 @@ def get_largest_cc(I):
 
 
 def pad_vol(vol, padding):
+    """Pad a volume with zeros.
+
+    Args:
+        vol (np.ndsarray): Image array
+        padding (List): 3-element list of padding amount in each direction.
+
+    Returns:
+        np.ndarray: resultant padded array
+    """
     padded_vol = np.zeros(
         (
             vol.shape[0] + padding[0] * 2,
@@ -124,6 +141,8 @@ def pad_vol(vol, padding):
 
 @dataclass
 class PatchWorkflow:
+    """Dataclass for PatchWorkflows used by the patch-based 3d fcn 
+    """
     vols: List[np.ndarray]
     locs: np.ndarray
     entities: dict
@@ -131,155 +150,10 @@ class PatchWorkflow:
     params: dict
     gold: np.ndarray
 
-
-def init_entity_workflow(project_file, roi_name, plot_all=False):
-    with open(project_file) as project_file:
-        wparams = json.load(project_file)
-    proj = wparams["proj"]
-
-    if proj == "vf":
-        original_data = h5py.File(
-            os.path.join(wparams["input_dir"], wparams["vol_fname"]), "r"
-        )
-        ds = original_data[wparams["dataset_name"]]
-        # wf1 = ds["workflow_1"]
-        wf2 = ds[wparams["workflow_name"]]
-
-        ds_export = original_data.get("data_export")
-        # wf1_wrangled = ds_export["workflow1_wrangled_export"]
-        vol_shape_x = wf2[0].shape[0]
-        vol_shape_y = wf2[0].shape[1]
-        vol_shape_z = len(wf2)
-        img_volume = wf2
-        print(f"Loaded image volume of shape {img_volume.shape}")
-
-    if proj == "hunt":
-        # fname = wparams['vol_fname']
-        fname = wparams["vol_fname"]
-        original_data = h5py.File(os.path.join(wparams["datasets_dir"], fname), "r")
-        img_volume = original_data["data"][:]
-        wf1 = img_volume
-
-    print(f"Loaded image volume of shape {img_volume.shape}")
-
-    workflow_name = wparams["workflow_name"]
-    input_dir = wparams["input_dir"]
-    out_dir = wparams["outdir"]
-    torch_models_fullpath = wparams["torch_models_fullpath"]
-    project_file = wparams["project_file"]
-    entity_fpath = wparams["entity_fpath"]
-    # entity_fnames = wparams["entity_fnames"]
-    entity_fname = wparams["entity_fname"]
-    datasets_dir = wparams["datasets_dir"]
-    entities_offset = wparams["entities_offset"]
-    offset = wparams["entities_offset"]
-    entity_meta = wparams["entity_meta"]
-    main_bv = wparams["main_bv"]
-    bg_mask_fname = wparams["bg_mask_fname"]
-    gold_fname = wparams["gold_fname"]
-    gold_fpath = wparams["gold_fpath"]
-
-    #
-    # load object data
-    #
-    entities_df = pd.read_csv(os.path.join(entity_fpath, entity_fname))
-    entities_df.drop(
-        entities_df.columns[entities_df.columns.str.contains("unnamed", case=False)],
-        axis=1,
-        inplace=True,
-    )
-    entity_pts = np.array(entities_df)
-    # e_df = make_entity_df(entity_pts, flipxy=True)
-    # entity_pts = np.array(e_df)
-    scale_z, scale_x, scale_y = 1.0, 1.0, 1.0
-    entity_pts[:, 0] = (entity_pts[:, 0] * scale_z) + offset[0]
-    entity_pts[:, 1] = (entity_pts[:, 1] * scale_x) + offset[1]
-    entity_pts[:, 2] = (entity_pts[:, 2] * scale_y) + offset[2]
-
-    #
-    # Crop main volume
-    #
-    main_bv = calc_bounding_vols(main_bv)
-    bb = main_bv[roi_name]["bb"]
-    print(f"Main bounding box: {bb}")
-    roi_name = "_".join(map(str, bb))
-
-    logger.debug(roi_name)
-
-    #
-    # load gold data
-    #
-    gold_df = pd.read_csv(os.path.join(gold_fpath, gold_fname))
-    gold_df.drop(
-        gold_df.columns[gold_df.columns.str.contains("unnamed", case=False)],
-        axis=1,
-        inplace=True,
-    )
-    gold_pts = np.array(gold_df)
-    # gold_df = make_entity_df(gold_pts, flipxy=True)
-    # gold_pts = np.array(e_df)
-    scale_z, scale_x, scale_y = 1.0, 1.0, 1.0
-    gold_pts[:, 0] = (gold_pts[:, 0] * scale_z) + offset[0]
-    gold_pts[:, 1] = (gold_pts[:, 1] * scale_x) + offset[1]
-    gold_pts[:, 2] = (gold_pts[:, 2] * scale_y) + offset[2]
-
-    # precropped_wf2, gold_pts = crop_vol_and_pts_bb(
-    #     img_volume, gold_pts, bounding_box=bb, debug_verbose=True, offset=True
-    # )
-
-    print(f"Loaded entities of shape {entities_df.shape}")
-    
-    #
-    # Load bg mask
-    #
-    # with h5py.File(os.path.join(wparams["datasets_dir"],bg_mask_fname), "r") as hf:
-    #    logger.debug(f"Loaded bg mask file with keys {hf.keys()}")
-
-    # bg_mask_fullname = os.path.join(wparams["datasets_dir"], bg_mask_fname)
-    # bg_mask_file = h5py.File(bg_mask_fullname, "r")
-    # print(bg_mask_fullname)
-    # bg_mask = bg_mask_file["mask"][:]
-
-    precropped_wf2, precropped_pts = crop_vol_and_pts_bb(
-        img_volume, entity_pts, bounding_box=bb, debug_verbose=True, offset=True
-    )
-    combined_clustered_pts, classwise_entities = organize_entities(
-        precropped_wf2, precropped_pts, entity_meta, plot_all=plot_all
-    )
-    
-    bg_mask = np.zeros_like(precropped_wf2)
-    #bg_mask_crop = sample_bvol(bg_mask, bb)
-    
-    # bg_mask_crop = sample_bvol(bg_mask, bb)
-    # print(
-    #     f"Cropping background mask of shape {bg_mask.shape} with bounding box: {bb} to shape of {bg_mask_crop.shape}"
-    # )
-
-    #bg_mask_crop = bg_mask
-    wf = PatchWorkflow(
-        [precropped_wf2, precropped_wf2],
-        combined_clustered_pts,
-        classwise_entities,
-        bg_mask,
-        wparams,
-        gold_pts,
-    )
-
-    if plot_all:
-        plt.figure(figsize=(15, 15))
-        plt.imshow(wf.vols[0][0, :], cmap="gray")
-        plt.title("Input volume")
-        slice_plot(wf.vols[1], wf.locs, None, (40, 200, 200))
-
-    return wf
-
-
 def organize_entities(
     img_vol, clustered_pts, entity_meta, flipxy=False, plot_all=False
 ):
-
     class_idxs = entity_meta.keys()
-
     classwise_entities = []
 
     for c in class_idxs:
@@ -289,16 +163,7 @@ def organize_entities(
         classwise_pts = np.array(clustered_df)
         classwise_entities.append(classwise_pts)
         entity_meta[c]["entities"] = classwise_pts
-        if plot_all:
-            plt.figure(figsize=(9, 9))
-            plt.imshow(img_vol[img_vol.shape[0] // 4, :], cmap="gray")
-            plt.scatter(classwise_pts[:, 1], classwise_pts[:, 2], c="cyan")
-            plt.title(
-                str(entity_meta[c]["name"])
-                + " Clustered Locations: "
-                + str(len(classwise_pts))
-            )
-
+        
     combined_clustered_pts = np.concatenate(classwise_entities)
 
     return combined_clustered_pts, entity_meta
@@ -330,44 +195,27 @@ def make_patches(
     outdir,
     vol_num=0,
     proposal_vol=None,
-    use_proposal_file=False,
-    proposal_thresh=0.4,
-    get_biggest_cc=False,
     padding=(64, 64, 64),
     num_augs=2,
     max_vols=-1,
-    plot_all=False,
 ):
-    # make bg mask
+    """Make a patch dataset by sampling an image volume at selected locations.
 
-    target_cents = np.array(selected_locs)[:, 0:4]
-    print(f"Making patches for {len(target_cents)} locations")
-    target_cents = target_cents[:, [0, 2, 1, 3]]
+    Args:
+        wf (PatchWorkflow): A PatchWorkflow object.
+        selected_locs (np.ndarray): A numpy array of selected locations.
+        outdir (string): Output directory to store dataset in.
+        vol_num (int, optional): Volume number to take from PatchWorkflow. Defaults to 0.
+        proposal_vol ([type], optional): [description]. Defaults to None.
+        padding (tuple, optional): Bounding volume size. Defaults to (64, 64, 64).
+        num_augs (int, optional): Number of data augmentations. Defaults to 2.
+        max_vols (int, optional): Hard limit on the number of patches. Defaults to -1 (none).
 
-    # Prepare patch dataset
-    # selected_locs = wf.locs[wf.locs[:, 3] == 0]
-    mask_vol_size = wf.params["entity_meta"][list(wf.params["entity_meta"].keys())[0]][
-        "size"
-    ]
-    mask_vol_size = (26, 26, 26)  # for viz
-    target_cents = np.array(selected_locs)[:, 0:4]
-    target_cents = target_cents[:, [0, 2, 1, 3]]
-    targs_all_1 = centroid_to_bvol(target_cents, bvol_dim=mask_vol_size, flipxy=True)
-    mask_gt = viz_bvols(wf.vols[0], targs_all_1)
-    if plot_all:
-        slice_plot(
-            mask_gt,
-            selected_locs,
-            wf.vols[0],
-            (
-                wf.vols[0].shape[0] // 2,
-                wf.vols[0].shape[1] // 2,
-                wf.vols[0].shape[2] // 2,
-            ),
-        )
+    Returns:
+        tuple: Tuple of hdf5 file name for images and labels.
+    """
 
     padded_vol = pad_vol(wf.vols[vol_num], padding)
-    # padded_anno = pad_vol((proposal_vol > proposal_thresh) * 1.0, padding)
     padded_anno = pad_vol(proposal_vol, padding)
     if num_augs > 0:
         some_pts = np.vstack(
@@ -382,18 +230,6 @@ def make_patches(
             selected_locs, np.array(padding), scale=32, random_offset=False
         )
 
-    if plot_all:
-        slice_plot(
-            padded_vol,
-            None,
-            padded_anno,
-            (
-                wf.vols[0].shape[0] // 2,
-                wf.vols[0].shape[1] // 2,
-                wf.vols[0].shape[2] // 2,
-            ),
-        )
-
     patch_size = padding
     marked_patches_anno = sample_marked_patches(
         padded_anno, some_pts, some_pts, patch_size=patch_size
@@ -403,11 +239,7 @@ def make_patches(
     )
 
     img_vols = marked_patches.vols
-    bvols = marked_patches.vols_bbs
-    labels = marked_patches.vols_locs[:, 3]
     label_vols = marked_patches_anno.vols
-    label_bvols = marked_patches_anno.vols_bbs
-    label_labels = marked_patches_anno.vols_locs[:, 3]
     marked_patches.vols_locs.shape
 
     print(
@@ -429,130 +261,75 @@ def make_patches(
         img_vols = np.vstack((img_vols, np.array(img_vols_flipped)))
         label_vols = np.vstack((label_vols, np.array(label_vols_flipped)))
 
-    if get_biggest_cc:
-        label_vols_f = []
-        for i, lvol in enumerate(label_vols):
-            label_vols_f.append(get_largest_cc(lvol))
-        label_vols_f = np.array(label_vols_f)
 
     if max_vols > 0:
         img_vols = img_vols[0:max_vols]
         label_vols = label_vols[0:max_vols]
 
-    raw_X_train, raw_X_test, raw_y_train, raw_y_test = train_test_split(
-        img_vols, label_vols, test_size=0.2, random_state=42
-    )
-
-    print(
-        f"raw_X_train {raw_X_train.shape}, raw_X_test {raw_X_test.shape}, raw_y_train{raw_y_train.shape}, raw_y_test{raw_y_test.shape}"
-    )
-
-    smallvol_mask_trans = transforms.Compose(
-        [
-            transforms.ToTensor(),
-        ]
-    )
-    train_dataset3d = SmallVolDataset(
-        raw_X_train, raw_y_train, slice_num=None, dim=3, transform=smallvol_mask_trans
-    )
-    train_dataset3d.class_names = np.unique(raw_y_train).astype(np.uint16)
-
-    test_dataset3d = SmallVolDataset(
-        raw_X_test, raw_y_test, slice_num=None, dim=3, transform=smallvol_mask_trans
-    )
-    test_dataset3d.class_names = np.unique(raw_y_test).astype(np.uint16)
-
-    train_loader3d = torch.utils.data.DataLoader(
-        train_dataset3d, batch_size=1, shuffle=True, num_workers=0, drop_last=False
-    )
-
-    test_loader3d = torch.utils.data.DataLoader(
-        test_dataset3d, batch_size=1, shuffle=False, num_workers=0, drop_last=False
-    )
-
-    if plot_all:
-        for i in range(5):
-            img, lbl = next(iter(train_loader3d))
-            img = img.squeeze(0).numpy()
-            lbl = lbl.squeeze(0).numpy()
-
-            from survos2.frontend.nb_utils import show_images
-
-            show_images(
-                [img[padding[0] // 2, :], lbl[padding[0] // 2, :]], figsize=(4, 4)
-            )
-
-            print(f"Unique mask values: {np.unique(lbl)}")
-
-    print(
-        f"Augmented image vols shape {img_vols.shape}, label vols shape {label_vols.shape}"
-    )
-    # wf.params["selected_locs"] = selected_locs
     wf.params["outdir"] = outdir
 
     # save vols
     now = datetime.now()
     dt_string = now.strftime("%d%m_%H%M")
-    output_dataset = True
+
     workflow_name = wf.params["workflow_name"]
 
     workflow_name = "patch_vols"
 
-    if output_dataset:
-        map_fullpath = os.path.join(
-            wf.params["outdir"],
-            str(wf.params["proj"])
-            + "_"
-            + str(workflow_name)
-            + str(len(img_vols))
-            + "_img_vols_"
-            + str(dt_string)
-            + ".h5",
-        )
-        wf.params["img_vols_fullpath"] = map_fullpath
-        with h5py.File(map_fullpath, "w") as hf:
-            hf.create_dataset("data", data=img_vols)
+    map_fullpath = os.path.join(
+        wf.params["outdir"],
+        str(wf.params["proj"])
+        + "_"
+        + str(workflow_name)
+        + str(len(img_vols))
+        + "_img_vols_"
+        + str(dt_string)
+        + ".h5",
+    )
+    wf.params["img_vols_fullpath"] = map_fullpath
+    with h5py.File(map_fullpath, "w") as hf:
+        hf.create_dataset("data", data=img_vols)
 
-        print(f"Saving image vols {map_fullpath}")
+    print(f"Saving image vols {map_fullpath}")
 
-        map_fullpath = os.path.join(
-            wf.params["outdir"],
-            str(wf.params["proj"])
-            + "_"
-            + str(workflow_name)
-            + str(len(label_vols))
-            + "_img_labels_"
-            + str(dt_string)
-            + ".h5",
-        )
-        wf.params["label_vols_fullpath"] = map_fullpath
-        with h5py.File(map_fullpath, "w") as hf:
-            hf.create_dataset("data", data=label_vols)
-        print(f"Saving image vols {map_fullpath}")
+    map_fullpath = os.path.join(
+        wf.params["outdir"],
+        str(wf.params["proj"])
+        + "_"
+        + str(workflow_name)
+        + str(len(label_vols))
+        + "_img_labels_"
+        + str(dt_string)
+        + ".h5",
+    )
+    wf.params["label_vols_fullpath"] = map_fullpath
+    with h5py.File(map_fullpath, "w") as hf:
+        hf.create_dataset("data", data=label_vols)
+    print(f"Saving image vols {map_fullpath}")
 
-        # save annotation mask (input image with the annotation volume regions masked)
-        map_fullpath = os.path.join(
-            wf.params["outdir"],
-            str(wf.params["proj"])
-            + "_"
-            + str(workflow_name)
-            + "_"
-            + str(len(label_vols))
-            + "_mask_gt_"
-            + str(dt_string)
-            + ".h5",
-        )
-        wf.params["mask_gt"] = map_fullpath
-        with h5py.File(map_fullpath, "w") as hf:
-            hf.create_dataset("data", data=mask_gt)
-        print(f"Saving image vols {map_fullpath}")
+    # # save annotation mask (input image with the annotation volume regions masked)
+    # map_fullpath = os.path.join(
+    #     wf.params["outdir"],
+    #     str(wf.params["proj"])
+    #     + "_"
+    #     + str(workflow_name)
+    #     + "_"
+    #     + str(len(label_vols))
+    #     + "_mask_gt_"
+    #     + str(dt_string)
+    #     + ".h5",
+    # )
+    # wf.params["mask_gt"] = map_fullpath
+    # with h5py.File(map_fullpath, "w") as hf:
+    #     hf.create_dataset("data", data=mask_gt)
+    # print(f"Saving image vols {map_fullpath}")
 
     return wf.params["img_vols_fullpath"], wf.params["label_vols_fullpath"]
 
 
 
 def prepare_dataloaders(
-    img_vols, label_vols, model_type, batch_size=1, display_plots=False
+    img_vols, label_vols, model_type, batch_size=1
 ):
     from sklearn.model_selection import train_test_split
 
@@ -577,20 +354,6 @@ def prepare_dataloaders(
     )
     test_dataset3d.class_names = np.unique(raw_y_test).astype(np.uint16)
 
-    
-    image_trans = transforms.Compose(
-        [
-            transforms.ToTensor(),
-        ]
-    )
-
-    mask_trans = transforms.Compose(
-        [
-            transforms.ToTensor(),
-        ]
-    )
-
-
     if model_type != "unet" or model_type != "fpn3d":
         dataloaders = {
             "train": DataLoader(
@@ -600,19 +363,5 @@ def prepare_dataloaders(
                 test_dataset3d, batch_size=batch_size, shuffle=False, num_workers=0
             ),
         }
-
-    if display_plots:
-        if model_type != "unet" or model_type != "fpn3d":
-            for jj in range(1):
-                for kk in range(0, 1, 1):
-                    idx = np.random.randint(4)
-                    img_batch, label = next(
-                        islice(iter(dataloaders["val"]), idx, idx + 1)
-                    )
-                    print(img_batch.shape, label.shape)
-                    show_images([img_batch[kk, 0, :].T, label[kk, 0, :]])
-                    print(img_batch[kk, :].T.shape)
-
-    print(list(dataloaders["train"])[0][0].shape)
 
     return dataloaders

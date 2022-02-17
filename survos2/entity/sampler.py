@@ -1,17 +1,7 @@
-import itertools
-import os
-import time
-import warnings
 from dataclasses import dataclass
-from typing import List, NamedTuple, Tuple, Union
-
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-
 from loguru import logger
-from survos2.entity.anno.geom import centroid_3d, rescale_3d
-from survos2.frontend.nb_utils import summary_stats
+
 
 
 
@@ -145,8 +135,7 @@ def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16)):
     spacey = np.linspace(0, padded_vol.shape[2] - (2 * padding[2]), y_dim)
 
     zv, xv, yv = np.meshgrid(spacez, spacex, spacey)
-    print(zv.shape, xv.shape, yv.shape)
-
+   
     zv = zv + padding[0]
     xv = xv + padding[1]
     yv = yv + padding[2]
@@ -267,39 +256,6 @@ def viz_bvols(input_array, bvols, flip_coords=False):
 
     return bvol_mask
 
-
-def viz_bvols2(input_array, bvols, flip_coords=False, edge_thickness=2):
-    bvol_mask = np.zeros_like(input_array)
-    print(f"Making {len(bvols)} bvols")
-    for bvol in bvols:
-        # print(bvol)
-        bvol = bvol.astype(np.int32)
-        z_s = np.max((0, bvol[0]))
-        z_f = np.min((bvol[3], input_array.shape[0]))
-        x_s = np.max((0, bvol[1]))
-        x_f = np.min((bvol[4], input_array.shape[1]))
-        y_s = np.max((0, bvol[2]))
-        y_f = np.min((bvol[5], input_array.shape[2]))
-        # print(f"Sampling {z_s}, {z_f}, {x_s}, {x_f}, {y_s}, {y_f}")
-
-        if flip_coords:
-            bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
-            bvol_mask[z_s + 1 : z_f - 1, y_s + 1 : y_f - 1, x_s + 1 : x_f - 1] = 0.90
-            bvol_mask[
-                z_s + edge_thickness : z_f - edge_thickness,
-                y_s + edge_thickness : y_f - edge_thickness,
-                x_s + edge_thickness : x_f - edge_thickness,
-            ] = 0.55
-        else:
-            bvol_mask[z_s:z_f, x_s:x_f, y_s:y_f] = 0.45
-            bvol_mask[z_s + 1 : z_f - 1, x_s + 1 : x_f - 1, y_s + 1 : y_f - 1] = 0.85
-            bvol_mask[
-                z_s + edge_thickness : z_f - edge_thickness,
-                y_s + edge_thickness : y_f - edge_thickness,
-                x_s + edge_thickness : x_f - edge_thickness,
-            ] = 0.45
-
-    return bvol_mask
 
 
 def sample_region_at_pt(img_volume, pt, dim):

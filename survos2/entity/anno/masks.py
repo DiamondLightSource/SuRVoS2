@@ -54,8 +54,7 @@ from survos2.frontend.nb_utils import summary_stats, show_images
 
 from numpy.linalg import LinAlgError
 
-from survos2.entity.anno.geom import centroid_3d, rescale_3d
-from survos2.entity.anno.point_cloud import chip_cluster
+
 from skimage.segmentation import mark_boundaries
 from survos2.entity.pipeline import Patch
 from survos2.server.state import cfg
@@ -71,7 +70,7 @@ def generate_anno(
     core_mask_radius=(14, 14, 14),
     shell=False,
 ):
-
+    # calculate padding
     padded_vol = np.zeros(
         (
             precropped_wf2.shape[0] + padding[0] * 2,
@@ -79,13 +78,14 @@ def generate_anno(
             precropped_wf2.shape[2] + padding[2] * 2,
         )
     )
-
+    # pad input image
     padded_vol[
         padding[0] : precropped_wf2.shape[0] + padding[0],
         padding[1] : precropped_wf2.shape[1] + padding[1],
         padding[2] : precropped_wf2.shape[2] + padding[2],
     ] = precropped_wf2
 
+    # set params
     cfg["pipeline"]["mask_params"]["core_mask_radius"] = core_mask_radius
     cfg["pipeline"]["mask_params"]["padding"] = padding
     cfg["pipeline"]["mask_params"]["eccentricity"] = eccentricity
@@ -93,6 +93,7 @@ def generate_anno(
 
     anno_masks = []
 
+    # for each class, set params and make masks
     for k, v in classwise_entities.items():
         p = Patch(
             {"Main": padded_vol}, {}, {"Points": classwise_entities[k]["entities"]}, {}
@@ -120,6 +121,7 @@ def generate_anno(
 
         shell_mask = mask - core_mask
 
+        # store masks in dictionary
         classwise_entities[k]["mask"] = mask
         classwise_entities[k]["core_mask"] = core_mask
         classwise_entities[k]["shell_mask"] = shell_mask
@@ -336,7 +338,6 @@ def generate_sphere_masks(I_out, classwise_pts, radius=10):
         ss, yy, xx = classwise_pts[i, 0], classwise_pts[i, 1], classwise_pts[i, 2]
         ss = int(ss)
         init_ls = calc_sphere(I_out.shape, (ss, xx, yy), radius=radius)
-        print(init_ls.shape)
         total_mask += init_ls
 
     return total_mask

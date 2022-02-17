@@ -1,29 +1,14 @@
 import collections
 import glob
-import itertools
-import json
 import os
-import time
-import warnings
-from collections import Counter
-from dataclasses import dataclass
-from statistics import StatisticsError, mode
-from typing import List, NamedTuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import torch.utils.data as data
 from loguru import logger
-from numpy import linalg
 from numpy.lib.stride_tricks import as_strided as ast
 
-from survos2.entity.anno.geom import centroid_3d, rescale_3d
-from survos2.entity.sampler import crop_vol_and_pts_bb, sample_bvol
-from survos2.frontend.nb_utils import slice_plot, summary_stats
 from survos2.entity.sampler import viz_bvols, centroid_to_bvol, offset_points
-
 from survos2.frontend.control.launcher import Launcher
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
@@ -36,8 +21,6 @@ def load_entities_via_file(entities_arr, flipxy=True):
     tmp_fullpath = os.path.abspath(
         os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
     )
-    print(entities_df)
-    print(f"Creating temp file: {tmp_fullpath}")
     entities_df.to_csv(tmp_fullpath, line_terminator="")
 
     object_scale = 1.0
@@ -52,7 +35,6 @@ def load_entities_via_file(entities_arr, flipxy=True):
     )
 
     result = Launcher.g.run("objects", "create", **params)
-    print(result)
     if result:
         dst = DataModel.g.dataset_uri(result["id"], group="objects")
         params = dict(
@@ -161,21 +143,6 @@ def make_entity_df(pts, flipxy=True):
     )
     return entities_df
 
-
-def make_entity_feats_df(pts, flipxy=True):
-    if flipxy:
-        entities_df = pd.DataFrame(
-            {"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]}
-        )
-    else:
-        entities_df = pd.DataFrame(
-            {"z": pts[:, 0], "x": pts[:, 1], "y": pts[:, 2], "class_code": pts[:, 3]}
-        )
-
-    entities_df = entities_df.astype(
-        {"x": "int32", "y": "int32", "z": "int32", "class_code": "int32"}
-    )
-    return entity_feats_df
 
 
 def make_entity_df2(pts):

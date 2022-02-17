@@ -20,6 +20,8 @@ import torch.nn.functional as F
 from matplotlib import patches, patheffects
 from napari import layers
 from skimage import data, measure
+from skimage import exposure
+import morphsnakes as ms
 
 from torch import optim
 from torch.autograd import Variable
@@ -51,7 +53,26 @@ from survos2.entity.entities import make_entity_df
 def organize_entities(
     img_vol, clustered_pts, entity_meta, flipxy=False, plot_all=False
 ):
+    """Sorts clustered points by class and stores in entity_meta for further processing by generate_annotation
 
+    Parameters
+    ----------
+    img_vol : np.ndarray
+        Image volume (just for visualization in notebook)
+    clustered_pts : np.ndarray
+        Entity array (z,x,y,class)
+    entity_meta : dict
+        Dictionary by class of each entity, with additional information about the size of the object to render at the centroid
+    flipxy : bool, optional
+        Flip x y coordinates, by default False
+    plot_all : bool, optional
+        Plotting in notebooks, by default False
+
+    Returns
+    -------
+    Tuple 
+        Tuple of (points, dict)
+    """
     class_idxs = entity_meta.keys()
     classwise_entities = []
 
@@ -80,19 +101,14 @@ def organize_entities(
 def make_acwe(patch: Patch, params: dict):
     """
     Active Contour
+    Setup and run ACWE 
 
-    (Float layer -> Float layer)
-
-    """
-    from skimage import exposure
-
+    """    
     edge_map = 1.0 - patch.image_layers["Main"]
     edge_map -= np.min(edge_map)
     edge_map = edge_map / np.max(edge_map)
-    # edge_map = exposure.adjust_sigmoid(edge_map, cutoff=1.0)
     logger.debug("Calculating ACWE")
-    import morphsnakes as ms
-
+    
     seg1 = ms.morphological_geodesic_active_contour(
         edge_map,
         iterations=params["iterations"],
@@ -101,16 +117,9 @@ def make_acwe(patch: Patch, params: dict):
         threshold=params["threshold"],
         balloon=params["balloon"],
     )
-
     outer_mask = ((seg1 * 1.0) > 0) * 2.0
-
-    # inner_mask = ((seg2 * 1.0) > 0) * 1.0
-    # outer_mask = outer_mask * (1.0 - inner_mask)
-    # anno = outer_mask + inner_mask
-
     patch.image_layers["acwe"] = outer_mask
-    # show_images([outer_mask[outer_mask.shape[0] // 2, :]], figsize=(12, 12))
-
+    
     return patch
 
 
@@ -125,6 +134,34 @@ def generate_annotation_volume(
     stratified_selection=False,
     class_proportion={0: 1, 1: 1.0, 2: 1.0, 5: 1},
 ):
+    """Generate a volume of annotation from an entity_meta dict
+
+    Parameters
+    ----------
+    wf : PatchWorkflow
+        PatchWorkflow objet
+    entity_meta : dict
+        Dictionary of entities by class, storing additional info about size of generated objects.
+    gt_proportion : float, optional
+        Proportion of given entities to select, by default 1.0
+    padding : tuple, optional
+        Max size of generated blobs, by default (64, 64, 64)
+    generate_random_bg_entities : bool, optional
+        Add additional random points, by default False
+    num_before_masking : int, optional
+        Additional random points can be masked. This is the total number of points to add before masking, by default 60
+    acwe : bool, optional
+        Active contour with edges, by default False
+    stratified_selection : bool, optional
+        Use the class proportion dict to select different proportions by class, by default False
+    class_proportion : dict, optional
+        Dictionary giving proportions to select by class, by default {0: 1, 1: 1.0, 2: 1.0, 5: 1}
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     entities = wf.locs
     # entities_sel = np.random.choice(
     #    range(len(entities)), int(gt_proportion * len(entities))
@@ -153,9 +190,9 @@ def generate_annotation_volume(
         print(
             f"Before masking random entities generated of shape {random_entities.shape}"
         )
-        random_entities = remove_masked_entities(wf.bg_mask, random_entities)
+        #random_entities = remove_masked_entities(wf.bg_mask, random_entities)
 
-        print(f"After masking: {random_entities.shape}")
+        #print(f"After masking: {random_entities.shape}")
         random_entities[:, 3] = np.array([6] * len(random_entities))
         # augmented_entities = np.vstack((gt_entities, masked_entities))
         # print(f"Produced augmented entities array of shape {augmented_entities.shape}")
@@ -172,7 +209,31 @@ def generate_annotation_volume(
 def make_anno(
     wf, entities, entity_meta, gt_proportion, padding, acwe=False, plot_all=True
 ):
+    """Helper function to produce annotation with a single command
 
+    Parameters
+    ----------
+    wf : PatchWorkflow
+        A PatchWorkflow object gathers all the info required for a segmentation workflow.
+    entities : np.ndarray
+        Array of entitites (z,x,y,class)
+    entity_meta : dict
+        Dictionary storing information about each entity, by class. Information such as the size of the object to render
+        at the centroid location is stored.
+    gt_proportion : float
+        Proportion of provided entities to select randomly from the entitties array.
+    padding : tuple
+        Maximum size of the objects being generated (to cover literal edge cases)
+    acwe : bool, optional
+        Active Contour With Edges, using the generated mask to initialize the location of the contour, by default False
+    plot_all : bool, optional
+        Descriptive plotting, by default True
+
+    Returns
+    -------
+    Tuple
+        Generated masks a dictionary by class of each mask, All generated masks including acwe, array of entities selected
+    """
     combined_clustered_pts, classwise_entities = organize_entities(
         wf.vols[0], entities, entity_meta, plot_all=plot_all
     )
@@ -199,7 +260,36 @@ def make_pseudomasks(
     smoothing=1,
     plot_all=False,
 ):
+    """Function to generate the mask annotation
 
+    Parameters
+    ----------
+    wf : np.ndarray
+        PatchWorkflow object 
+    classwise_entities : np.ndarray
+        Sorted array of entities
+    padding : tuple, optional
+        Max size of generated blob, by default (64, 64, 64)
+    core_mask_radius : tuple, optional
+        Default mask radius of core for shell generation, by default (8, 8, 8)
+    acwe : bool, optional
+        Active Contour Without Edges, by default False
+    balloon : float, optional
+        Balloon parameter for ACWE, by default 1.3
+    threshold : float, optional
+        Threshold value for calculating ACWE contour, by default 0.1
+    iterations : int, optional
+        Number of iterations of ACWE, by default 1
+    smoothing : int, optional
+        Smoothing applied to ACWE contour, by default 1
+    plot_all : bool, optional
+        Descriptive plots, by default False
+
+    Returns
+    -------
+    Tuple of (Dict, List)
+        (Dict storing all the generated annotation, List of same)
+    """
     anno_masks, padded_vol = generate_anno(
         wf.vols[0],
         classwise_entities,
@@ -222,7 +312,6 @@ def make_pseudomasks(
 
     anno_acwe = {}
     if acwe:
-
         for i in classwise_entities.keys():
             p = Patch(
                 {"Main": wf.vols[0]},
@@ -241,4 +330,6 @@ def make_pseudomasks(
 
             anno_acwe[i] = p.image_layers["acwe"]
 
-    return anno_masks, anno_acwe
+            anno_all = anno_acwe
+
+    return anno_masks, anno_all

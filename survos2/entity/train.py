@@ -3,22 +3,13 @@ from datetime import datetime
 from pprint import pprint
 import matplotlib.pyplot as plt
 import torch
-
-# from survos2.entity.models.fpn import Configs
-
 from survos2.entity.pipeline_ops import save_model
 from survos2.entity.patches import load_patch_vols, prepare_dataloaders
-from entityseg.training.patches import load_patch_vols, prepare_dataloaders
-from survos2.entity.models.unet3d import prepare_unet3d,display_unet_pred 
 from survos2.entity.models.head_cnn import (
     display_fpn3d_pred,
     prepare_fpn3d,
-    
 )
 
-from survos2.entity.trainer import (
-    train_fpn3d,
-)
 
 
 def train_oneclass_detseg(
@@ -144,6 +135,7 @@ def train_all(
     batch_size=1,
     bce_weight=0.7,
     initial_lr=0.001,
+    display_plots=False,
 ):
     with open(train_param_file) as project_file:
         train_params = json.load(project_file)
@@ -154,36 +146,35 @@ def train_all(
     save_current_model = train_params["save_current_model"]
     num_epochs = train_params["num_epochs"]
     torch_models_fullpath = train_params["torch_models_fullpath"]
-    print(train_params["train_vols"])
-
+    
     # prepare patch dataset
     img_vols, label_vols = load_patch_vols(train_params["train_vols"])
     dataloaders = prepare_dataloaders(
-        img_vols, label_vols, train_params["model_type"], display_plots=False
+        img_vols, label_vols, train_params["model_type"]
     )
 
     if model_type == "fpn3d":
-        detmod, optimizer, scheduler = prepare_fpn3d(gpu_id=train_params["gpu_id"], lr=initial_lr)
-    if model is not None:
-        detmod = model
+        model3d, optimizer, scheduler = prepare_fpn3d(gpu_id=train_params["gpu_id"])
+    # if model is provided use that
 
+    elif model_type == "unet3d":
+        from survos2.entity.models.unet3d import prepare_unet3d,display_unet_pred 
+
+        model3d, optimizer, scheduler = prepare_unet3d(
+            existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
+        )
+    
+    if model is not None:
+        model3d = model
+        
     if model_type == "fpn3d":
-        # detmod, outputs, losses = train_fpn3d(
-        #     detmod,
-        #     dataloaders,
-        #     optimizer,
-        #     dice_weight=1 - bce_weight,
-        #     num_epochs=num_epochs,
-        #     device=gpu_id,
-        # )
         from functools import partial
-        from entityseg.training.trainer import Trainer, MetricCallback, fpn3d_loss, prepare_labels_fpn3d
+        from survos2.entity.trainer import Trainer, MetricCallback, fpn3d_loss, prepare_labels_fpn3d
         
         fpn3d_criterion = partial(fpn3d_loss, bce_weight=bce_weight)
-
         metricCallback = MetricCallback()
         trainer = Trainer(
-            detmod,
+            model3d,
             optimizer,
             fpn3d_criterion,
             scheduler,
@@ -197,58 +188,36 @@ def train_all(
         )
 
         training_loss, validation_loss, learning_rate = trainer.run()
-        plot_losses(training_loss, validation_loss)
-        
-        detmod = trainer.model
-        #if train_params["display_plots"]:
-        #    display_preds_fpn3d(outputs)
+        model3d = trainer.model
 
         now = datetime.now()
         dt_string = now.strftime("%d%m_%H%M")
 
-        # if save_current_model:
-        #     save_model(
-        #         "detmod_gtacwe_quarter" + dt_string + ".pt",
-        #         detmod,
-        #         optimizer,
-        #         torch_models_fullpath,
-        #     )
-
-        if train_params["display_plots"]:
-            display_fpn3d_pred(detmod, dataloaders, device=gpu_id)
-
-    if model_type == "fpn3d":
+        if display_plots:
+            plot_losses(training_loss, validation_loss)
+            display_fpn3d_pred(model3d, dataloaders, device=gpu_id)
+    
         now = datetime.now()
         dt_string = now.strftime("%d%m_%H%M")
 
         if save_current_model:
             model_file = "fpn3d_fullblob" + dt_string + ".pt"
-            save_model(model_file, detmod, optimizer, torch_models_fullpath)
+            save_model(model_file, model3d, optimizer, torch_models_fullpath)
             print(f"Saved model {model_file}")
 
     if model_type == "unet3d":
+        from survos2.entity.models.unet3d import prepare_unet3d,display_unet_pred 
+
         model3d, optimizer, scheduler = prepare_unet3d(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
         )
 
-        # model3d = train_unet3d(
-        #     model3d,
-        #     optimizer,
-        #     scheduler,
-        #     dataloaders,
-        #     num_epochs=num_epochs,
-        #     initial_lr=0.001,
-        #     bce_weight=0.5,
-        #     device=gpu_id,
-        #     patch_size=patch_size,
-        # )
-
         from functools import partial
-        from entityseg.training.trainer import (
+        from survos2.entity.trainer import (
             Trainer,
             MetricCallback,
             unet3d_loss,
-            prepare_labels_unet3d,
+            prepare_labels_unet3d
         )
 
         unet_criterion = partial(unet3d_loss, bce_weight=bce_weight)
@@ -267,15 +236,12 @@ def train_all(
             device=gpu_id,
         )
         training_loss, validation_loss, learning_rate = trainer.run()
-        plot_losses(training_loss, validation_loss)
-
         model3d = trainer.model
+        
         if train_params["display_plots"]:
-            
-
             display_unet_pred(model3d, dataloaders, device=gpu_id)
+            plot_losses(training_loss, validation_loss)
 
-    if model_type == "unet3d":
         now = datetime.now()
         dt_string = now.strftime("%d%m_%H%M")
 
@@ -286,14 +252,3 @@ def train_all(
 
     return model_file
 
-def display_preds_fpn3d(inputs, outputs, z_slice=8):
-    [
-        show_images(
-            [
-                inputs[idx, 0, z_slice, :].cpu().detach().numpy(),
-                outputs[idx, 0, z_slice, :].cpu().detach().numpy(),
-            ],
-            figsize=(4, 4),
-        )
-        for idx in range(outputs.shape[0])
-    ]

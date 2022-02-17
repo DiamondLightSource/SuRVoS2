@@ -177,8 +177,7 @@ def filter_small_components_numba(images, min_component_size=0):
 
     filtered_images = []
     tables_arr = np.array(tables)
-    print(tables_arr)
-
+    
     selected_idxs = []
     for img_idx in range(len(images)):
         table_idxs = list(selected[img_idx].index.values)

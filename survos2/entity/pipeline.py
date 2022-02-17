@@ -47,7 +47,6 @@ def run_workflow(workflow_file):
 
         num_workflow_steps = len(workflows.keys())
         minVal, maxVal = 0, num_workflow_steps
-        print(workflows)
 
         for step_idx, k in enumerate(workflows):
             workflow = workflows[k]

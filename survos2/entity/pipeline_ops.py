@@ -8,7 +8,6 @@ from collections import defaultdict
 
 from loguru import logger
 from skimage import img_as_ubyte
-from survos2.entity.anno import geom
 from survos2.entity.anno.masks import generate_sphere_masks_fast
 from survos2.entity.components import filter_proposal_mask, measure_big_blobs
 from survos2.entity.sampler import (
