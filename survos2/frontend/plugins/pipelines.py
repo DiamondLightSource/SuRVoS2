@@ -393,14 +393,13 @@ class PipelineCard(Card):
             # self._add_patch_params()
         
         elif self.pipeline_type == "train_2d_unet":
-            self._add_annotations_source()
-            self._add_feature_source()
+            self._add_2dunet_training_ws_widget()
+            self._add_2dunet_annotations_features_from_ws(DataModel.g.current_workspace)
+            self._add_2dunet_data_table()
             self._add_unet_2d_training_params()
         
         elif self.pipeline_type == "predict_2d_unet":
             self.annotations_source = LevelComboBox()
-            # widget = HWidgets("Levels", self.annotations_source, Spacing(35), stretch=1)
-            # self.add_row(widget)
             self.annotations_source.hide()
             self._add_feature_source()
             self._add_unet_2d_prediction_params()
@@ -414,6 +413,86 @@ class PipelineCard(Card):
 
         self._add_compute_btn()
         self._add_view_btn()
+
+    def _add_2dunet_data_table(self):
+        columns = ["Workspace", "Data", "Labels", ""]
+        self.table = QtWidgets.QTableWidget(2, 4)
+        self.table.setHorizontalHeaderLabels(columns)
+        table_widget = HWidgets(self.table, Spacing(35))
+        self.add_row(table_widget, max_height=100)
+
+    def table_delete_clicked(self):
+        button = self.sender()
+        if button:
+            row = self.table.indexAt(button.pos()).row()
+            self.table.removeRow(row)
+
+    def _add_item_to_data_table(self, item):
+        deleteButton = QtWidgets.QPushButton("Delete")
+        deleteButton.clicked.connect(self.table_delete_clicked)
+        pass
+
+    def _add_2dunet_training_ws_widget(self):
+        data_label = QtWidgets.QLabel("Select training data:")
+        self.add_row(data_label)
+        self.workspaces_list = self._get_workspaces_list()
+        self.workspaces_list.currentTextChanged.connect(self.on_ws_combobox_changed)
+        ws_widget = HWidgets("Workspace:", self.workspaces_list, Spacing(35), stretch=1)
+        self.add_row(ws_widget)
+
+    def _add_2dunet_annotations_source(self):
+        self.annotations_source = ComboBox()
+        self.annotations_source.setMaximumWidth(250)
+        anno_widget = HWidgets("Annotation (Labels):", self.annotations_source, Spacing(35), stretch=1)
+        self.add_row(anno_widget)
+
+    def _add_2dunet_feature_source(self):
+        self.feature_source = ComboBox()
+        self.feature_source.setMaximumWidth(250)
+        feature_widget = HWidgets("Feature (Data):", self.feature_source, Spacing(35), stretch=1)
+        self.add_row(feature_widget)
+
+    def _update_annotations_from_ws(self, workspace):
+        self.annotations_source.clear()
+        params = {"workspace" : workspace}
+        anno_result = Launcher.g.run("annotations", "get_levels", **params)
+        print(anno_result)
+        if anno_result:
+            for r in anno_result:
+                if r["kind"] == "level":
+                    self.annotations_source.addItem(r["id"], r["name"])
+    
+    def _update_features_from_ws(self, workspace):
+        self.feature_source.clear()
+        workspace = "default@" + workspace
+        params = {"workspace" : workspace}
+        logger.debug(f"Filling features from session: {params}")
+        result = Launcher.g.run("features", "existing", **params)
+        if result:
+            for fid in result:
+                self.feature_source.addItem(fid, result[fid]["name"])
+
+    def _add_2dunet_annotations_features_from_ws(self, workspace):
+        self._add_2dunet_feature_source()
+        self._update_features_from_ws(workspace)
+        self._add_2dunet_annotations_source()
+        self._update_annotations_from_ws(workspace)
+        train_data_btn = PushButton("Add to list", accent=True)
+        widget = HWidgets(None, train_data_btn, Spacing(35), stretch=0)
+        self.add_row(widget)
+
+    def _get_workspaces_list(self):
+        workspaces = [d for d in next(os.walk(DataModel.g.CHROOT))[1]]
+        workspaces_list = ComboBox()
+        workspaces_list.setMaximumWidth(250)
+        for s in workspaces:
+            workspaces_list.addItem(key=s)
+        workspaces_list.setCurrentText(DataModel.g.current_workspace)
+        return workspaces_list
+
+    def on_ws_combobox_changed(self, workspace):
+        self._update_annotations_from_ws(workspace)
+        self._update_features_from_ws(workspace)
 
     def _add_model_type(self):
         self.model_type = ComboBox()
