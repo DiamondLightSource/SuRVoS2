@@ -416,10 +416,14 @@ class PipelineCard(Card):
 
     def _add_2dunet_data_table(self):
         columns = ["Workspace", "Data", "Labels", ""]
-        self.table = QtWidgets.QTableWidget(2, 4)
+        self.table = QtWidgets.QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(columns)
-        table_widget = HWidgets(self.table, Spacing(35))
-        self.add_row(table_widget, max_height=100)
+        table_fields = QtWidgets.QGroupBox("Training Datasets")
+        table_layout = QtWidgets.QVBoxLayout()
+        table_layout.addWidget(QLabel('Press "Compute" when list is complete.'))
+        table_layout.addWidget(self.table)
+        table_fields.setLayout(table_layout)
+        self.add_row(table_fields, max_height=200)
 
     def table_delete_clicked(self):
         button = self.sender()
@@ -428,9 +432,17 @@ class PipelineCard(Card):
             self.table.removeRow(row)
 
     def _add_item_to_data_table(self, item):
-        deleteButton = QtWidgets.QPushButton("Delete")
-        deleteButton.clicked.connect(self.table_delete_clicked)
-        pass
+        ws = QtWidgets.QTableWidgetItem(self.workspaces_list.currentText())
+        data = QtWidgets.QTableWidgetItem(self.feature_source.currentText())
+        labels = QtWidgets.QTableWidgetItem(self.annotations_source.currentText())
+        row_pos = self.table.rowCount()
+        self.table.insertRow(row_pos)
+        self.table.setItem(row_pos, 0, ws)
+        self.table.setItem(row_pos, 1, data)
+        self.table.setItem(row_pos, 2, labels)
+        delete_button = QtWidgets.QPushButton("Delete")
+        delete_button.clicked.connect(self.table_delete_clicked)
+        self.table.setCellWidget(row_pos, 3, delete_button)
 
     def _add_2dunet_training_ws_widget(self):
         data_label = QtWidgets.QLabel("Select training data:")
@@ -478,6 +490,7 @@ class PipelineCard(Card):
         self._add_2dunet_annotations_source()
         self._update_annotations_from_ws(workspace)
         train_data_btn = PushButton("Add to list", accent=True)
+        train_data_btn.clicked.connect(self._add_item_to_data_table)
         widget = HWidgets(None, train_data_btn, Spacing(35), stretch=0)
         self.add_row(widget)
 
