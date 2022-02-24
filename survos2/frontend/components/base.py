@@ -1322,3 +1322,13 @@ class SimpleComboBox(QtWidgets.QComboBox):
         else:
             super().addItem(value if value else key)
 
+
+class DataTableWidgetItem(QtWidgets.QTableWidgetItem):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # To store some data that isn't displayed in the table 
+        self.hidden_field = None
+
+    def get_hidden_field(self):
+        return self.hidden_field

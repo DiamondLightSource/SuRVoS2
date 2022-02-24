@@ -10,6 +10,7 @@ def wrap_output_type(obj, desc=None):
 
 
 String = wrap_output_type(hug.types.Text(), "String")
+StringList = wrap_output_type(hug.types.DelimitedList[str](","), "StringList")
 DataURI = wrap_output_type(hug.types.Text(), "DataURI")
 DataURIList = wrap_output_type(hug.types.DelimitedList[str](","), "DataURIList")
 

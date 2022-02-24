@@ -9,7 +9,7 @@ from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.base import *
-from survos2.frontend.plugins.base import ComboBox, LazyComboBox, LazyMultiComboBox
+from survos2.frontend.plugins.base import ComboBox, LazyComboBox, LazyMultiComboBox, DataTableWidgetItem
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
 from survos2.frontend.plugins.superregions import RegionComboBox
@@ -432,9 +432,12 @@ class PipelineCard(Card):
             self.table.removeRow(row)
 
     def _add_item_to_data_table(self, item):
-        ws = QtWidgets.QTableWidgetItem(self.workspaces_list.currentText())
-        data = QtWidgets.QTableWidgetItem(self.feature_source.currentText())
-        labels = QtWidgets.QTableWidgetItem(self.annotations_source.currentText())
+        ws = DataTableWidgetItem(self.workspaces_list.currentText())
+        ws.hidden_field = self.workspaces_list.value()
+        data = DataTableWidgetItem(self.feature_source.currentText())
+        data.hidden_field = self.feature_source.value()
+        labels = DataTableWidgetItem(self.annotations_source.currentText())
+        labels.hidden_field = self.annotations_source.value()
         row_pos = self.table.rowCount()
         self.table.insertRow(row_pos)
         self.table.setItem(row_pos, 0, ws)
@@ -741,10 +744,14 @@ class PipelineCard(Card):
                 self.widgets[k].setValue(v)
         if "anno_id" in params:
             if params["anno_id"] is not None:
-
-                self.annotations_source.select(
-                    os.path.join("annotations/", params["anno_id"])
-                )
+                if isinstance(params["anno_id"], list):
+                    self.annotations_source.select(
+                        os.path.join("annotations/", params["anno_id"][0])
+                    )
+                else:
+                    self.annotations_source.select(
+                        os.path.join("annotations/", params["anno_id"])
+                    )
         if "object_id" in params:
             if params["object_id"] is not None:
                 self.objects_source.select(
@@ -1042,11 +1049,25 @@ class PipelineCard(Card):
         return all_params
 
     def setup_params_train_2d_unet(self, dst):
-        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        # Retrieve params from table
+        num_rows = self.table.rowCount()
+        if num_rows == 0:
+            logging.error("No data selected for training!")
+            return
+        else:
+            workspace_list = []
+            data_list = []
+            label_list = []
+            for i in range(num_rows):
+                workspace_list.append(self.table.item(i, 0).get_hidden_field())
+                data_list.append(self.table.item(i, 1).get_hidden_field())
+                label_list.append(self.table.item(i, 2).get_hidden_field())
+        # Can the src parameter be removed?        
+        src = DataModel.g.dataset_uri("001_raw", group="features")
         all_params = dict(src=src, dst=dst, modal=True)
-        all_params["workspace"] = DataModel.g.current_workspace
-        all_params["feature_id"] = str(self.feature_source.value())
-        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
+        all_params["workspace"] = workspace_list
+        all_params["feature_id"] = data_list
+        all_params["anno_id"] = label_list
         all_params["unet_train_params"] = dict(cyc_frozen=self.cycles_frozen.value(),
                                                cyc_unfrozen=self.cycles_unfrozen.value())
         return all_params

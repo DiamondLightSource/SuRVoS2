@@ -29,6 +29,7 @@ from survos2.api.types import (
     IntList,
     SmartBoolean,
     String,
+    StringList
 )
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.improc import map_blocks
@@ -421,48 +422,53 @@ def superregion_segment(
 def train_2d_unet(
     src: DataURI,
     dst: DataURI,
-    workspace: String,
-    anno_id: DataURI,
-    feature_id: DataURI,
+    workspace: StringList,
+    anno_id: DataURIList,
+    feature_id: DataURIList,
     unet_train_params: dict
 ):
-    logger.debug(
-        f"Train_2d_unet using anno {anno_id} and feature {feature_id}"
-    )
-
-    # get anno
-    src = DataModel.g.dataset_uri(anno_id, group="annotations")
-    with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        labels = src_dataset.get_metadata("labels", {})
-        anno_level = src_dataset[:] & 15
-    anno_labels = np.unique(anno_level)
-    logger.debug(f"Obtained annotation level with labels {anno_labels}")
-    
-    src = DataModel.g.dataset_uri(feature_id, group="features")
-    logger.debug(f"Getting features {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        logger.debug(f"Adding feature of shape {src_dataset.shape}")
-        feature = src_dataset[:]
-
     logger.info(
-        f"Train_2d_unet with feature shape {feature.shape} and anno shape {anno_level.shape}"
+        f"Train_2d_unet using workspaces {workspace} annos {anno_id} and features {feature_id}"
     )
     from survos2.server.unet2d.data_utils import TrainingDataSlicer
     from survos2.server.unet2d.unet2d import Unet2dTrainer
-    slicer = TrainingDataSlicer(feature, anno_level, clip_data=True)
-    ws_object = ws.get(workspace)
+    max_label_no = 0
+    label_codes = None
+    label_values = None
+    current_ws = DataModel.g.current_workspace
+    ws_object = ws.get(current_ws)
     data_out_path = Path(ws_object.path, "unet2d")
+    logger.info(f"Making output folders for slices in {data_out_path}")
     data_slice_path = data_out_path / "data"
     anno_slice_path = data_out_path / "seg"
-    logger.info(f"Making output folders for slices in {data_out_path}")
     data_slice_path.mkdir(exist_ok=True, parents=True)
     anno_slice_path.mkdir(exist_ok=True, parents=True)
-    slicer.output_data_slices(data_slice_path, "data")
-    slicer.output_label_slices(anno_slice_path, "seg")
+    # Get datsets from workspaces and slice to disk
+    for count, (workspace_id, data_id, label_id) in enumerate(zip(workspace, feature_id, anno_id)):
+        logger.info(f"Current workspace: {workspace_id}. Retrieving datasets.")
+        DataModel.g.current_workspace = workspace_id
+        src = DataModel.g.dataset_uri(data_id, group="features")
+        logger.debug(f"Getting features {src}")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            logger.debug(f"Feature shape {src_dataset.shape}")
+            feature = src_dataset[:]
+        src = DataModel.g.dataset_uri(label_id, group="annotations")
+        with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            anno_level = src_dataset[:] & 15
+        anno_labels = np.unique(anno_level)
+        logger.debug(f"Obtained annotation level with labels {anno_labels} and shape {anno_level.shape}")
+        slicer = TrainingDataSlicer(feature, anno_level, clip_data=True)
+        data_prefix, label_prefix = f"data{count}", f"seg{count}"
+        slicer.output_data_slices(data_slice_path, data_prefix)
+        slicer.output_label_slices(anno_slice_path, label_prefix)
+        if slicer.num_seg_classes > max_label_no:
+            max_label_no = slicer.num_seg_classes
+            label_codes = slicer.codes
+            label_values = anno_labels
     # Create the trainer and pass in the dictionary of label metadata
-    trainer = Unet2dTrainer(data_slice_path, anno_slice_path, labels)
+    trainer = Unet2dTrainer(data_slice_path, anno_slice_path, label_codes)
     cyc_frozen = unet_train_params["cyc_frozen"]
     cyc_unfrozen = unet_train_params["cyc_unfrozen"]
     trainer.train_model(num_cyc_frozen=cyc_frozen, num_cyc_unfrozen=cyc_unfrozen)
@@ -476,10 +482,21 @@ def train_2d_unet(
     trainer.output_prediction_figure(model_out)
     # Clean up all the saved slices
     slicer.clean_up_slices(dt_string)
+    # Load in data volume from current workspace
+    DataModel.g.current_workspace = current_ws
+    # TODO: Add a field in the GUI to choose which data to apply to
+    src = DataModel.g.dataset_uri("001_raw", group="features")
+    logger.debug(f"Getting features {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            logger.debug(f"Feature shape {src_dataset.shape}")
+            feature = src_dataset[:]
+    slicer = TrainingDataSlicer(feature, anno_level, clip_data=True)
     segmentation = trainer.return_fast_prediction_volume(slicer.data_vol)
     # If more than one annotation label is provided add 1 to the segmentation
-    if not np.array_equal(np.array([0, 1]), anno_labels):
+    if not np.array_equal(np.array([0, 1]), label_values):
         segmentation += np.ones_like(segmentation)
+
     def pass_through(x):
         return x
 
