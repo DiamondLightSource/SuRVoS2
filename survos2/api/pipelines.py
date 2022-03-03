@@ -416,6 +416,14 @@ def superregion_segment(
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = conf_map
 
+def get_feature_from_id(feat_id):
+    src = DataModel.g.dataset_uri(feat_id, group="features")
+    logger.debug(f"Getting features {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        logger.debug(f"Feature shape {src_dataset.shape}")
+        feature = src_dataset[:]
+    return feature
 
 @hug.get()
 @save_metadata
@@ -435,6 +443,7 @@ def train_2d_unet(
     max_label_no = 0
     label_codes = None
     label_values = None
+    unet_train_label = "U-Net Training"
     current_ws = DataModel.g.current_workspace
     ws_object = ws.get(current_ws)
     data_out_path = Path(ws_object.path, "unet2d")
@@ -448,11 +457,7 @@ def train_2d_unet(
         logger.info(f"Current workspace: {workspace_id}. Retrieving datasets.")
         DataModel.g.current_workspace = workspace_id
         src = DataModel.g.dataset_uri(data_id, group="features")
-        logger.debug(f"Getting features {src}")
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_dataset = DM.sources[0]
-            logger.debug(f"Feature shape {src_dataset.shape}")
-            feature = src_dataset[:]
+        feature = get_feature_from_id(data_id)
         src = DataModel.g.dataset_uri(label_id, group="annotations")
         with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
             src_dataset = DM.sources[0]
@@ -485,12 +490,21 @@ def train_2d_unet(
     # Load in data volume from current workspace
     DataModel.g.current_workspace = current_ws
     # TODO: Add a field in the GUI to choose which data to apply to
-    src = DataModel.g.dataset_uri("001_raw", group="features")
-    logger.debug(f"Getting features {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_dataset = DM.sources[0]
-            logger.debug(f"Feature shape {src_dataset.shape}")
-            feature = src_dataset[:]
+    # TODO: Add a new labels if they don't exist already
+    levels = get_levels(current_ws)
+    # If there is already a level for U-net prediction output, don't create a new one
+    anno_exists = any([unet_train_label in x["name"] for x in levels])
+    if not anno_exists:
+        logger.info("Creating new level for prediction.")
+        level_result = add_level(current_ws)
+    else:
+        level_result = ([x for x in levels if unet_train_label in x["name"]] or [None])[0]
+        delete_all_labels(current_ws, level_result["id"])
+    level_id = level_result["id"]
+    logger.info(f"Using labels from level with ID {level_id}, changing level name.")
+    rename_level(workspace=current_ws, level=level_id, name=unet_train_label)
+    create_new_labels_for_level(current_ws, level_id, label_codes)
+    feature = get_feature_from_id("001_raw")
     slicer = TrainingDataSlicer(feature, anno_level, clip_data=True)
     segmentation = trainer.return_fast_prediction_volume(slicer.data_vol)
     # If more than one annotation label is provided add 1 to the segmentation
@@ -512,6 +526,7 @@ def predict_2d_unet(
     model_path: str,
     no_of_planes: int
 ):
+    unet_pred_label = "U-Net prediction"
     if feature_id:
         logger.debug(
             f"Predict_2d_unet with feature {feature_id} in {no_of_planes} planes"
@@ -533,12 +548,12 @@ def predict_2d_unet(
     
     levels = get_levels(workspace)
     # If there is already a level for U-net prediction output, don't create a new one
-    anno_exists = any(["U-Net" in x["name"] for x in levels])
+    anno_exists = any([unet_pred_label in x["name"] for x in levels])
     logging.info(f"Previous U-Net prediction exists: {anno_exists}")
     if not anno_exists:
         level_result = add_level(workspace)
     else:
-        level_result = ([x for x in levels if "U-Net" in x["name"]] or [None])[0]
+        level_result = ([x for x in levels if unet_pred_label in x["name"]] or [None])[0]
         delete_all_labels(workspace, level_result["id"])
     if level_result:
         import torch
@@ -548,7 +563,7 @@ def predict_2d_unet(
         dt_string = now.strftime("%d%m%Y_%H_%M_%S")
         level_id = level_result["id"]
         logger.info(f"Using level with ID {level_id}, changing level name.")
-        rename_level(workspace=workspace, level=level_id, name="U-Net prediction")
+        rename_level(workspace=workspace, level=level_id, name=unet_pred_label)
         logger.info(f"Unpacking model and labels")
         ws_object = ws.get(workspace)
         root_path = Path(ws_object.path, "unet2d")
@@ -556,23 +571,7 @@ def predict_2d_unet(
         predictor = Unet2dPredictor(root_path)
         label_codes = predictor.create_model_from_zip(Path(model_path))
         logger.info(f"Labels found: {label_codes}")
-        # New style codes are in a dictionary
-        if isinstance(label_codes, dict):
-            for key in label_codes:
-                label_result = add_label(workspace=workspace,level=level_id)
-                if label_result:
-                    update_result = update_label(workspace=workspace, level=level_id, **label_codes[key])
-                    logger.info(f"Label created: {update_result}")
-        # Old style codes are in a list
-        elif isinstance(label_codes, list):
-            r = lambda: random.randint(0,255)
-            for idx, code in enumerate(label_codes, start=2):
-                label_result = add_label(workspace=workspace,level=level_id)
-                if label_result:
-                    codes_dict = {"color": f"#{r():02X}{r():02X}{r():02X}", "idx": idx, "name": code, "visible": True}
-                    update_result = update_label(workspace=workspace, level=level_id, **codes_dict)
-                    logger.info(f"Label created: {update_result}")
-        
+        create_new_labels_for_level(workspace, level_id, label_codes)
         slicer = PredictionHDF5DataSlicer(predictor, feature, clip_data=True)
         if no_of_planes == 1:
             segmentation = slicer.predict_1_way(root_path, output_prefix=dt_string)
@@ -590,6 +589,24 @@ def predict_2d_unet(
         map_blocks(pass_through, segmentation, out=dst, normalize=False)
     else:
         logging.error("Unable to add level for output!")
+
+def create_new_labels_for_level(workspace, level_id, label_codes):
+    # New style codes are in a dictionary
+    if isinstance(label_codes, dict):
+        for key in label_codes:
+            label_result = add_label(workspace=workspace,level=level_id)
+            if label_result:
+                update_result = update_label(workspace=workspace, level=level_id, **label_codes[key])
+                logger.info(f"Label created: {update_result}")
+        # Old style codes are in a list
+    elif isinstance(label_codes, list):
+        r = lambda: random.randint(0,255)
+        for idx, code in enumerate(label_codes, start=2):
+            label_result = add_label(workspace=workspace,level=level_id)
+            if label_result:
+                codes_dict = {"color": f"#{r():02X}{r():02X}{r():02X}", "idx": idx, "name": code, "visible": True}
+                update_result = update_label(workspace=workspace, level=level_id, **codes_dict)
+                logger.info(f"Label created: {update_result}")
 
 
 @hug.get()

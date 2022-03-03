@@ -471,7 +471,7 @@ class PipelineCard(Card):
         self.annotations_source.clear()
         params = {"workspace" : workspace}
         anno_result = Launcher.g.run("annotations", "get_levels", **params)
-        print(anno_result)
+        logger.debug("anno_result: {anno_result}")
         if anno_result:
             for r in anno_result:
                 if r["kind"] == "level":
@@ -807,6 +807,11 @@ class PipelineCard(Card):
             if self.annotations_source:
                 if self.annotations_source.value():
                     level_id = str(self.annotations_source.value().rsplit("/", 1)[-1])
+                    # To cover situtations where the level_id might not exist in ws:
+                    anno_result = Launcher.g.run("annotations", "get_levels", workspace=True)
+                    if not any([x["id"] == level_id for x in anno_result]):
+                        logger.debug(f"level_id {level_id} does not exist changing:")
+                        level_id = anno_result[-1]["id"]
                 else:
                     level_id = '001_level'
                 logger.debug(f"Assigning annotation level {level_id}")
