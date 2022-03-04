@@ -93,7 +93,7 @@ class Unet2dTrainer:
         logger.info("Creating training dataset from saved images.")
         src = (SegmentationItemList.from_folder(self.data_dir)
                .split_by_rand_pct()
-               .label_from_func(self.get_label_name, classes=self.codes))
+               .label_from_func(self.get_label_name, classes=list(self.codes.keys())))
         self.data = (src.transform(get_transforms(), size=self.image_size, tfm_y=True)
                      .databunch(bs=self.batch_size)
                      .normalize(imagenet_stats))
@@ -393,7 +393,7 @@ class Unet2dPredictor:
 
     def create_model_from_zip(self, weights_fn):
         """Creates a deep learning model linked to the dataset and stores it as
-        an instance attribute. Returns dictionary of labels. 
+        an instance attribute. Returns labels saved with model (dict or list). 
         """
         weights_fn = weights_fn.resolve()
         logger.info(f"Unzipping the model weights and label classes from {weights_fn}")
@@ -403,7 +403,13 @@ class Unet2dPredictor:
             zf.extractall(output_dir)
         # Load in the label classes from the json file
         with open(output_dir/f"{weights_fn.stem}_codes.json") as jf:
-            self.codes = json.load(jf)
+            codes = json.load(jf)
+        # Instance variable should always be a list
+        if isinstance(codes, dict):
+            logger.info("Converting label dictionary into list.")
+            self.codes = [f"label_val_{i}" for i in codes]
+        else:
+            self.codes = codes
         # Have to create dummy files and datset before loading in model weights 
         self.create_dummy_files()
         self.create_dummy_dataset()
@@ -414,7 +420,7 @@ class Unet2dPredictor:
         self.model.load(weights_fn.stem)
         # Remove the restriction on the model prediction size
         self.model.data.single_ds.tfmargs['size'] = None
-        return self.codes
+        return codes
 
     def get_model_from_trainer(self, trainer):
         self.model = trainer.model

@@ -461,6 +461,7 @@ def train_2d_unet(
         src = DataModel.g.dataset_uri(label_id, group="annotations")
         with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
             src_dataset = DM.sources[0]
+            labels = src_dataset.get_metadata("labels", {})
             anno_level = src_dataset[:] & 15
         anno_labels = np.unique(anno_level)
         logger.debug(f"Obtained annotation level with labels {anno_labels} and shape {anno_level.shape}")
@@ -470,9 +471,10 @@ def train_2d_unet(
         slicer.output_label_slices(anno_slice_path, label_prefix)
         if slicer.num_seg_classes > max_label_no:
             max_label_no = slicer.num_seg_classes
-            label_codes = slicer.codes
+            label_codes = labels
             label_values = anno_labels
     # Create the trainer and pass in the dictionary of label metadata
+    logger.info(f"Creating U-Net Trainer with label codes: {label_codes}")
     trainer = Unet2dTrainer(data_slice_path, anno_slice_path, label_codes)
     cyc_frozen = unet_train_params["cyc_frozen"]
     cyc_unfrozen = unet_train_params["cyc_unfrozen"]
@@ -490,7 +492,6 @@ def train_2d_unet(
     # Load in data volume from current workspace
     DataModel.g.current_workspace = current_ws
     # TODO: Add a field in the GUI to choose which data to apply to
-    # TODO: Add a new labels if they don't exist already
     levels = get_levels(current_ws)
     # If there is already a level for U-net prediction output, don't create a new one
     anno_exists = any([unet_train_label in x["name"] for x in levels])
