@@ -471,7 +471,7 @@ class PipelineCard(Card):
         self.annotations_source.clear()
         params = {"workspace" : workspace}
         anno_result = Launcher.g.run("annotations", "get_levels", **params)
-        logger.debug("anno_result: {anno_result}")
+        logger.debug(f"anno_result: {anno_result}")
         if anno_result:
             for r in anno_result:
                 if r["kind"] == "level":
@@ -525,9 +525,15 @@ class PipelineCard(Card):
         self.add_row(HWidgets("Training Parameters:", Spacing(35), stretch=1))
         self.cycles_frozen = LineEdit(default=8, parse=int)
         self.cycles_unfrozen = LineEdit(default=5, parse=int)
+        refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
+        self.unet_train_refresh_btn = PushButton("Refresh Data", accent=True)
+        self.unet_train_refresh_btn.clicked.connect(self.refresh_unet_data)
+        self.unet_pred_refresh_btn = None
         self.add_row(HWidgets("No. Cycles Frozen:", self.cycles_frozen,
                               "No. Cycles Unfrozen", self.cycles_unfrozen,
                               stretch=1))
+        self.add_row(HWidgets(refresh_label, stretch=1))
+        self.add_row(HWidgets(self.unet_train_refresh_btn, stretch=1))
     
     def _add_unet_2d_prediction_params(self):
         self.model_file_line_edit = LineEdit(default="Filepath", parse=str)
@@ -541,13 +547,14 @@ class PipelineCard(Card):
         triple_pp_rb = QRadioButton("Three plane")
         self.radio_group.addButton(triple_pp_rb, 3)
         refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
-        unet_refresh_btn = PushButton("Refresh Data", accent=True)
-        unet_refresh_btn.clicked.connect(self.refresh_unet_data)
+        self.unet_pred_refresh_btn = PushButton("Refresh Data", accent=True)
+        self.unet_pred_refresh_btn.clicked.connect(self.refresh_unet_data)
+        self.unet_train_refresh_btn = None
         self.add_row(HWidgets(self.model_file_line_edit, model_input_btn, Spacing(35)))
         self.add_row(HWidgets("Prediction Parameters:", Spacing(35), stretch=1))
         self.add_row(HWidgets(single_pp_rb, triple_pp_rb, stretch=1))
         self.add_row(HWidgets(refresh_label, stretch=1))
-        self.add_row(HWidgets(unet_refresh_btn, stretch=1))
+        self.add_row(HWidgets(self.unet_pred_refresh_btn, stretch=1))
     def _add_3d_fcn_training_params(self):
         pass
     def _add_3d_fcn_prediction_params(self):
@@ -805,6 +812,7 @@ class PipelineCard(Card):
             pbar.set_description("Viewing feature")
             pbar.update(1)
             if self.annotations_source:
+                logger.debug(f"anno source value {self.annotations_source.value()}")
                 if self.annotations_source.value():
                     level_id = str(self.annotations_source.value().rsplit("/", 1)[-1])
                     # To cover situtations where the level_id might not exist in ws:
@@ -835,13 +843,24 @@ class PipelineCard(Card):
         self.model_file_line_edit.setValue(self.model_path)
 
     def refresh_unet_data(self):
+        sender = self.sender()
         cfg.ppw.clientEvent.emit(
                 {"source": "workspace_gui", "data": "refresh", "value": None}
             )
-        self.annotations_source.fill()
-        num_annotations = self.annotations_source.count()
-        self.annotations_source.setCurrentIndex(num_annotations -1)
-        logging.info(f"Annotations source selected: {self.annotations_source.value()}")
+        if sender == self.unet_pred_refresh_btn:
+            search_str = "U-Net prediction"
+            self.annotations_source.fill()
+        elif sender == self.unet_train_refresh_btn:
+            search_str = "U-Net Training"
+            self._update_annotations_from_ws(DataModel.g.current_workspace)
+        index = self.annotations_source.findText(search_str, QtCore.Qt.MatchFixedString)
+        if index >= 0:
+            self.annotations_source.setCurrentText(search_str)
+            print(f"Setting index to {index}")
+        else:
+            num_annotations = self.annotations_source.count()
+            self.annotations_source.setCurrentIndex(num_annotations -1)
+        print(f"Annotations source selected: {self.annotations_source.value()}")
 
     def load_as_float(self):
         logger.debug(f"Loading prediction {self.pipeline_id} as float image.")
