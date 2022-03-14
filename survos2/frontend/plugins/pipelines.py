@@ -1,3 +1,4 @@
+import ast
 import logging
 import numpy as np
 from loguru import logger
@@ -438,6 +439,9 @@ class PipelineCard(Card):
         data.hidden_field = self.feature_source.value()
         labels = DataTableWidgetItem(self.annotations_source.currentText())
         labels.hidden_field = self.annotations_source.value()
+        self._add_data_row(ws, data, labels)
+
+    def _add_data_row(self, ws, data, labels):
         row_pos = self.table.rowCount()
         self.table.insertRow(row_pos)
         self.table.setItem(row_pos, 0, ws)
@@ -446,6 +450,23 @@ class PipelineCard(Card):
         delete_button = QtWidgets.QPushButton("Delete")
         delete_button.clicked.connect(self.table_delete_clicked)
         self.table.setCellWidget(row_pos, 3, delete_button)
+
+    def _update_data_table_from_dict(self, data_dict):
+        for ws, ds, lbl in zip(data_dict["Workspaces"], data_dict["Data"], data_dict["Labels"]):
+            ws = ast.literal_eval(ws)
+            ws_item = DataTableWidgetItem(ws[1])
+            ws_item.hidden_field = ws[0]
+            ds = ast.literal_eval(ds)
+            ds_item = DataTableWidgetItem(ds[1])
+            ds_item.hidden_field = ds[0]
+            lbl = ast.literal_eval(lbl)
+            lbl_item = DataTableWidgetItem(lbl[1])
+            lbl_item.hidden_field = lbl[0]
+            self._add_data_row(ws_item, ds_item, lbl_item)
+
+    def _update_2d_unet_train_params(self, frozen, unfrozen):
+        self.cycles_frozen.setText(str(frozen))
+        self.cycles_unfrozen.setText(str(unfrozen))
 
     def _add_2dunet_training_ws_widget(self):
         data_label = QtWidgets.QLabel("Select training data:")
@@ -790,6 +811,16 @@ class PipelineCard(Card):
                 )
                 print(f"Constrain mask source {constrain_mask_source}")
                 self.constrain_mask_source.select(constrain_mask_source)
+        if "unet_train_params" in params:
+            if params["anno_id"]:
+                table_dict = dict(Labels=params["anno_id"],
+                                Data=params["feature_id"],
+                                Workspaces=params["workspace"])
+                self._update_data_table_from_dict(table_dict)
+                self._update_2d_unet_train_params(
+                    params["unet_train_params"]["cyc_frozen"],
+                    params["unet_train_params"]["cyc_unfrozen"]
+                    )
 
     def card_deleted(self):
         params = dict(pipeline_id=self.pipeline_id, workspace=True)
@@ -1083,9 +1114,12 @@ class PipelineCard(Card):
             data_list = []
             label_list = []
             for i in range(num_rows):
-                workspace_list.append(self.table.item(i, 0).get_hidden_field())
-                data_list.append(self.table.item(i, 1).get_hidden_field())
-                label_list.append(self.table.item(i, 2).get_hidden_field())
+                workspace_list.append((self.table.item(i, 0).get_hidden_field(),
+                self.table.item(i, 0).text()))
+                data_list.append((self.table.item(i, 1).get_hidden_field(),
+                self.table.item(i, 1).text()))
+                label_list.append((self.table.item(i, 2).get_hidden_field(),
+                self.table.item(i, 2).text()))
         # Can the src parameter be removed?        
         src = DataModel.g.dataset_uri("001_raw", group="features")
         all_params = dict(src=src, dst=dst, modal=True)

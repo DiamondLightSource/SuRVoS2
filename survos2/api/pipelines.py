@@ -6,6 +6,7 @@ from typing import List
 from dataclasses import dataclass
 from datetime import datetime
 import random
+import ast
 
 
 import dask.array as da
@@ -425,6 +426,18 @@ def get_feature_from_id(feat_id):
         feature = src_dataset[:]
     return feature
 
+def _unpack_lists(input_list):
+    """Unpacks a list of strings containing sublists of strings
+    such as provided by the data table in the 2d U-net training pipeline card
+
+    Args:
+        input_list (list): list of strings which contain sublists
+
+    Returns:
+        list: list of hidden items from the table (first member in sublist)
+    """
+    return [ast.literal_eval(item)[0] for item in input_list]
+
 @hug.get()
 @save_metadata
 def train_2d_unet(
@@ -435,6 +448,10 @@ def train_2d_unet(
     feature_id: DataURIList,
     unet_train_params: dict
 ):
+    # Unpack the list
+    workspace = _unpack_lists(workspace)
+    anno_id = _unpack_lists(anno_id)
+    feature_id = _unpack_lists(feature_id)
     logger.info(
         f"Train_2d_unet using workspaces {workspace} annos {anno_id} and features {feature_id}"
     )
