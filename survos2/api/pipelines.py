@@ -13,6 +13,7 @@ import dask.array as da
 import hug
 #from numba.core.types.scalars import Integer
 import numpy as np
+from torch.utils.data import DataLoader
 from loguru import logger
 from scipy import ndimage
 from skimage.morphology.selem import octahedron
@@ -34,21 +35,25 @@ from survos2.api.types import (
 )
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.improc import map_blocks
-from survos2.improc.utils import DatasetManager, dask_relabel_chunks
-from survos2.io import dataset_from_uri
+from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
-from survos2.utils import encode_numpy
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
+from survos2.utils import decode_numpy    
+from survos2.api.objects import get_entities
+
 from survos2.entity.anno.pseudo import make_pseudomasks
-from torch.utils.data import DataLoader
-from survos2.frontend.components.entity import setup_entity_table
+
 from survos2.api.workspace import add_dataset, auto_create_dataset
 from survos2.api.annotations import (add_level, rename_level, get_levels,
                                      add_label, update_label, delete_all_labels)
 from survos2.entity.patches import PatchWorkflow, organize_entities, make_patches
 from survos2.entity.pipeline_ops import make_proposal
 
+from survos2.entity.sampler import grid_of_points, generate_random_points_in_volume
+from survos2.entity.utils import pad_vol
+from survos2.entity.train import train_oneclass_detseg
+from survos2.entity.pipeline_ops import make_proposal
 
 __pipeline_group__ = "pipelines"
 __pipeline_dtype__ = "float32"
@@ -58,40 +63,14 @@ __pipeline_fill__ = 0
 def pass_through(x):
     return x
 
-@hug.get()
-def predict_segmentation_fcn(
-    feature_id: DataURI,
-    model_fullname: String,
-    dst: DataURI,
-    patch_size: IntOrVector = 64,
-    patch_overlap: IntOrVector = 8,
-    threshold: Float = 0.5,
-    model_type: String = "unet3d",
-):
-    from survos2.entity.pipeline_ops import make_proposal
-
-    src = DataModel.g.dataset_uri(feature_id, group="features")
-
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        logger.debug(f"Adding feature of shape {src_dataset.shape}")
-        
-    proposal = make_proposal(
-        src_dataset,
-        model_fullname,
-        model_type=model_type,
-        patch_size=patch_size,
-        patch_overlap=patch_overlap,
-    )
-
-    proposal -= np.min(proposal)
-    proposal = proposal / np.max(proposal)
-    proposal = ((proposal < threshold) * 1) + 1
-
-    # store resulting segmentation in dst
-    dst = DataModel.g.dataset_uri(dst, group="pipelines")
-    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = proposal
+@dataclass
+class PatchWorkflow:
+    vols: List[np.ndarray]
+    locs: np.ndarray
+    entities: dict
+    bg_mask: np.ndarray
+    params: dict
+    gold: np.ndarray
 
 
 @hug.get()
@@ -131,6 +110,28 @@ def cleaning(
 
 
 @hug.get()
+def feature_postprocess(
+    feature_A: DataURI,
+    feature_B: DataURI,
+    dst: DataURI,
+):
+    src_A = DataModel.g.dataset_uri(feature_A, group="features")
+    with DatasetManager(src_A, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_A_dataset = DM.sources[0]
+        src_A_arr = src_A_dataset[:]
+        logger.info(f"Obtained src A with shape {src_A_arr.shape}")
+
+    src_B = DataModel.g.dataset_uri(feature_B, group="features")    
+    with DatasetManager(src_B, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_B_dataset = DM.sources[0]
+        src_B_arr = src_B_dataset[:]
+        logger.info(f"Obtained src B with shape {src_B_arr.shape}")
+    
+    result = src_A_arr * src_B_arr        
+    map_blocks(pass_through, result, out=dst, normalize=False)
+
+
+@hug.get()
 def label_postprocess(
     level_over: DataURI,
     level_base: DataURI,
@@ -152,13 +153,8 @@ def label_postprocess(
         logger.info(f"Obtained base annotation level with labels {np.unique(anno_base_level)}")
 
     print(f"Selected label {selected_label}")
-    
-    #if int(selected_label) != -1:
-    #    anno_base_level = (anno_base_level == int(selected_label)) * 1.0
-
     result = anno_base_level
     
-
     if level_over != 'None':
         result = anno_base_level * (1.0 - ((anno1_level > 0) * 1.0))
         anno1_level[anno1_level == selected_label] += offset
@@ -259,14 +255,6 @@ def rasterize_points(
     wparams = {}
     wparams["entities_offset"] = (0, 0, 0)
 
-    @dataclass
-    class PatchWorkflow:
-        vols: List[np.ndarray]
-        locs: np.ndarray
-        entities: dict
-        bg_mask: np.ndarray
-        params: dict
-        gold: np.ndarray
 
     wf = PatchWorkflow(
         features,
@@ -368,7 +356,6 @@ def superregion_segment(
     superseg_cfg["predict_params"]["clf"] = classifier_type
     superseg_cfg["predict_params"]["type"] = classifier_params["type"]
     superseg_cfg["predict_params"]["proj"] = projection_type
-
     logger.debug(f"Using superseg_cfg {superseg_cfg}")
 
     if constrain_mask != "None":
@@ -416,6 +403,8 @@ def superregion_segment(
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = conf_map
+
+
 
 def get_feature_from_id(feat_id):
     src = DataModel.g.dataset_uri(feat_id, group="features")
@@ -637,6 +626,7 @@ def train_3d_fcn(
     feature_id: DataURI,
     objects_id: DataURI,
     fpn_train_params: dict,
+    num_samples: Int,
     num_epochs : Int,
     num_augs : Int,
     padding: IntOrVector = 32,
@@ -662,18 +652,10 @@ def train_3d_fcn(
         },
     }
 
-    from survos2.utils import decode_numpy    
-    from survos2.api.objects import get_entities
-    from survos2.entity.sampler import grid_of_points, generate_random_points_in_volume
-    from survos2.entity.utils import pad_vol
-    from survos2.entity.train import train_oneclass_detseg
     
-    #padding = (32,32, 32)
     padded_vol = pad_vol(src_array, padding )
-    #grid_dim = (4,4,4)
-    #entity_arr = grid_of_points(padded_vol, padding, grid_dim)
-
-    entity_arr = generate_random_points_in_volume(padded_vol, 100, padding)
+    
+    entity_arr = generate_random_points_in_volume(padded_vol, num_samples, padding)
     
     if objects_id != "None":    
         objects_src = DataModel.g.dataset_uri(objects_id, group="objects")
@@ -715,8 +697,6 @@ def train_3d_fcn(
     wf_params["torch_models_fullpath"] = model_out
     logger.info(f"Saving fcn model to: {model_out}")
 
-    #patch_size=(32,32,32)
-    #patch_overlap=(16, 16, 16)
     overlap_mode="crop"
     model_type=fcn_type
 
@@ -746,12 +726,11 @@ def predict_3d_fcn(
     dst: DataURI,
     patch_size: IntOrVector = 64,
     patch_overlap: IntOrVector = 8,
-    #threshold: Float = 0.5,
+    threshold: Float = 0.5,
     model_type: String = "unet3d",
     overlap_mode: String = "crop"
 ):
-    from survos2.entity.pipeline_ops import make_proposal
-
+    
     src = DataModel.g.dataset_uri(feature_id, group="features")
 
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -767,18 +746,57 @@ def predict_3d_fcn(
         overlap_mode=overlap_mode,
     )
 
-    # proposal -= np.min(proposal)
-    # proposal = proposal / np.max(proposal)
-    # proposal = ((proposal < threshold) * 1) + 1
-
-    proposal = (proposal > 0) * 1.0
+    if model_type=='unet3d':
+        proposal -= np.min(proposal)
+        proposal = proposal / np.max(proposal)
+    
+    #
+    #    proposal = 1.0 - proposal
+    #proposal = ((proposal < threshold) * 1) + 1
+    
+    proposal = (proposal > threshold) * 1.0
 
     # store resulting segmentation in dst
     dst = DataModel.g.dataset_uri(dst, group="pipelines")
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         DM.out[:] = proposal
 
-    
+
+@hug.get()
+def predict_segmentation_fcn(
+    feature_id: DataURI,
+    model_fullname: String,
+    dst: DataURI,
+    patch_size: IntOrVector = 64,
+    patch_overlap: IntOrVector = 8,
+    threshold: Float = 0.5,
+    model_type: String = "unet3d",
+):
+    from survos2.entity.pipeline_ops import make_proposal
+
+    src = DataModel.g.dataset_uri(feature_id, group="features")
+
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        logger.debug(f"Adding feature of shape {src_dataset.shape}")
+        
+    proposal = make_proposal(
+        src_dataset,
+        model_fullname,
+        model_type=model_type,
+        patch_size=patch_size,
+        patch_overlap=patch_overlap,
+    )
+
+    proposal -= np.min(proposal)
+    proposal = proposal / np.max(proposal)
+    proposal = ((proposal < threshold) * 1) + 1
+
+    # store resulting segmentation in dst
+    dst = DataModel.g.dataset_uri(dst, group="pipelines")
+    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+        DM.out[:] = proposal
+
 
 @hug.get()
 def create(workspace: String, pipeline_type: String):

@@ -10,7 +10,7 @@ from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.model import DataModel
 from survos2.server.state import cfg
 from survos2.improc.utils import DatasetManager
-
+from napari.qt.progress import progress
 
 class RegionComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None):
@@ -167,10 +167,14 @@ class SupervoxelCard(Card):
     def view_regions(self):
         logger.debug(f"Transferring supervoxels {self.svid} to viewer")
 
-        print(f"Current Supervoxels: {cfg.current_supervoxels}")
-        cfg.ppw.clientEvent.emit(
-            {"source": "regions", "data": "view_regions", "region_id": self.svid}
-        )
+        with progress(total=2) as pbar:
+            pbar.set_description("Viewing superregions")
+            pbar.update(1)
+            cfg.ppw.clientEvent.emit(
+                {"source": "regions", "data": "view_regions", "region_id": self.svid}
+            )
+            pbar.update(1)
+            
 
     def compute_supervoxels(self):
         self.pbar.setValue(10)

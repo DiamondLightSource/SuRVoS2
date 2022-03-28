@@ -10,7 +10,7 @@ from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.base import *
-from survos2.frontend.plugins.base import ComboBox, LazyComboBox, LazyMultiComboBox, DataTableWidgetItem
+from survos2.frontend.plugins.base import ComboBox, LazyComboBox, LazyMultiComboBox,  DataTableWidgetItem
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
 from survos2.frontend.plugins.superregions import RegionComboBox
@@ -322,14 +322,7 @@ class PipelineCard(Card):
         self.pipeline_type = ftype
         self.pipeline_name = fname
         self.annotations_source = None
-
-        #from qtpy.QtWidgets import QProgressBar
-
-        #self.pbar = QProgressBar(self)
-        #self.add_row(self.pbar)
-
         self.params = fparams
-        print(fparams)
         self.widgets = dict()
 
         if self.pipeline_type == "superregion_segment":
@@ -361,7 +354,7 @@ class PipelineCard(Card):
         elif self.pipeline_type == "predict_segmentation_fcn":
             self._add_annotations_source()
             self._add_feature_source()
-            self._add_workflow_file()
+            self._add_model_file()
             self._add_model_type()
             # self._add_patch_params()
 
@@ -374,7 +367,11 @@ class PipelineCard(Card):
             #self.offset = LineEdit(default=-1, parse=int)
             #widget2 = HWidgets("Offset:", self.offset, Spacing(35), stretch=1)
             #self.add_row(widget2)
-        
+        elif self.pipeline_type == "feature_postprocess":
+            self._add_feature_source()
+            self._add_feature_source2()
+            self.label_index = LineEdit(default=-1, parse=int)
+       
         elif self.pipeline_type == "cleaning":
             # self._add_objects_source()
             self._add_feature_source()
@@ -388,7 +385,7 @@ class PipelineCard(Card):
         elif self.pipeline_type == "predict_3d_fcn":
             self._add_annotations_source()
             self._add_feature_source()
-            self._add_workflow_file()
+            self._add_model_file()
             self._add_model_type()
             self._add_overlap_choice()
             # self._add_patch_params()
@@ -414,6 +411,7 @@ class PipelineCard(Card):
 
         self._add_compute_btn()
         self._add_view_btn()
+
 
     def _add_2dunet_data_table(self):
         columns = ["Workspace", "Data", "Labels", ""]
@@ -555,7 +553,7 @@ class PipelineCard(Card):
                               stretch=1))
         self.add_row(HWidgets(refresh_label, stretch=1))
         self.add_row(HWidgets(self.unet_train_refresh_btn, stretch=1))
-    
+        
     def _add_unet_2d_prediction_params(self):
         self.model_file_line_edit = LineEdit(default="Filepath", parse=str)
         model_input_btn = PushButton("Select Model", accent=True)
@@ -581,7 +579,7 @@ class PipelineCard(Card):
     def _add_3d_fcn_prediction_params(self):
         pass
 
-    def _add_workflow_file(self):
+    def _add_model_file(self):
         self.filewidget = FileWidget(extensions="*.pt", save=False)
         self.add_row(self.filewidget)
         self.filewidget.path_updated.connect(self.load_data)
@@ -671,6 +669,14 @@ class PipelineCard(Card):
         self.feature_source.setMaximumWidth(250)
 
         widget = HWidgets("Feature:", self.feature_source, Spacing(35), stretch=1)
+        self.add_row(widget)
+
+    def _add_feature_source2(self):
+        self.feature_source2 = FeatureComboBox()
+        self.feature_source2.fill()
+        self.feature_source2.setMaximumWidth(250)
+
+        widget = HWidgets("Feature:", self.feature_source2, Spacing(35), stretch=1)
         self.add_row(widget)
 
     def _add_features_source(self):
@@ -780,6 +786,7 @@ class PipelineCard(Card):
                     self.annotations_source.select(
                         os.path.join("annotations/", params["anno_id"])
                     )
+        
         if "object_id" in params:
             if params["object_id"] is not None:
                 self.objects_source.select(
@@ -865,8 +872,6 @@ class PipelineCard(Card):
                 )
             pbar.update(1)
           
-            
-
     def get_model_path(self):
         workspace_path = os.path.join(DataModel.g.CHROOT, DataModel.g.current_workspace)
         self.model_path, _ = QtWidgets.QFileDialog.getOpenFileName(self,
@@ -1058,6 +1063,14 @@ class PipelineCard(Card):
         
         return all_params
 
+    def setup_params_feature_postprocess(self, dst):
+        all_params = dict(modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_A"] = str(self.feature_source.value())
+        all_params["feature_B"] = str(self.feature_source2.value())
+        all_params["dst"] = dst
+        return all_params
+
     def setup_params_label_postprocess(self, dst):
         all_params = dict(modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
@@ -1138,7 +1151,7 @@ class PipelineCard(Card):
         all_params["model_path"] = str(self.model_file_line_edit.value())
         all_params["no_of_planes"] = self.radio_group.checkedId()
         return all_params
-
+        
     def compute_pipeline(self):
         dst = DataModel.g.dataset_uri(self.pipeline_id, group="pipelines")
         
@@ -1154,6 +1167,8 @@ class PipelineCard(Card):
                     all_params = self.setup_params_watershed(dst)
                 elif self.pipeline_type == "label_postprocess":
                     all_params = self.setup_params_label_postprocess(dst)
+                elif self.pipeline_type == "feature_postprocess":
+                    all_params = self.setup_params_feature_postprocess(dst)
                 elif self.pipeline_type == "cleaning":
                     all_params = self.setup_params_cleaning(dst)
                 elif self.pipeline_type == "train_2d_unet":
@@ -1163,8 +1178,7 @@ class PipelineCard(Card):
                 elif self.pipeline_type == "train_3d_fcn":
                 	all_params = self.setup_params_train_3d_fcn(dst)
                 elif self.pipeline_type == "predict_3d_fcn":
-                	all_params = self.setup_params_predict_3d_fcn(dst)
-                
+                	all_params = self.setup_params_predict_3d_fcn(dst)                
                 else:
                     logger.warning(f"No action exists for pipeline: {self.pipeline_type}")
 

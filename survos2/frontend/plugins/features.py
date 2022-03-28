@@ -13,6 +13,7 @@ from survos2.frontend.plugins.plugins_components import SourceComboBox
 from survos2.server.state import cfg
 from survos2.frontend.utils import FileWidget
 from napari.qt.progress import progress
+from survos2.improc.utils import DatasetManager
 import yaml
 
 _FeatureNotifier = PluginNotifier()
@@ -289,10 +290,12 @@ class FeatureCard(CardWithId):
     def _add_view_btn(self):
         view_btn = PushButton("View", accent=True)
         view_btn.clicked.connect(self.view_feature)
+        load_as_annotation_btn = PushButton("Load as annotation", accent=True)
+        load_as_annotation_btn.clicked.connect(self.load_as_annotation)
         self.add_row(
             HWidgets(
                 None,
-                view_btn,Spacing(35)
+                load_as_annotation_btn, view_btn, Spacing(35)
             )
         )
 
@@ -346,6 +349,77 @@ class FeatureCard(CardWithId):
                 }
             )
             pbar.update(1)    
+
+    def load_as_annotation(self):
+        logger.debug(f"Loading feature {self.feature_id} as annotation.")
+
+
+
+        # get feature output
+        src = DataModel.g.dataset_uri(self.feature_id, group="features")
+        with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
+            src_arr = DM.sources[0][:]
+
+        src_arr = (src_arr > 0) * 1
+        label_values = np.unique(src_arr)
+
+        # create new level
+        params = dict(level=self.feature_id, workspace=True)
+        result = Launcher.g.run("annotations", "add_level", workspace=True)
+
+        # create a blank label for each unique value in the feature output array
+        if result:
+            level_id = result["id"]
+
+            for v in label_values:
+                params = dict(
+                    level=level_id,
+                    idx=int(v),
+                    name=str(v),
+                    color="#11FF11",
+                    workspace=True,
+                )
+                label_result = Launcher.g.run("annotations", "add_label", **params)
+
+            params = dict(
+                level=str('001_level'),
+                workspace=True,
+            )
+            anno_result = Launcher.g.run("annotations", "get_levels", **params)[0]
+
+            params = dict(level=str(level_id), workspace=True)
+            level_result = Launcher.g.run("annotations", "get_levels", **params)[0]
+
+            try:
+                # set the new level color mapping to the mapping from the feature
+                for v in level_result["labels"].keys():
+                    if v in anno_result["labels"]:
+                        label_hex = anno_result["labels"][v]["color"]
+                        label = dict(
+                            idx=int(v),
+                            name=str(v),
+                            color=label_hex,
+                        )
+                        params = dict(level=result["id"], workspace=True)
+                        label_result = Launcher.g.run(
+                            "annotations", "update_label", **params, **label
+                        )
+            except Exception as err:
+                logger.debug(f"Exception {err}")
+
+            fid = result["id"]
+            ftype = result["kind"]
+            fname = result["name"]
+            logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
+
+            # set levels array to feature output array
+            dst = DataModel.g.dataset_uri(fid, group="annotations")
+            with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
+                DM.out[:] = src_arr
+
+            cfg.ppw.clientEvent.emit(
+                {"source": "workspace_gui", "data": "refresh", "value": None}
+            )
 
     def compute_feature(self):
         with progress(total=3) as pbar:

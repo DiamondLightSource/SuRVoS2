@@ -258,15 +258,15 @@ def view_objects(viewer, msg):
 
     entities_df = make_entity_df(entities_arr)
 
-    # tabledata, entities_df = setup_entity_table(
-    #     entities_fullname=None,
-    #     entities_df=object_entities,
-    #     scale=objects_scale,
-    #     offset=objects_offset,
-    #     crop_start=objects_crop_start,
-    #     crop_end=objects_crop_end,
-    #     flipxy=msg["flipxy"],
-    # )
+    tabledata, entities_df = setup_entity_table(
+        entities_fullname=None,
+        entities_df=entities_df,
+        # scale=objects_scale,
+        # offset=objects_offset,
+        # crop_start=objects_crop_start,
+        # crop_end=objects_crop_end,
+        flipxy=msg["flipxy"],
+    )
     sel_start, sel_end = 0, len(entities_df)
 
     centers = np.array(
