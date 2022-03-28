@@ -332,6 +332,7 @@ def make_proposal(
             patch_overlap=patch_overlap,
             device=gpu_id,
             fpn=False,
+            overlap_mode=overlap_mode
         )
         output_tensor1 = aggregator.get_output_tensor()
         print(f"Aggregated volume of {output_tensor1.shape}")

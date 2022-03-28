@@ -490,7 +490,6 @@ def train_detector_head(
                     param.requires_grad = True
 
         for img, label in dataloaders["train"]:
-
             optimizer.zero_grad()
             var_input = img[0].float().to(device).unsqueeze(1)
             out = model3d.forward_pyr(var_input)

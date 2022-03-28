@@ -144,7 +144,12 @@ def setup_fpn_for_extraction(wf, checkpoint_file, gpu_id=0):
     batch_size = 1
 
     model3d, optimizer, lr_scheduler = prepare_fpn3d(gpu_id=gpu_id)
-    full_path = os.path.join(wf.params["torch_models_fullpath"], checkpoint_file)
+    
+    if "torch_models_fullpath" in wf.params:
+        full_path = os.path.join(wf.params["torch_models_fullpath"], checkpoint_file)
+    else:
+        full_path = checkpoint_file
+        
     checkpoint = checkpoint = torch.load(full_path)
     model3d.load_state_dict(checkpoint["model_state"])
     #optimizer.load_state_dict(checkpoint["model_optimizer"])
@@ -209,6 +214,41 @@ def prepare_fpn_features(wf, checkpoint_file, dataloaders, gpu_id=0):
 
 
 def process_fpn3d_pred(model3d, dataloader, device=0, nb=True):
+    from survos2.frontend.nb_utils import show_images
+    progress_bar = tqdm
+        
+    f4 = []
+    f3 = []
+    f2 = []
+
+    for batch in progress_bar(dataloader):
+        input_all, labels = batch
+        input_sample = input_all[0]
+        print(input_sample.shape)
+        #print(input_sample)
+
+        input_sample_t = torch.FloatTensor(input_sample)
+        with torch.no_grad():
+            var_input = input_sample_t.float().to(device).unsqueeze(0).unsqueeze(0)
+            out = model3d.forward_pyr(var_input)
+            
+            print(out[2].shape)
+            print(out[3].shape)
+            print(out[4].shape)
+            f2.append(out[2].detach().cpu().numpy())
+            f3.append(out[3].detach().cpu().numpy())
+            f4.append(out[4].detach().cpu().numpy())
+
+    #return f2,f3, f4
+    f2_fts = [f[0, 0, :].reshape((8 * 8 * 32)) for f in f2]
+    f3_fts = [f[0, 0, :].reshape((4 * 4 * 16)) for f in f3]
+    f4_fts = [f[0, 0, :].reshape((2 * 2 * 8)) for f in f4]
+    feats = np.array([np.hstack((a, b, c)) for a, b, c in zip(f2_fts, f3_fts, f4_fts)])
+
+    return feats
+
+
+def process_fpn3d_pred_(model3d, dataloader, device=0, nb=True):
     from survos2.frontend.nb_utils import show_images
     #pyr_feats = []
     progress_bar = tqdm

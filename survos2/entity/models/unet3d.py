@@ -9,7 +9,7 @@ from tqdm.notebook import tqdm
 from unet import UNet3D
 from torch import optim
 from torch.optim import lr_scheduler
-from entityseg.training.utils import load_model
+from survos2.entity.utils import load_model
 
 def prepare_unet3d(existing_model_fname=None, num_epochs=2, initial_lr=0.001, device=0):
 

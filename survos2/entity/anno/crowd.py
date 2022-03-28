@@ -49,7 +49,7 @@ def aggregate(
         Dataframe of aggregated entities.
     """
     entity_df = make_entity_df(np.array(entity_df))
-    X_rescaled, scaling = normalized_coords(entity_df, img_shape)
+    X_rescaled, scaling = normalized_coords2(entity_df, img_shape)
 
 
     # use either HDBSCAN or DBSCAN to cluster the points
@@ -105,6 +105,46 @@ def aggregate(
     refined_entity_df = make_entity_df(refined_ent, flipxy=False)
     print(f"Aggregated entity length {len(agg)}")
     return refined_entity_df
+
+
+def normalized_coords2(entities_df, img_shape, scale_minmax=False):
+    """Scale points so max dimensions of point volume is between 0 and 1"""
+    oe = np.array(entities_df)
+    orig_pts = oe.astype(np.float32)
+    X = orig_pts.copy()
+
+    X_rescaled = orig_pts.copy()
+
+    scale_x = 1.0 / np.max(X[:, 1])
+    scale_y = 1.0 / np.max(X[:, 2])
+    scale_z = (1.0 / np.max(X[:, 0])) * 0.02
+
+    if scale_minmax:
+
+        xlim = (
+            np.min(X_rescaled[:, 1]).astype(np.uint16) - 0.1,
+            np.max(X_rescaled[:, 1]).astype(np.uint16) + 0.1,
+        )
+        ylim = (
+            np.min(X_rescaled[:, 2]).astype(np.uint16) - 0.1,
+            np.max(X_rescaled[:, 2]).astype(np.uint16) + 0.1,
+        )
+        zlim = (
+            np.min(X_rescaled[:, 0]).astype(np.uint16) - 0.1,
+            np.max(X_rescaled[:, 0]).astype(np.uint16) + 0.1,
+        )
+    else:
+        xlim = (0, img_shape[1])
+        ylim = (0, img_shape[2])
+        zlim = (0, img_shape[0])
+
+    X_rescaled[:, 1] *= scale_x
+    X_rescaled[:, 2] *= scale_y
+    X_rescaled[:, 0] *= scale_z
+
+    print(f"Rescaled to {scale_x}, {scale_y}, {scale_z}")
+
+    return X_rescaled, (scale_z, scale_x, scale_y)
 
 
 def normalized_coords(entities_df, img_volume, scale_minmax=False):

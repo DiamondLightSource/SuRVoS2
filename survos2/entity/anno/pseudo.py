@@ -123,6 +123,49 @@ def make_acwe(patch: Patch, params: dict):
     return patch
 
 
+def generate_augmented_entities(
+    wf,
+    generate_random_bg_entities=False,
+    num_before_masking=60,
+    stratified_selection=False,
+    class_proportion={0: 1, 1: 1.0, 2: 1.0, 5: 1},
+):
+    entities = wf.locs
+
+    if stratified_selection:
+        stratified_entities = []
+        for c in np.unique(entities[:, 3]):
+            single_class = entities[entities[:, 3] == c]
+            entities_sel = np.random.choice(
+                range(len(single_class)), int(class_proportion[c] * len(single_class))
+            )
+            stratified_entities.append(single_class[entities_sel])
+        gt_entities = np.concatenate(stratified_entities)
+        print(f"Produced {len(gt_entities)} entities.")
+    else:
+        gt_entities = entities
+
+    if generate_random_bg_entities:
+        random_entities = generate_random_points_in_volume(
+            wf.vols[0], num_before_masking
+        ).astype(np.uint32)
+        from survos2.entity.utils import remove_masked_entities
+
+        print(
+            f"Before masking random entities generated of shape {random_entities.shape}"
+        )
+        random_entities = remove_masked_entities(wf.bg_mask, random_entities)
+
+        print(f"After masking: {random_entities.shape}")
+        random_entities[:, 3] = np.array([6] * len(random_entities))
+        # augmented_entities = np.vstack((gt_entities, masked_entities))
+        # print(f"Produced augmented entities array of shape {augmented_entities.shape}")
+    else:
+        random_entities = []
+
+    return gt_entities, random_entities
+
+
 def generate_annotation_volume(
     wf,
     entity_meta,

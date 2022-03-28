@@ -18,9 +18,6 @@ def train_oneclass_detseg(
     wf_params,
     model_type="fpn3d",
     gpu_id=0,
-    load_saved_model=False,
-    save_current_model=True,
-    test_on_volume=False,
     model=None,
     num_epochs=1,
 ):
@@ -37,13 +34,8 @@ def train_oneclass_detseg(
         "display_plots": False,
         "torch_models_fullpath": wf_params["torch_models_fullpath"],
     }
-    now = datetime.now()
-    dt_string = now.strftime("%d%m_%H%M")
-    train_params_file = "vf_train_params" + dt_string + ".json"
-    with open(train_params_file, "w") as outfile:
-        json.dump(train_params, outfile, indent=4, sort_keys=True)
-        print(f"Wrote {train_params_file} with training settings")
-    return train_all(train_params_file, model)
+    
+    return train_all(train_params, model)
 
 
 def train_twoclass_detseg(
@@ -52,9 +44,6 @@ def train_twoclass_detseg(
     project_file,
     model_type="fpn3d",
     gpu_id=0,
-    load_saved_model=False,
-    save_current_model=True,
-    test_on_volume=False,
     num_epochs=1,
 ):
 
@@ -74,19 +63,12 @@ def train_twoclass_detseg(
         "torch_models_fullpath": wf.params["torch_models_fullpath"],
     }
 
-    train_params_file = "vf_train_params_twoclass.json"
-    with open(train_params_file, "w") as outfile:
-        json.dump(train_params, outfile, indent=4, sort_keys=True)
-        print(f"Wrote {train_params_file} with training settings")
-
-    class1_model_file = train_all(train_params_file)
+    class1_model_file = train_all(train_params)
 
     print(f"Using training volumes: {train_v_class2[0]}")
     model_type = "fpn3d"
     gpu_id = 0
-    load_saved_model = False
-    save_current_model = True
-    test_on_volume = False
+
 
     train_params = {
         "train_vols": (train_v_class2[0], train_v_class2[1]),
@@ -100,14 +82,8 @@ def train_twoclass_detseg(
         "display_plots": False,
         "torch_models_fullpath": wf.params["torch_models_fullpath"],
     }
-
-    train_params_file = "vf_train_params_twoclass.json"
-
-    with open(train_params_file, "w") as outfile:
-        json.dump(train_params, outfile, indent=4, sort_keys=True)
-        print(f"Wrote {train_params_file} with training settings")
-
-    class2_model_file = train_all(train_params_file)
+    
+    class2_model_file = train_all(train_params)
     return [class1_model_file, class2_model_file]
 
 
@@ -129,7 +105,7 @@ def plot_losses(training_loss, validation_loss):
     plt.ylabel('Loss')
 
 def train_all(
-    train_param_file="vf_train_params_180221.json",
+    train_params,
     patch_size=(64, 64, 64),
     model=None,
     batch_size=1,
@@ -137,9 +113,6 @@ def train_all(
     initial_lr=0.001,
     display_plots=False,
 ):
-    with open(train_param_file) as project_file:
-        train_params = json.load(project_file)
-    pprint(train_params)
 
     model_type = train_params["model_type"]
     gpu_id = train_params["gpu_id"]
