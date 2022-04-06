@@ -15,9 +15,9 @@ Navigate into the Survos2 folder
 
 	$ cd SuRVoS2
 
-Setup the admin version of miniconda (assuming it is already installed in the VM)
+Setup the admin version of miniconda 
 
-	$ module load miniconda
+	Download at: https://docs.conda.io/en/latest/miniconda.html
 
 Create a new environment for survos2
 
