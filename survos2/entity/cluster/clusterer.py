@@ -8,10 +8,10 @@ from sklearn.manifold import TSNE
 from sklearn import metrics
 
 from survos2.entity.entities import make_bvol_df, offset_points
-from entityseg.cluster.patch_cluster import patch_2d_features, extract_cnn_features
-from entityseg.cluster.utils import pad_vol, quick_norm
-from entityseg.cluster.cnn_features import prepare_3channel
-from entityseg.cluster.cluster_plotting import cluster_scatter, plot_clustered_img
+from survos2.entity.cluster.patch_cluster import patch_2d_features, extract_cnn_features
+from survos2.entity.cluster.utils import pad_vol, quick_norm
+from survos2.entity.cluster.cnn_features import prepare_3channel
+from survos2.entity.cluster.cluster_plotting import cluster_scatter, plot_clustered_img
 
 from survos2.entity.entities import offset_points
 from survos2.entity.sampler import centroid_to_bvol

@@ -8,8 +8,8 @@ from skimage import img_as_ubyte
 from torchvision.ops import roi_align
 from collections import OrderedDict
 
-from entityseg.cluster.cnn_features import CNNFeatures, prepare_3channel
-from entityseg.cluster.utils import get_surface
+from survos2.entity.cluster.cnn_features import CNNFeatures, prepare_3channel
+from survos2.entity.cluster.utils import get_surface
 
 
 def calc_sphericity(label_vols):

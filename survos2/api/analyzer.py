@@ -787,12 +787,12 @@ def object_analyzer(
     min_cluster_size : Int
 ) -> "OBJECTS":
     logger.debug(f"Calculating clustering on patches located at entities: {object_id}")
-    from entityseg.cluster.cluster_plotting import cluster_scatter
-    from entityseg.cluster.clusterer import (
+    from survos2.entity.cluster.cluster_plotting import cluster_scatter
+    from survos2.entity.cluster.clusterer import (
         PatchCluster,
         prepare_patches_for_clustering,
     )
-    from entityseg.cluster.cnn_features import prepare_3channel
+    from survos2.entity.cluster.cnn_features import prepare_3channel
 
     # get features
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
