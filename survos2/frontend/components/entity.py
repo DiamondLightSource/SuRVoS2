@@ -211,6 +211,7 @@ class TableWidget(QtWidgets.QGraphicsObject):
         self.w.cellClicked.connect(self.cell_clicked)
         self.w.doubleClicked.connect(self.double_clicked)
         self.w.selected_row = 0
+        self.w.selected_item = None
         #stylesheet = "QHeaderView::section{Background-color:rgb(30,60,80)}"
         #self.w.setStyleSheet(stylesheet)
 
@@ -221,11 +222,20 @@ class TableWidget(QtWidgets.QGraphicsObject):
 
     def double_clicked(self):
         row_idx = self.w.selected_row
-        z, x, y = (
-            self.tabledata["z"][row_idx],
-            self.tabledata["x"][row_idx],
-            self.tabledata["y"][row_idx],
-        )
+        
+        print(self.w.selected_item.data(0))
+
+        print(self.row_data)
+
+        _,z,x,y = self.row_data
+        z = int(z)
+        x = int(x)
+        y = int(y)
+        # z, x, y = (
+        #     self.tabledata["z"][row_idx],
+        #     self.tabledata["x"][row_idx],
+        #     self.tabledata["y"][row_idx],
+        # )
         cfg.ppw.clientEvent.emit(
             {"source": "table", "data": "show_roi", "selected_roi": (z, x, y)}
         )
@@ -236,3 +246,8 @@ class TableWidget(QtWidgets.QGraphicsObject):
     def cell_clicked(self, row, col):
         logger.debug("Row %d and Column %d was clicked" % (row, col))
         self.w.selected_row = row
+        self.w.selected_item = self.w.item(row, col)
+        self.row_data = []
+        for i in range(4):
+            self.row_data.append(self.w.item(row, i).text())
+        
