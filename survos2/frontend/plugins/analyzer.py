@@ -26,7 +26,26 @@ from matplotlib.figure import Figure
 
 from napari.qt.progress import progress
 
-feature_names = ["z","y","x", "Sum", "Mean", "Std", "Var", "bb_vol", "bb_vol_log10", "bb_vol_depth", "bb_vol_depth","bb_vol_height", "bb_vol_width", "ori_vol", "ori_vol_log10", "ori_vol_depth", "ori_vol_depth","ori_vol_height", "ori_vol_width"]
+feature_names = ["z",
+                 "y",
+                 "x", 
+                 "Sum", 
+                 "Mean", 
+                 "Std", 
+                 "Var", 
+                 "bb_vol", 
+                 "bb_vol_log10", 
+                 "bb_vol_depth", 
+                 "bb_vol_height", 
+                 "bb_vol_width", 
+                 "ori_vol", 
+                 "ori_vol_log10", 
+                 "ori_vol_depth", 
+                 "ori_vol_height", 
+                 "ori_vol_width", 
+                 "seg_surface_area", 
+                 "seg_volume", 
+                 "seg_sphericity"]
 
 umap_metrics = ["euclidean", "manhattan", "chebyshev", "minkowski","mahalanobis", "canberra", "braycurtis", "haversine", "cosine", "correlation"]
 
@@ -395,15 +414,16 @@ class AnalyzerCard(Card):
             self.load_as_objects_btn = PushButton("Load as Objects")
             additional_buttons.append(self.load_as_objects_btn)
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
-        elif self.analyzer_type == "object_stats":
+        elif self.analyzer_type == "patch_stats":
             self._add_features_source()
             self._add_objects_source()
             self.stat_name_combo_box = SimpleComboBox(
-                full=True, values=["Mean", "Std", "Var"]
+                full=True, values=["Mean", "Std", "Var", "Median", "Sum"]
             )
             self.stat_name_combo_box.fill()
+            self.box_dimension = LineEdit(default=16, parse=int)
             widget = HWidgets(
-                "Statistic name:", self.stat_name_combo_box,  stretch=1
+                "Statistic name:", self.stat_name_combo_box,  "Box dimension: ", self.box_dimension
             )
             self.add_row(widget)
         elif self.analyzer_type == "object_detection_stats":
@@ -414,12 +434,48 @@ class AnalyzerCard(Card):
             self.label_index = LineEdit(default=0, parse=int)
             widget = HWidgets("Label Index:", self.label_index,  stretch=1)
             self.add_row(widget)
+
+            self.area_min = LineEdit(default=0, parse=int)
+            self.area_max = LineEdit(default=1e14, parse=int)
+            widget = HWidgets("Area min:", self.area_min, "Area max: ", self.area_max)
+            self.add_row(widget)
+            
             self.load_as_objects_btn = additional_buttons[-1]
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
             self._add_view_btn()
+
+        elif self.analyzer_type == "point_generator":
+            self._add_feature_source(label="Background mask")
+            self.num_before_masking = LineEdit(default=500, parse=int)
+            widget = HWidgets("Num before masking", self.num_before_masking)
+            self.add_row(widget)
+            self.load_as_objects_btn = PushButton("Load as Objects")
+            additional_buttons.append(self.load_as_objects_btn)
+            self.load_as_objects_btn.clicked.connect(self.load_as_objects)
+            
         elif self.analyzer_type == "background_classifier":
             self._add_feature_source(label="Proposal segmentation")
             self._add_objects_source()
+            self._add_feature_source2(label="Background mask:")
+            self._add_feature_source3(label="Feature:")
+            self.area_min = LineEdit(default=0, parse=int)
+            self.area_max = LineEdit(default=1e14, parse=int)
+            self.score_threshold = LineEdit(default=0.95, parse=float)
+            self.num_before_masking = LineEdit(default=500, parse=int)
+            self.bvol_dim = LineEdit3D(default=32)
+            widget = HWidgets("Area min:", self.area_min, "Area max: ", self.area_max, "Patch dim: ", self.bvol_dim)
+            self.add_row(widget)
+            widget = HWidgets("Score threshold:", self.score_threshold, "Num before masking", self.num_before_masking)
+            self.add_row(widget)
+            self.load_as_objects_btn = PushButton("Load as Objects")
+            additional_buttons.append(self.load_as_objects_btn)
+            self.load_as_objects_btn.clicked.connect(self.load_as_objects)
+            self._add_model_file()
+
+        elif self.analyzer_type == "binary_classifier":
+            self._add_feature_source(label="Proposal segmentation")
+            self._add_objects_source()
+            self._add_objects_source2(title="Bg Objects:")
             self._add_feature_source2(label="Background mask:")
             self._add_feature_source3(label="Feature:")
             self.area_min = LineEdit(default=0, parse=int)
@@ -553,7 +609,7 @@ class AnalyzerCard(Card):
 
         load_entities_via_file(self.entities_arr, flipxy=False)
         cfg.ppw.clientEvent.emit(
-            {"source": "analyzer_plugin", "data": "refresh", "value": None}
+            {"source": "analyzer_plugin", "data": "faster_refresh", "value": None}
         )
 
     def _add_objects_source(self):
@@ -562,6 +618,13 @@ class AnalyzerCard(Card):
         self.objects_source.setMaximumWidth(250)
         widget = HWidgets("Objects:", self.objects_source,  stretch=1)
         self.add_row(widget)
+    def _add_objects_source2(self, title="Objects"):
+        self.objects_source2 = ObjectComboBox(full=True)
+        self.objects_source2.fill()
+        self.objects_source2.setMaximumWidth(250)
+        widget = HWidgets(title, self.objects_source2,  stretch=1)
+        self.add_row(widget)
+
 
     def _add_object_detection_stats_source(self):
         self.gold_objects_source = ObjectComboBox(full=True)
@@ -661,6 +724,14 @@ class AnalyzerCard(Card):
             )
         )
     
+    def _add_view_entities(self):
+        view_btn = PushButton("View Entities", accent=True)
+        view_btn.clicked.connect(self.view_entities)
+        self.add_row(
+            HWidgets(
+                None, view_btn, 
+            )
+        )
     def load_data(self, path):
         self.model_fullname = path
         print(f"Setting model fullname: {self.model_fullname}")
@@ -717,7 +788,7 @@ class AnalyzerCard(Card):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "refresh", "value": None}
+                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
             )
 
     def load_as_annotation(self):
@@ -784,7 +855,7 @@ class AnalyzerCard(Card):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "refresh", "value": None}
+                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
             )
 
     def card_deleted(self):
@@ -830,6 +901,10 @@ class AnalyzerCard(Card):
                 result[i][14],
                 result[i][15],
                 result[i][16],
+                result[i][17],
+                result[i][18],
+                result[i][19],
+
             )
             tabledata.append(entry)
 
@@ -857,6 +932,9 @@ class AnalyzerCard(Card):
                 ("OrientBB Depth", float),
                 ("OrientBB Height", float),
                 ("OrientBB Width", float),
+                ("Seg Surface Area", float),
+                ("Seg Volume", float),
+                ("Seg Sphericity", float),
             ],
         )
 
@@ -985,6 +1063,19 @@ class AnalyzerCard(Card):
         self.object_analyzer_controls.append(self.load_cluster_as_objects_btn)
         self.load_cluster_as_objects_btn.clicked.connect(self.load_cluster_as_objects)
     
+
+    def view_entities(self):
+        logger.debug(f"Transferring entities to viewer")
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "analyzer",
+                "data": "view_entities",
+                "entities" : self.entities_arr,
+                "flipxy": self.flipxy_checkbox.value(),
+            }
+        )
+
+
     def load_cluster_as_objects(self):
         logger.debug("Load cluster as objects")
         from survos2.entity.entities import load_entities_via_file
@@ -1134,6 +1225,8 @@ class AnalyzerCard(Card):
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["pipelines_id"] = str(self.pipelines_source.value())
         all_params["label_index"] = self.label_index.value()
+        all_params["area_min"] = self.area_min.value()
+        all_params["area_max"] = self.area_max.value()
         logger.debug(f"Running analyzer with params {all_params}")
         result = Launcher.g.run(
             "analyzer", "find_connected_components", **all_params
@@ -1227,7 +1320,7 @@ class AnalyzerCard(Card):
             print(labels)
             self.display_clustering_results(labels)
 
-    def calc_object_stats(self):
+    def calc_patch_stats(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
         src = DataModel.g.dataset_uri(self.features_source.value())
         all_params = dict(src=src, dst=dst, modal=False)
@@ -1235,8 +1328,9 @@ class AnalyzerCard(Card):
         all_params["feature_ids"] = str(self.features_source.value()[-1])
         all_params["object_id"] = str(self.objects_source.value())
         all_params["stat_name"] = self.stat_name_combo_box.value()
+        all_params["box_size"] = self.box_dimension.value()
         logger.debug(f"Running analyzer with params {all_params}")
-        result = Launcher.g.run("analyzer", "object_stats", **all_params)
+        result = Launcher.g.run("analyzer", "patch_stats", **all_params)
         (point_features, img) = result
         if result:
             logger.debug(f"Object stats result table {len(point_features)}")
@@ -1277,7 +1371,27 @@ class AnalyzerCard(Card):
 
         logger.debug(f"Running object detection analyzer with params {all_params}")
         result = Launcher.g.run("analyzer", "object_detection_stats", **all_params)
-        
+    def calc_binary_classifier(self):
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        src = src = DataModel.g.dataset_uri(self.feature_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["proposal_id"] = str(self.feature_source.value())
+        all_params["bg_mask_id"] = str(self.feature_source2.value())
+        all_params["feature_id"] = str(self.feature_source3.value())
+        all_params["object_id"] = str(self.objects_source.value())
+        all_params["background_id"] = str(self.objects_source2.value())
+        all_params["area_max"] = int(self.area_max.value())
+        all_params["area_min"] = int(self.area_min.value())
+        all_params["bvol_dim"] = self.bvol_dim.value()
+        all_params["num_before_masking"] = int(self.num_before_masking.value())
+        all_params["score_thresh"] = float(self.score_threshold.value())
+        all_params["dst"] = self.analyzer_id
+        all_params["model_fullname"] = self.model_fullname
+        result = Launcher.g.run("analyzer", self.analyzer_type, **all_params)
+        logger.debug(f"remove_masked_objects result table {len(result)}")
+        self.display_component_results3(result)
+     
     def calc_background_classifier(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
         src = src = DataModel.g.dataset_uri(self.feature_source.value())
@@ -1296,6 +1410,16 @@ class AnalyzerCard(Card):
         all_params["model_fullname"] = self.model_fullname
         result = Launcher.g.run("analyzer", self.analyzer_type, **all_params)
         logger.debug(f"remove_masked_objects result table {len(result)}")
+        self.display_component_results3(result)
+
+    def calc_point_generator(self):
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        src = src = DataModel.g.dataset_uri(self.feature_source.value())
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["bg_mask_id"] = str(self.feature_source.value())
+        all_params["num_before_masking"] = int(self.num_before_masking.value())
+        result = Launcher.g.run("analyzer", self.analyzer_type, **all_params)
+        logger.debug(f"point_generator result table {len(result)}")
         self.display_component_results3(result)
 
     def calc_spatial_clustering(self):
@@ -1342,14 +1466,18 @@ class AnalyzerCard(Card):
                 self.calc_image_stats()
             elif self.analyzer_type == "object_analyzer":
                 self.calc_object_analyzer()
-            elif self.analyzer_type == "object_stats":
-                self.calc_object_stats()
+            elif self.analyzer_type == "patch_stats":
+                self.calc_patch_stats()
             elif self.analyzer_type == "object_detection_stats":
                 self.calc_object_detection_stats()
             elif self.analyzer_type == "background_classifier":
                 self.calc_background_classifier()
+            elif self.analyzer_type == "binary_classifier":
+                self.calc_binary_classifier()
             elif self.analyzer_type == "spatial_clustering":
                 self.calc_spatial_clustering()
             elif self.analyzer_type == "remove_masked_objects":
                 self.calc_removed_masked_objects()
+            elif self.analyzer_type == "point_generator":
+                self.calc_point_generator()
             pbar.update(2)

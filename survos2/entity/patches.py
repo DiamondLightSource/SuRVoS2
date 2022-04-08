@@ -61,7 +61,7 @@ from survos2.frontend.nb_utils import (
     view_volume,
     view_volumes,
 )
-
+from survos2.entity.cluster.dataset import sample_bounding_volume
 
 class BoundingVolumeDataset(Dataset):
     def __init__(

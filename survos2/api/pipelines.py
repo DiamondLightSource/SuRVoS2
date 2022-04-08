@@ -235,9 +235,10 @@ def rasterize_points(
         offset=objects_offset,
         crop_start=objects_crop_start,
         crop_end=objects_crop_end,
+        flipxy=False,
     )
 
-    entities = np.array(make_entity_df(np.array(entities_df), flipxy=True))
+    entities = np.array(make_entity_df(np.array(entities_df), flipxy=False))
 
     # default params TODO make generic, allow editing
     entity_meta = {
@@ -796,6 +797,101 @@ def predict_segmentation_fcn(
     dst = DataModel.g.dataset_uri(dst, group="pipelines")
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         DM.out[:] = proposal
+
+from survos2.frontend.nb_utils import slice_plot
+from scipy.ndimage.morphology import binary_erosion
+from survos2.entity.utils import pad_vol, get_largest_cc, get_surface
+from survos2.entity.sampler import centroid_to_bvol
+from survos2.frontend.components.entity import setup_entity_table
+from survos2.entity.patches import BoundingVolumeDataset
+from survos2.entity.entities import make_entity_bvol, make_bounding_vols, make_entity_df
+from survos2.entity.entities import offset_points, get_entities
+
+from matplotlib import pyplot as plt
+
+
+@hug.get()
+def per_object_cleaning(
+    dst: DataURI,
+    feature_id: DataURI, 
+    object_id: DataURI,
+):
+    """_summary_
+
+    Parameters
+    ----------
+    feature_id : DataURI
+        _description_
+    object_id : DataURI
+        _description_
+    """
+
+    # get image feature
+    src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
+    logger.debug(f"Getting features {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        feature = DM.sources[0][:]
+        logger.debug(f"Feature shape {feature.shape}")
+
+    # get object entities
+    src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
+    logger.debug(f"Getting objects {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        ds_objects = DM.sources[0]
+    entities_fullname = ds_objects.get_metadata("fullname")
+    tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
+    entities_arr = np.array(entities_df)
+    entities_arr[:,3] = np.array([[1] * len(entities_arr)])
+    entities = np.array(make_entity_df(entities_arr, flipxy=False))
+    print(entities)
+
+    target = per_object_cleaning(entities, feature, display_plots=False)
+    #dst = DataModel.g.dataset_uri(dst, group="pipelines")
+    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+        DM.out[:] = target
+
+
+
+def per_object_cleaning(entities, seg, bvol_dim=(32,32,32), offset=(0,0,0), flipxy=True, display_plots=False):    
+    patch_size = tuple(1 * np.array(bvol_dim))
+    seg = pad_vol(seg, np.array(patch_size))
+    target = np.zeros_like(seg)
+    
+    entities = np.array(make_entity_df(np.array(entities), flipxy=flipxy))
+    entities = offset_points(entities, offset)
+    entities = offset_points(entities, -np.array(bvol_dim))
+
+    if display_plots:    
+        slice_plot(seg, np.array(make_entity_df(entities, flipxy=flipxy)), seg, (60,300,300))
+    bvol = centroid_to_bvol(np.array(entities), bvol_dim=bvol_dim)
+    bvol_seg = BoundingVolumeDataset(seg, bvol, labels=[1] * len(bvol), patch_size=patch_size)
+    c = bvol_dim[0], bvol_dim[1], bvol_dim[2]
+    
+    for i, p in enumerate(bvol_seg):
+        print(bvol_seg.bvols[i])
+        seg, _ = bvol_seg[i]
+        cleaned_patch = (get_largest_cc(seg) > 0) * 1.0
+        # try:
+        #     res = get_surface((cleaned_patch > 0) * 1.0, plot3d=False)
+        mask = ((binary_erosion((cleaned_patch), iterations=1) > 0) * 1.0)
+        
+        if display_plots:
+            plt.figure()
+            plt.imshow(seg[c[0],:])
+            plt.figure()
+            plt.imshow(mask[c[0],:])
+            
+        
+        z_st, y_st, x_st, z_end, y_end, x_end = bvol_seg.bvols[i]
+        target[z_st:z_end, x_st:x_end, y_st:y_end,] = mask
+
+    target = target[patch_size[0]:target.shape[0]-patch_size[0],
+                    patch_size[1]:target.shape[1]-patch_size[1],
+                    patch_size[2]:target.shape[2]-patch_size[2]]
+        
+    return target
+
+
 
 
 @hug.get()

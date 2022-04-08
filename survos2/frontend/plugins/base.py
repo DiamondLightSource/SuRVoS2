@@ -140,7 +140,7 @@ class PluginContainer(QCSWidget):
 
     def show_plugin(self, name, tab):
         if name in self.plugins:
-            print(f"show_plugin: {name}")
+            logger.debug(f"show_plugin: {name}")
 
             self.selected_name = name
             self.selected = self.plugins[name]
@@ -153,3 +153,10 @@ class PluginContainer(QCSWidget):
             if hasattr(self.selected["widget"], "setup"):
                 self.selected["widget"].clear()
                 self.selected["widget"].setup()
+
+    def show_plugin2(self, name, tab):
+        if name in self.plugins:
+            self.selected = self.plugins[name]
+            if hasattr(self.selected["widget"], "setup"):
+                self.selected["widget"].setup()
+

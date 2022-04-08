@@ -93,6 +93,19 @@ class ROIPlugin(Plugin):
         return widget
 
     def add_roi(self, roi_fname, original_workspace, roi):
+        """Adds a new ROI to the server-side ROI list.
+        Checks to see if an annotation is provided and passes that if so.
+        Refreshes the GUI after the command is complete.
+
+        Parameters
+        ----------
+        roi_fname : String
+            Name of the ROI in format name_[coords]
+        original_workspace : String
+            workspace name
+        roi : List
+            List of coordinates of the ROI in z_st, x_st, y_st, z_end, x_end, y_end format.
+        """
         if self.annotations_source.value():
             original_level = str(self.annotations_source.value().rsplit("/", 1)[-1])
         else:
@@ -114,6 +127,9 @@ class ROIPlugin(Plugin):
         self.existing_roi = {}
 
     def button_setroi_clicked(self):
+        """GUI handler for adding a new ROI.
+        Grabs the coordinates of the ROI from the GUI and calls the add_roi method.
+        """
         original_workspace = DataModel.g.current_workspace 
         roi_start = self.roi_start.value()
         roi_end = self.roi_end.value()
@@ -141,7 +157,7 @@ class ROIPlugin(Plugin):
                 + "_"
                 + str(roi[5])
         )
-        #self.refresh_workspaces()
+        
         cfg.ppw.clientEvent.emit(
            {"source": "panel_gui", "data": "make_roi_ws", "roi": roi}
         )
@@ -161,6 +177,8 @@ class ROICard(Card):
         self.add_row(HWidgets(None, self.pull_btn))
 
     def card_deleted(self):
+        """Removes an ROI from the server-side ROI list.
+        """
         logger.debug(f"Deleted ROI {self.rname}")
         params = dict(roi_fname=self.rname,workspace=True)
         result = Launcher.g.run("roi", "remove", **params)
@@ -171,6 +189,9 @@ class ROICard(Card):
         logger.debug(f"Edited ROI title {newtitle}")
         
     def pull_anno(self):
+        """Gui handler for the pull_anno command that grabs the annotation from the ROI's workspace
+        and copies it into the current workspace.
+        """
         all_params = dict(modal=True, roi_fname=self.rname, workspace=True)
         result = Launcher.g.run("roi", "pull_anno", **all_params)
 

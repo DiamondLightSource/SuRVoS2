@@ -25,7 +25,7 @@ def setup_entity_table(
     crop_end=(MAX_SIZE, MAX_SIZE, MAX_SIZE),
     flipxy=True,
 ):
-    if entities_df == None:
+    if entities_fullname != None:
         print(f"Reading entity csv: {entities_fullname}")
         entities_df = pd.read_csv(entities_fullname)
         print(entities_df)

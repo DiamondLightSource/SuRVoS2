@@ -516,6 +516,6 @@ class ObjectsCard(Card):
                 DM.out[:] = proposal
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "refresh", "value": None}
+                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
             )
 

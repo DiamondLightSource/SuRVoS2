@@ -208,6 +208,15 @@ class PluginPanelWidget(QtWidgets.QWidget):
         cfg.emptying_viewer = False
 
 
+    def setup2(self):
+            for plugin_name in list_plugins():
+                plugin = get_plugin(plugin_name)
+                name = plugin["name"]
+                tab = plugin["tab"]
+                self.pluginContainer.show_plugin2(name, tab)
+
+
+
 class QtPlotWidget(QtWidgets.QWidget):
     def __init__(self):
 

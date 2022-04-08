@@ -289,3 +289,46 @@ def view_objects(viewer, msg):
     entity_layer = viewer.add_points(
         centers, size=[10] * len(centers), opacity=0.5, face_color=face_color_list
     )
+
+
+
+def view_entities(viewer, msg):
+    logger.debug(f"view_entities {msg['objects_id']}")
+    
+    entities_arr = decode_numpy(msg['entities'])
+      
+    logger.debug(f"Got entities_arr of shape {entities_arr.shape}")
+
+    entities_df = make_entity_df(entities_arr)
+
+    tabledata, entities_df = setup_entity_table(
+        entities_fullname=None,
+        entities_df=entities_df,
+        # scale=objects_scale,
+        # offset=objects_offset,
+        # crop_start=objects_crop_start,
+        # crop_end=objects_crop_end,
+        flipxy=msg["flipxy"],
+    )
+    sel_start, sel_end = 0, len(entities_df)
+
+    centers = np.array(
+        [
+            [
+                int((float(entities_df.iloc[i]["z"]) * 1.0) + 0),
+                int((float(entities_df.iloc[i]["x"]) * 1.0) + 0),
+                int((float(entities_df.iloc[i]["y"]) * 1.0) + 0),
+            ]
+            for i in range(sel_start, sel_end)
+        ]
+    )
+
+    num_classes = max(9, len(np.unique(entities_df["class_code"]))) + 2
+
+    logger.debug(f"Number of entity classes {num_classes}")
+    palette = np.array(sns.color_palette("hls", num_classes))
+    face_color_list = [palette[class_code] for class_code in entities_df["class_code"]]
+
+    entity_layer = viewer.add_points(
+        centers, size=[10] * len(centers), opacity=0.5, face_color=face_color_list
+    )

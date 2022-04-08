@@ -77,7 +77,6 @@ def load_entities(entities_arr, flipxy=True):
     csv_saved_fullname = ds.save_file(tmp_fullpath)
     logger.info(f"Saving {tmp_fullpath} to {csv_saved_fullname}")
     ds.set_attr("fullname", csv_saved_fullname)
-
     os.remove(tmp_fullpath)
 
 @hug.post()

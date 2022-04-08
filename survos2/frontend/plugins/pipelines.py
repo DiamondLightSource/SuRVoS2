@@ -357,7 +357,6 @@ class PipelineCard(Card):
             self._add_model_file()
             self._add_model_type()
             # self._add_patch_params()
-
         elif self.pipeline_type == "label_postprocess":
             self._add_annotations_source(label="Layer Over: ")
             self._add_annotations_source2(label="Layer Base: ")
@@ -371,15 +370,15 @@ class PipelineCard(Card):
             self._add_feature_source()
             self._add_feature_source2()
             self.label_index = LineEdit(default=-1, parse=int)
-       
+        elif self.pipeline_type == "per_object_cleaning":
+            self._add_feature_source()
+            self._add_objects_source()
         elif self.pipeline_type == "cleaning":
-            # self._add_objects_source()
             self._add_feature_source()
             self._add_annotations_source()
         elif self.pipeline_type == "train_3d_fcn":
             self._add_annotations_source()
             self._add_feature_source()
-            self._add_objects_source()
             self._add_3d_fcn_training_params()
             self._add_fcn_choice()
         elif self.pipeline_type == "predict_3d_fcn":
@@ -389,13 +388,11 @@ class PipelineCard(Card):
             self._add_model_type()
             self._add_overlap_choice()
             # self._add_patch_params()
-        
         elif self.pipeline_type == "train_2d_unet":
             self._add_2dunet_training_ws_widget()
             self._add_2dunet_annotations_features_from_ws(DataModel.g.current_workspace)
             self._add_2dunet_data_table()
             self._add_unet_2d_training_params()
-        
         elif self.pipeline_type == "predict_2d_unet":
             self.annotations_source = LevelComboBox()
             self.annotations_source.hide()
@@ -870,6 +867,16 @@ class PipelineCard(Card):
                         "level_id": level_id,
                     }
                 )
+            else:
+                cfg.ppw.clientEvent.emit(
+                    {
+                        "source": "pipelines",
+                        "data": "view_pipeline",
+                        "pipeline_id": self.pipeline_id,
+                        "level_id": '001_level',
+                    }
+                )
+
             pbar.update(1)
           
     def get_model_path(self):
@@ -920,7 +927,7 @@ class PipelineCard(Card):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "refresh", "value": None}
+                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
             )
 
     def load_as_annotation(self):
@@ -987,7 +994,7 @@ class PipelineCard(Card):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "refresh", "value": None}
+                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
             )
 
     def setup_params_superregion_segment(self, dst):
@@ -1098,8 +1105,14 @@ class PipelineCard(Card):
         all_params = dict(dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
-        # all_params["object_id"] = str(self.objects_source.value())
         return all_params
+    def setup_params_per_object_cleaning(self, dst):
+        all_params = dict(dst=dst, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["feature_id"] = str(self.feature_source.value())
+        all_params["object_id"] = str(self.objects_source.value())
+        return all_params
+
     def setup_params_train_3d_fcn(self, dst):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         all_params = dict(src=src, dst=dst, modal=True)
@@ -1152,6 +1165,8 @@ class PipelineCard(Card):
         all_params["no_of_planes"] = self.radio_group.checkedId()
         return all_params
         
+
+
     def compute_pipeline(self):
         dst = DataModel.g.dataset_uri(self.pipeline_id, group="pipelines")
         
@@ -1171,14 +1186,16 @@ class PipelineCard(Card):
                     all_params = self.setup_params_feature_postprocess(dst)
                 elif self.pipeline_type == "cleaning":
                     all_params = self.setup_params_cleaning(dst)
+                elif self.pipeline_type == "per_object_cleaning":
+                    all_params = self.setup_params_per_object_cleaning(dst)
                 elif self.pipeline_type == "train_2d_unet":
-                	all_params = self.setup_params_train_2d_unet(dst)
+                    all_params = self.setup_params_train_2d_unet(dst)
                 elif self.pipeline_type == "predict_2d_unet":
-                	all_params = self.setup_params_predict_2d_unet(dst)
+                    all_params = self.setup_params_predict_2d_unet(dst)
                 elif self.pipeline_type == "train_3d_fcn":
-                	all_params = self.setup_params_train_3d_fcn(dst)
+                    all_params = self.setup_params_train_3d_fcn(dst)
                 elif self.pipeline_type == "predict_3d_fcn":
-                	all_params = self.setup_params_predict_3d_fcn(dst)                
+                    all_params = self.setup_params_predict_3d_fcn(dst)                
                 else:
                     logger.warning(f"No action exists for pipeline: {self.pipeline_type}")
 

@@ -34,6 +34,7 @@ from survos2.api.types import (
 from scipy import ndimage
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.entity.sampler import centroid_to_bvol, offset_points, viz_bvols
+from survos2.entity.utils import get_surface
 from survos2.frontend.components.entity import setup_entity_table
 from survos2.frontend.nb_utils import summary_stats
 from survos2.improc import map_blocks
@@ -57,6 +58,10 @@ from survos2.entity.patches import PatchWorkflow, organize_entities, make_patche
 from survos2.entity.anno.pseudo import generate_augmented_entities, make_pseudomasks, make_anno
 from survos2.entity.patches import pad_vol
 
+from survos2.entity.sampler import (
+    generate_random_points_in_volume,
+)
+
 def pass_through(x):
     return x
 
@@ -65,7 +70,7 @@ __analyzer_dtype__ = "uint32"
 __analyzer_group__ = "analyzer"
 __analyzer_names__ = [
     "find_connected_components",
-    "object_stats",
+    "patch_stats",
     "object_detection_stats",
     "segmentation_stats",
     "label_splitter",
@@ -73,7 +78,7 @@ __analyzer_names__ = [
     "spatial_clustering",
     "remove_masked_objects",
     "object_analyzer",
-    "background_classifier"
+    "point_generator"
 ]
 
 
@@ -110,6 +115,9 @@ FEATURE_OPTIONS = [
     "Position (X)",
     "Position (Y)",
     "Position (Z)",
+    "Segmented Surface Area",
+    "Segmented Volume",
+    "Segmented Sphericty"
 ]
 
 FEATURE_TYPES = [
@@ -132,8 +140,10 @@ FEATURE_TYPES = [
     "x_pos",
     "y_pos",
     "z_pos",
+    "seg_surface_area",
+    "seg_volume",
+    "seg_sphericity"
 ]
-
 
 
 @hug.get()
@@ -202,6 +212,11 @@ def label_splitter(
     depth = []
     height = []
     width = []
+    
+    #seg_crops = []
+    feature_surface_area = []
+    feature_volume = []
+    feature_sphericity = []
     for w in obj_windows:
         feature.append(
             (w[0].stop - w[0].start)
@@ -211,6 +226,21 @@ def label_splitter(
         depth.append(w[0].stop - w[0].start)
         height.append(w[1].stop - w[1].start)
         width.append(w[2].stop - w[2].start)
+
+        if (depth[-1] > 2) & (height[-1] > 2) & (width[-1] > 2):    
+            #seg_crops.append(seg[w[0].start:w[0].stop,w[1].start:w[1].stop,w[2].start:w[2].stop])
+            #plt.figure()
+            #plt.imshow(seg_crops[-1][(w[0].stop-w[0].start) // 2,:])    
+            _, surface_area, volume, sphericity = get_surface(seg[w[0].start:w[0].stop,w[1].start:w[1].stop,w[2].start:w[2].stop])
+            feature_surface_area.append(surface_area)
+            feature_volume.append(volume) 
+            feature_sphericity.append(sphericity)
+        else:
+            d, h, w = depth[-1],height[-1],width[-1]
+            feature_surface_area.append((d*h) + 4 * (h*w) + (d*w))
+            feature_volume.append(d*h*w) 
+            sphericity_of_cube = 0.523599  # rounded to 6 fig
+            feature_sphericity.append(sphericity_of_cube)
 
     ori_feature = []
     ori_depth = []
@@ -276,6 +306,9 @@ def label_splitter(
             "ori_depth": feature_ori_depth,
             "ori_height": feature_ori_height,
             "ori_width": feature_ori_width,
+            "seg_surface_area" : feature_surface_area,
+            "seg_volume" : feature_volume,
+            "seg_sphericity" : feature_sphericity
         }
     )
 
@@ -299,7 +332,10 @@ def label_splitter(
                 np.float32(np.float32(features_df.iloc[i]["ori_vol_log10"])),
                 np.float32(np.float32(features_df.iloc[i]["ori_depth"])),
                 np.float32(np.float32(features_df.iloc[i]["ori_height"])),
-                np.float32(np.float32(features_df.iloc[i]["ori_width"]))
+                np.float32(np.float32(features_df.iloc[i]["ori_width"])),
+                np.float32(np.float32(features_df.iloc[i]["seg_surface_area"])),
+                np.float32(np.float32(features_df.iloc[i]["seg_volume"])),
+                np.float32(np.float32(features_df.iloc[i]["seg_sphericity"]))
             ]
             for i in range(sel_start, sel_end)
         ]
@@ -310,7 +346,6 @@ def label_splitter(
     for k in split_ops.keys():
         if k != 'context':
             split_op_card = split_ops[k]
-            
             split_feature_index = int(split_op_card["split_feature_index"])
             split_op = int(split_op_card["split_op"])
             split_threshold = float(split_op_card["split_threshold"])
@@ -455,7 +490,7 @@ def plot_clustered_img(
 
 @hug.get()
 def find_connected_components(
-    src: DataURI, dst: DataURI, pipelines_id: DataURI,  label_index: Int, workspace: String
+    src: DataURI, dst: DataURI, pipelines_id: DataURI,  label_index: Int, workspace: String, area_min : Int, area_max: Int
 ) -> "SEGMENTATION":
     logger.debug(f"Finding connected components on segmentation: {pipelines_id}")
     print(f"{DataModel.g.current_workspace}")
@@ -466,21 +501,21 @@ def find_connected_components(
         logger.debug(f"src_dataset shape {src_dataset_arr[:].shape}")
 
     single_label_level = (src_dataset_arr == label_index) * 1.0
-
     bbs_tables, selected_entities = detect_blobs(single_label_level)
     print(bbs_tables)
     print(selected_entities)
 
     result_list = []
     for i in range(len(bbs_tables[0])):
-        result_list.append(
-            [
-                bbs_tables[0].iloc[i]["area"],
-                bbs_tables[0].iloc[i]["z"],
-                bbs_tables[0].iloc[i]["y"],
-                bbs_tables[0].iloc[i]["x"],
-            ]
-        )
+        if (bbs_tables[0].iloc[i]["area"] > area_min) & (bbs_tables[0].iloc[i]["area"] < area_max):
+            result_list.append(
+                [
+                    bbs_tables[0].iloc[i]["area"],
+                    bbs_tables[0].iloc[i]["z"],
+                    bbs_tables[0].iloc[i]["y"],
+                    bbs_tables[0].iloc[i]["x"],
+                ]
+            )
 
     map_blocks(pass_through, single_label_level, out=dst, normalize=False)
     
@@ -668,14 +703,15 @@ def remove_masked_objects(
 
 
 @hug.get()
-def object_stats(
+def patch_stats(
     src: DataURI, dst: DataURI,
     object_id: DataURI,
     feature_ids: DataURIList,
     stat_name: String,
-    workspace: String, 
+    workspace: String,
+    box_size: Int 
 ) -> "OBJECTS":
-    logger.debug(f"Calculating stats on objects: {object_id}")
+    logger.debug(f"Calculating stats on cubical patches: {object_id}")
     logger.debug(f"With features: {feature_ids}")
 
     src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
@@ -706,7 +742,6 @@ def object_stats(
             for i in range(sel_start, sel_end)
         ]
     )
-    box_size = 4
 
     print(f"Calculating statistic {stat_name} with box size of {box_size}")
     if stat_name == "0":
@@ -718,6 +753,13 @@ def object_stats(
     elif stat_name == "2":
         stat_op = np.var
         title = "Variance"
+    elif stat_name == "3":
+        stat_op = np.median
+        title = "Median"
+    elif stat_name == "4":
+        stat_op = np.sum
+        title = "Sum"
+    
     point_features = [
         stat_op(
             ds_feature[
@@ -815,7 +857,6 @@ def object_analyzer(
     )
     num_clusters = 5
 
-
     print(f"Using feature matrix of size {feature_mat.shape}")
     selected_3channel = prepare_3channel(
         selected_images,
@@ -891,134 +932,37 @@ def object_analyzer(
     return encode_numpy(plot_image), labels, entities
 
 
+
+
 @hug.get()
-def background_classifier(
-    feature_id: DataURI, 
-    proposal_id: DataURI,
-    object_id: DataURI,
-    bg_mask_id : DataURI, 
-    dst: DataURI,
-    bvol_dim: IntOrVector,
+def point_generator(
+    bg_mask_id : DataURI,
     num_before_masking : Int,
-    score_thresh : Float,
-    area_min : Int,
-    area_max : Int,
-    model_fullname : String):
-    """
-    Takes proposal seg and a set of gt entities
-    
-    """
-    # load the proposal seg
-    # load the gt entities
-    # make the gt training data patches
-    # extract the features of the classifier
-    # train the classifier
-    # find the components in the proposal seg given the filter components settings
-    # run the classifier and generate detections
-    # be able to load the obj or the background as entities
-
-    from survos2.entity.instance.det import make_augmented_entities
-    from survos2.entity.instance.detector import InstanceClassifierOneClass
-
-    # get image feature
-    src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
-    logger.debug(f"Getting features {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        feature = DM.sources[0][:]
-        logger.debug(f"Feature shape {feature.shape}")
-
-    # get feature for proposal segmentation
-    src = DataModel.g.dataset_uri(ntpath.basename(proposal_id), group="features")
-    logger.debug(f"Getting features {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        proposal_segmentation = DM.sources[0][:]
-        logger.debug(f"Feature shape {feature.shape}")
-
+):
     # get feature for background mask
     src = DataModel.g.dataset_uri(ntpath.basename(bg_mask_id), group="features")
     logger.debug(f"Getting features {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         bg_mask = DM.sources[0][:]
-        logger.debug(f"Feature shape {feature.shape}")
+        logger.debug(f"Feature shape {bg_mask.shape}")
 
-    # get gt entities
-    src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
-    logger.debug(f"Getting objects {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        ds_objects = DM.sources[0]
-    entities_fullname = ds_objects.get_metadata("fullname")
-    tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
-    entities = np.array(make_entity_df(np.array(entities_df), flipxy=False))
+    random_entities = generate_random_points_in_volume(
+        bg_mask, num_before_masking
+    ).astype(np.uint32)
 
+    from survos2.entity.utils import remove_masked_entities
+    print(
+        f"Before masking random entities generated of shape {random_entities.shape}"
+    )
+    result_entities = remove_masked_entities(bg_mask, random_entities)
+    print(f"After masking: {random_entities.shape}")
+    result_entities[:, 3] = np.array([6] * len(result_entities))
+    result_entities = np.array(make_entity_df(result_entities, flipxy=True))
 
-    padding = np.array(bvol_dim) // 2
-    feature = pad_vol(feature, padding)
-    proposal_segmentation = pad_vol(proposal_segmentation, padding)
-    bg_mask = pad_vol(bg_mask, padding)
-    entities = offset_points(entities, padding)
-
-    entity_meta = {
-        "0": {
-            "name": "class1",
-            "size": np.array(16),
-            "core_radius": np.array((7, 7, 7)),
-        },
-    }
-
-    combined_clustered_pts, classwise_entities = organize_entities(
-        proposal_segmentation, entities, entity_meta, plot_all=False)
-    wparams = {}
-    wparams["entities_offset"] = (0, 0, 0)
-
-    wf = PatchWorkflow(
-        [feature, proposal_segmentation],
-        combined_clustered_pts,
-        classwise_entities,
-        bg_mask,
-        wparams,
-        combined_clustered_pts,
-    )   
-    
-    gt_entities, random_bg_entities =  generate_augmented_entities(wf, 
-                                                                    generate_random_bg_entities=True,
-                                                                    num_before_masking=num_before_masking,
-                                                                    stratified_selection=True,
-                                                                    class_proportion = {0:1, 1: 1, 2: 1.0, 5:1})
-    
-    print(entities.shape, random_bg_entities.shape)    
-    aug_pts = np.concatenate((entities,random_bg_entities))
-    augmented_entities = make_augmented_entities(aug_pts)
-    print(f"Produced augmented entities of shape {augmented_entities.shape}")
-
-    if model_fullname != 'None':
-        print(f"Loading model for fpn features: {model_fullname}")
-    else:
-        model_fullname = None
-
-    instdet = InstanceClassifierOneClass(wf, 
-                           augmented_entities,
-                           proposal_segmentation, 
-                           feature, 
-                           bg_mask,
-                           padding=bvol_dim,
-                           area_min=area_min,
-                           area_max=area_max)
-
-    instdet.reset_bg_mask()
-    instdet.make_component_tables()
-    instdet.prepare_detector_data()
-    instdet.train_validate_model(model_file=model_fullname)
-    instdet.predict(instdet.class1_dets, score_thresh=score_thresh, model_file=model_fullname)
-    instdet.analyze_result(instdet.class1_gold_entities, instdet.class1_dets, instdet.detections)
-    print("\nProduced foreground detections: \n")
-    print(instdet.class1_dets)
-
-    # offset the points back to remove the effect of padding
-    result_entities = offset_points(instdet.class1_dets, -np.array(padding))
-    #result_entities = np.array(make_entity_df(result_entities, flipxy=False))
     return result_entities
 
 
+    
 
 # def analyze_detector_predictions(
 #     gt_entities,

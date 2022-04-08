@@ -33,6 +33,7 @@ from survos2.frontend.view_fn import (
     view_regions,
     remove_layer,
     view_objects,
+    view_entities,
     view_pipeline,
 )
 
@@ -635,6 +636,8 @@ def frontend(viewer):
             view_regions(viewer, msg)
         elif msg["data"] == "view_objects":
             view_objects(viewer, msg)
+        elif msg["data"] == "view_entities":
+            view_entities(viewer, msg)
         elif msg["data"] == "view_patches":
             view_patches(msg)
         elif msg["data"] == "show_roi":
@@ -646,6 +649,9 @@ def frontend(viewer):
         elif msg["data"] == "refresh":
             logger.debug("Refreshing plugin panel")
             dw.ppw.setup()
+        elif msg["data"] == "faster_refresh":
+            logger.debug("Faster refresh")
+            dw.ppw.setup2()
         elif msg["data"] == "empty_viewer":
             logger.debug("\n\nEmptying viewer")
             for l in viewer.layers:
