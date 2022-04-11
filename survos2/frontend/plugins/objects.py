@@ -224,7 +224,7 @@ class ObjectsCard(Card):
             "crop_end", title="Crop End: ", type="FloatOrVector", default=9000
         )
 
-        self.flipxy_checkbox = CheckBox(checked=True)
+        self.flipxy_checkbox = CheckBox(checked=False)
         self.add_row(HWidgets(None, self.flipxy_checkbox, Spacing(35)))
         self.add_row(HWidgets(None, self.view_btn, self.get_btn, Spacing(35)))
 
