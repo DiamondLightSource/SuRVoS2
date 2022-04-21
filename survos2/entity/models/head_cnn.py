@@ -158,7 +158,26 @@ def setup_fpn_for_extraction(wf, checkpoint_file, gpu_id=0):
     return model3d
 
 
-def setup_training(existing_model_file, torch_models_fullpath):
+def setup_training(model_fullpath):
+    print(f"Loading model: {model_fullpath}")
+    detmod, optimizer, scheduler = prepare_fpn3d(
+        existing_model_fname=model_fullpath, gpu_id=0
+    )
+    trainable_parameters = []
+
+    for name, p in detmod.named_parameters():
+        if "Fpn" not in name:
+            trainable_parameters.append(p)
+
+    
+    optimizer = torch.optim.AdamW(
+        params=trainable_parameters,
+        lr=0.005,
+    )
+    return detmod, optimizer
+
+
+def setup_training3(existing_model_file, torch_models_fullpath):
     model_fullpath = os.path.join(torch_models_fullpath, existing_model_file)
     print(f"Loading model: {model_fullpath}")
     detmod, optimizer, scheduler = prepare_fpn3d(
@@ -170,7 +189,7 @@ def setup_training(existing_model_file, torch_models_fullpath):
         if "Fpn" not in name:
             trainable_parameters.append(p)
 
-    len(trainable_parameters)
+    
     optimizer = torch.optim.AdamW(
         params=trainable_parameters,
         lr=0.005,
@@ -192,7 +211,7 @@ def setup_training2(existing_model_file, wf):
     #     if "Fpn" not in name:
     #         trainable_parameters.append(p)
 
-    len(trainable_parameters)
+    
     optimizer = torch.optim.AdamW(
         #params=trainable_parameters,
         lr=0.005,

@@ -110,10 +110,13 @@ def cleaning(
 
 
 @hug.get()
+@save_metadata
 def feature_postprocess(
+    src: DataURI,
+    dst: DataURI,
+    workspace: String,
     feature_A: DataURI,
     feature_B: DataURI,
-    dst: DataURI,
 ):
     src_A = DataModel.g.dataset_uri(feature_A, group="features")
     with DatasetManager(src_A, out=None, dtype="uint16", fillvalue=0) as DM:
@@ -132,12 +135,15 @@ def feature_postprocess(
 
 
 @hug.get()
+@save_metadata
 def label_postprocess(
+    src: DataURI,
+    dst: DataURI,
+    workspace: String,
     level_over: DataURI,
     level_base: DataURI,
     selected_label: Int,
     offset: Int,
-    dst: DataURI,
 ):
     if level_over != 'None':
         src1 = DataModel.g.dataset_uri(level_over, group="annotations")
@@ -721,10 +727,14 @@ def train_3d_fcn(
     
 
 @hug.get()
+@save_metadata
 def predict_3d_fcn(
+    src: DataURI,
+    dst: DataURI,
+    workspace: String,
+    anno_id: DataURI,
     feature_id: DataURI,
     model_fullname: String,
-    dst: DataURI,
     patch_size: IntOrVector = 64,
     patch_overlap: IntOrVector = 8,
     threshold: Float = 0.5,
@@ -757,46 +767,49 @@ def predict_3d_fcn(
     
     proposal = (proposal > threshold) * 1.0
 
-    # store resulting segmentation in dst
-    dst = DataModel.g.dataset_uri(dst, group="pipelines")
-    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = proposal
+    map_blocks(pass_through, proposal, out=dst, normalize=False)
+    
+
+    # # store resulting segmentation in dst
+    # dst = DataModel.g.dataset_uri(dst)
+    # with DatasetManager(dst, out=dst, dtype="int32", fillvalue=0) as DM:
+    #     DM.out[:] = proposal
 
 
-@hug.get()
-def predict_segmentation_fcn(
-    feature_id: DataURI,
-    model_fullname: String,
-    dst: DataURI,
-    patch_size: IntOrVector = 64,
-    patch_overlap: IntOrVector = 8,
-    threshold: Float = 0.5,
-    model_type: String = "unet3d",
-):
-    from survos2.entity.pipeline_ops import make_proposal
+# @hug.get()
+# def predict_segmentation_fcn(
+#     feature_id: DataURI,
+#     model_fullname: String,
+#     dst: DataURI,
+#     patch_size: IntOrVector = 64,
+#     patch_overlap: IntOrVector = 8,
+#     threshold: Float = 0.5,
+#     model_type: String = "unet3d",
+# ):
+#     from survos2.entity.pipeline_ops import make_proposal
 
-    src = DataModel.g.dataset_uri(feature_id, group="features")
+#     src = DataModel.g.dataset_uri(feature_id, group="features")
 
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        logger.debug(f"Adding feature of shape {src_dataset.shape}")
+#     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+#         src_dataset = DM.sources[0]
+#         logger.debug(f"Adding feature of shape {src_dataset.shape}")
         
-    proposal = make_proposal(
-        src_dataset,
-        model_fullname,
-        model_type=model_type,
-        patch_size=patch_size,
-        patch_overlap=patch_overlap,
-    )
+#     proposal = make_proposal(
+#         src_dataset,
+#         model_fullname,
+#         model_type=model_type,
+#         patch_size=patch_size,
+#         patch_overlap=patch_overlap,
+#     )
 
-    proposal -= np.min(proposal)
-    proposal = proposal / np.max(proposal)
-    proposal = ((proposal < threshold) * 1) + 1
+#     proposal -= np.min(proposal)
+#     proposal = proposal / np.max(proposal)
+#     proposal = ((proposal < threshold) * 1) + 1
 
-    # store resulting segmentation in dst
-    dst = DataModel.g.dataset_uri(dst, group="pipelines")
-    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = proposal
+#     # store resulting segmentation in dst
+#     dst = DataModel.g.dataset_uri(dst, group="pipelines")
+#     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+#         DM.out[:] = proposal
 
 from survos2.frontend.nb_utils import slice_plot
 from scipy.ndimage.morphology import binary_erosion
@@ -816,15 +829,7 @@ def per_object_cleaning(
     feature_id: DataURI, 
     object_id: DataURI,
 ):
-    """_summary_
 
-    Parameters
-    ----------
-    feature_id : DataURI
-        _description_
-    object_id : DataURI
-        _description_
-    """
 
     # get image feature
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")

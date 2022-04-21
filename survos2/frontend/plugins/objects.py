@@ -224,7 +224,7 @@ class ObjectsCard(Card):
             "crop_end", title="Crop End: ", type="FloatOrVector", default=9000
         )
 
-        self.flipxy_checkbox = CheckBox(checked=False)
+        self.flipxy_checkbox = CheckBox(checked=True)
         self.add_row(HWidgets(None, self.flipxy_checkbox, Spacing(35)))
         self.add_row(HWidgets(None, self.view_btn, self.get_btn, Spacing(35)))
 
@@ -250,13 +250,10 @@ class ObjectsCard(Card):
             self.make_entity_mask_btn.clicked.connect(self.make_entity_mask)
             self.make_patches_btn = PushButton("Make patches", accent=True)
             self.make_patches_btn.clicked.connect(self.make_patches)
-            self.train_fpn_btn = PushButton("Train FPN", accent=True)
-            self.train_fpn_btn.clicked.connect(self.train_fpn)
 
             self.add_row(HWidgets(None, self.entity_mask_bvol_size, self.make_entity_mask_btn, Spacing(35)))
             self.add_row(HWidgets(None,  self.make_patches_btn, Spacing(35)))
-            self.add_row(HWidgets(None, self.train_fpn_btn, Spacing(35)))
-
+ 
 
         self.table_control = TableWidget()
         self.add_row(self.table_control.w, max_height=500)
@@ -422,7 +419,6 @@ class ObjectsCard(Card):
                 {"source": "objects_plugin", "data": "refresh", "value": None}
             )
 
-
     def make_patches(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -463,7 +459,7 @@ class ObjectsCard(Card):
         logger.debug(f"Making patches in path {src_dataset._path}")
         train_v_density = make_patches(wf, entity_arr, src_dataset._path, 
         proposal_vol=(anno_level > 0)* 1.0, 
-        padding=(32,32,32), num_augs=0, max_vols=-1)
+        padding=self.entity_mask_bvol_size.value(), num_augs=0, max_vols=-1)
 
         self.patches = train_v_density
 
@@ -471,51 +467,4 @@ class ObjectsCard(Card):
             {"source": "panel_gui", "data": "view_patches", "patches_fullname": train_v_density}
         )
 
-
-    def train_fpn(self):
-        from survos2.entity.train import train_seg
-        from survos2.entity.pipeline_ops import make_proposal
-        
-        wf_params = {}
-        wf_params["torch_models_fullpath"] = "/experiments"
-        model_file = train_seg(self.patches, wf_params, num_epochs=1)
-
-        patch_size=(64,64,64)
-        patch_overlap=(16, 16, 16)
-        overlap_mode="crop"
-        model_type="fpn3d"
-
-        threshold_devs=1.5,
-        invert=True,
-
-        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_array = DM.sources[0][:]
-        
-        proposal = make_proposal(
-        src_array,
-        os.path.join(wf_params["torch_models_fullpath"],model_file),
-        model_type=model_type,
-        patch_size=patch_size,
-        patch_overlap=patch_overlap,
-        overlap_mode=overlap_mode,
-        )
-
-        # create new float image
-        params = dict(feature_type="raw", workspace=True)
-        result = Launcher.g.run("features", "create", **params)
-
-        if result:
-            fid = result["id"]
-            ftype = result["kind"]
-            fname = result["name"]
-            logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
-
-            dst = DataModel.g.dataset_uri(fid, group="features")
-            with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-                DM.out[:] = proposal
-
-            cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
-            )
 

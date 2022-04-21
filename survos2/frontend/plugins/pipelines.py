@@ -790,16 +790,32 @@ class PipelineCard(Card):
                     os.path.join("objects/", params["object_id"])
                 )
         if "feature_id" in params:
-            for source in params["feature_id"]:
-                self.feature_source.select(os.path.join("features/", source))
+            #self.feature_source.select(os.path.join("features/", params["feature_id"]))
+            self.feature_source.select(params["feature_id"])
         if "feature_ids" in params:
             for source in params["feature_ids"]:
                 self.features_source.select(os.path.join("features/", source))
+        
+        if "feature_A" in params:
+            self.feature_source.select(params["feature_A"])
+
+        if "feature_B" in params:
+            self.feature_source2.select(params["feature_B"])
+
+        if "level_over" in params:
+            print("level over found")
+            self.annotations_source.select(os.path.join("annotations/", params["level_over"]))
+
+        if "level_base" in params:
+            print("level_base found")
+            self.annotations_source2.select(os.path.join("annotations/", params["level_base"]))
+
         if "region_id" in params:
             if params["region_id"] is not None:
                 self.regions_source.select(
-                    os.path.join("regions/", params["region_id"])
+                    os.path.join("superregions/", params["region_id"])
                 )
+            
         if "constrain_mask" in params:
             if (
                 params["constrain_mask"] is not None
@@ -1055,23 +1071,11 @@ class PipelineCard(Card):
         all_params["dst"] = self.pipeline_id
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         return all_params
-    def setup_params_predict_3d_fcn(self, dst):
-        src = DataModel.g.dataset_uri(
-            self.feature_source.value(), group="features"
-        )
-        all_params = dict(src=src, dst=dst, modal=True)
-        all_params["workspace"] = DataModel.g.current_workspace
-        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
-        all_params["feature_id"] = self.feature_source.value()
-        all_params["model_fullname"] = self.model_fullname
-        all_params["model_type"] = self.model_type.value()
-        all_params["dst"] = self.pipeline_id
-        all_params["overlap_mode"] = self.overlap_type.value()
-        
-        return all_params
+
 
     def setup_params_feature_postprocess(self, dst):
-        all_params = dict(modal=True)
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        all_params = dict(src=src, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_A"] = str(self.feature_source.value())
         all_params["feature_B"] = str(self.feature_source2.value())
@@ -1079,9 +1083,9 @@ class PipelineCard(Card):
         return all_params
 
     def setup_params_label_postprocess(self, dst):
-        all_params = dict(modal=True)
+        src = DataModel.g.dataset_uri(self.annotations_source.value().rsplit("/", 1)[-1], group="annotations")
+        all_params = dict(src=src, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
-        
         print(self.annotations_source.value())
 
         if(self.annotations_source.value()):
@@ -1094,18 +1098,17 @@ class PipelineCard(Card):
             self.annotations_source2.value().rsplit("/", 1)[-1]
         )
         all_params["dst"] = dst
-        
-        #all_params["selected_label"] = int(self.label_index.value())
-        #all_params["offset"] = int(self.offset.value())
         all_params["selected_label"] = int(self.widgets["selected_label"].value())
         all_params["offset"] = int(self.widgets["offset"].value())
         return all_params
 
     def setup_params_cleaning(self, dst):
-        all_params = dict(dst=dst, modal=True)
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
         return all_params
+
     def setup_params_per_object_cleaning(self, dst):
         all_params = dict(dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
@@ -1119,16 +1122,32 @@ class PipelineCard(Card):
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
-        print(str(self.objects_source.value())) 
-        if self.objects_source.value() != None:
-            all_params["objects_id"] = str(self.objects_source.value().rsplit("/", 1)[-1])
-        else:
-            all_params["objects_id"] = str(self.objects_source.value())
+        # print(str(self.objects_source.value())) 
+        # if self.objects_source.value() != None:
+        #     all_params["objects_id"] = str(self.objects_source.value().rsplit("/", 1)[-1])
+        # else:
+        #     all_params["objects_id"] = str(self.objects_source.value())
+        all_params["objects_id"] = "None"
         all_params["fpn_train_params"] = {}
         all_params["fcn_type"] = self.fcn_type.value()
         
         return all_params
 
+    def setup_params_predict_3d_fcn(self, dst):
+        src = DataModel.g.dataset_uri(
+            self.feature_source.value(), group="features"
+        )
+        all_params = dict(src=src, modal=True)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
+        all_params["feature_id"] = self.feature_source.value()
+        all_params["model_fullname"] = self.model_fullname
+        all_params["model_type"] = self.model_type.value()
+        all_params["dst"] = dst
+        all_params["overlap_mode"] = self.overlap_type.value()
+        
+        return all_params
+    
     def setup_params_train_2d_unet(self, dst):
         # Retrieve params from table
         num_rows = self.table.rowCount()

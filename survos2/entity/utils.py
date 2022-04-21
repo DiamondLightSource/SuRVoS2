@@ -106,32 +106,38 @@ def get_largest_cc(I):
 
 
 def get_surface(img_vol, plot3d=False):
-    verts, faces, normals, values = measure.marching_cubes((img_vol > 0) * 1.0, 0)
+    try:
+        verts, faces, normals, values = measure.marching_cubes((img_vol > 0) * 1.0, 0)
 
-    mesh = Poly3DCollection(verts[faces])
+        mesh = Poly3DCollection(verts[faces])
 
-    if plot3d:
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.add_subplot(111, projection="3d")
+        if plot3d:
+            fig = plt.figure(figsize=(10, 10))
+            ax = fig.add_subplot(111, projection="3d")
 
-        mesh.set_edgecolor("k")
-        ax.add_collection3d(mesh)
+            mesh.set_edgecolor("k")
+            ax.add_collection3d(mesh)
 
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
-        ax.set_zlabel("z")
+            ax.set_xlabel("x")
+            ax.set_ylabel("y")
+            ax.set_zlabel("z")
 
-        ax.set_xlim(0, img_vol.shape[1])
-        ax.set_ylim(0, img_vol.shape[2])
-        ax.set_zlim(0, img_vol.shape[0])
+            ax.set_xlim(0, img_vol.shape[1])
+            ax.set_ylim(0, img_vol.shape[2])
+            ax.set_zlim(0, img_vol.shape[0])
 
-        plt.tight_layout()
-        plt.show()
+            plt.tight_layout()
+            plt.show()
 
-    s = skimage.measure.mesh_surface_area(verts, faces)
-    v = np.sum(img_vol)
+        s = skimage.measure.mesh_surface_area(verts, faces)
+        v = np.sum(img_vol)
 
-    sphericity = (36 * math.pi * (v ** 2)) / (s ** 3)
+        sphericity = (36 * math.pi * (v ** 2)) / (s ** 3)
+    except:
+        s = 0
+        v = 0
+        sphericity = 0
+        mesh = None
 
     return mesh, s, v, sphericity
 

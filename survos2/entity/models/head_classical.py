@@ -18,7 +18,7 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from survos2.entity.utils import get_surface, pad_vol
-from survos2.entity.entities import offset_points
+from survos2.entity.entities import offset_points, make_entity_df
 from survos2.frontend.nb_utils import show_images, slice_plot
 from survos2.server.features import features_factory, generate_features
 from survos2.server.filtering import ndimage_laplacian, gaussian_blur_kornia, spatial_gradient_3d
@@ -45,7 +45,7 @@ def classical_head_train(features, labels, saved_cls=False, n_components=7):
     # reduced_data = UMAP(**params).fit_transform(np.nan_to_num(features))
     
     X_train, X_test, y_train, y_test = train_test_split(
-        reduced_data, labels, test_size=0.5, random_state=41
+        reduced_data, labels, test_size=0.9, random_state=41
     )
     n_classes = len(np.unique(y_train))
     print(f"Number of classes: {n_classes}")
@@ -61,12 +61,12 @@ def classical_head_train(features, labels, saved_cls=False, n_components=7):
         "subsample": 0.5,
     }
 
-    rfc = RandomForestClassifier(n_estimators=n_estimators, max_depth=6)
+    # rfc = RandomForestClassifier(n_estimators=n_estimators, max_depth=6)
     etc = ExtraTreesClassifier(n_estimators=n_estimators)
-    gbc = GradientBoostingClassifier(**gbc_params)
-    mlp = MLPClassifier(random_state=1, max_iter=300)
+    # gbc = GradientBoostingClassifier(**gbc_params)
+    #mlp = MLPClassifier(random_state=1, max_iter=300)
 
-    svc = svm.SVC(kernel="linear", C=1)
+    #svc = svm.SVC(kernel="linear", C=1)
 
     X = X_train
     y = y_train
@@ -77,19 +77,20 @@ def classical_head_train(features, labels, saved_cls=False, n_components=7):
     X_std = (X - mean) / std
     X_test_std = (X_test - mean) / std
 
-    rfc.fit(X, y)
+    # rfc.fit(X, y)
     etc.fit(X, y)
-    gbc.fit(X, y)
-    svc.fit(X, y)
-    mlp.fit(X, y)
+    # gbc.fit(X, y)
+    # svc.fit(X, y)
+    #mlp.fit(X, y)
 
-    scores = rfc.score(X, y)
-    preds = rfc.predict(X_test)
-    trained_classifiers = {"rfc": {"score": accuracy_score(y_test, preds)}}
-    trained_classifiers["rfc"]["classifier"] = rfc
-    print(f"Random forest accuracy score: {accuracy_score(y_test, preds)}")
+    trained_classifiers = {}
+    # scores = rfc.score(X, y)
+    # preds = rfc.predict(X_test)
+    # trained_classifiers = {"rfc": {"score": accuracy_score(y_test, preds)}}
+    # trained_classifiers["rfc"]["classifier"] = rfc
+    # print(f"Random forest accuracy score: {accuracy_score(y_test, preds)}")
 
-    # print(scores_svm)
+    # # print(scores_svm)
     scores_etc = etc.score(X, y)
     preds_etc = etc.predict(X_test)
     trained_classifiers["etc"] = {}
@@ -97,29 +98,29 @@ def classical_head_train(features, labels, saved_cls=False, n_components=7):
     trained_classifiers["etc"]["classifier"] = etc
     print(f"Extra random tree accuracy score: {accuracy_score(y_test, preds_etc)}")
 
-    preds_gbc = gbc.predict(X_test)
-    trained_classifiers["gbc"] = {}
-    trained_classifiers["gbc"]["score"] = accuracy_score(y_test, preds_gbc)
-    trained_classifiers["gbc"]["classifier"] = gbc
-    print(
-        f"Gradient boosting classifier accuracy score: {accuracy_score(y_test, preds_gbc)}"
-    )
+    # preds_gbc = gbc.predict(X_test)
+    # trained_classifiers["gbc"] = {}
+    # trained_classifiers["gbc"]["score"] = accuracy_score(y_test, preds_gbc)
+    # trained_classifiers["gbc"]["classifier"] = gbc
+    # print(
+    #     f"Gradient boosting classifier accuracy score: {accuracy_score(y_test, preds_gbc)}"
+    # )
 
-    preds_mlp = mlp.predict(X_test)
-    trained_classifiers["mlp"] = {}
-    trained_classifiers["mlp"]["score"] = accuracy_score(y_test, preds_mlp)
-    trained_classifiers["mlp"]["classifier"] = mlp
-    print(
-        f"MLP classifier accuracy score: {accuracy_score(y_test, preds_mlp)}"
-    )
+    # preds_svc = svc.predict(X_test_std)
+    # trained_classifiers["svc"] = {}
+    # trained_classifiers["svc"]["score"] = accuracy_score(y_test, preds_gbc)
+    # trained_classifiers["svc"]["classifier"] = svc
+    # print(
+    #     f"Gradient boosting classifier accuracy score: {accuracy_score(y_test, preds_gbc)}"
+    # )
 
-    preds_svc = svc.predict(X_test_std)
-    trained_classifiers["svc"] = {}
-    trained_classifiers["svc"]["score"] = accuracy_score(y_test, preds_gbc)
-    trained_classifiers["svc"]["classifier"] = svc
-    print(
-        f"Gradient boosting classifier accuracy score: {accuracy_score(y_test, preds_gbc)}"
-    )
+    # preds_mlp = mlp.predict(X_test)
+    # trained_classifiers["mlp"] = {}
+    # trained_classifiers["mlp"]["score"] = accuracy_score(y_test, preds_mlp)
+    # trained_classifiers["mlp"]["classifier"] = mlp
+    # print(
+    #     f"MLP classifier accuracy score: {accuracy_score(y_test, preds_mlp)}"
+    # )
 
     return trained_classifiers
 
@@ -144,8 +145,8 @@ def classical_head_validate(features, labels, classifier, n_components):
 
 def generate_feature_vols(padded_vol, padded_proposal, wf):
     feature_params = [
-        [gaussian_blur_kornia, {"sigma": 6}],
-        #[ndimage_laplacian, {"kernel_size": 6}],
+        [gaussian_blur_kornia, {"sigma": 3}],
+        [ndimage_laplacian, {"kernel_size": 4}],
         #[spatial_gradient_3d, {}],
         #[median, {"median_size" : 6, "num_iter": 2}]
     ]
@@ -180,11 +181,12 @@ def prepare_classical_features(
             entities, filtered_vols.filtered_layers, bvol_dim=bvol_dim, flip_xy=False
         )
     else:
-        fvd = prepare_filtered_patch_dataset(
-            np.array(entities), filtered_vols, bvol_dim=bvol_dim, flip_xy=False
+        entities = np.array(make_entity_df(entities, flipxy=True))
+        fvd, targs_all = prepare_filtered_patch_dataset(
+            entities, filtered_vols.filtered_layers, bvol_dim=bvol_dim, flip_xy=False, offset_type="None"
         )
     print(f"Prepared classical feature volumes of shape {fvd[0][0][0].shape}")
-    features = extract_classical_features(fvd, plot_all=plot_all)
+    features = extract_classical_features(fvd, bvol_dim, plot_all=plot_all, resnet=True )
     print(f"Extracted classical features of shape {features.shape}")
     if model_file:
         model3d = setup_fpn_for_extraction(wf, model_file)
@@ -197,18 +199,18 @@ def prepare_classical_features(
 
 
 
-def get_resnet_feature(img):
-    cnnfeat = CNNFeatures(cuda=True, model="resnet-50", gpu_id=0)
+def get_resnet_feature(img, model="resnet-50", gpu_id=0):
+    cnnfeat = CNNFeatures(cuda=True, model=model, gpu_id=gpu_id)
     fv = []
     img_3channel = np.stack((img, img, img)).T
     fv.extend(cnnfeat.extract_feature(Image.fromarray(img_as_ubyte(img_3channel))))
     return fv
 
-def extract_classical_features(fvd, plot_all=False):
+def extract_classical_features(fvd, bvol_dim, plot_all=False, resnet=False):
     features = []
     for i in range(len(fvd)):
         curvols, target = fvd[i]
-        segvol = curvols[1]
+        segvol = curvols[-1]
         
         label = target["labels"]
         max_slice, slice_incr = segvol.shape[0], segvol.shape[0] // 3
@@ -233,8 +235,9 @@ def extract_classical_features(fvd, plot_all=False):
         from survos2.entity.utils import get_largest_cc
         size_largest_cc = np.sum(get_largest_cc((segvol > 0) * 1.0)) / (segvol.shape[0] * segvol.shape[1] * segvol.shape[2])
         
+
         fv = [
-                [np.mean(v[segvol > 0]),
+                [
                 np.sum(v[segvol > 0]) / (segvol.shape[0] * segvol.shape[1] * segvol.shape[2]),
                 np.mean(v[segvol > 0]),
                 np.std(v[segvol > 0]),
@@ -244,7 +247,6 @@ def extract_classical_features(fvd, plot_all=False):
                 np.median(v),
                 np.mean(v[16:48,16:48,16:48]),
                 np.std(v[16:48,16:48,16:48]),
-                np.median(v[16:48,16:48,16:48]),
                 sphericity,
                 size_largest_cc]
             
@@ -253,8 +255,11 @@ def extract_classical_features(fvd, plot_all=False):
 
         fv = np.array(fv).flatten()
         fv = list(fv)
-        #resnet_fv = get_resnet_feature(curvols[2][32,:])
-        #fv.extend(resnet_fv)
+
+        if resnet:
+            resnet_fv = get_resnet_feature(curvols[2][bvol_dim[0]//2,:])
+            fv.extend(resnet_fv)
+        
         fv = np.array(fv).flatten()
         fv = np.nan_to_num(fv)
         features.append(fv)
@@ -568,9 +573,11 @@ def classical_prediction(
 
 
     if offset:
-        prepared_entities = offset_points(entities, -np.array(bvol_dim) //2)
+        prepared_entities = offset_points(entities, - 2 *np.array(bvol_dim))
+        print("Offset points for prediction.")
     else:
         prepared_entities = entities
+        print("No prediction offset")
     print(f"Running classical feature based detector with bvol_dim: {bvol_dim}")
     
     features, fvd_ = prepare_classical_features(
@@ -581,6 +588,7 @@ def classical_prediction(
         bvol_dim=bvol_dim,
         plot_all=plot_all,
         flip_xy=flip_xy,
+        stage_train=False
     )
 
     if standardize:
@@ -603,8 +611,7 @@ def classical_prediction(
     preds = classifier.predict(reduced_data)
     proba = classifier.predict_proba(reduced_data)
     detected = filter_scores(proba, score_thresh=score_thresh)
-
-    
+  
     return detected, preds, proba, fvd_
 
 

@@ -5,6 +5,10 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
+
+from napari.qt.progress import progress
 
 from survos2.frontend.components.base import *
 from survos2.frontend.components.icon_buttons import IconButton
@@ -20,11 +24,6 @@ from survos2.server.state import cfg
 from survos2.utils import decode_numpy
 from survos2.frontend.components.entity import TableWidget
 from survos2.frontend.utils import FileWidget
-
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-from matplotlib.figure import Figure
-
-from napari.qt.progress import progress
 
 feature_names = ["z",
                  "y",
@@ -313,51 +312,7 @@ class AnalyzerCard(Card):
         self.model_fullname = "None"
 
         if self.analyzer_type == "label_splitter":
-            # radio buttons to select source type
-            self.radio_group = QtWidgets.QButtonGroup()
-            self.radio_group.setExclusive(True)
-            pipelines_rb = QRadioButton("Pipelines")
-            pipelines_rb.setChecked(True)
-            pipelines_rb.toggled.connect(self._pipelines_rb_checked)
-            self.radio_group.addButton(pipelines_rb, 1)
-            analyzers_rb = QRadioButton("Analyzers")
-            analyzers_rb.toggled.connect(self._analyzers_rb_checked)
-            self.radio_group.addButton(analyzers_rb, 2)
-            annotations_rb = QRadioButton("Annotation")
-            self.radio_group.addButton(annotations_rb, 3)
-            annotations_rb.toggled.connect(self._annotations_rb_checked)
-            self.add_row(HWidgets(pipelines_rb, analyzers_rb, annotations_rb))
-            
-            self.source_container = QtWidgets.QWidget()
-            source_vbox = VBox(self, spacing=4)
-            source_vbox.setContentsMargins(0, 0, 0, 0)
-            self.source_container.setLayout(source_vbox)
-            self.add_row(self.source_container)
-            self.pipelines_source = PipelinesComboBox()
-            self.pipelines_source.fill()
-            self.pipelines_source.setMaximumWidth(250)
-            self.pipelines_widget = HWidgets(
-            "Segmentation:", self.pipelines_source,  stretch=1
-            )
-            self.pipelines_widget.setParent(None)
-
-            self.annotations_source = LevelComboBox(full=True)
-            self.annotations_source.fill()
-            self.annotations_source.setMaximumWidth(250)
-            self.annotations_widget = HWidgets("Annotation", self.annotations_source,  stretch=1)
-            self.annotations_widget.setParent(None)
-
-            self.analyzers_source = AnalyzersComboBox()
-            self.analyzers_source.fill()
-            self.analyzers_source.setMaximumWidth(250)
-            self.analyzers_widget = HWidgets(
-                "Analyzers:", self.analyzers_source, stretch=1
-            )
-            self.analyzers_widget.setParent(None)
-            self.source_container.layout().addWidget(self.pipelines_widget)
-            self.current_widget = self.pipelines_widget
-
-            self._add_feature_source()
+            self.add_source_selector()
  
             self.background_label = LineEdit(default=0, parse=float)
             widget = HWidgets("Background label:", self.background_label, stretch=1)
@@ -430,7 +385,8 @@ class AnalyzerCard(Card):
             self._add_features_source()
             self._add_object_detection_stats_source()
         elif self.analyzer_type == "find_connected_components":
-            additional_buttons.append(self._add_pipelines_source2())
+            self.add_source_selector()
+
             self.label_index = LineEdit(default=0, parse=int)
             widget = HWidgets("Label Index:", self.label_index,  stretch=1)
             self.add_row(widget)
@@ -440,7 +396,8 @@ class AnalyzerCard(Card):
             widget = HWidgets("Area min:", self.area_min, "Area max: ", self.area_max)
             self.add_row(widget)
             
-            self.load_as_objects_btn = additional_buttons[-1]
+            self.load_as_objects_btn = PushButton("Load as Objects")
+            additional_buttons.append(self.load_as_objects_btn)
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
             self._add_view_btn()
 
@@ -452,31 +409,11 @@ class AnalyzerCard(Card):
             self.load_as_objects_btn = PushButton("Load as Objects")
             additional_buttons.append(self.load_as_objects_btn)
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
-            
-        elif self.analyzer_type == "background_classifier":
-            self._add_feature_source(label="Proposal segmentation")
-            self._add_objects_source()
-            self._add_feature_source2(label="Background mask:")
-            self._add_feature_source3(label="Feature:")
-            self.area_min = LineEdit(default=0, parse=int)
-            self.area_max = LineEdit(default=1e14, parse=int)
-            self.score_threshold = LineEdit(default=0.95, parse=float)
-            self.num_before_masking = LineEdit(default=500, parse=int)
-            self.bvol_dim = LineEdit3D(default=32)
-            widget = HWidgets("Area min:", self.area_min, "Area max: ", self.area_max, "Patch dim: ", self.bvol_dim)
-            self.add_row(widget)
-            widget = HWidgets("Score threshold:", self.score_threshold, "Num before masking", self.num_before_masking)
-            self.add_row(widget)
-            self.load_as_objects_btn = PushButton("Load as Objects")
-            additional_buttons.append(self.load_as_objects_btn)
-            self.load_as_objects_btn.clicked.connect(self.load_as_objects)
-            self._add_model_file()
-
         elif self.analyzer_type == "binary_classifier":
             self._add_feature_source(label="Proposal segmentation")
             self._add_objects_source()
-            self._add_objects_source2(title="Bg Objects:")
-            self._add_feature_source2(label="Background mask:")
+            self._add_objects_source2(title="Background Objects:")
+            self._add_feature_source2(label="Mask:")
             self._add_feature_source3(label="Feature:")
             self.area_min = LineEdit(default=0, parse=int)
             self.area_max = LineEdit(default=1e14, parse=int)
@@ -491,7 +428,6 @@ class AnalyzerCard(Card):
             additional_buttons.append(self.load_as_objects_btn)
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
             self._add_model_file()
-
         elif self.analyzer_type == "remove_masked_objects":
             self._add_feature_source()
             self._add_objects_source()
@@ -553,6 +489,53 @@ class AnalyzerCard(Card):
         self.plots = []
         self.object_analyzer_plots = []
         self.object_analyzer_controls = []
+    
+    def add_source_selector(self):    
+        # radio buttons to select source type
+        self.radio_group = QtWidgets.QButtonGroup()
+        self.radio_group.setExclusive(True)
+        pipelines_rb = QRadioButton("Pipelines")
+        pipelines_rb.setChecked(True)
+        pipelines_rb.toggled.connect(self._pipelines_rb_checked)
+        self.radio_group.addButton(pipelines_rb, 1)
+        analyzers_rb = QRadioButton("Analyzers")
+        analyzers_rb.toggled.connect(self._analyzers_rb_checked)
+        self.radio_group.addButton(analyzers_rb, 2)
+        annotations_rb = QRadioButton("Annotation")
+        self.radio_group.addButton(annotations_rb, 3)
+        annotations_rb.toggled.connect(self._annotations_rb_checked)
+        self.add_row(HWidgets(pipelines_rb, analyzers_rb, annotations_rb))
+        
+        self.source_container = QtWidgets.QWidget()
+        source_vbox = VBox(self, spacing=4)
+        source_vbox.setContentsMargins(0, 0, 0, 0)
+        self.source_container.setLayout(source_vbox)
+        self.add_row(self.source_container)
+        self.pipelines_source = PipelinesComboBox()
+        self.pipelines_source.fill()
+        self.pipelines_source.setMaximumWidth(250)
+        self.pipelines_widget = HWidgets(
+        "Segmentation:", self.pipelines_source,  stretch=1
+        )
+        self.pipelines_widget.setParent(None)
+
+        self.annotations_source = LevelComboBox(full=True)
+        self.annotations_source.fill()
+        self.annotations_source.setMaximumWidth(250)
+        self.annotations_widget = HWidgets("Annotation", self.annotations_source,  stretch=1)
+        self.annotations_widget.setParent(None)
+
+        self.analyzers_source = AnalyzersComboBox()
+        self.analyzers_source.fill()
+        self.analyzers_source.setMaximumWidth(250)
+        self.analyzers_widget = HWidgets(
+            "Analyzers:", self.analyzers_source, stretch=1
+        )
+        self.analyzers_widget.setParent(None)
+        self.source_container.layout().addWidget(self.pipelines_widget)
+        self.current_widget = self.pipelines_widget
+        self._add_feature_source()
+
     def _on_embedding_method_changed(self, idx):
         if idx == 0:
             self.UMAP_Panel.setParent(None)
@@ -875,7 +858,33 @@ class AnalyzerCard(Card):
         # for k, v in params.items():
         #     if k in self.widgets:
         #         self.widgets[k].setValue(v)
-     
+
+        if "anno_id" in params:
+            if params["anno_id"] is not None:
+                if isinstance(params["anno_id"], list):
+                    self.annotations_source.select(
+                        os.path.join("annotations/", params["anno_id"][0])
+                    )
+                else:
+                    self.annotations_source.select(
+                        os.path.join("annotations/", params["anno_id"])
+                    )
+        
+        if "object_id" in params:
+            if params["object_id"] is not None:
+                self.objects_source.select(
+                    os.path.join("objects/", params["object_id"])
+                )
+        if "feature_id" in params:
+            self.feature_source.select(params["feature_id"])
+        if "feature_ids" in params:
+            for source in params["feature_ids"]:
+                self.features_source.select(os.path.join("features/", source))
+        if "region_id" in params:
+            if params["region_id"] is not None:
+                self.regions_source.select(
+                    os.path.join("regions/", params["region_id"])
+                )
 
     def display_splitter_results(self, result):
         entities = []
@@ -960,24 +969,24 @@ class AnalyzerCard(Card):
         for i in range(len(result)):
             entry = (
                 i,
-                result[i][0],
                 result[i][1],
                 result[i][2],
                 result[i][3],
+                result[i][0],
             )
             tabledata.append(entry)
 
-            entity = (result[i][1], result[i][2], result[i][3], 0)
+            entity = (result[i][0], result[i][1], result[i][2], 0)
             entities.append(entity)
 
         tabledata = np.array(
             tabledata,
             dtype=[
                 ("index", int),
-                ("area", int),
                 ("z", int),
                 ("x", int),
                 ("y", int),
+                ("area", int),
             ],
         )
 
@@ -1097,31 +1106,21 @@ class AnalyzerCard(Card):
             {"source": "analyzer_plugin", "data": "refresh", "value": None}
         )
 
-
-    # def clustering_plot(self):
+    # def clustering_plot(self, src_arr):
     #     if len(self.object_analyzer_plots) > 0:
     #         for plot in self.object_analyzer_plots:
     #             plot.setParent(None)
     #             plot = None
     #     self.object_analyzer_plots = []
-    #     src = DataModel.g.dataset_uri(self.features_source.value())
-    #     dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
-    #     all_params = dict(src=src, dst=dst, modal=False)
-    #     all_params["workspace"] = DataModel.g.current_workspace
-    #     all_params["feature_ids"] = str(self.features_source.value()[-1])
-    #     all_params["object_id"] = str(self.objects_source.value())
-    #     logger.debug(f"Running analyzer with params {all_params}")
-    #     result = Launcher.g.run("analyzer", "image_stats", **all_params)
-    #     if result:
-    #         src_arr = decode_numpy(result)
-    #         sc = MplCanvas(self, width=5, height=4, dpi=100)
-    #         sc.axes.imshow(src_arr)
-    #         max_height = 600
-    #         sc.setProperty("header", False)
-    #         sc.setMaximumHeight(max_height)
-    #         self.object_analyzer_plots.append(sc)
-    #         self.vbox.addWidget(self.object_analyzer_plots[0])
-    #         print("Added clustering plot")
+
+    #     sc = MplCanvas(self, width=5, height=4, dpi=100)
+    #     sc.axes.imshow(src_arr)
+    #     max_height = 600
+    #     sc.setProperty("header", False)
+    #     sc.setMaximumHeight(max_height)
+    #     self.object_analyzer_plots.append(sc)
+    #     self.vbox.addWidget(self.object_analyzer_plots[0])
+    #     print("Added clustering plot")
 
     def export_csv(self):
         full_path = QtWidgets.QFileDialog.getSaveFileName(
@@ -1149,8 +1148,8 @@ class AnalyzerCard(Card):
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["analyzers_id"] = str(self.analyzers_source.value())
         all_params["annotations_id"] = str(self.annotations_source.value())
-        
         all_params["mode"] = self.radio_group.checkedId()
+
         all_params["background_label"] = self.background_label.value()
 
         split_ops = {}
@@ -1224,6 +1223,9 @@ class AnalyzerCard(Card):
         all_params = dict(src=src, dst=dst, modal=False)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["pipelines_id"] = str(self.pipelines_source.value())
+        all_params["analyzers_id"] = str(self.analyzers_source.value())
+        all_params["annotations_id"] = str(self.annotations_source.value())
+        all_params["mode"] = self.radio_group.checkedId()
         all_params["label_index"] = self.label_index.value()
         all_params["area_min"] = self.area_min.value()
         all_params["area_max"] = self.area_max.value()
@@ -1377,7 +1379,7 @@ class AnalyzerCard(Card):
         all_params = dict(src=src, dst=dst, modal=False)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["proposal_id"] = str(self.feature_source.value())
-        all_params["bg_mask_id"] = str(self.feature_source2.value())
+        all_params["mask_id"] = str(self.feature_source2.value())
         all_params["feature_id"] = str(self.feature_source3.value())
         all_params["object_id"] = str(self.objects_source.value())
         all_params["background_id"] = str(self.objects_source2.value())
@@ -1470,8 +1472,6 @@ class AnalyzerCard(Card):
                 self.calc_patch_stats()
             elif self.analyzer_type == "object_detection_stats":
                 self.calc_object_detection_stats()
-            elif self.analyzer_type == "background_classifier":
-                self.calc_background_classifier()
             elif self.analyzer_type == "binary_classifier":
                 self.calc_binary_classifier()
             elif self.analyzer_type == "spatial_clustering":
