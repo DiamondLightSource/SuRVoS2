@@ -370,7 +370,7 @@ class AnalyzerCard(Card):
             additional_buttons.append(self.load_as_objects_btn)
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
         elif self.analyzer_type == "patch_stats":
-            self._add_features_source()
+            self._add_feature_source()
             self._add_objects_source()
             self.stat_name_combo_box = SimpleComboBox(
                 full=True, values=["Mean", "Std", "Var", "Median", "Sum"]
@@ -1324,15 +1324,16 @@ class AnalyzerCard(Card):
 
     def calc_patch_stats(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
-        src = DataModel.g.dataset_uri(self.features_source.value())
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         all_params = dict(src=src, dst=dst, modal=False)
         all_params["workspace"] = DataModel.g.current_workspace
-        all_params["feature_ids"] = str(self.features_source.value()[-1])
+        all_params["feature_id"] = str(self.feature_source.value())
         all_params["object_id"] = str(self.objects_source.value())
         all_params["stat_name"] = self.stat_name_combo_box.value()
         all_params["box_size"] = self.box_dimension.value()
         logger.debug(f"Running analyzer with params {all_params}")
         result = Launcher.g.run("analyzer", "patch_stats", **all_params)
+        print(result)
         (point_features, img) = result
         if result:
             logger.debug(f"Object stats result table {len(point_features)}")

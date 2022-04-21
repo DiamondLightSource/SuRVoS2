@@ -501,8 +501,8 @@ def plot_clustered_img(
 def find_connected_components(
     src: DataURI, 
     dst: DataURI, 
-    label_index: Int, 
     workspace: String, 
+    label_index: Int, 
     area_min : Int, 
     area_max: Int,
     mode: String,
@@ -563,7 +563,8 @@ def find_connected_components(
 @hug.get()
 def binary_image_stats(
     src: DataURI, 
-    dst: DataURI, 
+    dst: DataURI,
+    workspace: String, 
     feature_id: DataURI, 
     threshold: Float = 0.5,
     area_min: Int = 0,
@@ -741,17 +742,17 @@ def remove_masked_objects(
 
 @hug.get()
 def patch_stats(
-    src: DataURI, dst: DataURI,
-    object_id: DataURI,
-    feature_ids: DataURIList,
-    stat_name: String,
+    src: DataURI, 
+    dst: DataURI,
     workspace: String,
+    object_id: DataURI,
+    feature_id: DataURI,
+    stat_name: String,
     box_size: Int 
 ) -> "OBJECTS":
     logger.debug(f"Calculating stats on cubical patches: {object_id}")
-    logger.debug(f"With features: {feature_ids}")
-
-    src = DataModel.g.dataset_uri(ntpath.basename(feature_ids[0]), group="features")
+    
+    src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
     logger.debug(f"Getting features {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_feature = DM.sources[0][:]
@@ -810,7 +811,7 @@ def patch_stats(
 
     plot_image = plot_to_image(point_features, title=title)
 
-    return (point_features, encode_numpy(plot_image))
+    return point_features, encode_numpy(plot_image)
 
 
 def plot_clustered_img(
@@ -1119,8 +1120,7 @@ def binary_classifier(
         instdet.prepare_detector_data()
         instdet.train_validate_model(model_file=model_fullname, workspace=workspace)
         instdet.predict(instdet.class1_dets, score_thresh=score_thresh, model_file=model_fullname, offset=False)
-        result_entities = offset_points(instdet.class1_dets, -2 * np.array(padding))
-        
+        result_entities = offset_points(instdet.class1_dets, -2 * np.array(padding))    
         #instdet.analyze_result(instdet.class1_gold_entities, instdet.class1_dets, instdet.detections)
         #logger.debug("\nProduced foreground detections: \n")
         #logger.debug(instdet.class1_dets)
