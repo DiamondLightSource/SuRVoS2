@@ -228,9 +228,9 @@ class TableWidget(QtWidgets.QGraphicsObject):
         print(self.row_data)
 
         _,z,x,y = self.row_data
-        z = int(z)
-        x = int(x)
-        y = int(y)
+        z = int(float(z))
+        x = int(float(x))
+        y = int(float(y))
         # z, x, y = (
         #     self.tabledata["z"][row_idx],
         #     self.tabledata["x"][row_idx],
