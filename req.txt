@@ -8,7 +8,6 @@ cython
 dask
 decorator
 falcon
-fastai==1.0.61
 h5py
 hdbscan
 hug
@@ -81,6 +80,5 @@ unet
 vispy
 wget
 xgboost
-unet
 
 
