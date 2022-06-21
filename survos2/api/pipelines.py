@@ -458,18 +458,28 @@ def train_2d_unet(
     logger.info(
         f"Train_2d_unet using workspaces {workspace} annos {anno_id} and features {feature_id}"
     )
-    from survos2.server.unet2d.data_utils import TrainingDataSlicer
-    from survos2.server.unet2d.unet2d import Unet2dTrainer
+    from volume_segmantics.data.dataloaders import get_2d_training_dataloaders
+    from volume_segmantics.data.settings_data import get_settings_data
+    from volume_segmantics.data.slicers import TrainingDataSlicer
+    from volume_segmantics.model.operations.vol_seg_2d_trainer import \
+        VolSeg2dTrainer
+    from volume_segmantics.model.operations.vol_seg_2d_predictor import VolSeg2dPredictor
+    from volume_segmantics.model.operations.vol_seg_prediction_manager import VolSeg2DPredictionManager
+
+    
     max_label_no = 0
     label_codes = None
     label_values = None
     unet_train_label = "U-Net Training"
+    training_settings_dict = cfg["volume_segmantics"]["train_settings"]
+    settings = get_settings_data(training_settings_dict)
     current_ws = DataModel.g.current_workspace
     ws_object = ws.get(current_ws)
-    data_out_path = Path(ws_object.path, "unet2d")
+    data_out_path = Path(ws_object.path, "volseg")
+
     logger.info(f"Making output folders for slices in {data_out_path}")
-    data_slice_path = data_out_path / "data"
-    anno_slice_path = data_out_path / "seg"
+    data_slice_path = data_out_path / settings.data_im_dirname
+    anno_slice_path = data_out_path / settings.seg_im_out_dirname
     data_slice_path.mkdir(exist_ok=True, parents=True)
     anno_slice_path.mkdir(exist_ok=True, parents=True)
     # Get datsets from workspaces and slice to disk
@@ -485,7 +495,7 @@ def train_2d_unet(
             anno_level = src_dataset[:] & 15
         anno_labels = np.unique(anno_level)
         logger.debug(f"Obtained annotation level with labels {anno_labels} and shape {anno_level.shape}")
-        slicer = TrainingDataSlicer(feature, anno_level, clip_data=True)
+        slicer = TrainingDataSlicer(settings, feature, anno_level)
         data_prefix, label_prefix = f"data{count}", f"seg{count}"
         slicer.output_data_slices(data_slice_path, data_prefix)
         slicer.output_label_slices(anno_slice_path, label_prefix)
@@ -493,22 +503,37 @@ def train_2d_unet(
             max_label_no = slicer.num_seg_classes
             label_codes = labels
             label_values = anno_labels
+
     # Create the trainer and pass in the dictionary of label metadata
-    logger.info(f"Creating U-Net Trainer with label codes: {label_codes}")
-    trainer = Unet2dTrainer(data_slice_path, anno_slice_path, label_codes)
-    cyc_frozen = unet_train_params["cyc_frozen"]
-    cyc_unfrozen = unet_train_params["cyc_unfrozen"]
-    trainer.train_model(num_cyc_frozen=cyc_frozen, num_cyc_unfrozen=cyc_unfrozen)
-    # Save the model
+    train_loader, valid_loader = get_2d_training_dataloaders(
+        data_slice_path, anno_slice_path, settings
+    )
+    logger.info(f"Creating model Trainer with label codes: {label_codes}")
+    trainer = VolSeg2dTrainer(train_loader, valid_loader, label_codes, settings)
+    num_cyc_frozen = unet_train_params["cyc_frozen"]
+    num_cyc_unfrozen = unet_train_params["cyc_unfrozen"]
+    model_type = settings.model["type"].name
     now = datetime.now()
     dt_string = now.strftime("%d%m%Y_%H_%M_%S")
-    model_fn = f"{dt_string}_trained_2dUnet_model"
+    model_fn = f"{dt_string}_{model_type}_{settings.model_output_fn}.pytorch"
     model_out = Path(data_out_path, model_fn)
-    trainer.save_model_weights(model_out)
-    # Save a figure showing the predictions
+    if num_cyc_frozen > 0:
+        trainer.train_model(
+            model_out, num_cyc_frozen, settings.patience, create=True, frozen=True
+        )
+    if num_cyc_unfrozen > 0 and num_cyc_frozen > 0:
+        trainer.train_model(
+            model_out, num_cyc_unfrozen, settings.patience, create=False, frozen=False
+        )
+    elif num_cyc_unfrozen > 0 and num_cyc_frozen == 0:
+        trainer.train_model(
+            model_out, num_cyc_unfrozen, settings.patience, create=True, frozen=False
+        )
+    trainer.output_loss_fig(model_out)
     trainer.output_prediction_figure(model_out)
     # Clean up all the saved slices
-    slicer.clean_up_slices(dt_string)
+    slicer.clean_up_slices()
+
     # Load in data volume from current workspace
     DataModel.g.current_workspace = current_ws
     # TODO: Add a field in the GUI to choose which data to apply to
@@ -526,8 +551,14 @@ def train_2d_unet(
     rename_level(workspace=current_ws, level=level_id, name=unet_train_label)
     create_new_labels_for_level(current_ws, level_id, label_codes)
     feature = get_feature_from_id("001_raw")
-    slicer = TrainingDataSlicer(feature, anno_level, clip_data=True)
-    segmentation = trainer.return_fast_prediction_volume(slicer.data_vol)
+    # Now we need to predict a segmentation for the training volume
+    # Load in the prediction settings
+    predict_settings_dict = cfg["volume_segmantics"]["predict_settings"]
+    predict_settings = get_settings_data(predict_settings_dict)
+    predictor = VolSeg2dPredictor(model_out, predict_settings)
+    pred_manager = VolSeg2DPredictionManager(predictor, feature, settings)
+    logger.info(type(pred_manager))
+    segmentation = pred_manager.predict_fast_volume_to_ram()
     # If more than one annotation label is provided add 1 to the segmentation
     if not np.array_equal(np.array([0, 1]), label_values):
         segmentation += np.ones_like(segmentation)
