@@ -1,64 +1,59 @@
-from enum import auto
+import ast
 import logging
 import ntpath
 import os
-from typing import List
+import random
+import sys
 from dataclasses import dataclass
 from datetime import datetime
-import random
-import ast
-
-
-import dask.array as da
-import hug
-#from numba.core.types.scalars import Integer
-import numpy as np
-from torch.utils.data import DataLoader
-from loguru import logger
-from scipy import ndimage
-from skimage.morphology.selem import octahedron
 from pathlib import Path
+from typing import List
 
+import hug
+import numpy as np
+from loguru import logger
 from survos2.api import workspace as ws
-from survos2.api.types import (
-    DataURI,
-    DataURIList,
-    Float,
-    FloatList,
-    FloatOrVector,
-    IntOrVector,
-    Int,
-    IntList,
-    SmartBoolean,
-    String,
-    StringList
-)
+from survos2.api.annotations import (add_label, add_level, delete_all_labels,
+                                     get_levels, rename_level, update_label)
+from survos2.api.objects import get_entities
+from survos2.api.types import (DataURI, DataURIList, Float, FloatOrVector, Int,
+                               IntOrVector, SmartBoolean, String, StringList)
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
+from survos2.api.workspace import auto_create_dataset
+from survos2.entity.anno.pseudo import make_pseudomasks
+from survos2.entity.patches import (PatchWorkflow, make_patches,
+                                    organize_entities)
+from survos2.entity.pipeline_ops import make_proposal
+from survos2.entity.sampler import generate_random_points_in_volume
+from survos2.entity.train import train_oneclass_detseg
+from survos2.entity.utils import pad_vol
 from survos2.improc import map_blocks
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
-from survos2.api.utils import dataset_repr, get_function_api, save_metadata
-from survos2.utils import decode_numpy    
-from survos2.api.objects import get_entities
-
-from survos2.entity.anno.pseudo import make_pseudomasks
-
-from survos2.api.workspace import add_dataset, auto_create_dataset
-from survos2.api.annotations import (add_level, rename_level, get_levels,
-                                     add_label, update_label, delete_all_labels)
-from survos2.entity.patches import PatchWorkflow, organize_entities, make_patches
-from survos2.entity.pipeline_ops import make_proposal
-
-from survos2.entity.sampler import grid_of_points, generate_random_points_in_volume
-from survos2.entity.utils import pad_vol
-from survos2.entity.train import train_oneclass_detseg
-from survos2.entity.pipeline_ops import make_proposal
+from survos2.utils import decode_numpy
 
 __pipeline_group__ = "pipelines"
 __pipeline_dtype__ = "float32"
 __pipeline_fill__ = 0
 
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        # Get corresponding Loguru level if it exists.
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where originated the logged message.
+        frame, depth = sys._getframe(6), 6
+        while frame and frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
 def pass_through(x):
     return x
@@ -80,10 +75,8 @@ def cleaning(
     dst: DataURI,
     min_component_size: Int = 100,
 ):
-    from survos2.entity.saliency import (
-        single_component_cleaning,
-        filter_small_components,
-    )
+    from survos2.entity.saliency import (filter_small_components,
+                                         single_component_cleaning)
 
     # src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
     # logger.debug(f"Getting objects {src}")
@@ -212,9 +205,7 @@ def rasterize_points(
     smoothing: Int,
 ):
 
-    from survos2.entity.anno.pseudo import (
-        organize_entities,
-    )
+    from survos2.entity.anno.pseudo import organize_entities
 
     src = DataModel.g.dataset_uri(feature_id, group="features")
     logger.debug(f"Getting features {src}")
@@ -236,7 +227,8 @@ def rasterize_points(
     objects_crop_end = ds_objects.get_metadata("crop_end")
 
     logger.debug(f"Getting objects from {src} and file {objects_fullname} with scale {objects_scale}")
-    from survos2.frontend.components.entity import make_entity_df, setup_entity_table
+    from survos2.frontend.components.entity import (make_entity_df,
+                                                    setup_entity_table)
 
     tabledata, entities_df = setup_entity_table(
         objects_fullname,
@@ -447,6 +439,8 @@ def _unpack_lists(input_list):
     """
     return [ast.literal_eval(item)[0] for item in input_list]
 
+
+
 @hug.get()
 @save_metadata
 def train_2d_unet(
@@ -584,8 +578,8 @@ def predict_2d_unet(
         delete_all_labels(workspace, level_result["id"])
     if level_result:
         import torch
-        from survos2.server.unet2d.unet2d import Unet2dPredictor
         from survos2.server.unet2d.data_utils import PredictionHDF5DataSlicer
+        from survos2.server.unet2d.unet2d import Unet2dPredictor
         now = datetime.now()
         dt_string = now.strftime("%d%m%Y_%H_%M_%S")
         level_id = level_result["id"]
