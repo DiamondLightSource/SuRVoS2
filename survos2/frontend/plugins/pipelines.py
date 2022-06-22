@@ -909,7 +909,7 @@ class PipelineCard(Card):
     def get_model_path(self):
         workspace_path = os.path.join(DataModel.g.CHROOT, DataModel.g.current_workspace)
         self.model_path, _ = QtWidgets.QFileDialog.getOpenFileName(self,
-        ("Select model"), workspace_path, ("Model files (*.zip)"))
+        ("Select model"), workspace_path, ("Model files (*.pytorch)"))
         self.model_file_line_edit.setValue(self.model_path)
 
     def refresh_unet_data(self):
@@ -1193,7 +1193,11 @@ class PipelineCard(Card):
         all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
-        all_params["model_path"] = str(self.model_file_line_edit.value())
+        model_path = str(self.model_file_line_edit.value())
+        if len(model_path) > 0:
+            all_params["model_path"] = model_path
+        else:
+            raise ValueError("No model filepath selected!")
         all_params["no_of_planes"] = self.radio_group.checkedId()
         return all_params
         

@@ -465,12 +465,13 @@ def train_2d_unet(
         VolSeg2dTrainer
     from volume_segmantics.model.operations.vol_seg_2d_predictor import VolSeg2dPredictor
     from volume_segmantics.model.operations.vol_seg_prediction_manager import VolSeg2DPredictionManager
+    from volume_segmantics.utilities.base_data_utils import Quality
 
     
     max_label_no = 0
     label_codes = None
     label_values = None
-    unet_train_label = "U-Net Training"
+    model_train_label = "Deep Learning Training"
     training_settings_dict = cfg["volume_segmantics"]["train_settings"]
     settings = get_settings_data(training_settings_dict)
     current_ws = DataModel.g.current_workspace
@@ -539,16 +540,16 @@ def train_2d_unet(
     # TODO: Add a field in the GUI to choose which data to apply to
     levels = get_levels(current_ws)
     # If there is already a level for U-net prediction output, don't create a new one
-    anno_exists = any([unet_train_label in x["name"] for x in levels])
+    anno_exists = any([model_train_label in x["name"] for x in levels])
     if not anno_exists:
         logger.info("Creating new level for prediction.")
         level_result = add_level(current_ws)
     else:
-        level_result = ([x for x in levels if unet_train_label in x["name"]] or [None])[0]
+        level_result = ([x for x in levels if model_train_label in x["name"]] or [None])[0]
         delete_all_labels(current_ws, level_result["id"])
     level_id = level_result["id"]
     logger.info(f"Using labels from level with ID {level_id}, changing level name.")
-    rename_level(workspace=current_ws, level=level_id, name=unet_train_label)
+    rename_level(workspace=current_ws, level=level_id, name=model_train_label)
     create_new_labels_for_level(current_ws, level_id, label_codes)
     feature = get_feature_from_id("001_raw")
     # Now we need to predict a segmentation for the training volume
@@ -556,9 +557,8 @@ def train_2d_unet(
     predict_settings_dict = cfg["volume_segmantics"]["predict_settings"]
     predict_settings = get_settings_data(predict_settings_dict)
     predictor = VolSeg2dPredictor(model_out, predict_settings)
-    pred_manager = VolSeg2DPredictionManager(predictor, feature, settings)
-    logger.info(type(pred_manager))
-    segmentation = pred_manager.predict_fast_volume_to_ram()
+    pred_manager = VolSeg2DPredictionManager(predictor, feature, predict_settings)
+    segmentation = pred_manager.predict_volume_to_path(None, Quality.LOW)
     # If more than one annotation label is provided add 1 to the segmentation
     if not np.array_equal(np.array([0, 1]), label_values):
         segmentation += np.ones_like(segmentation)
@@ -578,7 +578,7 @@ def predict_2d_unet(
     model_path: str,
     no_of_planes: int
 ):
-    unet_pred_label = "U-Net prediction"
+    model_pred_label = "Deep Learning Prediction"
     if feature_id:
         logger.debug(
             f"Predict_2d_unet with feature {feature_id} in {no_of_planes} planes"
@@ -600,39 +600,40 @@ def predict_2d_unet(
     
     levels = get_levels(workspace)
     # If there is already a level for U-net prediction output, don't create a new one
-    anno_exists = any([unet_pred_label in x["name"] for x in levels])
-    logging.info(f"Previous U-Net prediction exists: {anno_exists}")
+    anno_exists = any([model_pred_label in x["name"] for x in levels])
+    logging.info(f"Previous prediction exists: {anno_exists}")
     if not anno_exists:
         level_result = add_level(workspace)
     else:
-        level_result = ([x for x in levels if unet_pred_label in x["name"]] or [None])[0]
+        level_result = ([x for x in levels if model_pred_label in x["name"]] or [None])[0]
         delete_all_labels(workspace, level_result["id"])
     if level_result:
         import torch
-        from survos2.server.unet2d.data_utils import PredictionHDF5DataSlicer
-        from survos2.server.unet2d.unet2d import Unet2dPredictor
-        now = datetime.now()
-        dt_string = now.strftime("%d%m%Y_%H_%M_%S")
+        from volume_segmantics.data.settings_data import get_settings_data
+        from volume_segmantics.model.operations.vol_seg_2d_predictor import VolSeg2dPredictor
+        from volume_segmantics.model.operations.vol_seg_prediction_manager import VolSeg2DPredictionManager
+        from volume_segmantics.utilities.base_data_utils import Quality
+        predict_settings_dict = cfg["volume_segmantics"]["predict_settings"]
+        predict_settings = get_settings_data(predict_settings_dict)
         level_id = level_result["id"]
         logger.info(f"Using level with ID {level_id}, changing level name.")
-        rename_level(workspace=workspace, level=level_id, name=unet_pred_label)
+        rename_level(workspace=workspace, level=level_id, name=model_pred_label)
         logger.info(f"Unpacking model and labels")
         ws_object = ws.get(workspace)
-        root_path = Path(ws_object.path, "unet2d")
+        root_path = Path(ws_object.path, "volseg")
         root_path.mkdir(exist_ok=True, parents=True)
-        predictor = Unet2dPredictor(root_path)
-        label_codes = predictor.create_model_from_zip(Path(model_path))
+        # Create predictor and get label codes
+        predictor = VolSeg2dPredictor(model_path, predict_settings)
+        label_codes = predictor.label_codes
         logger.info(f"Labels found: {label_codes}")
+        pred_manager = VolSeg2DPredictionManager(predictor, feature, predict_settings)
         create_new_labels_for_level(workspace, level_id, label_codes)
-        slicer = PredictionHDF5DataSlicer(predictor, feature, clip_data=True)
-        if no_of_planes == 1:
-            segmentation = slicer.predict_1_way(root_path, output_prefix=dt_string)
-        elif no_of_planes == 3:
-            segmentation = slicer.predict_3_ways(root_path, output_prefix=dt_string)
+        quality = Quality(no_of_planes)
+        segmentation = pred_manager.predict_volume_to_path(None, quality)
         segmentation += np.ones_like(segmentation)
         logger.info("Freeing GPU memory.")
-        del slicer
         del predictor
+        del pred_manager
         torch.cuda.empty_cache()
 
         def pass_through(x):
