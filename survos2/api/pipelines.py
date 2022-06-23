@@ -458,14 +458,12 @@ def train_2d_unet(
     logger.info(
         f"Train_2d_unet using workspaces {workspace} annos {anno_id} and features {feature_id}"
     )
-    from volume_segmantics.data.dataloaders import get_2d_training_dataloaders
-    from volume_segmantics.data.settings_data import get_settings_data
-    from volume_segmantics.data.slicers import TrainingDataSlicer
-    from volume_segmantics.model.operations.vol_seg_2d_trainer import \
-        VolSeg2dTrainer
-    from volume_segmantics.model.operations.vol_seg_2d_predictor import VolSeg2dPredictor
-    from volume_segmantics.model.operations.vol_seg_prediction_manager import VolSeg2DPredictionManager
-    from volume_segmantics.utilities.base_data_utils import Quality
+    from volume_segmantics.data import (TrainingDataSlicer,
+                                        get_2d_training_dataloaders,
+                                        get_settings_data)
+    from volume_segmantics.model import (VolSeg2DPredictionManager,
+                                         VolSeg2dPredictor, VolSeg2dTrainer)
+    from volume_segmantics.utilities import Quality
 
     
     max_label_no = 0
@@ -609,10 +607,10 @@ def predict_2d_unet(
         delete_all_labels(workspace, level_result["id"])
     if level_result:
         import torch
-        from volume_segmantics.data.settings_data import get_settings_data
-        from volume_segmantics.model.operations.vol_seg_2d_predictor import VolSeg2dPredictor
-        from volume_segmantics.model.operations.vol_seg_prediction_manager import VolSeg2DPredictionManager
-        from volume_segmantics.utilities.base_data_utils import Quality
+        from volume_segmantics.data import get_settings_data
+        from volume_segmantics.model import (VolSeg2DPredictionManager,
+                                             VolSeg2dPredictor)
+        from volume_segmantics.utilities import Quality
         predict_settings_dict = cfg["volume_segmantics"]["predict_settings"]
         predict_settings = get_settings_data(predict_settings_dict)
         level_id = level_result["id"]
