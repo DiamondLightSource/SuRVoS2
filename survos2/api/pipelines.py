@@ -455,8 +455,10 @@ def train_2d_unet(
     workspace = _unpack_lists(workspace)
     anno_id = _unpack_lists(anno_id)
     feature_id = _unpack_lists(feature_id)
+
+    model_type = unet_train_params["model_type"]
     logger.info(
-        f"Train_2d_unet using workspaces {workspace} annos {anno_id} and features {feature_id}"
+        f"Train {model_type} using workspaces {workspace} annos {anno_id} and features {feature_id}"
     )
     from volume_segmantics.data import (TrainingDataSlicer,
                                         get_2d_training_dataloaders,
@@ -472,6 +474,7 @@ def train_2d_unet(
     model_train_label = "Deep Learning Training"
     training_settings_dict = cfg["volume_segmantics"]["train_settings"]
     settings = get_settings_data(training_settings_dict)
+    settings.model["type"] = model_type
     current_ws = DataModel.g.current_workspace
     ws_object = ws.get(current_ws)
     data_out_path = Path(ws_object.path, "volseg")

@@ -398,6 +398,7 @@ class PipelineCard(Card):
         elif self.pipeline_type == "train_2d_unet":
             self._add_2dunet_training_ws_widget()
             self._add_2dunet_annotations_features_from_ws(DataModel.g.current_workspace)
+            self._add_volseg_model_type()
             self._add_2dunet_data_table()
             self._add_unet_2d_training_params()
         elif self.pipeline_type == "predict_2d_unet":
@@ -538,6 +539,18 @@ class PipelineCard(Card):
         self.model_type.addItem(key="unet3d")
         self.model_type.addItem(key="fpn3d")
         widget = HWidgets("Model type:", self.model_type,  stretch=0)
+        self.add_row(widget)
+
+    def _add_volseg_model_type(self):
+        self.volseg_model_type = ComboBox()
+        self.volseg_model_type.addItem(key="U_Net", value="U-Net")
+        self.volseg_model_type.addItem(key="U_Net_Plus_plus", value="U-Net++")
+        self.volseg_model_type.addItem(key="FPN", value="FPN")
+        self.volseg_model_type.addItem(key="DeepLabV3", value="DeepLabV3")
+        self.volseg_model_type.addItem(key="DeepLabV3_Plus", value="DeepLabV3+")
+        self.volseg_model_type.addItem(key="MA_Net", value="MA-Net")
+        self.volseg_model_type.addItem(key="LinkNet", value="LinkNet")
+        widget = HWidgets("Model type:", self.volseg_model_type, Spacing(35), stretch=0)
         self.add_row(widget)
 
     def _add_patch_params(self):
@@ -1213,7 +1226,8 @@ class PipelineCard(Card):
         all_params["workspace"] = workspace_list
         all_params["feature_id"] = data_list
         all_params["anno_id"] = label_list
-        all_params["unet_train_params"] = dict(cyc_frozen=self.cycles_frozen.value(),
+        all_params["unet_train_params"] = dict(model_type=self.volseg_model_type.key(),
+                                               cyc_frozen=self.cycles_frozen.value(),
                                                cyc_unfrozen=self.cycles_unfrozen.value())
         return all_params
 
