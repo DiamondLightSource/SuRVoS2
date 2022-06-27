@@ -574,7 +574,8 @@ def predict_2d_unet(
     workspace: String,
     feature_id: DataURI,
     model_path: str,
-    no_of_planes: int
+    no_of_planes: int,
+    cuda_device: int,
 ):
     model_pred_label = "Deep Learning Prediction"
     if feature_id:
@@ -613,6 +614,7 @@ def predict_2d_unet(
         from volume_segmantics.utilities import Quality
         predict_settings_dict = cfg["volume_segmantics"]["predict_settings"]
         predict_settings = get_settings_data(predict_settings_dict)
+        predict_settings.cuda_device = cuda_device
         level_id = level_result["id"]
         logger.info(f"Using level with ID {level_id}, changing level name.")
         rename_level(workspace=workspace, level=level_id, name=model_pred_label)

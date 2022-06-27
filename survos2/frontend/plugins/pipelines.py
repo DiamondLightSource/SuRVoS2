@@ -559,6 +559,7 @@ class PipelineCard(Card):
         self.add_row(HWidgets(self.unet_train_refresh_btn, stretch=1))
         
     def _add_unet_2d_prediction_params(self):
+        self.unet_pred_settings = cfg["volume_segmantics"]["predict_settings"]
         self.model_file_line_edit = LineEdit(default="Filepath", parse=str)
         model_input_btn = PushButton("Select Model", accent=True)
         model_input_btn.clicked.connect(self.get_model_path)
@@ -569,15 +570,43 @@ class PipelineCard(Card):
         self.radio_group.addButton(single_pp_rb, 1)
         triple_pp_rb = QRadioButton("Three plane")
         self.radio_group.addButton(triple_pp_rb, 3)
+        twelve_pp_rb = QRadioButton("3 planes, 4 rotations")
+        self.radio_group.addButton(twelve_pp_rb, 12)
+        advanced_button = QRadioButton("Advanced")
+        self.setup_adv_run_fields()
+        self.adv_run_fields.hide()
         refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
         self.unet_pred_refresh_btn = PushButton("Refresh Data", accent=True)
         self.unet_pred_refresh_btn.clicked.connect(self.refresh_unet_data)
         self.unet_train_refresh_btn = None
-        self.add_row(HWidgets(self.model_file_line_edit, model_input_btn, ))
-        self.add_row(HWidgets("Prediction Parameters:",  stretch=1))
-        self.add_row(HWidgets(single_pp_rb, triple_pp_rb, stretch=1))
+        self.add_row(HWidgets(self.model_file_line_edit, model_input_btn, Spacing(35)))
+        self.add_row(HWidgets("Prediction Parameters:", stretch=1))
+        self.add_row(HWidgets(single_pp_rb, triple_pp_rb, twelve_pp_rb))
+        self.add_row(HWidgets(advanced_button, stretch=1))
+        self.add_row(HWidgets(self.adv_run_fields))
         self.add_row(HWidgets(refresh_label, stretch=1))
         self.add_row(HWidgets(self.unet_pred_refresh_btn, stretch=1))
+        advanced_button.toggled.connect(self.toggle_advanced)
+
+    def setup_adv_run_fields(self):
+        """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
+        self.adv_run_fields = QtWidgets.QGroupBox("Advanced Prediction Settings:")
+        adv_run_layout = QtWidgets.QGridLayout()
+        adv_run_layout.addWidget(QLabel("CUDA Device:"), 0, 0)
+        cuda_device = str(self.unet_pred_settings["cuda_device"])
+        self.cuda_dev_linedt = LineEdit(cuda_device)
+        adv_run_layout.addWidget(self.cuda_dev_linedt, 0, 1)        
+        self.adv_run_fields.setLayout(adv_run_layout)
+
+    def toggle_advanced(self):
+        """Controls displaying/hiding the advanced run fields on radio button toggle."""
+        rbutton = self.sender()
+        if rbutton.isChecked():
+            self.adv_run_fields.show()
+        else:
+            self.adv_run_fields.hide()
+
+
     def _add_3d_fcn_training_params(self):
         pass
     def _add_3d_fcn_prediction_params(self):
@@ -1199,6 +1228,7 @@ class PipelineCard(Card):
         else:
             raise ValueError("No model filepath selected!")
         all_params["no_of_planes"] = self.radio_group.checkedId()
+        all_params["cuda_device"] = int(self.cuda_dev_linedt.value())
         return all_params
         
     def compute_pipeline(self):
