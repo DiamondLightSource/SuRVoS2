@@ -401,6 +401,7 @@ class PipelineCard(Card):
             self._add_volseg_model_type()
             self._add_2dunet_data_table()
             self._add_unet_2d_training_params()
+            self.adv_train_fields.hide()
         elif self.pipeline_type == "predict_2d_unet":
             self.annotations_source = LevelComboBox()
             self.annotations_source.hide()
@@ -558,9 +559,13 @@ class PipelineCard(Card):
         self.add_row(HWidgets("Patch Size:", self.patch_size,  stretch=1))
 
     def _add_unet_2d_training_params(self):
-        self.add_row(HWidgets("Training Parameters:",  stretch=1))
+        self.unet_train_settings = cfg["volume_segmantics"]["train_settings"]
+        self.add_row(HWidgets("Training Parameters:", stretch=1))
         self.cycles_frozen = LineEdit(default=8, parse=int)
         self.cycles_unfrozen = LineEdit(default=5, parse=int)
+        train_advanced_button = QRadioButton("Advanced")
+        self.setup_adv_train_fields()
+        self.adv_train_fields.hide()
         refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
         self.unet_train_refresh_btn = PushButton("Refresh Data", accent=True)
         self.unet_train_refresh_btn.clicked.connect(self.refresh_unet_data)
@@ -568,8 +573,11 @@ class PipelineCard(Card):
         self.add_row(HWidgets("No. Cycles Frozen:", self.cycles_frozen,
                               "No. Cycles Unfrozen", self.cycles_unfrozen,
                               stretch=1))
+        self.add_row(HWidgets(train_advanced_button, Spacing(35), stretch=1))
+        self.add_row(self.adv_train_fields, max_height=250)
         self.add_row(HWidgets(refresh_label, stretch=1))
         self.add_row(HWidgets(self.unet_train_refresh_btn, stretch=1))
+        train_advanced_button.toggled.connect(self.toggle_advanced_train)
         
     def _add_unet_2d_prediction_params(self):
         self.unet_pred_settings = cfg["volume_segmantics"]["predict_settings"]
@@ -586,8 +594,8 @@ class PipelineCard(Card):
         twelve_pp_rb = QRadioButton("3 planes, 4 rotations")
         self.radio_group.addButton(twelve_pp_rb, 12)
         advanced_button = QRadioButton("Advanced")
-        self.setup_adv_run_fields()
-        self.adv_run_fields.hide()
+        self.setup_adv_pred_fields()
+        self.adv_pred_fields.hide()
         refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
         self.unet_pred_refresh_btn = PushButton("Refresh Data", accent=True)
         self.unet_pred_refresh_btn.clicked.connect(self.refresh_unet_data)
@@ -596,28 +604,91 @@ class PipelineCard(Card):
         self.add_row(HWidgets("Prediction Parameters:", stretch=1))
         self.add_row(HWidgets(single_pp_rb, triple_pp_rb, twelve_pp_rb))
         self.add_row(HWidgets(advanced_button, stretch=1))
-        self.add_row(HWidgets(self.adv_run_fields))
+        self.add_row(HWidgets(self.adv_pred_fields))
         self.add_row(HWidgets(refresh_label, stretch=1))
         self.add_row(HWidgets(self.unet_pred_refresh_btn, stretch=1))
-        advanced_button.toggled.connect(self.toggle_advanced)
+        advanced_button.toggled.connect(self.toggle_advanced_pred)
+        advanced_button.setChecked(True)
+        advanced_button.setChecked(False)
 
-    def setup_adv_run_fields(self):
-        """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
-        self.adv_run_fields = QtWidgets.QGroupBox("Advanced Prediction Settings:")
-        adv_run_layout = QtWidgets.QGridLayout()
-        adv_run_layout.addWidget(QLabel("CUDA Device:"), 0, 0)
+
+    def setup_adv_train_fields(self):
+        """Sets up the QGroupBox that displays the advanced option for 2d deep
+         learning training."""
+        self.adv_train_fields = QtWidgets.QGroupBox("Advanced Training Settings:")
+        adv_train_layout = QtWidgets.QGridLayout()
+        cuda_device = str(self.unet_train_settings["cuda_device"])
+        patience = str(self.unet_train_settings["patience"])
+        bce_dice_alpha = str(self.unet_train_settings["alpha"])
+        bce_dice_beta = str(self.unet_train_settings["beta"])
+        self.train_cuda_dev_linedt = LineEdit(cuda_device)
+        self.train_patience_linedt = LineEdit(patience)
+        self.volseg_encoder_type = ComboBox()
+        self.volseg_encoder_type.addItem(key="resnet34", value="ResNet34 (Pre-trained)")
+        self.volseg_encoder_type.addItem(key="resnet50", value="ResNet50 (Pre-trained)")
+        self.volseg_encoder_type.addItem(key="resnext50_32x4d", value="ResNeXt50 (32x4d Pre-trained)")
+        self.loss_type_combo = ComboBox()
+        self.loss_type_combo.addItem(key="DiceLoss", value="Dice Loss")
+        self.loss_type_combo.addItem(key="CrossEntropyLoss", value="Cross Entropy Loss")
+        self.loss_type_combo.addItem(key="GeneralizedDiceLoss", value="Generalised Dice Loss")
+        self.loss_type_combo.addItem(key="BCELoss", value="Binary Cross Entropy Loss")
+        self.loss_type_combo.addItem(key="BCEDiceLoss", value="Binary Cross Entropy and Dice Loss")
+        self.loss_type_combo.currentTextChanged.connect(self.on_loss_function_combo_changed)
+        self.bce_dice_alpha_linedt = LineEdit(bce_dice_alpha)
+        self.bce_dice_beta_linedt = LineEdit(bce_dice_beta)
+        adv_train_layout.addWidget(QLabel("CUDA Device:"), 0, 0)
+        adv_train_layout.addWidget(self.train_cuda_dev_linedt, 0, 1)
+        adv_train_layout.addWidget(QLabel("Early stopping patience:"), 1, 0)
+        adv_train_layout.addWidget(self.train_patience_linedt, 1, 1)
+        adv_train_layout.addWidget(QLabel("Loss function:"), 2, 0)
+        adv_train_layout.addWidget(self.loss_type_combo, 2, 1)
+        self.bce_dice_alpha_label = QLabel("BCE Weight")
+        self.bce_dice_beta_label = QLabel("Dice Weight")
+        adv_train_layout.addWidget(self.bce_dice_alpha_label, 3, 0)
+        adv_train_layout.addWidget(self.bce_dice_alpha_linedt, 3, 1)
+        adv_train_layout.addWidget(self.bce_dice_beta_label, 4, 0)
+        adv_train_layout.addWidget(self.bce_dice_beta_linedt, 4, 1)
+        adv_train_layout.addWidget(QLabel("Encoder:"), 5, 0)
+        adv_train_layout.addWidget(self.volseg_encoder_type, 5, 1)
+        self.adv_train_fields.setLayout(adv_train_layout)
+        self.bce_dice_alpha_label.hide()
+        self.bce_dice_alpha_linedt.hide()
+        self.bce_dice_beta_label.hide()
+        self.bce_dice_beta_linedt.hide()
+    
+    def setup_adv_pred_fields(self):
+        """Sets up the QGroupBox that displays the advanced option for 2d deep
+         learning prediction."""
+        self.adv_pred_fields = QtWidgets.QGroupBox("Advanced Prediction Settings:")
+        adv_pred_layout = QtWidgets.QGridLayout()
+        adv_pred_layout.addWidget(QLabel("CUDA Device:"), 0, 0)
         cuda_device = str(self.unet_pred_settings["cuda_device"])
-        self.cuda_dev_linedt = LineEdit(cuda_device)
-        adv_run_layout.addWidget(self.cuda_dev_linedt, 0, 1)        
-        self.adv_run_fields.setLayout(adv_run_layout)
+        self.pred_cuda_dev_linedt = LineEdit(cuda_device)
+        adv_pred_layout.addWidget(self.pred_cuda_dev_linedt, 0, 1)
+        self.adv_pred_fields.setLayout(adv_pred_layout)
 
-    def toggle_advanced(self):
-        """Controls displaying/hiding the advanced run fields on radio button toggle."""
+    def toggle_advanced_train(self):
+        """Controls displaying/hiding the advanced train fields on radio button toggle."""
         rbutton = self.sender()
         if rbutton.isChecked():
-            self.adv_run_fields.show()
+            self.adv_train_fields.show()
         else:
-            self.adv_run_fields.hide()
+            self.adv_train_fields.hide()
+    
+    def toggle_advanced_pred(self):
+        """Controls displaying/hiding the advanced predict fields on radio button toggle."""
+        rbutton = self.sender()
+        if rbutton.isChecked():
+            self.adv_pred_fields.show()
+        else:
+            self.adv_pred_fields.hide()
+
+    def on_loss_function_combo_changed(self, value):
+        if value == "Binary Cross Entropy and Dice Loss":
+            self.bce_dice_alpha_label.show()
+            self.bce_dice_alpha_linedt.show()
+            self.bce_dice_beta_label.show()
+            self.bce_dice_beta_linedt.show()
 
 
     def _add_3d_fcn_training_params(self):
@@ -1227,8 +1298,13 @@ class PipelineCard(Card):
         all_params["feature_id"] = data_list
         all_params["anno_id"] = label_list
         all_params["unet_train_params"] = dict(model_type=self.volseg_model_type.key(),
+                                               encoder_type=self.volseg_encoder_type.key(),
                                                cyc_frozen=self.cycles_frozen.value(),
-                                               cyc_unfrozen=self.cycles_unfrozen.value())
+                                               cyc_unfrozen=self.cycles_unfrozen.value(),
+                                               patience=self.train_patience_linedt.value(),
+                                               loss_criterion=self.loss_type_combo.key(),
+                                               bce_dice_alpha=self.bce_dice_alpha_linedt.value(),
+                                               bce_dice_beta=self.bce_dice_beta_linedt.value())
         return all_params
 
     def setup_params_predict_2d_unet(self, dst):
@@ -1242,7 +1318,7 @@ class PipelineCard(Card):
         else:
             raise ValueError("No model filepath selected!")
         all_params["no_of_planes"] = self.radio_group.checkedId()
-        all_params["cuda_device"] = int(self.cuda_dev_linedt.value())
+        all_params["cuda_device"] = int(self.pred_cuda_dev_linedt.value())
         return all_params
         
     def compute_pipeline(self):

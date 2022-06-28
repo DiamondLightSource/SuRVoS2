@@ -457,8 +457,13 @@ def train_2d_unet(
     feature_id = _unpack_lists(feature_id)
 
     model_type = unet_train_params["model_type"]
+    encoder_type = unet_train_params["encoder_type"]
+    patience = int(unet_train_params["patience"])
+    loss_criterion = unet_train_params["loss_criterion"]
+    bce_dice_alpha = float(unet_train_params["bce_dice_alpha"])
+    bce_dice_beta = float(unet_train_params["bce_dice_beta"])
     logger.info(
-        f"Train {model_type} using workspaces {workspace} annos {anno_id} and features {feature_id}"
+        f"Train {model_type} with {encoder_type} encoder using workspaces {workspace} annos {anno_id} and features {feature_id}"
     )
     from volume_segmantics.data import (TrainingDataSlicer,
                                         get_2d_training_dataloaders,
@@ -475,6 +480,11 @@ def train_2d_unet(
     training_settings_dict = cfg["volume_segmantics"]["train_settings"]
     settings = get_settings_data(training_settings_dict)
     settings.model["type"] = model_type
+    settings.model["encoder_name"] = encoder_type
+    settings.patience = patience
+    settings.loss_criterion = loss_criterion
+    settings.alpha = bce_dice_alpha
+    settings.beta = bce_dice_beta
     current_ws = DataModel.g.current_workspace
     ws_object = ws.get(current_ws)
     data_out_path = Path(ws_object.path, "volseg")
