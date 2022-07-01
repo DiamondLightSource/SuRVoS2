@@ -108,11 +108,9 @@ def run_workflow(workflow_file):
             )
 
             import survos
-
             # Launcher.g.run(plugin, command, **all_params)
             survos.run_command(plugin, command, uri=None, src=src, dst=dst)
 
-            # src_arr = view_dataset(dst_name, plugin, 10)
 
     else:
         print("Need input workflow YAML file")
@@ -249,3 +247,4 @@ def gridsampler_pipeline(
     output_arr2 = np.array(output_tensor2.squeeze(0))
 
     return [output_tensor1, output_tensor2], payloads
+

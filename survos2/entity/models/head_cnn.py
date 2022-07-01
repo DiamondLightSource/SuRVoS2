@@ -304,6 +304,8 @@ def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
     cf = CNNConfigs("mymodel")
     #metrics = defaultdict(float)
     #epoch_samples = 0
+
+        
     device = torch.device(gpu_id)
     print(f"Device {device}")
     print(f"Dim: {cf.dim} {cf.num_seg_classes}")
@@ -314,6 +316,11 @@ def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
         print(existing_model_fname)
         detmod = load_model(detmod, str(existing_model_fname))
 
+    if torch.cuda.device_count() > 1:
+        print("Using", torch.cuda.device_count(), "GPUs")
+        detmod = nn.DataParallel(detmod)
+
+
     detmod = detmod.train()
 
     # optimizer_ft = optim.Adam(filter(lambda p: p.requires_grad,
@@ -322,14 +329,14 @@ def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
 
     optimizer = optim.AdamW(
         detmod.parameters(),
-        lr=0.001,
-        betas=(0.9, 0.999),
+        lr=0.01,
+        betas=(0.9, 0.99),
         eps=1e-08,
         weight_decay=0.01,
         amsgrad=False,
     )
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.21)
-
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.51)
+    #scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=0.01, max_lr=0.1)
     return detmod, optimizer, scheduler
 
 
@@ -361,5 +368,6 @@ def display_fpn3d_pred(model3d, dataloaders, device=0):
         show_images(
             [1.0 - out_arr_proc[0, 1, i * 8, :, :] for i in range(1, 4)], figsize=(3, 3)
         )
+
 
 

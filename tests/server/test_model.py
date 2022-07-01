@@ -9,7 +9,7 @@ from survos2.config import Config
 import dask.array as da
 from survos2.improc.utils import optimal_chunksize
     
-def test_workspace():
+def test_datamodel():
     ws = Workspace(".")
     workspace_fpath = "./newws1" 
     ws = ws.create(workspace_fpath)
@@ -31,3 +31,4 @@ def test_workspace():
     assert ws.has_session('newsesh')
 
     ws.delete()
+

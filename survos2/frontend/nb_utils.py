@@ -337,7 +337,7 @@ def make_directories(dirs):
             os.makedirs(directory)
 
 
-def show_images(images, titles=None, figsize=(12, 12)):
+def show_images(images, titles=None, figsize=(12, 12), suptitle=""):
     n_images = len(images)
 
     if titles is None:
@@ -347,7 +347,6 @@ def show_images(images, titles=None, figsize=(12, 12)):
 
     for n, (image, title) in enumerate(zip(images, titles)):
         a = fig.add_subplot(1, n_images, n + 1)
-
         if image.ndim == 2:
             plt.gray()
 
@@ -355,8 +354,30 @@ def show_images(images, titles=None, figsize=(12, 12)):
         a.set_title(title)
 
     fig.set_size_inches(np.array(fig.get_size_inches()) * n_images)
-
     plt.show()
+    
+
+def show_image_grid(images, titles=None, row_len=8, figsize=(12, 12), suptitle=""):
+    n_images = len(images)
+    num_col = int(n_images/row_len)
+    
+    if titles is None:
+        titles = [f"{im.shape} {str(im.dtype)}" for im in images]
+
+    fig = plt.figure(figsize=figsize)
+
+    for n, (image, title) in enumerate(zip(images, titles)):
+        a = fig.add_subplot(1, n_images, n + 1)
+        if image.ndim == 2:
+            plt.gray()
+
+        plt.imshow(image)
+        a.set_title(title)
+
+    fig.set_size_inches(np.array(fig.get_size_inches()) * n_images)
+    plt.show()
+    
+
 
 
 def grid_of_images_and_clicks(
@@ -466,5 +487,6 @@ def show_images_and_points(
         n += 1
 
     return fig
+
 
 

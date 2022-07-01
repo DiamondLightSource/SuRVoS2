@@ -566,15 +566,20 @@ def frontend(viewer):
 
     def make_roi_ws(msg):
         logger.debug(f"Goto roi: {msg}")
+        if "feature_id" in msg:
+            feature_id = msg["feature_id"]
+            print(f"Making ROI from feature id {feature_id}")
+        else:
+            feature_id = "001_raw"
         params = dict(
             workspace=True,
             current_workspace_name=DataModel.g.current_workspace,
-            feature_id="001_raw",
+            feature_id=feature_id,
             roi=msg["roi"],
         )
         result = Launcher.g.run("workspace", "make_roi_ws", **params)
-        #if result:
-        #    logger.debug(f"Switching to make_roi_ws created workspace {result}")
+        if result:
+            logger.debug(f"Switching to make_roi_ws created workspace {result}")
         #    DataModel.g.current_workspace = result
         #    processEvents({"data": "refresh"})
 
@@ -589,11 +594,11 @@ def frontend(viewer):
 
     def show_roi(msg):
         logger.info(f"Showing ROI {msg['selected_roi']}")
-        z, x, y = msg["selected_roi"]
+        z, y, x = msg["selected_roi"]
         existing_feature_layer = [
             v for v in viewer.layers if v.name == cfg.current_feature_name
         ]
-        viewer.camera.center = (z, x, y)
+        viewer.camera.center = (int(float(z)), int(float(x)), int(float(y)))
         viewer.dims.set_current_step(0, z)
         viewer.camera.zoom = 4
 
@@ -703,3 +708,4 @@ def frontend(viewer):
     dw.Config = Config
     dw.cfg = cfg
     return dw
+

@@ -32,13 +32,20 @@ from survos2.frontend.main import init_ws, roi_ws
 
 import torch
 
+
+def accuracy(prediction, groundtruth):
+    FP, FN, TP, TN = numeric_score(prediction, groundtruth)
+    N = FP + FN + TP + TN
+    accuracy = np.divide(TP + TN, N)
+    return accuracy * 100.0
+
 def load_model(detmod, file_path):
     def load_model_parameters(full_path):
         checkpoint = torch.load(full_path)
         return checkpoint
 
     checkpoint = load_model_parameters(file_path)
-    detmod.load_state_dict(checkpoint["model_state"])
+    detmod.load_state_dict(checkpoint["model_state"], strict=False)
     detmod.eval()
 
     print(f"Loaded model from {file_path}")
@@ -142,9 +149,6 @@ def get_surface(img_vol, plot3d=False):
     return mesh, s, v, sphericity
 
 
-
-
-
 def remove_padding(vol, padding):
     unpadded_vol = vol[
         padding[0] : vol.shape[0] + padding[0],
@@ -154,9 +158,11 @@ def remove_padding(vol, padding):
     return unpadded_vol
 
 
-
 def accuracy(prediction, groundtruth):
     FP, FN, TP, TN = numeric_score(prediction, groundtruth)
     N = FP + FN + TP + TN
     accuracy = np.divide(TP + TN, N)
     return accuracy * 100.0
+
+
+

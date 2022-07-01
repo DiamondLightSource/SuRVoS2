@@ -332,3 +332,4 @@ def view_entities(viewer, msg):
     entity_layer = viewer.add_points(
         centers, size=[10] * len(centers), opacity=0.5, face_color=face_color_list
     )
+

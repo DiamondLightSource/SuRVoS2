@@ -462,3 +462,4 @@ class FeatureCard(CardWithId):
             _FeatureNotifier.notify()
 
         return result["done"]
+

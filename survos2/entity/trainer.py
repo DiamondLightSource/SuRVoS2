@@ -299,6 +299,12 @@ class Trainer:
         self.lr_scheduler.step()
         lr = self.lr_scheduler.get_lr()[0]
         self.model.train()
+
+        # if torch.cuda.device_count() > 1:
+        #     print("Using", torch.cuda.device_count(), "GPUs")
+        #     self.model = nn.DataParallel(self.model)
+        
+        
         num_steps = 0
 
         batch_iter = tqdm(
@@ -536,3 +542,4 @@ def train_detector_head(
     accuracies["val"] = val_acc
 
     return epochs, losses, accuracies
+

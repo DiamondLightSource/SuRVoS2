@@ -1,3 +1,4 @@
+from survos2.entity.cluster.clusterer import select_clusters
 from survos2.frontend.plugins.pipelines import PipelinesComboBox
 from survos2.frontend.plugins.features import FeatureComboBox
 import numpy as np
@@ -24,6 +25,8 @@ from survos2.server.state import cfg
 from survos2.utils import decode_numpy
 from survos2.frontend.components.entity import TableWidget
 from survos2.frontend.utils import FileWidget
+from survos2.entity.cluster.cluster_plotting import cluster_scatter, plot_clustered_img, image_grid2
+            
 
 feature_names = ["z",
                  "y",
@@ -196,6 +199,28 @@ class AnalyzerPlugin(Plugin):
 
 
 
+class DBSCAN_Panel(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(DBSCAN_Panel, self).__init__(parent=parent)
+        vbox = QtWidgets.QVBoxLayout()
+        vbox.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(vbox)
+        self.eps = LineEdit(default=0.1, parse=float)
+        widget = HWidgets("EPS:", self.eps,  stretch=1)    
+        vbox.addWidget(widget)
+        
+
+class HDBSCAN_Panel(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(HDBSCAN_Panel, self).__init__(parent=parent)
+        vbox = QtWidgets.QVBoxLayout()
+        vbox.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(vbox)
+        self.min_cluster_size = LineEdit(default=2, parse=int)
+        self.min_samples = LineEdit(default=1, parse=int)
+        widget = HWidgets("Min Cluster Size:", self.min_cluster_size, "Min Samples:", self.min_samples)    
+        vbox.addWidget(widget)
+        
 
 class TSNE_Panel(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -245,13 +270,27 @@ class MplCanvas(FigureCanvasQTAgg):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
         self.suptitle = suptitle
-        #if self.suptitle:
-        #    self.fig.suptitle(self.suptitle)
         super(MplCanvas, self).__init__(self.fig)
     def set_suptitle(self,suptitle):
         self.suptitle = suptitle
         self.fig.suptitle(suptitle)
 
+
+class MplGridCanvas(FigureCanvasQTAgg):
+    def __init__(self, parent=None, width=5, height=4, num_rows=2, num_cols=2, dpi=100, suptitle="Feature"):
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axesarr = np.zeros((num_rows, num_cols), dtype=object)
+        
+        for i in range(num_rows):
+            for j in range(num_cols):
+                idx = i*num_cols + j
+                self.axesarr[i,j] = self.fig.add_subplot(num_rows,num_cols,idx+1)
+                
+        self.suptitle = suptitle
+        super(MplGridCanvas, self).__init__(self.fig)
+    def set_suptitle(self,suptitle):
+        self.suptitle = suptitle
+        self.fig.suptitle(suptitle)
 
 class RuleCard(Card):
     def __init__(self, title, collapsible=True, removable=True, editable=True,parent=None):
@@ -314,49 +353,41 @@ class AnalyzerCard(Card):
         if self.analyzer_type == "label_splitter":
             self.add_source_selector()
  
-            self.background_label = LineEdit(default=0, parse=float)
+            self.background_label = LineEdit(default=0, parse=int)
             widget = HWidgets("Background label:", self.background_label, stretch=1)
             self.add_row(widget)
 
             self.add_rules_btn = PushButton("Add Rule")
             self.add_rules_btn.clicked.connect(self._add_rule)
-            self.refresh_rules_btn = PushButton("Refresh plots")
+            self.refresh_rules_btn = PushButton("Refresh rules")
             self.refresh_rules_btn.clicked.connect(self._setup_ops)
 
-            widget = HWidgets(self.add_rules_btn, self.refresh_rules_btn,stretch=0)
-            self.add_row(widget)
-
-            self.export_csv_btn = PushButton("Export CSV")
-            self.load_as_objects_btn = PushButton("Load as Objects")
-
-            self.add_row(HWidgets(None, self.load_as_objects_btn, self.export_csv_btn, ))
-            self.load_as_objects_btn.clicked.connect(self.load_as_objects)
-            self.export_csv_btn.clicked.connect(self.export_csv)
-
+           
             self.feature_name_combo_box = SimpleComboBox(
             full=True, values=feature_names
             )
-            self.feature_name_combo_box.fill()
-                       
-            self.add_row(HWidgets("Explore feature name: ", self.feature_name_combo_box, stretch=0))
-            self._add_view_btn() 
+            self.feature_name_combo_box.fill()      
+            self.add_row(HWidgets(self.add_rules_btn,  self.refresh_rules_btn))
+            self.add_row(HWidgets("Explore feature name: ", self.feature_name_combo_box))
+            self._add_labelsplitter_view_btns()
+        elif self.analyzer_type == "label_analyzer":
+            self.add_source_selector()
+            self.background_label = LineEdit(default=0, parse=int)
+            widget = HWidgets("Background label:", self.background_label, stretch=1)
+            self.add_row(widget)
+           
+            self.feature_name_combo_box = SimpleComboBox(
+            full=True, values=feature_names
+            )
+            self.feature_name_combo_box.fill()      
+            self.add_row(HWidgets("Explore feature name: ", self.feature_name_combo_box))
+            self._add_labelsplitter_view_btns()
+
         elif self.analyzer_type == "image_stats":
             self._add_features_source()
             self.plot_btn = PushButton("Plot")
             additional_buttons.append(self.plot_btn)
             #self.plot_btn.clicked.connect(self.clustering_plot)
-        elif self.analyzer_type == "level_image_stats":
-            self._add_annotations_source()
-            self.statistic_name_combo_box = SimpleComboBox(
-                full=True, values=["Mean", "Std", "Var"]
-            )
-            widget = HWidgets(
-                "Statistic:", self.statistic_name_combo_box,  stretch=1
-            )
-            self.add_row(widget)
-            self.label_index = LineEdit(default=1, parse=float)
-            widget = HWidgets("Level index:", self.label_index,  stretch=1)
-            self.add_row(widget)
         elif self.analyzer_type == "binary_image_stats":
             self._add_feature_source()
             self.threshold = LineEdit(default=0.5, parse=float)
@@ -441,19 +472,41 @@ class AnalyzerCard(Card):
         elif self.analyzer_type == "spatial_clustering":
             self._add_feature_source()
             self._add_objects_source()
-            self.eps = LineEdit(default=0.1, parse=float)
-            widget = HWidgets("DBScan EPS:", self.eps,  stretch=1)
+            self.DBSCAN_Panel = DBSCAN_Panel()
+            self.HDBSCAN_Panel = HDBSCAN_Panel()  
+              
+
+            self.clustering_method_combo_box = SimpleComboBox(
+                full=True, values=["DBSCAN", "HDBSCAN"]
+            )
+            widget = HWidgets("Method:", self.clustering_method_combo_box)
             self.add_row(widget)
+            self.clustering_method_combo_box.fill()
+            self.clustering_method_combo_box.currentIndexChanged.connect(self._on_clustering_method_changed)
+            self.clustering_method_container = QtWidgets.QWidget()
+            clustering_method_vbox = VBox(self, spacing=4)
+            clustering_method_vbox.setContentsMargins(0, 0, 0, 0)
+            self.clustering_method_container.setLayout(clustering_method_vbox)
+            self.add_row(self.clustering_method_container, max_height=500)
+            self.clustering_method_container.layout().addWidget(self.DBSCAN_Panel)
+            
             self.load_as_objects_btn = PushButton("Load as Objects")
             additional_buttons.append(self.load_as_objects_btn)
             self.load_as_objects_btn.clicked.connect(self.load_as_objects)
+        
         elif self.analyzer_type == "object_analyzer":
             self._add_feature_source()
             self._add_objects_source()
-
+            self.flipxy = CheckBox(checked=True)
             self.patch_size = LineEdit3D(default=32, parse=int)
             self.TSNE_Panel = TSNE_Panel()
             self.UMAP_Panel = UMAP_Panel()    
+            
+            self.feature_extraction_method_combo_box = SimpleComboBox(
+                full=True, values=["CNN", "HOG"]
+            )
+            self.feature_extraction_method_combo_box.fill()
+            
             self.axis_combo_box = SimpleComboBox(
                 full=True, values=["0", "1","2"]
             )
@@ -465,9 +518,15 @@ class AnalyzerCard(Card):
             self.embedding_method_combo_box.fill()
             
             widget = HWidgets(
-                "Method:", self.embedding_method_combo_box, "Axis:", self.axis_combo_box, self.patch_size, stretch=2
+                "Extraction Method:", self.feature_extraction_method_combo_box, "Patch size: ", self.patch_size, "Flip XY:", self.flipxy, stretch=2
+            )
+
+            self.add_row(widget)
+            widget = HWidgets(
+                "Embedding Method:", self.embedding_method_combo_box, "Axis:", self.axis_combo_box, self.patch_size, self.flipxy, stretch=2
             )
             self.add_row(widget)
+
             self.embedding_method_combo_box.currentIndexChanged.connect(self._on_embedding_method_changed)
             self.embedding_method_container = QtWidgets.QWidget()
             embedding_method_vbox = VBox(self, spacing=4)
@@ -478,6 +537,12 @@ class AnalyzerCard(Card):
             self.min_cluster_size = LineEdit(default=3, parse=int)
             widget = HWidgets(
                 "min_cluster_size:", self.min_cluster_size)
+            self.add_row(widget)
+            
+            self.plot_clusters = CheckBox(checked=False)
+            widget = HWidgets(
+                "Plot clusters:", self.plot_clusters)
+            
             self.add_row(widget)
         self.calc_btn = PushButton("Compute")
         self.add_row(HWidgets(None, self.calc_btn))
@@ -524,7 +589,6 @@ class AnalyzerCard(Card):
         self.annotations_source.setMaximumWidth(250)
         self.annotations_widget = HWidgets("Annotation", self.annotations_source,  stretch=1)
         self.annotations_widget.setParent(None)
-
         self.analyzers_source = AnalyzersComboBox()
         self.analyzers_source.fill()
         self.analyzers_source.setMaximumWidth(250)
@@ -536,6 +600,13 @@ class AnalyzerCard(Card):
         self.current_widget = self.pipelines_widget
         self._add_feature_source()
 
+    def _on_clustering_method_changed(self, idx):
+        if idx == 1:
+            self.DBSCAN_Panel.setParent(None)
+            self.clustering_method_container.layout().addWidget(self.HDBSCAN_Panel)
+        elif idx == 0:
+            self.HDBSCAN_Panel.setParent(None)
+            self.clustering_method_container.layout().addWidget(self.DBSCAN_Panel)
     def _on_embedding_method_changed(self, idx):
         if idx == 0:
             self.UMAP_Panel.setParent(None)
@@ -706,7 +777,23 @@ class AnalyzerCard(Card):
                 None, load_as_float_btn, load_as_annotation_btn, view_btn, 
             )
         )
-    
+
+    def _add_labelsplitter_view_btns(self):
+        view_btn = PushButton("View", accent=True)
+        view_btn.clicked.connect(self.view_analyzer)
+        load_as_annotation_btn = PushButton("Load as annotation", accent=True)
+        load_as_annotation_btn.clicked.connect(self.load_as_annotation)
+        load_as_float_btn = PushButton("Load as feature", accent=True)
+        load_as_float_btn.clicked.connect(self.load_as_float)
+
+        self.export_csv_btn = PushButton("Export CSV")
+        self.load_as_objects_btn = PushButton("Load as Objects")
+        self.load_as_objects_btn.clicked.connect(self.load_as_objects)
+        self.export_csv_btn.clicked.connect(self.export_csv)
+
+        self.add_row(HWidgets(None, load_as_annotation_btn, load_as_float_btn, self.load_as_objects_btn, self.export_csv_btn,view_btn ))
+        
+
     def _add_view_entities(self):
         view_btn = PushButton("View Entities", accent=True)
         view_btn.clicked.connect(self.view_entities)
@@ -969,10 +1056,10 @@ class AnalyzerCard(Card):
         for i in range(len(result)):
             entry = (
                 i,
+                result[i][0],
                 result[i][1],
                 result[i][2],
                 result[i][3],
-                result[i][0],
             )
             tabledata.append(entry)
 
@@ -1133,6 +1220,54 @@ class AnalyzerCard(Card):
         out_df.to_csv(full_path)
         logger.debug(f"Exported to csv {full_path}")
 
+
+    def calc_label_analyzer(self):
+        if len(self.plots) > 0:
+            for plot in self.plots:
+                plot.setParent(None)
+                plot = None
+            self.plots = []
+
+        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+        src = DataModel.g.dataset_uri(self.pipelines_source.value(), group="pipelines")
+        all_params = dict(src=src, dst=dst, modal=False)
+        all_params["workspace"] = DataModel.g.current_workspace
+        all_params["pipelines_id"] = str(self.pipelines_source.value())
+        all_params["feature_id"] = str(self.feature_source.value())
+        all_params["analyzers_id"] = str(self.analyzers_source.value())
+        all_params["annotations_id"] = str(self.annotations_source.value())
+        all_params["mode"] = self.radio_group.checkedId()
+        all_params["background_label"] = self.background_label.value()
+
+        split_ops = {}
+        split_feature_indexes = []
+        split_feature_thresholds = []
+        all_params["split_ops"] = split_ops
+
+
+        logger.debug(f"Running analyzer with params {all_params}")
+        result_features, features_array, bvols = Launcher.g.run(
+            "analyzer", "label_splitter", **all_params
+        )
+        features_ndarray = np.array(features_array)
+        print(f"Shape of features_array: {features_ndarray.shape}")
+        
+        if features_array:
+            logger.debug(f"Segmentation stats result table: {len(features_array)}")                
+            feature_arrays = []
+            feature_titles = []
+            
+            for j,s in enumerate(split_feature_indexes):
+                feature_title = feature_names[int(s)]
+                feature_plot_array = features_ndarray[:, int(s)] 
+                feature_arrays.append(feature_plot_array)
+                feature_titles.append(feature_title)
+                print(f"Titles of feature names: {feature_titles}")
+                print(f"Split feature thresholds: {split_feature_thresholds}")
+            self.display_splitter_plot(feature_arrays, titles=feature_titles, vert_line_at=split_feature_thresholds)
+            self.display_splitter_results(result_features)
+
+
     def calc_label_splitter(self):
         if len(self.plots) > 0:
             for plot in self.plots:
@@ -1149,7 +1284,6 @@ class AnalyzerCard(Card):
         all_params["analyzers_id"] = str(self.analyzers_source.value())
         all_params["annotations_id"] = str(self.annotations_source.value())
         all_params["mode"] = self.radio_group.checkedId()
-
         all_params["background_label"] = self.background_label.value()
 
         split_ops = {}
@@ -1181,41 +1315,39 @@ class AnalyzerCard(Card):
 
 
         logger.debug(f"Running analyzer with params {all_params}")
-        result_features, features_array = Launcher.g.run(
+        result_features, features_array, bvols = Launcher.g.run(
             "analyzer", "label_splitter", **all_params
         )
         features_ndarray = np.array(features_array)
-        print(f"Shape of features_array {features_ndarray.shape}")
+        print(f"Shape of features_array: {features_ndarray.shape}")
         
         if features_array:
-            logger.debug(f"Segmentation stats result table {len(features_array)}")                
+            logger.debug(f"Segmentation stats result table: {len(features_array)}")                
             feature_arrays = []
             feature_titles = []
             
             for j,s in enumerate(split_feature_indexes):
-                print(s)
                 feature_title = feature_names[int(s)]
-                print(feature_title)
                 feature_plot_array = features_ndarray[:, int(s)] 
                 feature_arrays.append(feature_plot_array)
                 feature_titles.append(feature_title)
-                print(f"Titles of feature names{feature_titles}")
+                print(f"Titles of feature names: {feature_titles}")
                 print(f"Split feature thresholds: {split_feature_thresholds}")
             self.display_splitter_plot(feature_arrays, titles=feature_titles, vert_line_at=split_feature_thresholds)
             self.display_splitter_results(result_features)
 
-    def calc_level_image_stats(self):
-        dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
-        anno_id = DataModel.g.dataset_uri(self.annotations_source.value())
-        all_params = dict(dst=dst, modal=False)
-        all_params["workspace"] = DataModel.g.current_workspace
-        all_params["anno_id"] = anno_id
-        all_params["label_index"] = self.label_index.value()
-        logger.debug(f"Running analyzer with params {all_params}")
-        result = Launcher.g.run("analyzer", "level_image_stats", **all_params)
-        if result:
-            logger.debug(f"Level Image stats result table {len(result)}")
-            self.display_component_results(result)
+    # def calc_level_image_stats(self):
+    #     dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
+    #     anno_id = DataModel.g.dataset_uri(self.annotations_source.value())
+    #     all_params = dict(dst=dst, modal=False)
+    #     all_params["workspace"] = DataModel.g.current_workspace
+    #     all_params["anno_id"] = anno_id
+    #     all_params["label_index"] = self.label_index.value()
+    #     logger.debug(f"Running analyzer with params {all_params}")
+    #     result = Launcher.g.run("analyzer", "level_image_stats", **all_params)
+    #     if result:
+    #         logger.debug(f"Level Image stats result table {len(result)}")
+    #         self.display_component_results(result)
 
     def calc_find_connected_components(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
@@ -1285,7 +1417,9 @@ class AnalyzerCard(Card):
         methods = ['TSNE', 'UMAP']
         all_params["embedding_method"] = str(methods[int(self.embedding_method_combo_box.value())])
         all_params["axis"] = int(self.axis_combo_box.value())
-    
+        all_params["flipxy"] = self.flipxy.value()
+        feature_extraction_methods = ['CNN', 'HOG']
+        all_params["feature_extraction_method"] = str(feature_extraction_methods[int(self.feature_extraction_method_combo_box.value())])
         embedding_params = {}
         if all_params["embedding_method"] == 'TSNE':
             embedding_params["n_components"] = int(self.TSNE_Panel.n_components.value())
@@ -1299,29 +1433,59 @@ class AnalyzerCard(Card):
             embedding_params["metric"] = str(umap_metrics[int(self.UMAP_Panel.metric_combo_box.value(key=True))])                
         all_params["embedding_params"] = embedding_params
         all_params["min_cluster_size"] = int(self.min_cluster_size.value())
+        
         logger.debug(f"Running analyzer with params {all_params}")
-        plot_img, labels, entities_arr = Launcher.g.run("analyzer", "object_analyzer", **all_params)
+        _, labels, entities_arr, selected_images_arr, standard_embedding = Launcher.g.run("analyzer", "object_analyzer", **all_params)
+        
         entities_arr = np.array(entities_arr)
         entities_arr[:,3] = labels
         self.entities_arr = entities_arr
+        selected_images_arr = decode_numpy(selected_images_arr)
+        print(selected_images_arr.shape)
         
-        if plot_img:
-            src_arr = decode_numpy(plot_img)
+        if standard_embedding:
             sc = MplCanvas(self, width=8, height=8, dpi=100)
-            sc.axes.imshow(src_arr)
-            
+            #sc.axes.imshow(src_arr)
             sc.axes.margins(0)
-            sc.axes.set_xticks([], [])
-            sc.axes.set_yticks([], [])
-            max_height = 800
-            sc.setProperty("header", False)
-            sc.setMaximumHeight(max_height)
+            sc.axes.axis("off")
+            # if all_params["bvol_dim"][0] < 32:
+            #     skip_px = 1
+            # else:
+            #     skip_px = 2
+            skip_px = 2
+            standard_embedding = decode_numpy(standard_embedding)
+            plot_clustered_img(
+                standard_embedding,
+                np.array(labels),
+                ax=sc.axes,
+                images=selected_images_arr[:, ::skip_px, ::skip_px],
+            )
             self.object_analyzer_plots.append(sc)
-            self.vbox.addWidget(self.object_analyzer_plots[0])
+            
             print("Added clustering plot")
             print(labels)
-            self.display_clustering_results(labels)
+            
+            if self.plot_clusters.value():
+                labels = np.array(labels)
+                for l in np.unique(labels):
+                    selected_images = selected_images_arr[labels==l]
+                    if len(selected_images) < 7:
+                        n_cols = len(selected_images)
+                    else:
+                        n_cols = 6
+                    n_rows = min(5,(len(selected_images) // n_cols)  + 1)
+                    print(f"Making MplGridCanvas with {n_rows} rows and {n_cols} columns.")
+                    sc2 = MplGridCanvas(self, width=8, height=8, num_rows=n_rows, num_cols=n_cols,dpi=100)
+                    image_grid2(selected_images, n_cols, sc2.fig, sc2.axesarr, bigtitle=str(l))
+                    self.object_analyzer_plots.append(sc2)
+           
+            for k in self.object_analyzer_plots:
+                #self.vbox.addWidget(k)
+                self.add_row(k, max_height=500)
 
+
+            self.display_clustering_results(labels)
+            
     def calc_patch_stats(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
@@ -1432,7 +1596,16 @@ class AnalyzerCard(Card):
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["object_id"] = str(self.objects_source.value())
-        all_params["params"] = {"algorithm": "DBSCAN", "eps": self.eps.value(), "min_samples": 1}
+
+        methods = ['DBSCAN', 'HDBSCAN']
+        algorithm = str(methods[int(self.clustering_method_combo_box.value())])
+        if algorithm == 'DBSCAN':
+            all_params["params"] = {"algorithm": algorithm, "eps": self.DBSCAN_Panel.eps.value(), "min_samples": 1}
+        elif algorithm == 'HDBSCAN':
+            all_params["params"] = {"algorithm": algorithm, 
+                                     "min_cluster_size": self.HDBSCAN_Panel.min_cluster_size.value(), 
+                                     "min_samples": self.HDBSCAN_Panel.min_samples.value()}
+
         result = Launcher.g.run("analyzer", "spatial_clustering", **all_params)
         print(result)
         
@@ -1459,10 +1632,10 @@ class AnalyzerCard(Card):
 
             if self.analyzer_type == "label_splitter":
                 self.calc_label_splitter()
+            if self.analyzer_type == "label_analyzer":
+                self.calc_label_analyzer()
             elif self.analyzer_type == "find_connected_components":
                 self.calc_find_connected_components()    
-            elif self.analyzer_type == "level_image_stats":
-                self.calc_level_image_stats()
             elif self.analyzer_type == "binary_image_stats":
                 self.calc_binary_image_stats()
             elif self.analyzer_type == "image_stats":
@@ -1482,3 +1655,4 @@ class AnalyzerCard(Card):
             elif self.analyzer_type == "point_generator":
                 self.calc_point_generator()
             pbar.update(2)
+

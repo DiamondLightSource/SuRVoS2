@@ -164,7 +164,7 @@ def prepare_3channel(selected_images, patch_size=(28, 28)):
     for i in range(len(selected_images)):
         img_out = np.zeros((patch_size[0], patch_size[1], 3))
 
-        if i % (len(selected_images) // 10) == 0:
+        if len(selected_images) > 10 and i % (len(selected_images) // 10) == 0:
             print(i, selected_images[i].shape)
 
         try:
@@ -181,3 +181,4 @@ def prepare_3channel(selected_images, patch_size=(28, 28)):
             print(e)
 
     return selected_3channel
+

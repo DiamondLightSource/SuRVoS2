@@ -747,3 +747,4 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
             preprocessing = self.transforms
 
         return preprocessing(img).numpy()
+

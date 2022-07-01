@@ -1,6 +1,8 @@
+from cProfile import label
 import logging
 import ntpath
 import os.path as op
+from posixpath import split
 from xmlrpc.client import Boolean
 import pandas as pd
 import dask.array as da
@@ -58,6 +60,9 @@ from survos2.entity.patches import PatchWorkflow, organize_entities, make_patche
 from survos2.entity.anno.pseudo import generate_augmented_entities, make_pseudomasks, make_anno
 from survos2.entity.patches import pad_vol
 
+
+from survos2.entity.cluster.cluster_plotting import cluster_scatter, plot_clustered_img
+
 from survos2.entity.sampler import (
     generate_random_points_in_volume,
 )
@@ -73,6 +78,7 @@ __analyzer_names__ = [
     "patch_stats",
     "object_detection_stats",
     "segmentation_stats",
+    "label_analyzer",
     "label_splitter",
     "binary_image_stats",
     "spatial_clustering",
@@ -146,6 +152,76 @@ FEATURE_TYPES = [
     "seg_sphericity"
 ]
 
+
+def window_to_bb(w):
+
+    return 0, 0, (w[0].start + w[0].stop)//2, (w[1].start+w[1].stop)//2, (w[2].start+w[2].stop) // 2, w[0].start, w[0].stop, w[1].start, w[1].stop, w[2].start, w[2].stop
+
+def windows_to_bvols(windows):
+    bbs = []
+    for w in windows:
+        bbs.append(window_to_bb(w))
+    return bbs
+
+def sample_windows(img_volume, win):
+    z_st, z_end,  y_st, y_end, x_st, x_end = win
+    z_st = int(z_st)
+    z_end = int(z_end)
+    y_st = int(y_st)
+    y_end = int(y_end)
+    x_st = int(x_st)
+    x_end = int(x_end)
+    img = img_volume[z_st:z_end, y_st:y_end, x_st:x_end]
+    return img
+
+def detect_blobs(
+    padded_proposal,
+    area_min=0,
+    area_max=1e12,
+    plot_all=False,
+):
+    images = [padded_proposal]
+    bbs_tables, bbs_arrs = component_bounding_boxes(images)
+    print(f"Detecting blobs on image of shape {padded_proposal.shape}")
+    zidx = padded_proposal.shape[0] // 2
+
+    from survos2.frontend.nb_utils import summary_stats
+
+    print("Component stats: ")
+    print(f"{summary_stats(bbs_tables[0]['area'])}")
+
+    if plot_all:
+        for idx in range(len(bbs_tables)):
+            print(idx)
+            plt.figure(figsize=(5, 5))
+            plt.imshow(images[idx][zidx, :], cmap="gray")
+            plt.scatter(bbs_arrs[idx][:, 4], bbs_arrs[idx][:, 3])
+
+    selected_entities = bbs_tables[0][
+        (bbs_tables[0]["area"] > area_min) & (bbs_tables[0]["area"] < area_max)
+    ]
+    print(f"Number of selected entities {len(selected_entities)}")
+
+    return bbs_tables, selected_entities
+
+
+
+
+@hug.get()
+def label_analyzer(
+    src: DataURI, 
+    dst: DataURI,
+    workspace: String,
+    mode: String,
+    pipelines_id: DataURI,
+    analyzers_id: DataURI,
+    annotations_id: DataURI,
+    feature_id: DataURI,
+    split_ops : dict,
+    background_label : Int
+) -> "SEGMENTATION":
+
+    return label_splitter(src, dst, workspace, mode, pipelines_id, analyzers_id, annotations_id, feature_id, split_ops, background_label)
 
 @hug.get()
 def label_splitter(
@@ -326,8 +402,8 @@ def label_splitter(
         [
             [
                 np.int32(np.float32(features_df.iloc[i]["z"])),
-                np.int32(np.float32(features_df.iloc[i]["x"])),
                 np.int32(np.float32(features_df.iloc[i]["y"])),
+                np.int32(np.float32(features_df.iloc[i]["x"])),
                 np.float32(np.float32(features_df.iloc[i]["Sum"])),
                 np.float32(np.float32(features_df.iloc[i]["Mean"])),
                 np.float32(np.float32(features_df.iloc[i]["Std"])),
@@ -352,6 +428,7 @@ def label_splitter(
 
     logger.debug(split_ops)
     rules = []
+    calculate = False
     for k in split_ops.keys():
         if k != 'context':
             split_op_card = split_ops[k]
@@ -360,17 +437,15 @@ def label_splitter(
             split_threshold = float(split_op_card["split_threshold"])
             
             if int(split_op) > 0:
-                calculate =True
+                calculate = True
                 s = int(split_op) - 1  # split_op starts at 1
-                feature_names = ["z", "x", "y", "Sum", "Mean", "Std", "Var", "bb_vol", "bb_vol_log10", "bb_vol_depth", "bb_vol_depth","bb_vol_height", "bb_vol_width", "ori_vol", "ori_vol_log10", "ori_vol_depth", "ori_vol_depth","ori_vol_height", "ori_vol_width", "seg_surface_area", "seg_volume", "seg_sphericity"]
+                feature_names = ["z", "y", "x", "Sum", "Mean", "Std", "Var", "bb_vol", "bb_vol_log10", "bb_vol_depth", "bb_vol_depth","bb_vol_height", "bb_vol_width", "ori_vol", "ori_vol_log10", "ori_vol_depth", "ori_vol_depth","ori_vol_height", "ori_vol_width", "seg_surface_area", "seg_volume", "seg_sphericity"]
                 feature_index = int(
                     split_feature_index
                 )  # feature_names.index(split_feature_index)
                 rules.append((int(feature_index), s, split_threshold))
                 logger.debug(f"Adding split rule: {split_feature_index} {split_op} {split_threshold}")
-            else:
-                calculate = False
-
+            
     if calculate:
         masked_out, result_features = apply_rules(
             features_array, -1, rules, np.array(objlabels), num_objects
@@ -388,7 +463,10 @@ def label_splitter(
         result_features = features_array    
     map_blocks(pass_through, new_labels, out=dst, normalize=False)
 
-    return result_features, features_array 
+
+    bvols = windows_to_bvols(obj_windows)
+
+    return result_features, features_array,bvols 
 
 def apply_rules(
     features: np.ndarray, label: int, rules: tuple, out: np.ndarray, num_objects: int
@@ -408,64 +486,33 @@ def apply_rules(
     return out, result_features
 
 
-def detect_blobs(
-    padded_proposal,
-    area_min=0,
-    area_max=1e12,
-    plot_all=False,
-):
-    images = [padded_proposal]
-    bbs_tables, bbs_arrs = component_bounding_boxes(images)
-    print(f"Detecting blobs on image of shape {padded_proposal.shape}")
-    zidx = padded_proposal.shape[0] // 2
+# def plot_clustered_img(
+#     proj,
+#     colors,
+#     images=None,
+#     ax=None,
+#     thumb_frac=0.02,
+#     cmap="gray",
+#     title="Clustered Images",
+# ):
 
-    from survos2.frontend.nb_utils import summary_stats
+#     num_classes = len(np.unique(colors))
+#     palette = np.array(sns.color_palette("hls", num_classes))
+#     # ax = ax or plt.gca()
+#     if images is not None:
+#         min_dist_2 = (thumb_frac * max(proj.max(0) - proj.min(0))) ** 2
+#         shown_images = np.array([2 * proj.max(0)])
+#         for i in range(proj.shape[0]):
+#             dist = np.sum((proj[i] - shown_images) ** 2, 1)
+#             if np.min(dist) < min_dist_2 / 5:
+#                 continue
+#             shown_images = np.vstack([shown_images, proj[i]])
+#             imagebox = offsetbox.AnnotationBbox(
+#                 offsetbox.OffsetImage(images[i], cmap=cmap, zorder=1), proj[i]
+#             )
+#             ax.add_artist(imagebox)
 
-    print("Component stats: ")
-    print(f"{summary_stats(bbs_tables[0]['area'])}")
-
-    if plot_all:
-        for idx in range(len(bbs_tables)):
-            print(idx)
-            plt.figure(figsize=(5, 5))
-            plt.imshow(images[idx][zidx, :], cmap="gray")
-            plt.scatter(bbs_arrs[idx][:, 4], bbs_arrs[idx][:, 3])
-
-    selected_entities = bbs_tables[0][
-        (bbs_tables[0]["area"] > area_min) & (bbs_tables[0]["area"] < area_max)
-    ]
-    print(f"Number of selected entities {len(selected_entities)}")
-
-    return bbs_tables, selected_entities
-
-
-def plot_clustered_img(
-    proj,
-    colors,
-    images=None,
-    ax=None,
-    thumb_frac=0.02,
-    cmap="gray",
-    title="Clustered Images",
-):
-
-    num_classes = len(np.unique(colors))
-    palette = np.array(sns.color_palette("hls", num_classes))
-    # ax = ax or plt.gca()
-    if images is not None:
-        min_dist_2 = (thumb_frac * max(proj.max(0) - proj.min(0))) ** 2
-        shown_images = np.array([2 * proj.max(0)])
-        for i in range(proj.shape[0]):
-            dist = np.sum((proj[i] - shown_images) ** 2, 1)
-            if np.min(dist) < min_dist_2 / 5:
-                continue
-            shown_images = np.vstack([shown_images, proj[i]])
-            imagebox = offsetbox.AnnotationBbox(
-                offsetbox.OffsetImage(images[i], cmap=cmap, zorder=1), proj[i]
-            )
-            ax.add_artist(imagebox)
-
-    ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=40, zorder=200)
+#     ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=40, zorder=200)
 
 
 # @hug.get()
@@ -538,6 +585,8 @@ def find_connected_components(
     #     logger.debug(f"src_dataset shape {src_dataset_arr[:].shape}")
 
     single_label_level = (src_dataset_arr == label_index) * 1.0
+
+    print(single_label_level.shape)
     bbs_tables, selected_entities = detect_blobs(single_label_level)
     print(bbs_tables)
     print(selected_entities)
@@ -547,16 +596,17 @@ def find_connected_components(
         if (bbs_tables[0].iloc[i]["area"] > area_min) & (bbs_tables[0].iloc[i]["area"] < area_max):
             result_list.append(
                 [
-                    bbs_tables[0].iloc[i]["area"],
                     bbs_tables[0].iloc[i]["z"],
-                    bbs_tables[0].iloc[i]["y"],
                     bbs_tables[0].iloc[i]["x"],
+                    bbs_tables[0].iloc[i]["y"],
+                    bbs_tables[0].iloc[i]["area"],
                 ]
             )
 
     map_blocks(pass_through, single_label_level, out=dst, normalize=False)
     
     print(result_list)
+
     return result_list
 
 
@@ -585,10 +635,10 @@ def binary_image_stats(
         if (bbs_tables[0].iloc[i]["area"] < area_max) & (bbs_tables[0].iloc[i]["area"] > area_min):
             result_list.append(
                 [
-                    bbs_tables[0].iloc[i]["area"],
                     bbs_tables[0].iloc[i]["z"],
                     bbs_tables[0].iloc[i]["x"],
                     bbs_tables[0].iloc[i]["y"],
+                    bbs_tables[0].iloc[i]["area"],
                 ]
             )
 
@@ -840,13 +890,13 @@ def plot_clustered_img(
             )
             ax.add_artist(imagebox)
 
-    ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=20, zorder=200)
+    ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=2, zorder=200)
 
     ax.axis("off")
     ax.axis("tight")
-    ax.set_title(
-        "Plot of k-means clustering of small click windows using ResNet-18 Features"
-    )
+    # ax.set_title(
+    #     "Plot of k-means clustering of small click windows using ResNet-18 Features"
+    # )
 
     for i in range(num_classes):
         xtext, ytext = np.median(proj[colors == i, :], axis=0)
@@ -859,12 +909,15 @@ def object_analyzer(
     workspace: String, 
     object_id: DataURI, 
     feature_id: DataURI, 
+    feature_extraction_method : String,
     embedding_method: String,
     dst: DataURI,
     bvol_dim: IntOrVector,
     axis: Int,
     embedding_params : dict,
-    min_cluster_size : Int
+    min_cluster_size : Int,
+    flipxy : SmartBoolean,
+    
 ) -> "OBJECTS":
     logger.debug(f"Calculating clustering on patches located at entities: {object_id}")
     from survos2.entity.cluster.cluster_plotting import cluster_scatter
@@ -887,11 +940,15 @@ def object_analyzer(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
     entities_fullname = ds_objects.get_metadata("fullname")
-    tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
+    tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=flipxy)
 
-    entities = np.array(make_entity_df(np.array(entities_df), flipxy=True))
+    entities = np.array(make_entity_df(np.array(entities_df), flipxy=False))
+
+    slice_idx = bvol_dim[0]
+    print(f"Slicing bvol at index: {slice_idx} on axis {axis} for bvol of dim {bvol_dim}")
+    
     feature_mat, selected_images = prepare_patches_for_clustering(
-        ds_feature, entities, bvol_dim=bvol_dim, axis=axis,
+        ds_feature, entities, bvol_dim=bvol_dim, axis=axis, slice_idx=slice_idx, method=feature_extraction_method, flipxy=False
     )
     num_clusters = 5
 
@@ -931,17 +988,18 @@ def object_analyzer(
 
     # Plot to image
     fig = Figure()
-    canvas = FigureCanvasAgg(fig)
+    
     ax = fig.gca()
     ax.axis("off")
     fig.tight_layout(pad=0)
     #ax.margins(0)
-    ax.set_xticks([], [])
-    ax.set_yticks([], [])
+    # ax.set_xticks([], [])
+    # ax.set_yticks([], [])
 
     clustered = (labels >= 0)
     standard_embedding = patch_clusterer.embedding
-
+    print(standard_embedding)
+    standard_embedding = np.array(standard_embedding)
     # ax.scatter(standard_embedding[~clustered, 0],
     #             standard_embedding[~clustered, 1],
     #             color=(0.5, 0.5, 0.5),
@@ -957,16 +1015,19 @@ def object_analyzer(
     else:
         skip_px = 2
 
-    plot_clustered_img(
-        standard_embedding[clustered],
-        labels[clustered],
-        ax=ax,
-        images=selected_images_arr[:, ::skip_px, ::skip_px],
-    )
-    #fig.suptitle("Clustering")
-    canvas.draw()
-    plot_image = np.asarray(canvas.buffer_rgba())
-    return encode_numpy(plot_image), labels, entities
+    # plot_clustered_img(
+    #     standard_embedding,
+    #     labels,
+    #     ax=ax,
+    #     images=selected_images_arr[:, ::skip_px, ::skip_px],
+    # )
+    # #fig.suptitle("Clustering")
+    # from survos2.entity.cluster.cluster_plotting import image_grid, image_grids
+    # figs = image_grids(selected_images_arr, labels)
+    # canvas = FigureCanvasAgg(figs[0])
+    # canvas.draw()
+    # plot_image = np.asarray(canvas.buffer_rgba())
+    return None, labels, entities, encode_numpy(selected_images_arr), encode_numpy(standard_embedding)
 
 
 
@@ -1137,23 +1198,37 @@ def point_generator(
     bg_mask_id : DataURI,
     num_before_masking : Int,
 ):
-    # get feature for background mask
-    src = DataModel.g.dataset_uri(ntpath.basename(bg_mask_id), group="features")
-    logger.debug(f"Getting features {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        bg_mask = DM.sources[0][:]
-        logger.debug(f"Feature shape {bg_mask.shape}")
+    mask_name = ntpath.basename(bg_mask_id)
+    
+    if mask_name == 'None':
+        src = DataModel.g.dataset_uri('001_raw', group="features")
+        logger.debug(f"Getting features {src}")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            bg_mask = np.zeros_like(DM.sources[0][:])
+            logger.debug(f"Feature shape {bg_mask.shape}")
+
+    else:
+        # get feature for background mask
+        src = DataModel.g.dataset_uri(ntpath.basename(bg_mask_id), group="features")
+    
+        logger.debug(f"Getting features {src}")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            bg_mask = DM.sources[0][:]
+            logger.debug(f"Feature shape {bg_mask.shape}")
 
     random_entities = generate_random_points_in_volume(
-        bg_mask, num_before_masking
+        bg_mask, num_before_masking, border=(0, 0, 0)
     ).astype(np.uint32)
 
-    from survos2.entity.utils import remove_masked_entities
-    print(
-        f"Before masking random entities generated of shape {random_entities.shape}"
-    )
-    result_entities = remove_masked_entities(bg_mask, random_entities)
-    print(f"After masking: {random_entities.shape}")
+    if mask_name != 'None':
+        from survos2.entity.utils import remove_masked_entities
+        print(
+            f"Before masking random entities generated of shape {random_entities.shape}"
+        )
+        result_entities = remove_masked_entities(bg_mask, random_entities)
+        print(f"After masking: {random_entities.shape}")
+    else:
+        result_entities = random_entities
     result_entities[:, 3] = np.array([6] * len(result_entities))
     result_entities = np.array(make_entity_df(result_entities, flipxy=True))
 
@@ -1233,3 +1308,4 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+

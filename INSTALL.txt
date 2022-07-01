@@ -21,7 +21,7 @@ Setup the admin version of miniconda
 
 Create a new environment for survos2
 
-	$ conda create survos2_env
+	$ conda create --name survos2_env
 
 	(LMAP) Shared environmnent needed? What I used was
 	$ conda create -p /home/ypu66991/workspace-ceph/survos2/survos2_conda_env python=3.8
@@ -53,5 +53,6 @@ Perform the survos2 pip installs using:
 	Installation should be completed.
 	The '-e' will install in development mode.
 	
+
 
 

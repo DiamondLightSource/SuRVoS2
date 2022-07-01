@@ -249,7 +249,17 @@ def rasterize_points(
     # default params TODO make generic, allow editing
     entity_meta = {
         "0": {
+            "name": "class0",
+            "size": np.array(size),
+            "core_radius": np.array((7, 7, 7)),
+        },
+        "1": {
             "name": "class1",
+            "size": np.array(size),
+            "core_radius": np.array((7, 7, 7)),
+        },
+        "2": {
+            "name": "class2",
             "size": np.array(size),
             "core_radius": np.array((7, 7, 7)),
         },
@@ -963,3 +973,4 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+

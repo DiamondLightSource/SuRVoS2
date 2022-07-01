@@ -80,3 +80,4 @@ def run_workflow(workflow_file):
         print("Need input workflow YAML file")
 
     return all_params, params
+

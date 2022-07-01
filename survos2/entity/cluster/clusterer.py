@@ -8,7 +8,7 @@ from sklearn.manifold import TSNE
 from sklearn import metrics
 
 from survos2.entity.entities import make_bvol_df, offset_points
-from survos2.entity.cluster.patch_cluster import patch_2d_features, extract_cnn_features
+from survos2.entity.cluster.patch_cluster import patch_2d_features, extract_cnn_features, extract_hog_features
 from survos2.entity.cluster.utils import pad_vol, quick_norm
 from survos2.entity.cluster.cnn_features import prepare_3channel
 from survos2.entity.cluster.cluster_plotting import cluster_scatter, plot_clustered_img
@@ -143,6 +143,7 @@ def cluster_and_embed_patch_features(
     params={'perplexity':150,'n_iter':2000},
     skip_px=2,
     embed_type="TSNE",
+    min_cluster_size=5,
 ):
     print(f"Using feature matrix of size {feature_mat.shape}")
     selected_3channel = prepare_3channel(
@@ -170,30 +171,34 @@ def cluster_and_embed_patch_features(
     print(f"Plotting {selected_images_arr.shape} patch images.")
     selected_images_arr = selected_images_arr[:, :, :, 1]
 
-    fig, ax = plt.subplots(figsize=(17, 17))
-    plt.title(
-        f"Windows around a click clustered using deep features and embedded in 2d using {embed_type}"
-    )
+    patch_clusterer.density_cluster(min_cluster_size=min_cluster_size)
+    labels = patch_clusterer.density_clusterer.labels_
 
     plot_clustered_img(
         patch_clusterer.embedding,
-        preds,
+        labels,
         images=selected_images_arr[:, ::skip_px, ::skip_px],
     )
 
-    return preds, patch_clusterer
+    return labels, patch_clusterer
 
 
 def prepare_patches_for_clustering(
-    vol, entities, bvol_dim=(32, 32, 32), axis=0, slice_idx=16, flipxy=False, gpu_id=0
+    vol, entities, bvol_dim=(32, 32, 32), axis=0, slice_idx=16, flipxy=False, gpu_id=0, method='CNN'
 ):
-
+    """
+    Extract features from patches, using CNN or HOG or a combination of both.
+    Can set the slice index to take the patches from. Can also set the axis to
+    take the patches from and set the dimension of the volume to take the
+    patches from. flipxy sets whether to flip the x and y axis. Pads the volume
+    in order to avoid issues at the boundary.
+    """
     print(f"Volume to cluster shape: {vol.shape} {bvol_dim}")
     padded_vol = pad_vol(vol, bvol_dim)
     selected_entity_loc_offset = offset_points(entities, -np.array(bvol_dim))
 
     entity_bvols = centroid_to_bvol(
-        selected_entity_loc_offset, bvol_dim=bvol_dim, flipxy=True
+        selected_entity_loc_offset, bvol_dim=bvol_dim, flipxy=flipxy
     )
     bvd = BoundingVolumeDataset(
         padded_vol, entity_bvols, selected_entity_loc_offset[:, 3]
@@ -205,7 +210,14 @@ def prepare_patches_for_clustering(
     elif axis==2:
         selected_images = np.array([im[0][:,slice_idx] for im in bvd])
 
-    features = extract_cnn_features(selected_images)
+    if method=='HOG':
+        features = extract_hog_features(selected_images)
+    elif method=='CNN_HOG':
+        features = extract_cnn_features(selected_images)
+        features = np.concatenate((features, extract_hog_features(selected_images)), axis=1)
+    else:
+        features = extract_cnn_features(selected_images)
+
 
     return features, selected_images
 
@@ -292,12 +304,15 @@ class PatchCluster:
             )
 
     def prepare_data(self, data):
+        from sklearn.preprocessing import MinMaxScaler, StandardScaler
         print(
-            "Reducing Dimensionality using PCA to {} number of components.".format(
+            "Scaling and Reducing Dimensionality using PCA to {} number of components.".format(
                 self.n_components
             )
         )
-        reduced_data = PCA(n_components=self.n_components).fit_transform(data)
+        scaler = MinMaxScaler()
+        reduced_data = scaler.fit_transform(data)
+        reduced_data = PCA(n_components=self.n_components).fit_transform(reduced_data)
         self.reduced_data = reduced_data
 
     def fit(self):
@@ -370,3 +385,4 @@ class PatchCluster:
         }
 
         return cluster_metrics
+

@@ -251,3 +251,4 @@ class TableWidget(QtWidgets.QGraphicsObject):
         for i in range(4):
             self.row_data.append(self.w.item(row, i).text())
         
+

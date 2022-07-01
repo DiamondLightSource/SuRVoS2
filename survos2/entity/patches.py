@@ -237,6 +237,7 @@ def make_patches(
     num_augs=2,
     max_vols=-1,
     plot_all=False,
+    patch_size=(64,64,64)
 ):
     # make bg mask
 
@@ -294,7 +295,6 @@ def make_patches(
             ),
         )
 
-    patch_size = padding
     marked_patches_anno = sample_marked_patches(
         padded_anno, some_pts, some_pts, patch_size=patch_size
     )
@@ -628,3 +628,4 @@ def prepare_dataloaders(
         }
 
     return dataloaders
+

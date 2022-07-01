@@ -53,7 +53,8 @@ def init_ws(workspace_params):
             raise WorkspaceException(
                 f"Internal HDF5 dataset: '{dataset_name}' does not exist!"
             ) from e
-
+    if len(img_volume.shape) == 2:
+        img_volume = np.reshape(img_volume, (1,img_volume.shape[0], img_volume.shape[1]))
     logger.info(f"Loaded vol of size {img_volume.shape}")
     if "roi_limits" in workspace_params:
         x_start, x_end, y_start, y_end, z_start, z_end = map(
@@ -91,15 +92,7 @@ def init_ws(workspace_params):
     with h5py.File(tmpvol_fullpath, "w") as hf:
         hf.create_dataset("data", data=img_volume)
 
-    # survos.load_settings()
-
-    # result = Launcher.g.run("workspace", "create", workspace=ws_name)
-
     survos.run_command("workspace", "create", workspace=ws_name)
-
-    # result = Launcher.g.run("workspace", "add_data", workspace=ws_name,
-    #                        data_fname=tmpvol_fullpath,
-    #                        dtype="float32")
 
     survos.run_command(
         "workspace",
@@ -111,11 +104,6 @@ def init_ws(workspace_params):
     logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
 
     os.remove(tmpvol_fullpath)
-    # result = Launcher.g.run("workspace", "add_dataset",
-    #                        workspace=ws_name,
-    #                        dataset_name=dataset_name,
-    #                        dtype="float32"
-    # )
     response = survos.run_command(
         "workspace",
         "add_dataset",
@@ -126,22 +114,17 @@ def init_ws(workspace_params):
 
     DataModel.g.current_workspace = ws_name
 
-    # response = Launcher.g.run("features", "create",
-    #                       workspace=ws_name,
-    #                       feature_type="raw")
-
     survos.run_command(
         "features", "create", uri=None, workspace=ws_name, feature_type="raw"
     )
 
-    src = DataModel.g.dataset_uri("__data__", None)
-    dst = DataModel.g.dataset_uri("001_raw", group="features")
-    with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
-        print(DM.sources[0].shape)
-        orig_dataset = DM.sources[0]
-        dst_dataset = DM.out
-        src_arr = orig_dataset[:]
-        dst_dataset[:] = src_arr
+    # src = DataModel.g.dataset_uri("__data__", None)
+    # dst = DataModel.g.dataset_uri("001_raw", group="features")
+    # with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
+    #     orig_dataset = DM.sources[0]
+    #     dst_dataset = DM.out
+    #     src_arr = orig_dataset[:]
+    #     dst_dataset[:] = src_arr
 
     return (_, response)
 
@@ -213,3 +196,4 @@ def start_client():
     from survos2.frontend.frontend import frontend
 
     frontend()
+

@@ -1241,3 +1241,4 @@ class PipelineCard(Card):
             _PipelineNotifier.notify()
 
         return result["done"]
+

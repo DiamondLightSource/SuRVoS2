@@ -75,9 +75,11 @@ tensorly
 torchio
 tqdm
 traitlets
+umap-learn
 unet
 vispy
 wget
 xgboost
 unet
+
 

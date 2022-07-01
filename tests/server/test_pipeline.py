@@ -18,7 +18,6 @@ from survos2.improc.utils import DatasetManager
 from survos2.entity.pipeline import run_workflow
 from survos2.server.state import cfg
 from survos2.server.superseg import sr_predict
-
 from survos2.api.superregions import supervoxels
 from survos2.server.superseg import sr_predict
 from survos2.frontend.nb_utils import view_dataset
@@ -227,121 +226,105 @@ class Tests(object):
         with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
             DM.out[:] = random_blobs_anno
 
-    # def test_rasterize_points(self, datamodel):
-    #     DataModel = datamodel
+    def test_rasterize_points(self, datamodel):
+        DataModel = datamodel
 
-    #     src = DataModel.g.dataset_uri("__data__", None)
-    #     dst = DataModel.g.dataset_uri("001_gaussian_blur", group="features")
-    #     result = survos.run_command(
-    #         "features", "gaussian_blur", uri=None, src=src, dst=dst
-    #     )
-    #     assert result[0]["id"] == "001_gaussian_blur"
+        src = DataModel.g.dataset_uri("__data__", None)
+        dst = DataModel.g.dataset_uri("001_gaussian_blur", group="features")
+        result = survos.run_command(
+            "features", "gaussian_blur", uri=None, src=src, dst=dst
+        )
+        assert result[0]["id"] == "001_gaussian_blur"
 
-    #     result = survos.run_command(
-    #         "objects",
-    #         "create",
-    #         uri=None,
-    #         workspace=DataModel.g.current_workspace,
-    #         fullname="test.csv",
-    #         scale=1.0,
-    #         offset=0.0,
-    #     )
-    #     assert result[0]["id"] == "001_points"
-    #     dst = src = DataModel.g.dataset_uri(result[0]["id"], group="objects")
-    #     # add data to workspace
-    #     result = survos.run_command(
-    #         "objects",
-    #         "points",
-    #         uri=None,
-    #         workspace=DataModel.g.current_workspace,
-    #         dtype="float32",
-    #         fullname="test.csv",
-    #         dst=dst,
-    #         scale=1.0,
-    #         offset=(0.0, 0.0, 0.0),
-    #         crop_start=(0.0, 0.0, 0.0),
-    #         crop_end=(0.0, 0.0, 0.0),
-    #     )
+        result = survos.run_command(
+            "objects",
+            "create",
+            uri=None,
+            workspace=DataModel.g.current_workspace,
+            fullname="./tests/server/test.csv",
+            scale=1.0,
+            offset=0.0,
+        )
+        assert result[0]["id"] == "001_points"
+        dst = src = DataModel.g.dataset_uri(result[0]["id"], group="objects")
+        # add data to workspace
+        result = survos.run_command(
+            "objects",
+            "points",
+            uri=None,
+            workspace=DataModel.g.current_workspace,
+            dtype="float32",
+            fullname="./tests/server/test.csv",
+            dst=dst,
+            scale=1.0,
+            offset=(0.0, 0.0, 0.0),
+            crop_start=(0.0, 0.0, 0.0),
+            crop_end=(0.0, 0.0, 0.0),
+        )
 
-    #     result = survos.run_command(
-    #         "pipelines",
-    #         "create",
-    #         uri=None,
-    #         workspace=DataModel.g.current_workspace,
-    #         pipeline_type="rasterize_points",
-    #     )
-    #     src = DataModel.g.dataset_uri("__data__", None)
-    #     dst = DataModel.g.dataset_uri(result[0]["id"], group="pipelines")
+        result = survos.run_command(
+            "pipelines",
+            "create",
+            uri=None,
+            workspace=DataModel.g.current_workspace,
+            pipeline_type="rasterize_points",
+        )
+        src = DataModel.g.dataset_uri("__data__", None)
+        dst = DataModel.g.dataset_uri(result[0]["id"], group="pipelines")
 
-    #     params = {
-    #         "feature_id": "001_gaussian_blur",
-    #         "object_id": "001_points",
-    #         "acwe": False,
-    #         "size": (2, 2, 2),
-    #         "balloon": 0,
-    #         "threshold": 0,
-    #         "iterations": 1,
-    #         "smoothing": 0,
-    #     }
-    #     result = survos.run_command(
-    #         "pipelines",
-    #         "rasterize_points",
-    #         workspace=DataModel.g.current_workspace,
-    #         src=src,
-    #         dst=dst,
-    #         **params
-    #     )
+        params = {
+            "feature_id": "001_gaussian_blur",
+            "object_id": "001_points",
+            "acwe": False,
+            "size": (2, 2, 2),
+            "balloon": 0,
+            "threshold": 0,
+            "iterations": 1,
+            "smoothing": 0,
+        }
+        result = survos.run_command(
+            "pipelines",
+            "rasterize_points",
+            workspace=DataModel.g.current_workspace,
+            src=src,
+            dst=dst,
+            **params
+        )
 
-    # def test_objects(self, datamodel):
-    #     DataModel = datamodel
-
-    #     # add data to workspace
-    #     result = survos.run_command(
-    #         "objects",
-    #         "create",
-    #         uri=None,
-    #         workspace=DataModel.g.current_workspace,
-    #         fullname="test.csv",
-    #     )
-    #     # assert result[0]["id"] == "001_points"
-
-    #     result = survos.run_command(
-    #         "objects",
-    #         "create",
-    #         uri=None,
-    #         workspace=DataModel.g.current_workspace,
-    #         fullname="test.csv",
-    #     )
-
-    #     # assert result[0]["id"] == "002_points"
-
-    #     result = survos.run_command(
-    #         "objects",
-    #         "existing",
-    #         uri=None,
-    #         workspace=DataModel.g.current_workspace,
-    #         dtype="float32",
-    #     )
-
-        # assert len(result[0]) == 2
-
-#    def test_analyzers(self, datamodel):
-#        DataModel = datamodel
+    def test_objects(self, datamodel):
+        DataModel = datamodel
 
         # add data to workspace
-#        result = survos.run_command(
-#            "analyzer", "create", uri=None, workspace=DataModel.g.current_workspace
-#        )
-#        assert result[0]["id"] == "001_label_splitter"
-#        result = survos.run_command(
-#            "analyzer",
-#            "existing",
-#            uri=None,
-#            workspace=DataModel.g.current_workspace,
-#            dtype="float32",
-#        )
-#        assert len(result[0]) == 1
+        result = survos.run_command(
+            "objects",
+            "create",
+            uri=None,
+            workspace=DataModel.g.current_workspace,
+            fullname="./tests/server/test.csv",
+        )
+        assert result[0]["id"] == "002_points"
+
+        result = survos.run_command(
+            "objects",
+            "create",
+            uri=None,
+            workspace=DataModel.g.current_workspace,
+            fullname="./tests/server/test.csv",
+        )
+        assert result[0]["id"] == "003_points"
+
+        result = survos.run_command(
+            "objects",
+            "existing",
+            uri=None,
+            workspace=DataModel.g.current_workspace,
+            dtype="./float32",
+        )
+        print(result)
+        assert len(result[0]) == 3  #by now the workspace contains 3 "objects" objects
+
 
 
 if __name__ == "__main__":
     pytest.main()
+

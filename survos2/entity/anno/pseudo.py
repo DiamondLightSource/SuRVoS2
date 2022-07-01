@@ -376,3 +376,4 @@ def make_pseudomasks(
             anno_all = anno_acwe
 
     return anno_masks, anno_all
+

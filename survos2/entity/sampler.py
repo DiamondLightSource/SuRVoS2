@@ -3,6 +3,27 @@ import numpy as np
 from loguru import logger
 
 
+def produce_patches(padded_vol, padded_anno, offset_locs, bvol_grid):
+    patches = []
+    patches_pts = []
+    patches_bvols = []
+    patches_anno = []
+
+    for i in range(len(bvol_grid)):
+        patch, patch_pts = crop_vol_and_pts_bb(
+            padded_vol, offset_locs, entitybvol_to_cropbvol(bvol_grid[i]), offset=True
+        )
+        patch_anno, patch_pts = crop_vol_and_pts_bb(
+            padded_anno, offset_locs, entitybvol_to_cropbvol(bvol_grid[i]), offset=True
+        )
+        patch_bvol = centroid_to_detnet_bvol(patch_pts, bvol_dim=(10, 10, 10))
+        patches.append(patch)
+        patches_bvols.append(patch_bvol)
+        patches_pts.append(patch_pts)
+        patches_anno.append(patch_anno)
+
+    return patches, patches_anno, patches_bvols, patches_pts
+
 
 
 def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
@@ -497,6 +518,37 @@ def crop_vol_and_pts(
 
     return img, cropped_pts
 
+def crop_pts_bb2(
+    pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offset=False
+):
+
+    z_st, x_st, y_st, z_end, x_end, y_end = bounding_box
+    print(z_st, x_st, y_st, z_end, x_end, y_end)
+
+    out_of_bounds_w = np.hstack(
+        (
+            np.where(pts[:, 0] <= z_st)[0],
+            np.where(pts[:, 0] >= z_end)[0],
+            np.where(pts[:, 1] <= x_st)[0],
+            np.where(pts[:, 1] >= x_end)[0],
+            np.where(pts[:, 2] <= y_st)[0],
+            np.where(pts[:, 2] >= y_end)[0],
+        )
+    )
+
+    cropped_pts = np.array(np.delete(pts, out_of_bounds_w, axis=0))
+
+    if offset:
+        location = (z_st, x_st, y_st)
+        cropped_pts[:, 0] = cropped_pts[:, 0] - location[0]
+        cropped_pts[:, 1] = cropped_pts[:, 1] - location[1]
+        cropped_pts[:, 2] = cropped_pts[:, 2] - location[2]
+        print(f"Offset location {location}")
+
+    if debug_verbose:
+        print("Cropped points array shape: {}".format(cropped_pts.shape))
+
+    return cropped_pts
 
 def crop_pts_bb(
     pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offset=False
@@ -717,4 +769,5 @@ def cropbvol_to_detnet_bvol(bvol):
     b[4] = bvol[0]
     b[5] = bvol[3]
     return b
+
 

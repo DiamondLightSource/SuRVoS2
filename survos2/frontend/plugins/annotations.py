@@ -462,3 +462,4 @@ class AnnotationLabel(QCSWidget):
         if result:
             _AnnotationNotifier.notify()
             self.removed.emit(self.label_idx)
+

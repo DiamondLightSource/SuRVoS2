@@ -321,8 +321,10 @@ class LoadDataDialog(QDialog):
 
     def reset_roi_fields(self):
         """Resets all the ROI dimension parameters to equal the data shape."""
-        self.xstart_linedt.setText("0")
-        self.xend_linedt.setText(str(self.data_shape[2]))
+        if len(self.data_shape) > 2:
+            self.xstart_linedt.setText("0")
+            self.xend_linedt.setText(str(self.data_shape[2]))
+        
         self.ystart_linedt.setText("0")
         self.yend_linedt.setText(str(self.data_shape[1]))
         self.zstart_linedt.setText("0")
@@ -380,10 +382,17 @@ class LoadDataDialog(QDialog):
         Returns:
             tuple: Tuple of six clipped ROI parameters x_start, x_end, y_start, y_end, z_start, z_end
         """
-        x_start, x_end, y_start, y_end, z_start, z_end = map(round, vals)
-        x_start, x_end = clip([x_start, x_end], 0, self.data_shape[2])
-        y_start, y_end = clip([y_start, y_end], 0, self.data_shape[1])
-        z_start, z_end = clip([z_start, z_end], 0, self.data_shape[0])
+        if len(self.data_shape) > 2:
+            x_start, x_end, y_start, y_end, z_start, z_end = map(round, vals)
+            x_start, x_end = clip([x_start, x_end], 0, self.data_shape[2])
+            y_start, y_end = clip([y_start, y_end], 0, self.data_shape[1])
+            z_start, z_end = clip([z_start, z_end], 0, self.data_shape[0])
+        else:
+            x_start, x_end, y_start, y_end, z_start, z_end = map(round, vals)
+            x_start, x_end = clip([x_start, x_end], 0, self.data_shape[1])
+            y_start, y_end = clip([y_start, y_end], 0, self.data_shape[0])
+            z_start, z_end = 0, 1
+
         return x_start, x_end, y_start, y_end, z_start, z_end
 
     def volread(self, path):
@@ -466,15 +475,26 @@ class LoadDataDialog(QDialog):
             y_size = y_end - y_start
             z_size = z_end - z_start
         else:
-            z_size, y_size, x_size = self.data_shape
-            x_start, x_end, y_start, y_end, z_start, z_end = (
-                0,
-                x_size,
-                0,
-                y_size,
-                0,
-                z_size,
-            )
+            if len(self.data_shape) > 2:
+                z_size, y_size, x_size = self.data_shape
+                x_start, x_end, y_start, y_end, z_start, z_end = (
+                    0,
+                    x_size,
+                    0,
+                    y_size,
+                    0,
+                    z_size,
+                )
+            else:
+                y_size, x_size = self.data_shape
+                z_size = 1
+                x_start, x_end, y_start, y_end, z_start, z_end = (
+                    0,
+                    x_size,
+                    0,
+                    y_size,
+                    0,
+                    1)
         # Show central slice if loading data or changing roi
         if idx is None or load:
             idx = z_size // 2
@@ -491,7 +511,11 @@ class LoadDataDialog(QDialog):
         if isinstance(self.data, h5.Group):
             img = self.data[self.dataset][idx]
         else:
-            img = self.data[idx]
+            if len(self.data_shape) > 2:
+                img = self.data[idx]
+            else:
+                self.data = np.reshape(self.data, (1,self.data.shape[0], self.data.shape[1]))
+                img = self.data[0]
         self.canvas.ax.set_facecolor((1, 1, 1))
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], "gray")
         self.canvas.ax.grid(False)
@@ -1194,3 +1218,4 @@ class ServerPlugin(Plugin):
                     + str(self.run_config["server_port"]),
                 ]
             )
+

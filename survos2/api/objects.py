@@ -27,12 +27,56 @@ from survos2.io import dataset_from_uri
 from survos2.model import DataModel
 from survos2.utils import encode_numpy
 from survos2.frontend.components.entity import setup_entity_table
-from survos2.entity.entities import load_entities_via_file, make_entity_df
+from survos2.entity.entities import load_entities_via_file, make_entity_df, make_entity_bvol
 
 __objects_fill__ = 0
 __objects_dtype__ = "uint32"
 __objects_group__ = "objects"
 __objects_names__ = ["points", "boxes", "patches"]
+
+
+def load_bvols(bvols_arr, flipxy=True):
+    entities_df = make_entity_bvol(bvols_arr, flipxy=flipxy)
+    tmp_fullpath = os.path.abspath(
+        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
+    )
+    print(entities_df)
+    print(f"Creating temp file: {tmp_fullpath}")
+    entities_df.to_csv(tmp_fullpath, line_terminator="")
+
+    object_scale = 1.0
+    object_offset = (0.0, 0.0, 0.0)
+    object_crop_start = (0.0, 0.0, 0.0)
+    object_crop_end = (1e9, 1e9, 1e9)
+
+    objects_type = __objects_names__[1]
+    ds = ws.auto_create_dataset(
+        DataModel.g.current_session + "@" + DataModel.g.current_workspace,
+        objects_type,
+        __objects_group__,
+        __objects_dtype__,
+        fill=__objects_fill__,
+    )
+
+    ds.set_attr("kind", objects_type)
+    ds.set_attr("fullname", tmp_fullpath)
+    
+    src = DataModel.g.dataset_uri("__data__")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        src_dataset = DM.sources[0]
+        img_volume = src_dataset[:]
+        logger.info(f"Got __data__ volume of size {img_volume.shape}")
+
+    ds[:] = np.zeros_like(img_volume)
+    ds.set_attr("scale", object_scale)
+    ds.set_attr("offset", list(object_offset))
+    ds.set_attr("crop_start", list(object_crop_start))
+    ds.set_attr("crop_end", list(object_crop_end))
+
+    csv_saved_fullname = ds.save_file(tmp_fullpath)
+    logger.info(f"Saving {tmp_fullpath} to {csv_saved_fullname}")
+    ds.set_attr("fullname", csv_saved_fullname)
+    os.remove(tmp_fullpath)
 
 
 
@@ -81,16 +125,15 @@ def load_entities(entities_arr, flipxy=True):
 
 @hug.post()
 def upload(body, request, response):
-    print(f"Request: {request}")
-    print(f"Response: {response}")
     encoded_buffer = body['file']
     array_shape = body['shape']
-    print(f"shape {array_shape}")
     entities_arr = np.frombuffer(encoded_buffer, dtype="float32")
     print(entities_arr)
     entities_arr.shape = literal_eval(array_shape)
     print(f"Uploaded array of entities of shape {entities_arr.shape}")
     load_entities(entities_arr)
+
+
 
 @hug.get()
 def get_entities(src: DataURI):
@@ -306,3 +349,4 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+

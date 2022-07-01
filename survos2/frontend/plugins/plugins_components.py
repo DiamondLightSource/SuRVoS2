@@ -195,3 +195,4 @@ class Label(QtWidgets.QLabel):
 
     def value(self):
         return self.text()
+

@@ -259,3 +259,4 @@ def get_entity_at_loc(entities_df, selected_idx):
             entities_df.y == selected_idx[2],
         )
     ]
+

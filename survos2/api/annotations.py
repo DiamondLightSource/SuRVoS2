@@ -28,32 +28,30 @@ def to_label(idx=0, name="Label", color="#000000", visible=True, **kwargs):
 
 @hug.post()
 def upload(body, request, response):
-    print(f"Request: {request}")
-    print(f"Response: {response}")
-    
     encoded_array = body['file']
     array_shape = body['shape']
     anno_id = body['name']
-    print(f"shape {array_shape} name {anno_id}")
-    
     level_arr = np.frombuffer(encoded_array, dtype="uint32")
-    
-    print(f"level_arr: {level_arr.shape}")
     from ast import literal_eval 
     level_arr.shape = literal_eval(array_shape)
-    print(f"Uploaded feature of shape {level_arr.shape}")
-
+    logger.debug(f"Uploaded feature of shape {level_arr.shape}")
     dst = DataModel.g.dataset_uri(anno_id, group="annotations")
 
     with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
         DM.out[:] = level_arr
 
-
     modified_ds = dataset_from_uri(dst, mode="r")    
     modified = [1]
     modified_ds.set_attr("modified", modified)
 
-            
+    
+@hug.get()
+def set_volume(src: DataURI, vol_array):
+    logger.debug("Setting annotation volume")
+    ds = dataset_from_uri(src, mode="rw")
+    if ds[:].shape == vol_array.shape:
+        ds[:] = vol_array
+    
     
 @hug.get()
 def get_volume(src: DataURI):
@@ -366,3 +364,4 @@ def annotate_undo(workspace: String, level: String, full: SmartBoolean = False):
     from survos2.api.annotate import undo_annotation
     ds = get_level(workspace, level, full)
     undo_annotation(ds)
+

@@ -22,24 +22,32 @@ def make_roi_ws(feature_id: DataURI, roi: IntList, current_workspace_name: Strin
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0][:]
 
-    src_dataset = src_dataset[roi[0] : roi[3], roi[1] : roi[4], roi[2] : roi[5]]
+    print(roi)
+    #rc_dataset = src_dataset[roi[0] : roi[3], roi[1] : roi[4], roi[2] : roi[5]]
 
+
+    src_dataset = src_dataset[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]]
+
+
+    print(src_dataset.shape)
+    
     # make new ws from roi crop of raw data
     roi_name = (
         DataModel.g.current_workspace
         + "_roi_"
         + str(roi[0])
         + "_"
-        + str(roi[3])
-        + "_"
         + str(roi[1])
-        + "_"
-        + str(roi[4])
         + "_"
         + str(roi[2])
         + "_"
+        + str(roi[3])
+        + "_"
+        + str(roi[4])
+        + "_"
         + str(roi[5])
     )
+
     roi_ws(src_dataset, roi_name)
     #src_ws = get(current_workspace_name)
     #target_ws = get(roi_name)
@@ -252,3 +260,4 @@ def parse_workspace(workspace: String):
         return workspace, session
     else:
         return workspace, "default"
+

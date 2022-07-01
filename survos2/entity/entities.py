@@ -76,6 +76,11 @@ def make_entity_mask(vol, dets, flipxy=True, bvol_dim=(32, 32, 32)):
     det_mask = viz_bvols(padded_vol, offset_det_bvol)
     return det_mask, offset_dets, padded_vol
 
+def make_bvols_mask(img_vol, bvols):
+    mask = np.zeros_like(img_vol)
+    for b in bvols:
+        mask[b[0]:b[1],b[2]:b[3],b[4]:b[5]] = 1
+    return mask
 
 def calc_bounding_vol(m):
     return [
@@ -302,3 +307,4 @@ def make_bounding_vols(entities, patch_size=(14, 14, 14)):
     bbs = np.array(bbs)
 
     return bbs
+

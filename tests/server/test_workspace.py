@@ -15,6 +15,7 @@ from survos2.model import DataModel
 from loguru import logger
 from torch.testing import assert_allclose
 
+tmp_ws_name = "testworkspace_tmp1"
 
 @pytest.fixture(scope="session")
 def datamodel():
@@ -53,7 +54,7 @@ def datamodel():
     with h5py.File(map_fullpath, "w") as hf:
         hf.create_dataset("data", data=testvol)
 
-    tmp_ws_name = "testworkspace_tmp1"
+    
     print(DataModel.g.CHROOT)
 
     result = survos.run_command("workspace", "get", uri=None, workspace=tmp_ws_name)
@@ -84,33 +85,10 @@ def datamodel():
 
 
 class Tests(object):
-    def test_feature_shape(self, datamodel):
-        DataModel = datamodel
-        src = DataModel.g.dataset_uri("__data__", None)
-        dst = DataModel.g.dataset_uri("001_gaussian_blur", group="features")
-
-        survos.run_command("features", "gaussian_blur", uri=None, src=src, dst=dst)
-
-        with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
-            print(DM.sources[0].shape)
-            src_dataset = DM.sources[0]
-            dst_dataset = DM.out
-            src_arr = src_dataset[:]
-            dst_arr = dst_dataset[:]
-
-        assert dst_arr.shape == (4, 4, 4)
-        assert np.max(dst_arr) <= 1.0
-        assert np.min(dst_arr) >= 0.0
-    
-    def test_features_existing(self, datamodel):
-        DataModel = datamodel
-        src = DataModel.g.dataset_uri("__data__", None)
-        result = survos.run_command("features", "existing", uri=None, src=src, dst=None, workspace="testworkspace_tmp1")
-
-        assert '001_gaussian_blur' in result[0] 
-        assert 'name' in result[0]['001_gaussian_blur']
-
-
+    def test_workspace(self, datamodel):
+        result = survos.run_command('workspace', 'add_session', uri=None, workspace=tmp_ws_name, session='roi1')
+        result = survos.run_command("workspace", "list_sessions", uri=None, workspace=tmp_ws_name)
+        assert result[0][0] == 'roi1'
 
 if __name__ == "__main__":
     pytest.main()

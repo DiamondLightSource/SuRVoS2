@@ -25,11 +25,12 @@ def prepare_unet3d(existing_model_fname=None, num_epochs=2, initial_lr=0.001, de
     if existing_model_fname is not None:
         model3d = load_model(existing_model_fname, model3d)
 
-    if torch.cuda.device_count() > 1:
-        print(f"Using {torch.cuda.device_count()} gpus.")
-        model3d = nn.DataParallel(model3d).to(device).eval()
-    else:
-        model3d = model3d.to(device).eval()
+    # if torch.cuda.device_count() > 1:
+    #     print(f"Using {torch.cuda.device_count()} gpus.")
+    #     model3d = nn.DataParallel(model3d).to(device).eval()
+    # else:
+    #     model3d = model3d.to(device).eval()
+    model3d = model3d.to(device).eval()
     # optimizer = optim.Adam(model3d.parameters(), lr=initial_lr)
     # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, num_epochs)
 
@@ -107,3 +108,4 @@ def display_unet_pred(model3d, dataloaders, max_samples_display=10, device=0):
         count += 1
         if count > max_samples_display:
             return
+

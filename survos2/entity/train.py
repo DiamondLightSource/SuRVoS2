@@ -20,6 +20,7 @@ def train_oneclass_detseg(
     gpu_id=0,
     model=None,
     num_epochs=1,
+    bce_weight = 0.7,
 ):
 
     train_params = {
@@ -35,7 +36,7 @@ def train_oneclass_detseg(
         "torch_models_fullpath": wf_params["torch_models_fullpath"],
     }
     
-    return train_all(train_params, model)
+    return train_all(train_params, model, bce_weight=bce_weight)
 
 
 def train_twoclass_detseg(
@@ -224,4 +225,5 @@ def train_all(
             print(f"Saved model {model_file}")
 
     return model_file
+
 

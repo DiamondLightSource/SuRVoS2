@@ -562,3 +562,4 @@ class CNNConfigs:
         self.pyramid_levels = [0, 1, 2, 3]
         self.channels = [0]
         self.n_channels = len(self.channels)
+

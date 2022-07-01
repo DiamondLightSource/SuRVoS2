@@ -126,30 +126,8 @@ operation. Or a layer of points can be processed into a raster mask, a vector-to
 A common prediction task involves taking an annotation volume and an image volume and producing a prediction volume,
 a (R,R) -> R operation. A detection task takes an image and produce a set of points or other geometry (R->V)
 
-## List of ops
-(V: Vector, R: Raster)
-
-* V->V
-    - Spatial clustering
-    - Cropping and transformation
-* V->R
-    - Mask generation
-* R->V
-    - Detection
-* R->R
-    - Segmentation
 
 # ROI
-
-Pipeline roi: a pipeline ROI allows for a small region to be run through a pipeline for testing
-
-WIP: Integration of Viewer roi<->workspace roi so
-
-* viewer can view a smaller ROI of the workspace
-*  processing (e.g. on server) can be tested on smaller ROI
-
-Using a temp dataset, the user can develop a segmentation pipeline on a ROI and then save it
-and apply it to the entire volume.
 
 # Launcher and DataModel
 
@@ -289,4 +267,5 @@ Computing features gaussian_blur
 ```
 
 modal refers to the use of multiprocessing for background processing (TODO: windows issues with multiprocessing)
+
 

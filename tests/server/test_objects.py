@@ -1,19 +1,27 @@
-from survos2.model import Workspace
-from survos2.io import dataset_from_uri
-from survos2.api.regions import get_slice
 import os
-import pytest
+
 import h5py
 import numpy as np
+import pytest
+from torch.testing import assert_allclose
+from loguru import logger
+from skimage.data import binary_blobs
 
-from survos2 import survos
-from survos2.improc.utils import DatasetManager
+
+import survos
 import survos2.frontend.control
 from survos2.frontend.control import Launcher
+from survos2.entity.pipeline import Patch
+import survos2.frontend.control
 from survos2.model import DataModel
+from survos2.improc.utils import DatasetManager
+from survos2.entity.pipeline import run_workflow
+from survos2.server.state import cfg
+from survos2.server.superseg import sr_predict
 
-from loguru import logger
-from torch.testing import assert_allclose
+from survos2.api.superregions import supervoxels
+from survos2.server.superseg import sr_predict
+from survos2.frontend.nb_utils import view_dataset
 
 
 @pytest.fixture(scope="session")
@@ -49,12 +57,14 @@ def datamodel():
             ],
         ]
     )
+    # testvol = np.ones((4,4,4)).astype(np.float32) / 2.0
+    # print(testvol)
 
     with h5py.File(map_fullpath, "w") as hf:
         hf.create_dataset("data", data=testvol)
 
-    tmp_ws_name = "testworkspace_tmp1"
     print(DataModel.g.CHROOT)
+    tmp_ws_name = "testworkspace_tmp2"
 
     result = survos.run_command("workspace", "get", uri=None, workspace=tmp_ws_name)
 
@@ -84,32 +94,46 @@ def datamodel():
 
 
 class Tests(object):
-    def test_feature_shape(self, datamodel):
+    def test_objects(self, datamodel):
         DataModel = datamodel
+
+        # add data to workspace
+        result = survos.run_command(
+            "objects",
+            "create",
+            uri=None,
+            workspace=DataModel.g.current_workspace,
+            fullname="./tests/server/test.csv",
+        )
+        assert result[0]["id"] == "001_points"
+
+        result = survos.run_command(
+            "objects",
+            "create",
+            uri=None,
+            workspace=DataModel.g.current_workspace,
+            fullname="./tests/server/test.csv",
+        )
+
+        assert result[0]["id"] == "002_points"
+
+        result = survos.run_command(
+            "objects",
+            "existing",
+            uri=None,
+            workspace=DataModel.g.current_workspace,
+            dtype="./float32",
+        )
+        print(result)
+        assert len(result[0]) == 2  #by now the workspace contains 2 "objects" objects
+
+
+    def test_objects_existing(self, datamodel):
         src = DataModel.g.dataset_uri("__data__", None)
-        dst = DataModel.g.dataset_uri("001_gaussian_blur", group="features")
+        result = survos.run_command("objects", "existing", uri=None, src=src, dst=None, workspace="testworkspace_tmp2")
 
-        survos.run_command("features", "gaussian_blur", uri=None, src=src, dst=dst)
-
-        with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
-            print(DM.sources[0].shape)
-            src_dataset = DM.sources[0]
-            dst_dataset = DM.out
-            src_arr = src_dataset[:]
-            dst_arr = dst_dataset[:]
-
-        assert dst_arr.shape == (4, 4, 4)
-        assert np.max(dst_arr) <= 1.0
-        assert np.min(dst_arr) >= 0.0
-    
-    def test_features_existing(self, datamodel):
-        DataModel = datamodel
-        src = DataModel.g.dataset_uri("__data__", None)
-        result = survos.run_command("features", "existing", uri=None, src=src, dst=None, workspace="testworkspace_tmp1")
-
-        assert '001_gaussian_blur' in result[0] 
-        assert 'name' in result[0]['001_gaussian_blur']
-
+        assert '001_points' in result[0] 
+        assert 'name' in result[0]['001_points']
 
 
 if __name__ == "__main__":

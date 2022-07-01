@@ -94,3 +94,4 @@ def _transfer_labels(selected_layer):
         group='annotations', 
         workspace=DataModel.g.current_workspace, 
         name=result["id"])
+

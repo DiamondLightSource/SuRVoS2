@@ -49,3 +49,4 @@ def test_predict():
     clf, proj = train(X,y, predict_params)
     result = predict(X, clf)
     assert isinstance(result['class'], np.ndarray)
+

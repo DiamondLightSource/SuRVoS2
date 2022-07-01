@@ -287,3 +287,4 @@ def format_yaml(data, flow=None, **kwargs):
     kwargs.setdefault("explicit_end", True)
     kwargs.update(dict(default_flow_style=flow))
     return yaml.dump(data, **kwargs)[:-1]
+

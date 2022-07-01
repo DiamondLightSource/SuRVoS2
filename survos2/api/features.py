@@ -175,7 +175,7 @@ def invert_threshold(src: DataURI, dst: DataURI, thresh: Float = 0.5) -> "BASE":
         src_dataset_arr = DM.sources[0][:]
         filtered = invert_threshold(src_dataset_arr, thresh=thresh)
 
-    map_blocks(pass_through, src, out=dst, thresh=thresh, normalize=True)
+    map_blocks(pass_through, filtered, out=dst, normalize=False)
 
 
 @hug.get()
@@ -357,16 +357,30 @@ def difference_of_gaussians(
 def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENOISING":
     from ..server.filtering import gaussian_blur_kornia
 
-    if isinstance(sigma, numbers.Number):
-        sigma = (sigma, sigma, sigma)
-    map_blocks(
-        gaussian_blur_kornia,
-        src,
-        out=dst,
-        sigma=sigma,
-        pad=max(4, int(max(sigma))),
-        normalize=False,
-    )
+    if isinstance(sigma, float) or isinstance(sigma, int):
+         sigma = np.array([sigma] * 3)
+         print(f"Gaussian blur using sigma {sigma}")
+    
+    if sigma[0] == 0:
+        from skimage.filters import gaussian
+        map_blocks(
+            gaussian,
+            src,
+            out=dst,
+            sigma=(1.0, sigma[1], sigma[2]),
+            pad=0,
+            normalize=False,
+        )
+
+    else:
+        map_blocks(
+            gaussian_blur_kornia,
+            src,
+            out=dst,
+            sigma=sigma,
+            pad=max(4, int(max(sigma))),
+            normalize=False,
+        )
 
 
 @hug.get()
@@ -374,12 +388,13 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
 def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "EDGES":
     from ..server.filtering import ndimage_laplacian
 
+    print(kernel_size)
     map_blocks(
         ndimage_laplacian,
         src,
         out=dst,
         kernel_size=kernel_size,
-        pad=max(4, int(max(kernel_size)) * 3),
+        pad=max(4, int(max(np.array(kernel_size))) * 3),
         normalize=False,
     )
 
@@ -542,5 +557,6 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
 
 

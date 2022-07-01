@@ -40,7 +40,7 @@ def create(workspace: String, roi_fname: String, roi: list, original_workspace: 
     logger.debug(original_level)
     if original_level:
         anno_ds = ws.get_dataset(original_workspace, original_level, group="annotations")
-        anno_ds_crop = anno_ds[roi[0]:roi[3],roi[1]:roi[4], roi[2]:roi[5]] & 15
+        anno_ds_crop = anno_ds[roi[0]:roi[1],roi[2]:roi[3], roi[4]:roi[5]] & 15
         original_labels = get_labels(original_workspace,original_level)
     roi_dict = {}
     DataModel.g.current_workspace = workspace
@@ -142,3 +142,4 @@ def remove(workspace: String, roi_fname: String):
                 selected = k    
         del roi_fnames[selected]    
         src_dataset.set_metadata("roi_fnames", roi_fnames)
+

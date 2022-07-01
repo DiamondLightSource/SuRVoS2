@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from survos2.entity.cluster.cnn_features import CNNFeatures, prepare_3channel
 from survos2.entity.cluster.utils import get_surface
-
+from skimage.feature import hog
 
 def calc_sphericity(label_vols):
     sphericities = []
@@ -85,6 +85,23 @@ def extract_cnn_features(selected_images, gpu_id=0):
     print(f"Produced image stack of {len(selected_images)}")
 
     return vec_mat
+
+def extract_hog_features(selected_images, gpu_id=0):
+    num_fv = len(selected_images)
+    vec_mat = np.zeros((num_fv, 512))
+
+    for i, img in enumerate(selected_images):
+        fv = []
+        img_3channel = np.stack((img, img, img)).T
+        fd = hog(img_3channel, orientations=8, pixels_per_cell=(8, 8),
+                        cells_per_block=(1, 1), visualize=False) #, channel_axis=-1)
+        fv.extend(fd)
+        vec_mat[i, 0 : len(fv)] = fv
+
+    print(f"Produced image stack of {len(selected_images)}")
+
+    return vec_mat
+
 
 
 def extract_cnn_features2(patch_dict, gpu_id=0):
@@ -287,3 +304,4 @@ def roi_pool_2d(
     y = roi_pooling_2d(x, rois, output_size, spatial_scale=spatial_scale)
 
     return y
+

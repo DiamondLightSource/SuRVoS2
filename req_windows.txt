@@ -77,8 +77,10 @@ torchio
 tqdm
 traitlets
 unet
+umap-learn
 vispy
 wget
 xgboost
 unet
+
 
