@@ -18,7 +18,7 @@ matplotlib
 networkx
 napari[all]
 numba
-numpy==1.20
+numpy
 pandas
 paramiko
 pillow
