@@ -13,16 +13,30 @@ import hug
 import numpy as np
 from loguru import logger
 from survos2.api import workspace as ws
-from survos2.api.annotations import (add_label, add_level, delete_all_labels,
-                                     get_levels, rename_level, update_label)
+from survos2.api.annotations import (
+    add_label,
+    add_level,
+    delete_all_labels,
+    get_levels,
+    rename_level,
+    update_label,
+)
 from survos2.api.objects import get_entities
-from survos2.api.types import (DataURI, DataURIList, Float, FloatOrVector, Int,
-                               IntOrVector, SmartBoolean, String, StringList)
+from survos2.api.types import (
+    DataURI,
+    DataURIList,
+    Float,
+    FloatOrVector,
+    Int,
+    IntOrVector,
+    SmartBoolean,
+    String,
+    StringList,
+)
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.api.workspace import auto_create_dataset
 from survos2.entity.anno.pseudo import make_pseudomasks
-from survos2.entity.patches import (PatchWorkflow, make_patches,
-                                    organize_entities)
+from survos2.entity.patches import PatchWorkflow, make_patches, organize_entities
 from survos2.entity.pipeline_ops import make_proposal
 from survos2.entity.sampler import generate_random_points_in_volume
 from survos2.entity.train import train_oneclass_detseg
@@ -36,6 +50,7 @@ from survos2.utils import decode_numpy
 __pipeline_group__ = "pipelines"
 __pipeline_dtype__ = "float32"
 __pipeline_fill__ = 0
+
 
 class InterceptHandler(logging.Handler):
     def emit(self, record):
@@ -51,12 +66,17 @@ class InterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
+
 
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
+
 def pass_through(x):
     return x
+
 
 @dataclass
 class PatchWorkflow:
@@ -75,8 +95,10 @@ def cleaning(
     dst: DataURI,
     min_component_size: Int = 100,
 ):
-    from survos2.entity.saliency import (filter_small_components,
-                                         single_component_cleaning)
+    from survos2.entity.saliency import (
+        filter_small_components,
+        single_component_cleaning,
+    )
 
     # src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
     # logger.debug(f"Getting objects {src}")
@@ -118,7 +140,7 @@ def feature_postprocess(
         src_A_arr = src_A_dataset[:]
         logger.info(f"Obtained src A with shape {src_A_arr.shape}")
 
-    src_B = DataModel.g.dataset_uri(feature_B, group="features")    
+    src_B = DataModel.g.dataset_uri(feature_B, group="features")
     with DatasetManager(src_B, out=None, dtype="uint16", fillvalue=0) as DM:
         src_B_dataset = DM.sources[0]
         src_B_arr = src_B_dataset[:]
@@ -141,28 +163,32 @@ def label_postprocess(
     selected_label: Int,
     offset: Int,
 ):
-    if level_over != 'None':
+    if level_over != "None":
         src1 = DataModel.g.dataset_uri(level_over, group="annotations")
         with DatasetManager(src1, out=None, dtype="uint16", fillvalue=0) as DM:
             src1_dataset = DM.sources[0]
             anno1_level = src1_dataset[:] & 15
-            logger.info(f"Obtained over annotation level with labels {np.unique(anno1_level)}")
+            logger.info(
+                f"Obtained over annotation level with labels {np.unique(anno1_level)}"
+            )
 
     src_base = DataModel.g.dataset_uri(level_base, group="annotations")
     with DatasetManager(src_base, out=None, dtype="uint16", fillvalue=0) as DM:
         src_base_dataset = DM.sources[0]
         anno_base_level = src_base_dataset[:] & 15
-        logger.info(f"Obtained base annotation level with labels {np.unique(anno_base_level)}")
+        logger.info(
+            f"Obtained base annotation level with labels {np.unique(anno_base_level)}"
+        )
 
     print(f"Selected label {selected_label}")
     result = anno_base_level
-    
-    if level_over != 'None':
+
+    if level_over != "None":
         result = anno_base_level * (1.0 - ((anno1_level > 0) * 1.0))
         anno1_level[anno1_level == selected_label] += offset
 
         result += anno1_level
-        
+
     map_blocks(pass_through, result, out=dst, normalize=False)
 
 
@@ -226,9 +252,10 @@ def rasterize_points(
     objects_crop_start = ds_objects.get_metadata("crop_start")
     objects_crop_end = ds_objects.get_metadata("crop_end")
 
-    logger.debug(f"Getting objects from {src} and file {objects_fullname} with scale {objects_scale}")
-    from survos2.frontend.components.entity import (make_entity_df,
-                                                    setup_entity_table)
+    logger.debug(
+        f"Getting objects from {src} and file {objects_fullname} with scale {objects_scale}"
+    )
+    from survos2.frontend.components.entity import make_entity_df, setup_entity_table
 
     tabledata, entities_df = setup_entity_table(
         objects_fullname,
@@ -266,7 +293,6 @@ def rasterize_points(
 
     wparams = {}
     wparams["entities_offset"] = (0, 0, 0)
-
 
     wf = PatchWorkflow(
         features,
@@ -324,7 +350,7 @@ def superregion_segment(
     classifier_type: String,
     projection_type: String,
     classifier_params: dict,
-    confidence : bool
+    confidence: bool,
 ):
     logger.debug(
         f"superregion_segment using anno {anno_id} and superregions {region_id} and features {feature_ids}"
@@ -402,7 +428,7 @@ def superregion_segment(
         refine,
         lam,
     )
-    conf_map = conf_map[:,:,:,1]
+    conf_map = conf_map[:, :, :, 1]
     logger.info(f"Obtained conf map of shape {conf_map.shape}")
 
     def pass_through(x):
@@ -411,11 +437,15 @@ def superregion_segment(
     map_blocks(pass_through, segmentation, out=dst, normalize=False)
 
     if confidence:
-        dst = auto_create_dataset(DataModel.g.current_workspace,name="confidence_map", group="features",  dtype="float32")
+        dst = auto_create_dataset(
+            DataModel.g.current_workspace,
+            name="confidence_map",
+            group="features",
+            dtype="float32",
+        )
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = conf_map
-
 
 
 def get_feature_from_id(feat_id):
@@ -426,6 +456,7 @@ def get_feature_from_id(feat_id):
         logger.debug(f"Feature shape {src_dataset.shape}")
         feature = src_dataset[:]
     return feature
+
 
 def _unpack_lists(input_list):
     """Unpacks a list of strings containing sublists of strings
@@ -440,7 +471,6 @@ def _unpack_lists(input_list):
     return [ast.literal_eval(item)[0] for item in input_list]
 
 
-
 @hug.get()
 @save_metadata
 def train_2d_unet(
@@ -449,7 +479,7 @@ def train_2d_unet(
     workspace: StringList,
     anno_id: DataURIList,
     feature_id: DataURIList,
-    unet_train_params: dict
+    unet_train_params: dict,
 ):
     # Unpack the list
     workspace = _unpack_lists(workspace)
@@ -465,14 +495,14 @@ def train_2d_unet(
     logger.info(
         f"Train {model_type} with {encoder_type} encoder using workspaces {workspace} annos {anno_id} and features {feature_id}"
     )
-    from volume_segmantics.data import (TrainingDataSlicer,
-                                        get_2d_training_dataloaders,
-                                        get_settings_data)
-    from volume_segmantics.model import (VolSeg2DPredictionManager,
-                                         VolSeg2dPredictor, VolSeg2dTrainer)
+    from volume_segmantics.data import TrainingDataSlicer, get_settings_data
+    from volume_segmantics.model import (
+        VolSeg2DPredictionManager,
+        VolSeg2dPredictor,
+        VolSeg2dTrainer,
+    )
     from volume_segmantics.utilities import Quality
 
-    
     max_label_no = 0
     label_codes = None
     label_values = None
@@ -495,7 +525,9 @@ def train_2d_unet(
     data_slice_path.mkdir(exist_ok=True, parents=True)
     anno_slice_path.mkdir(exist_ok=True, parents=True)
     # Get datsets from workspaces and slice to disk
-    for count, (workspace_id, data_id, label_id) in enumerate(zip(workspace, feature_id, anno_id)):
+    for count, (workspace_id, data_id, label_id) in enumerate(
+        zip(workspace, feature_id, anno_id)
+    ):
         logger.info(f"Current workspace: {workspace_id}. Retrieving datasets.")
         DataModel.g.current_workspace = workspace_id
         src = DataModel.g.dataset_uri(data_id, group="features")
@@ -506,8 +538,10 @@ def train_2d_unet(
             labels = src_dataset.get_metadata("labels", {})
             anno_level = src_dataset[:] & 15
         anno_labels = np.unique(anno_level)
-        logger.debug(f"Obtained annotation level with labels {anno_labels} and shape {anno_level.shape}")
-        slicer = TrainingDataSlicer(settings, feature, anno_level)
+        logger.debug(
+            f"Obtained annotation level with labels {anno_labels} and shape {anno_level.shape}"
+        )
+        slicer = TrainingDataSlicer(feature, anno_level, settings)
         data_prefix, label_prefix = f"data{count}", f"seg{count}"
         slicer.output_data_slices(data_slice_path, data_prefix)
         slicer.output_label_slices(anno_slice_path, label_prefix)
@@ -516,12 +550,8 @@ def train_2d_unet(
             label_codes = labels
             label_values = anno_labels
 
-    # Create the trainer and pass in the dictionary of label metadata
-    train_loader, valid_loader = get_2d_training_dataloaders(
-        data_slice_path, anno_slice_path, settings
-    )
     logger.info(f"Creating model Trainer with label codes: {label_codes}")
-    trainer = VolSeg2dTrainer(train_loader, valid_loader, label_codes, settings)
+    trainer = VolSeg2dTrainer(data_slice_path, anno_slice_path, label_codes, settings)
     num_cyc_frozen = unet_train_params["cyc_frozen"]
     num_cyc_unfrozen = unet_train_params["cyc_unfrozen"]
     model_type = settings.model["type"].name
@@ -556,7 +586,9 @@ def train_2d_unet(
         logger.info("Creating new level for prediction.")
         level_result = add_level(current_ws)
     else:
-        level_result = ([x for x in levels if model_train_label in x["name"]] or [None])[0]
+        level_result = (
+            [x for x in levels if model_train_label in x["name"]] or [None]
+        )[0]
         delete_all_labels(current_ws, level_result["id"])
     level_id = level_result["id"]
     logger.info(f"Using labels from level with ID {level_id}, changing level name.")
@@ -578,6 +610,7 @@ def train_2d_unet(
         return x
 
     map_blocks(pass_through, segmentation, out=dst, normalize=False)
+
 
 @hug.get()
 @save_metadata
@@ -608,8 +641,8 @@ def predict_2d_unet(
         )
     else:
         logging.error("No feature selected!")
-        return 
-    
+        return
+
     levels = get_levels(workspace)
     # If there is already a level for U-net prediction output, don't create a new one
     anno_exists = any([model_pred_label in x["name"] for x in levels])
@@ -617,14 +650,16 @@ def predict_2d_unet(
     if not anno_exists:
         level_result = add_level(workspace)
     else:
-        level_result = ([x for x in levels if model_pred_label in x["name"]] or [None])[0]
+        level_result = ([x for x in levels if model_pred_label in x["name"]] or [None])[
+            0
+        ]
         delete_all_labels(workspace, level_result["id"])
     if level_result:
         import torch
         from volume_segmantics.data import get_settings_data
-        from volume_segmantics.model import (VolSeg2DPredictionManager,
-                                             VolSeg2dPredictor)
+        from volume_segmantics.model import VolSeg2DPredictionManager, VolSeg2dPredictor
         from volume_segmantics.utilities import Quality
+
         predict_settings_dict = cfg["volume_segmantics"]["predict_settings"]
         predict_settings = get_settings_data(predict_settings_dict)
         predict_settings.cuda_device = cuda_device
@@ -656,22 +691,32 @@ def predict_2d_unet(
     else:
         logging.error("Unable to add level for output!")
 
+
 def create_new_labels_for_level(workspace, level_id, label_codes):
     # New style codes are in a dictionary
     if isinstance(label_codes, dict):
         for key in label_codes:
-            label_result = add_label(workspace=workspace,level=level_id)
+            label_result = add_label(workspace=workspace, level=level_id)
             if label_result:
-                update_result = update_label(workspace=workspace, level=level_id, **label_codes[key])
+                update_result = update_label(
+                    workspace=workspace, level=level_id, **label_codes[key]
+                )
                 logger.info(f"Label created: {update_result}")
         # Old style codes are in a list
     elif isinstance(label_codes, list):
-        r = lambda: random.randint(0,255)
+        r = lambda: random.randint(0, 255)
         for idx, code in enumerate(label_codes, start=2):
-            label_result = add_label(workspace=workspace,level=level_id)
+            label_result = add_label(workspace=workspace, level=level_id)
             if label_result:
-                codes_dict = {"color": f"#{r():02X}{r():02X}{r():02X}", "idx": idx, "name": code, "visible": True}
-                update_result = update_label(workspace=workspace, level=level_id, **codes_dict)
+                codes_dict = {
+                    "color": f"#{r():02X}{r():02X}{r():02X}",
+                    "idx": idx,
+                    "name": code,
+                    "visible": True,
+                }
+                update_result = update_label(
+                    workspace=workspace, level=level_id, **codes_dict
+                )
                 logger.info(f"Label created: {update_result}")
 
 
@@ -687,8 +732,8 @@ def train_3d_fcn(
     objects_id: DataURI,
     fpn_train_params: dict,
     num_samples: Int,
-    num_epochs : Int,
-    num_augs : Int,
+    num_epochs: Int,
+    num_augs: Int,
     padding: IntOrVector = 32,
     grid_dim: IntOrVector = 4,
     patch_size: IntOrVector = 64,
@@ -697,9 +742,7 @@ def train_3d_fcn(
     threshold: Float = 0.5,
 
 ):
-    logger.debug(
-        f"Train_3d fcn using anno {anno_id} and feature {feature_id}"
-    )
+    logger.debug(f"Train_3d fcn using anno {anno_id} and feature {feature_id}")
 
     src = DataModel.g.dataset_uri(feature_id, group="features")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -719,8 +762,8 @@ def train_3d_fcn(
     padded_vol = pad_vol(src_array, padding )
     
     entity_arr = generate_random_points_in_volume(padded_vol, num_samples, padding)
-    
-    if objects_id != "None":    
+
+    if objects_id != "None":
         objects_src = DataModel.g.dataset_uri(objects_id, group="objects")
         result = get_entities(objects_src)
         entity_arr = decode_numpy(result)
@@ -735,7 +778,12 @@ def train_3d_fcn(
     wparams["workflow_name"] = "Make_Patches"
     wparams["proj"] = DataModel.g.current_workspace
     wf = PatchWorkflow(
-        [src_array], combined_clustered_pts, classwise_entities, src_array, wparams, combined_clustered_pts
+        [src_array],
+        combined_clustered_pts,
+        classwise_entities,
+        src_array,
+        wparams,
+        combined_clustered_pts,
     )
 
     src = DataModel.g.dataset_uri(anno_id, group="annotations")
@@ -757,28 +805,31 @@ def train_3d_fcn(
     dt_string = now.strftime("%d%m%Y_%H_%M_%S")
     model_fn = f"{dt_string}_trained_fcn_model"
     model_out = str(Path(data_out_path, model_fn).resolve())
-    
+
     wf_params = {}
     wf_params["torch_models_fullpath"] = model_out
     logger.info(f"Saving fcn model to: {model_out}")
 
-    overlap_mode="crop"
-    model_type=fcn_type
+    overlap_mode = "crop"
+    model_type = fcn_type
 
-    model_file = train_oneclass_detseg(train_v_density, None, wf_params, num_epochs=num_epochs, model_type=model_type)
-    
+    model_file = train_oneclass_detseg(
+        train_v_density, None, wf_params, num_epochs=num_epochs, model_type=model_type
+    )
+
     src = DataModel.g.dataset_uri(feature_id, group="features")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_array = DM.sources[0][:]
+
     
     # use trained model to predict on original feature volume
     proposal = make_proposal(
-    src_array,
-    os.path.join(wf_params["torch_models_fullpath"],model_file),
-    model_type=model_type,
-    patch_size=patch_size,
-    patch_overlap=patch_overlap,
-    overlap_mode=overlap_mode,
+        src_array,
+        os.path.join(wf_params["torch_models_fullpath"], model_file),
+        model_type=model_type,
+        patch_size=patch_size,
+        patch_overlap=patch_overlap,
+        overlap_mode=overlap_mode,
     )
     # normalize volume and threshold
     proposal -= np.min(proposal)
@@ -808,15 +859,15 @@ def predict_3d_fcn(
     patch_overlap: IntOrVector = 8,
     threshold: Float = 0.5,
     model_type: String = "unet3d",
-    overlap_mode: String = "crop"
+    overlap_mode: String = "crop",
 ):
-    
+
     src = DataModel.g.dataset_uri(feature_id, group="features")
 
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         logger.debug(f"Adding feature of shape {src_dataset.shape}")
-        
+
     proposal = make_proposal(
         src_dataset,
         model_fullname,
@@ -839,6 +890,7 @@ def predict_3d_fcn(
 
     proposal = (proposal > threshold) * 1.0
     map_blocks(pass_through, proposal, out=dst, normalize=False)
+
     
     # # store resulting segmentation in dst
     # dst = DataModel.g.dataset_uri(dst)
@@ -847,47 +899,60 @@ def predict_3d_fcn(
 
 
 
-
-def per_object_cleaning(entities, seg, bvol_dim=(32,32,32), offset=(0,0,0), flipxy=True, display_plots=False):    
+def per_object_cleaning(
+    entities,
+    seg,
+    bvol_dim=(32, 32, 32),
+    offset=(0, 0, 0),
+    flipxy=True,
+    display_plots=False,
+):
     patch_size = tuple(1 * np.array(bvol_dim))
     seg = pad_vol(seg, np.array(patch_size))
     target = np.zeros_like(seg)
-    
+
     entities = np.array(make_entity_df(np.array(entities), flipxy=flipxy))
     entities = offset_points(entities, offset)
     entities = offset_points(entities, -np.array(bvol_dim))
 
-    if display_plots:    
-        slice_plot(seg, np.array(make_entity_df(entities, flipxy=flipxy)), seg, (60,300,300))
+    if display_plots:
+        slice_plot(
+            seg, np.array(make_entity_df(entities, flipxy=flipxy)), seg, (60, 300, 300)
+        )
     bvol = centroid_to_bvol(np.array(entities), bvol_dim=bvol_dim)
-    bvol_seg = BoundingVolumeDataset(seg, bvol, labels=[1] * len(bvol), patch_size=patch_size)
+    bvol_seg = BoundingVolumeDataset(
+        seg, bvol, labels=[1] * len(bvol), patch_size=patch_size
+    )
     c = bvol_dim[0], bvol_dim[1], bvol_dim[2]
-    
+
     for i, p in enumerate(bvol_seg):
         print(bvol_seg.bvols[i])
         seg, _ = bvol_seg[i]
         cleaned_patch = (get_largest_cc(seg) > 0) * 1.0
         # try:
         #     res = get_surface((cleaned_patch > 0) * 1.0, plot3d=False)
-        mask = ((binary_erosion((cleaned_patch), iterations=1) > 0) * 1.0)
-        
+        mask = (binary_erosion((cleaned_patch), iterations=1) > 0) * 1.0
+
         if display_plots:
             plt.figure()
-            plt.imshow(seg[c[0],:])
+            plt.imshow(seg[c[0], :])
             plt.figure()
-            plt.imshow(mask[c[0],:])
-            
-        
+            plt.imshow(mask[c[0], :])
+
         z_st, y_st, x_st, z_end, y_end, x_end = bvol_seg.bvols[i]
-        target[z_st:z_end, x_st:x_end, y_st:y_end,] = mask
+        target[
+            z_st:z_end,
+            x_st:x_end,
+            y_st:y_end,
+        ] = mask
 
-    target = target[patch_size[0]:target.shape[0]-patch_size[0],
-                    patch_size[1]:target.shape[1]-patch_size[1],
-                    patch_size[2]:target.shape[2]-patch_size[2]]
-        
+    target = target[
+        patch_size[0] : target.shape[0] - patch_size[0],
+        patch_size[1] : target.shape[1] - patch_size[1],
+        patch_size[2] : target.shape[2] - patch_size[2],
+    ]
+
     return target
-
-
 
 
 @hug.get()
