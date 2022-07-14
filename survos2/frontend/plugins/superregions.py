@@ -7,6 +7,7 @@ from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
+from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.model import DataModel
 from survos2.server.state import cfg
 from survos2.improc.utils import DatasetManager
@@ -123,21 +124,29 @@ class SupervoxelCard(Card):
         self.svcompactness.setMaximumWidth(250)
 
         self.int64_checkbox = CheckBox(checked=False)
-
+        self.max_num_iter = LineEdit(parse=int, default=10)
+        self.zero_parameter_checkbox = CheckBox(checked=False)
         self.compute_btn = PushButton("Compute")
         self.view_btn = PushButton("View", accent=True)
 
         self.add_row(HWidgets("Source:", self.svsource, stretch=1))
-        self.add_row(HWidgets("Shape:", self.svshape, stretch=1))
-        self.add_row(HWidgets("Spacing:", self.svspacing, stretch=1))
+        self._add_feature_source()
+        self.add_row(HWidgets("Shape:", self.svshape, "Spacing:", self.svspacing))
         self.add_row(HWidgets("Compactness:", self.svcompactness, stretch=1))
-        self.add_row(HWidgets("Int64:", self.int64_checkbox, stretch=1))
-
+        self.add_row(HWidgets("Int64:", self.int64_checkbox, "Find parameters:", self.zero_parameter_checkbox, "Max Iter:", self.max_num_iter ))
         self.add_row(HWidgets(None, self.compute_btn))
         self.add_row(HWidgets(None, self.view_btn))
 
         self.compute_btn.clicked.connect(self.compute_supervoxels)
         self.view_btn.clicked.connect(self.view_regions)
+    
+    def _add_feature_source(self):
+        self.feature_source = FeatureComboBox()
+        self.feature_source.fill()
+        self.feature_source.setMaximumWidth(250)
+
+        widget = HWidgets("Mask:", self.feature_source, stretch=1)
+        self.add_row(widget)
 
     def card_deleted(self):
         params = dict(region_id=self.svid, workspace=True)
@@ -205,15 +214,18 @@ class SupervoxelCard(Card):
                 out_dtype = "uint32"
 
             params = dict(
-                src=src,
-                dst=dst,
-                compactness=round(self.svcompactness.value() / 100, 3),
-                # shape=self.svshape.value(),
-                n_segments=n_segments,
-                spacing=self.svspacing.value(),
-                modal=True,
-                out_dtype=out_dtype,
+            src=src,
+            dst=dst,
+            compactness=round(self.svcompactness.value() / 100, 3),
+            n_segments=n_segments,
+            spacing=self.svspacing.value(),
+            modal=False,
+            out_dtype=out_dtype,
+            max_num_iter=self.max_num_iter.value(),
+            zero_parameter=self.zero_parameter_checkbox.value(),
+            mask_id=str(self.feature_source.value())
             )
+            
             logger.debug(f"Compute supervoxels with params {params}")
 
             pbar.update(1)
@@ -232,3 +244,4 @@ class SupervoxelCard(Card):
         if "source" in params:
             for source in params["source"]:
                 self.svsource.select(source)
+

@@ -4,8 +4,7 @@ import os.path as op
 import dask.array as da
 import hug
 import numpy as np
-from skimage.segmentation import slic
-
+import ntpath
 
 from loguru import logger
 import survos2
@@ -60,30 +59,48 @@ def get_crop(src: DataURI, roi: IntList):
     return encode_numpy(data)
 
 
+
 @hug.get()
 @save_metadata
 def supervoxels(
     src: DataURI,
     dst: DataURI,
+    mask_id: DataURI,
     n_segments: Int = 10,
     compactness: Float = 20,
     spacing: FloatList = [1, 1, 1],
     multichannel: SmartBoolean = False,
     enforce_connectivity: SmartBoolean = False,
     out_dtype="int",
+    zero_parameter=False,
+    max_num_iter=10,
+    
 ):
     with DatasetManager(src, out=None, dtype=out_dtype, fillvalue=0) as DM:
         src_data_arr = DM.sources[0][:]
 
+    # get image feature for mask, if any
+
+    if mask_id=='None':
+        mask_feature = None
+    else:
+        src = DataModel.g.dataset_uri(ntpath.basename(mask_id), group="features")
+        logger.debug(f"Getting features {src}")
+        with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
+            mask_feature = DM.sources[0][:].astype(np.uint32)
+            logger.debug(f"Feature to use as mask shape {mask_feature.shape}")
+    
+        
     supervoxel_image = slic(
         src_data_arr,
         n_segments=n_segments,
         spacing=spacing,
         compactness=compactness,
         multichannel=False,
+        max_num_iter=max_num_iter,
+        slic_zero=zero_parameter,
+        mask=mask_feature,
     )
-    print(supervoxel_image)
-
     def pass_through(x):
         return x
 
@@ -201,3 +218,4 @@ def remove(workspace: String, region_id: String):
 @hug.get()
 def rename(workspace: String, region_id: String, new_name: String):
     ws.rename_dataset(workspace, region_id, __region_group__, new_name)
+
