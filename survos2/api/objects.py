@@ -7,7 +7,7 @@ import hug
 import numpy as np
 from loguru import logger
 import tempfile
-
+from functools import lru_cache
 from survos2.api import workspace as ws
 from survos2.api.types import (
     DataURI,
@@ -284,6 +284,7 @@ def update_metadata(dst: DataURI,fullname: String,
 
 
 
+
 @hug.get()
 def create(workspace: String, fullname: String, order: Int = 0):
     objects_type = __objects_names__[order]
@@ -300,6 +301,7 @@ def create(workspace: String, fullname: String, order: Int = 0):
     return dataset_repr(ds)
 
 
+@lru_cache(maxsize=2)
 @hug.get()
 @hug.local()
 def existing(
@@ -349,4 +351,5 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
 

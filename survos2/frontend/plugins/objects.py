@@ -221,12 +221,12 @@ class ObjectsCard(Card):
             "crop_start", title="Crop Start: ", type="FloatOrVector", default=0
         )
         self._add_param(
-            "crop_end", title="Crop End: ", type="FloatOrVector", default=9000
+            "crop_end", title="Crop End: ", type="FloatOrVector", default=10000
         )
 
-        self.flipxy_checkbox = CheckBox(checked=True)
-        self.add_row(HWidgets(None, self.flipxy_checkbox, Spacing(35)))
-        self.add_row(HWidgets(None, self.view_btn, self.get_btn, Spacing(35)))
+        self.flipxy_checkbox = CheckBox(checked=False)
+        self.add_row(HWidgets(None, "Flip XY", self.flipxy_checkbox))
+        self.add_row(HWidgets(None, self.view_btn, self.get_btn))
 
         self.view_btn.clicked.connect(self.view_objects)
         self.get_btn.clicked.connect(self.get_objects)
@@ -245,14 +245,24 @@ class ObjectsCard(Card):
             self._add_annotations_source()
             self.entity_mask_bvol_size = LineEdit3D(default=64, parse=int)
             self._add_feature_source()
-            
             self.make_entity_mask_btn = PushButton("Make entity mask", accent=True)
             self.make_entity_mask_btn.clicked.connect(self.make_entity_mask)
             self.make_patches_btn = PushButton("Make patches", accent=True)
             self.make_patches_btn.clicked.connect(self.make_patches)
 
-            self.add_row(HWidgets(None, self.entity_mask_bvol_size, self.make_entity_mask_btn, Spacing(35)))
-            self.add_row(HWidgets(None,  self.make_patches_btn, Spacing(35)))
+            self.add_row(HWidgets(None, self.entity_mask_bvol_size, self.make_entity_mask_btn))
+            self.add_row(HWidgets(None,  self.make_patches_btn))
+        elif self.objectstype == "boxes":
+            self._add_annotations_source()
+            self._add_feature_source()
+            self.make_bvol_mask_btn = PushButton("Make bounding volume mask", accent=True)
+            self.make_bvol_mask_btn.clicked.connect(self.make_bvol_mask)
+            self.add_row(HWidgets(None,  self.make_bvol_mask_btn))
+        elif self.objectstype == "points":
+            self._add_param("box_dim", title="Box dim: ", type="IntOrVector", default=16)
+            self.make_boxes_btn = PushButton("Make boxes from points", accent=True)
+            self.make_boxes_btn.clicked.connect(self.make_boxes_from_points)
+            self.add_row(HWidgets(None,  self.make_boxes_btn))
  
 
         self.table_control = TableWidget()
@@ -274,7 +284,7 @@ class ObjectsCard(Card):
             title = name
         if p:
             self.widgets[name] = p
-            self.add_row(HWidgets(None, title, p, Spacing(35)))
+            self.add_row(HWidgets(None, title, p))
 
     def load_data(self, path):
         self.objectsfullname = path
@@ -293,7 +303,7 @@ class ObjectsCard(Card):
         self.annotations_source.setMaximumWidth(250)
 
         widget = HWidgets(
-            "Annotation:", self.annotations_source, Spacing(35), stretch=1
+            "Annotation:", self.annotations_source, stretch=1
         )
         self.add_row(widget)
 
@@ -323,7 +333,7 @@ class ObjectsCard(Card):
         self.feature_source.fill()
         self.feature_source.setMaximumWidth(250)
 
-        widget = HWidgets("Feature:", self.feature_source, Spacing(35), stretch=1)
+        widget = HWidgets("Feature:", self.feature_source, stretch=1)
         self.add_row(widget)
 
     def get_objects(self):
@@ -345,8 +355,7 @@ class ObjectsCard(Card):
         logger.debug(f"Getting objects with params {params}")
         result = Launcher.g.run("objects", "update_metadata", workspace=True, **params)
           
-        if self.objectstype == "points":
-            
+        if self.objectstype == "points":            
             tabledata, self.entities_df = setup_entity_table(
                  self.objectsfullname,
                  scale=cfg.object_scale,
@@ -355,7 +364,6 @@ class ObjectsCard(Card):
                  crop_end=cfg.object_crop_end,
                  flipxy=self.flipxy_checkbox.value()
              )
-            
         elif self.objectstype == "boxes":
             tabledata, self.entities_df = setup_bb_table(
                 self.objectsfullname,
@@ -382,6 +390,55 @@ class ObjectsCard(Card):
         self.table_control.set_data(tabledata)
         self.collapse()
         self.expand()
+
+    def make_boxes_from_points(self):
+        logger.debug(f"Making boxes from points")
+        entity_arr = np.array(self.entities_df)
+        box_dim = self.widgets["box_dim"].value()
+        boxes = []
+
+        for z,x,y,c in entity_arr:
+            z_st = z - box_dim[0] // 2
+            z_end = z + box_dim[0] // 2
+            x_st = x - box_dim[1] // 2
+            x_end = x + box_dim[1] // 2
+            y_st = y - box_dim[2] // 2
+            y_end = y + box_dim[2] // 2
+            print(f"{z_st},{z_end},{x_st},{x_end},{y_st},{y_end}")     
+            boxes.append([c, z,x,y, z_st, x_st, y_st, z_end, x_end, y_end])
+        from survos2.entity.entities import load_boxes_via_file
+        load_boxes_via_file(np.array(boxes), flipxy=False)
+        cfg.ppw.clientEvent.emit({"source": "objects_plugin", "data": "faster_refresh", "value": None})
+
+            
+    def make_bvol_mask(self):
+        logger.debug(f"Making bvol mask")
+        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_array = DM.sources[0][:]
+        entity_arr = np.array(self.entities_df)
+        from survos2.entity.sampler import viz_bb
+        print(entity_arr)
+        gold_mask = viz_bb(src_array, entity_arr, flipxy=True)
+
+        # create new raw feature
+        params = dict(feature_type="raw", workspace=True)
+        result = Launcher.g.run("features", "create", **params)
+
+        if result:
+            fid = result["id"]
+            ftype = result["kind"]
+            fname = result["name"]
+            logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
+
+            dst = DataModel.g.dataset_uri(fid, group="features")
+            with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+                DM.out[:] = gold_mask
+
+            cfg.ppw.clientEvent.emit(
+                {"source": "objects_plugin", "data": "faster_refresh", "value": None}
+            )
+
 
     def make_entity_mask(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
@@ -416,7 +473,7 @@ class ObjectsCard(Card):
                 DM.out[:] = gold_mask
 
             cfg.ppw.clientEvent.emit(
-                {"source": "objects_plugin", "data": "refresh", "value": None}
+                {"source": "objects_plugin", "data": "faster_refresh", "value": None}
             )
 
     def make_patches(self):
@@ -466,5 +523,6 @@ class ObjectsCard(Card):
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "view_patches", "patches_fullname": train_v_density}
         )
+
 
 

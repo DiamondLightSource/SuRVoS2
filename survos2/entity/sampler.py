@@ -268,9 +268,51 @@ def viz_bvols(input_array, bvols, flip_coords=False):
         x_f = np.min((bvol[4], input_array.shape[1]))
         y_s = np.max((0, bvol[2]))
         y_f = np.min((bvol[5], input_array.shape[2]))
-        # print(f"Sampling {z_s}, {z_f}, {x_s}, {x_f}, {y_s}, {y_f}")
-
+        
         if flip_coords:
+            bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
+        else:
+            bvol_mask[z_s:z_f, x_s:x_f, y_s:y_f] = 1.0
+
+    return bvol_mask
+
+
+def viz_bb(input_array, bvols, flip_coords=False):
+    bvol_mask = np.zeros_like(input_array)
+    print(f"Making {len(bvols)} bvols")
+    for bvol in bvols:
+        # print(bvol)
+        bvol = bvol.astype(np.int32)
+        z_s, x_s, y_s, z_f, x_f, y_f = bvol
+        z_s = np.max((0, z_s))
+        z_f = np.min((z_f, input_array.shape[0]))
+        x_s = np.max((0, x_s))
+        x_f = np.min((x_f, input_array.shape[1]))
+        y_s = np.max((0, y_s))
+        y_f = np.min((y_f, input_array.shape[2]))
+        
+        if flip_coords:
+            bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
+        else:
+            bvol_mask[z_s:z_f, x_s:x_f, y_s:y_f] = 1.0
+
+    return bvol_mask
+
+def viz_bb(input_array, bvols, flipxy=False):
+    bvol_mask = np.zeros_like(input_array)
+    print(f"Making {len(bvols)} bvols")
+    for bvol in bvols:
+        # print(bvol)
+        bvol = bvol.astype(np.int32)
+        c,z,x,y, z_s, x_s, y_s, z_f, x_f, y_f = bvol
+        z_s = np.max((0, z_s))
+        z_f = np.min((z_f, input_array.shape[0]))
+        x_s = np.max((0, x_s))
+        x_f = np.min((x_f, input_array.shape[1]))
+        y_s = np.max((0, y_s))
+        y_f = np.min((y_f, input_array.shape[2]))
+        
+        if flipxy:
             bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
         else:
             bvol_mask[z_s:z_f, x_s:x_f, y_s:y_f] = 1.0

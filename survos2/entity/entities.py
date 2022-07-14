@@ -8,12 +8,48 @@ import pandas as pd
 from loguru import logger
 from numpy.lib.stride_tricks import as_strided as ast
 
-from survos2.entity.sampler import viz_bvols, centroid_to_bvol, offset_points
+from survos2.entity.sampler import viz_bvols, viz_bb, centroid_to_bvol, offset_points
 from survos2.frontend.control.launcher import Launcher
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
 
 import tempfile
+
+
+def load_boxes_via_file(boxes_arr, flipxy=True):
+    boxes_df = make_entity_boxes(boxes_arr, flipxy=flipxy)
+    tmp_fullpath = os.path.abspath(
+        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
+    )
+    boxes_df.to_csv(tmp_fullpath, line_terminator="")
+    print(boxes_df)
+    object_scale = 1.0
+    object_offset = (0.0, 0.0, 0.0)
+    object_crop_start = (0.0, 0.0, 0.0)
+    object_crop_end = (1e9, 1e9, 1e9)
+
+    params = dict(
+        order=1,
+        workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
+        fullname=tmp_fullpath,
+    )
+
+    result = Launcher.g.run("objects", "create", **params)
+    if result:
+        dst = DataModel.g.dataset_uri(result["id"], group="objects")
+        params = dict(
+            dst=dst,
+            fullname=tmp_fullpath,
+            scale=object_scale,
+            offset=object_offset,
+            crop_start=object_crop_start,
+            crop_end=object_crop_end,
+        )
+        logger.debug(f"Creating objects with params {params}")
+        Launcher.g.run("objects", "boxes", **params)
+
+    os.remove(tmp_fullpath)
+
 
 
 def load_entities_via_file(entities_arr, flipxy=True):
@@ -45,7 +81,7 @@ def load_entities_via_file(entities_arr, flipxy=True):
             crop_start=object_crop_start,
             crop_end=object_crop_end,
         )
-        logger.debug(f"Getting objects with params {params}")
+        logger.debug(f"Creating objects with params {params}")
         Launcher.g.run("objects", "points", **params)
 
     os.remove(tmp_fullpath)
@@ -74,13 +110,10 @@ def make_entity_mask(vol, dets, flipxy=True, bvol_dim=(32, 32, 32)):
     offset_det_bvol = centroid_to_bvol(offset_dets, bvol_dim=bvol_dim, flipxy=flipxy)
     padded_vol = pad_vol(vol, bvol_dim)
     det_mask = viz_bvols(padded_vol, offset_det_bvol)
+    
     return det_mask, offset_dets, padded_vol
 
-def make_bvols_mask(img_vol, bvols):
-    mask = np.zeros_like(img_vol)
-    for b in bvols:
-        mask[b[0]:b[1],b[2]:b[3],b[4]:b[5]] = 1
-    return mask
+
 
 def calc_bounding_vol(m):
     return [
@@ -249,9 +282,9 @@ def make_entity_boxes(bbs, flipxy=False):
     entities_df = entities_df.astype(
         {
             "class_code": "int32",
+            "z": "int32",
             "x": "int32",
             "y": "int32",
-            "z": "int32",
             "bb_s_z": "int32",
             "bb_s_x": "int32",
             "bb_s_y": "int32",
