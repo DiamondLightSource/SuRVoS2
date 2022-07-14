@@ -472,7 +472,7 @@ def frontend(viewer):
             else:
                 logger.debug("Unsupported layer type.")
             pbar.update(1)
-            processEvents({"data": "refresh"})
+            processEvents({"data": "faster_refresh"})
 
     def jump_to_slice(msg):
         cfg.supervoxels_cached = False
@@ -650,7 +650,7 @@ def frontend(viewer):
         elif msg["data"] == "run_workflow":
             run_workflow_worker = run_workflow(msg)
             run_workflow_worker.start()
-            processEvents({"data": "refresh"})
+            processEvents({"data": "faster_refresh"})
         elif msg["data"] == "refresh":
             logger.debug("Refreshing plugin panel")
             dw.ppw.setup()
@@ -708,4 +708,5 @@ def frontend(viewer):
     dw.Config = Config
     dw.cfg = cfg
     return dw
+
 
