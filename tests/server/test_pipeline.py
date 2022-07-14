@@ -152,6 +152,7 @@ class Tests(object):
         result = supervoxels(
             features_src,
             dst,
+	    mask_id='None',
             n_segments=8,
             compactness=0.5,
             spacing=[1, 1, 1],
