@@ -379,6 +379,7 @@ class PipelineCard(Card):
         elif self.pipeline_type == "train_3d_fcn":
             self._add_annotations_source()
             self._add_feature_source()
+            self._add_objects_source()
             self._add_3d_fcn_training_params()
             self._add_fcn_choice()
         elif self.pipeline_type == "predict_3d_fcn":
@@ -597,6 +598,8 @@ class PipelineCard(Card):
                 None, load_as_float_btn, load_as_annotation_btn, view_btn, Spacing(35)
             )
         )
+
+
 
     def _add_refine_choice(self):
         self.refine_checkbox = CheckBox(checked=True)
@@ -1114,6 +1117,7 @@ class PipelineCard(Card):
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["object_id"] = str(self.objects_source.value())
+        all_params["patch_size"] = self.widgets["patch_size"].value()
         return all_params
 
     def setup_params_train_3d_fcn(self, dst):
@@ -1122,12 +1126,13 @@ class PipelineCard(Card):
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
-        # print(str(self.objects_source.value())) 
-        # if self.objects_source.value() != None:
-        #     all_params["objects_id"] = str(self.objects_source.value().rsplit("/", 1)[-1])
-        # else:
-        #     all_params["objects_id"] = str(self.objects_source.value())
-        all_params["objects_id"] = "None"
+        if self.objects_source.value() != None:
+            all_params["objects_id"] = str(self.objects_source.value().rsplit("/", 1)[-1])
+            #all_params["objects_id"] = str(self.objects_source.value()
+            print(all_params["objects_id"])
+        else:
+            #     all_params["objects_id"] = str(self.objects_source.value())
+            all_params["objects_id"] = "None"
         all_params["fpn_train_params"] = {}
         all_params["fcn_type"] = self.fcn_type.value()
         
@@ -1241,4 +1246,5 @@ class PipelineCard(Card):
             _PipelineNotifier.notify()
 
         return result["done"]
+
 

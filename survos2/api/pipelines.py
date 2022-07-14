@@ -633,6 +633,7 @@ def create_new_labels_for_level(workspace, level_id, label_codes):
                 logger.info(f"Label created: {update_result}")
 
 
+
 @hug.get()
 @save_metadata
 def train_3d_fcn(
@@ -731,10 +732,18 @@ def train_3d_fcn(
     patch_overlap=patch_overlap,
     overlap_mode=overlap_mode,
     )
-
-    final_seg = (proposal > 0) * 1.0
+    proposal -= np.min(proposal)
+    final_seg = proposal = proposal / np.max(proposal)
+    #final_seg = (proposal > 0) * 1.0
     map_blocks(pass_through, final_seg, out=dst, normalize=False)
     
+    confidence = 1
+    if confidence:
+        dst = auto_create_dataset(DataModel.g.current_workspace,name="confidence_map", group="features",  dtype="float32")
+        dst.set_attr("kind", "raw")
+        with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+            DM.out[:] = final_seg.copy()
+
 
 @hug.get()
 @save_metadata
@@ -775,95 +784,21 @@ def predict_3d_fcn(
     #    proposal = 1.0 - proposal
     #proposal = ((proposal < threshold) * 1) + 1
     
-    proposal = (proposal > threshold) * 1.0
+    confidence = 1
+    if confidence:
+        dst = auto_create_dataset(DataModel.g.current_workspace,name="confidence_map", group="features",  dtype="float32")
+        dst.set_attr("kind", "raw")
+        with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+            DM.out[:] = proposal.copy()
 
+    proposal = (proposal > threshold) * 1.0
     map_blocks(pass_through, proposal, out=dst, normalize=False)
     
-
     # # store resulting segmentation in dst
     # dst = DataModel.g.dataset_uri(dst)
     # with DatasetManager(dst, out=dst, dtype="int32", fillvalue=0) as DM:
     #     DM.out[:] = proposal
 
-
-# @hug.get()
-# def predict_segmentation_fcn(
-#     feature_id: DataURI,
-#     model_fullname: String,
-#     dst: DataURI,
-#     patch_size: IntOrVector = 64,
-#     patch_overlap: IntOrVector = 8,
-#     threshold: Float = 0.5,
-#     model_type: String = "unet3d",
-# ):
-#     from survos2.entity.pipeline_ops import make_proposal
-
-#     src = DataModel.g.dataset_uri(feature_id, group="features")
-
-#     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-#         src_dataset = DM.sources[0]
-#         logger.debug(f"Adding feature of shape {src_dataset.shape}")
-        
-#     proposal = make_proposal(
-#         src_dataset,
-#         model_fullname,
-#         model_type=model_type,
-#         patch_size=patch_size,
-#         patch_overlap=patch_overlap,
-#     )
-
-#     proposal -= np.min(proposal)
-#     proposal = proposal / np.max(proposal)
-#     proposal = ((proposal < threshold) * 1) + 1
-
-#     # store resulting segmentation in dst
-#     dst = DataModel.g.dataset_uri(dst, group="pipelines")
-#     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-#         DM.out[:] = proposal
-
-from survos2.frontend.nb_utils import slice_plot
-from scipy.ndimage.morphology import binary_erosion
-from survos2.entity.utils import pad_vol, get_largest_cc, get_surface
-from survos2.entity.sampler import centroid_to_bvol
-from survos2.frontend.components.entity import setup_entity_table
-from survos2.entity.patches import BoundingVolumeDataset
-from survos2.entity.entities import make_entity_bvol, make_bounding_vols, make_entity_df
-from survos2.entity.entities import offset_points, get_entities
-
-from matplotlib import pyplot as plt
-
-
-@hug.get()
-def per_object_cleaning(
-    dst: DataURI,
-    feature_id: DataURI, 
-    object_id: DataURI,
-):
-
-
-    # get image feature
-    src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
-    logger.debug(f"Getting features {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        feature = DM.sources[0][:]
-        logger.debug(f"Feature shape {feature.shape}")
-
-    # get object entities
-    src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
-    logger.debug(f"Getting objects {src}")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        ds_objects = DM.sources[0]
-    entities_fullname = ds_objects.get_metadata("fullname")
-    tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
-    entities_arr = np.array(entities_df)
-    entities_arr[:,3] = np.array([[1] * len(entities_arr)])
-    entities = np.array(make_entity_df(entities_arr, flipxy=False))
-    print(entities)
-
-    target = per_object_cleaning(entities, feature, display_plots=False)
-    #dst = DataModel.g.dataset_uri(dst, group="pipelines")
-    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = target
 
 
 
