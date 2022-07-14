@@ -13,7 +13,7 @@ import numpy as np
 import seaborn as sns
 from loguru import logger
 import tempfile
-
+from functools import lru_cache
 from matplotlib import offsetbox
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -85,7 +85,7 @@ __analyzer_names__ = [
     "remove_masked_objects",
     "object_analyzer",
     "binary_classifier",
-    "point_generator"
+    "point_generator",
 ]
 
 
@@ -608,6 +608,70 @@ def find_connected_components(
     print(result_list)
 
     return result_list
+
+@hug.get()
+def segmentation_stats(
+    src: DataURI, 
+    dst: DataURI,
+    modeA: String,
+    modeB: String,
+    workspace: String, 
+    pipelines_id_A: DataURI,
+    analyzers_id_A: DataURI,
+    annotations_id_A: DataURI,
+    pipelines_id_B: DataURI,
+    analyzers_id_B: DataURI,
+    annotations_id_B: DataURI,
+    label_index_A: Int, 
+    label_index_B: Int, 
+) -> "IMAGE":
+
+    if modeA == '1':
+        src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id_A), group="pipelines")
+        logger.debug(f"Analyzer calc on pipeline src {src}")
+    elif modeA == '2':
+        src = DataModel.g.dataset_uri(ntpath.basename(analyzers_id_A), group="analyzer")
+        logger.debug(f"Analyzer calc on analyzer src {src}")
+    elif modeA == '3':
+        src = DataModel.g.dataset_uri(ntpath.basename(annotations_id_A), group="annotations")
+        logger.debug(f"Analyzer calc on annotation src {src}")
+    
+    with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
+        seg = DM.sources[0][:]
+        logger.debug(f"src_dataset shape {seg[:].shape}")
+
+    src_dataset_arr_A = seg.astype(np.uint32) & 15
+    
+    if modeB == '1':
+        src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id_B), group="pipelines")
+        logger.debug(f"Analyzer calc on pipeline src {src}")
+    elif modeB == '2':
+        src = DataModel.g.dataset_uri(ntpath.basename(analyzers_id_B), group="analyzer")
+        logger.debug(f"Analyzer calc on analyzer src {src}")
+    elif modeB == '3':
+        src = DataModel.g.dataset_uri(ntpath.basename(annotations_id_B), group="annotations")
+        logger.debug(f"Analyzer calc on annotation src {src}")
+    
+    with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
+        segB = DM.sources[0][:]
+        logger.debug(f"src_dataset shape {segB[:].shape}")
+
+    src_dataset_arr_B = segB.astype(np.uint32) & 15
+
+    single_label_level_A = (src_dataset_arr_A == label_index_A) * 1.0
+    single_label_level_B = (src_dataset_arr_B == label_index_B) * 1.0
+
+    
+    print(f"Count: {np.sum(single_label_level_A * single_label_level_B)}")
+
+    from survos2.entity.trainer import score_dice
+
+    print(f"Dice loss {score_dice(single_label_level_A, single_label_level_B)}")
+
+    result_list = []
+
+    return result_list
+
 
 
 @hug.get()
@@ -1268,7 +1332,7 @@ def create(workspace: String, order: Int = 0):
 
 
 
-
+@lru_cache(maxsize=2)
 @hug.get()
 @hug.local()
 def existing(workspace: String, full: SmartBoolean = False, order: Int = 0):
@@ -1308,4 +1372,5 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
 

@@ -19,7 +19,6 @@ from survos2.frontend.components.icon_buttons import DelIconButton, IconButton
 from survos2.frontend.control.launcher import Launcher
 from survos2.frontend.plugins.annotation_tool import (
     AnnotationComboBox,
-    AnnotationTool,
     _AnnotationNotifier,
 )
 from survos2.frontend.plugins.base import *
@@ -35,6 +34,29 @@ from survos2.server.state import cfg
 from napari.qt.progress import progress
 
 _AnnotationNotifier = PluginNotifier()
+
+
+
+class LevelComboBox(LazyComboBox):
+    def __init__(self, full=False, header=(None, "None"), parent=None, workspace=True):
+        self.full = full
+        self.except_level = None
+        self.workspace = workspace
+        super().__init__(header=header, parent=parent)
+        _AnnotationNotifier.listen(self.update)
+        
+
+    def fill(self):
+        params = dict(workspace=self.workspace, full=self.full)
+        result = Launcher.g.run("annotations", "get_levels", **params)
+        print(f"Getting levels except level {self.except_level}")
+        if result:
+            self.addCategory("Annotations")
+            for r in result:
+                level_name = r["name"]
+                if level_name != self.except_level:
+                    if r["kind"] == "level":
+                        self.addItem(r["id"], r["name"])
 
 
 def dilate_annotations(yy, xx, img_shape, line_width):
@@ -58,25 +80,6 @@ def dilate_annotations(yy, xx, img_shape, line_width):
     return yy, xx
 
 
-class LevelComboBox(LazyComboBox):
-    def __init__(self, full=False, header=(None, "None"), parent=None):
-        self.full = full
-        self.except_level = None
-        super().__init__(header=header, parent=parent)
-        _AnnotationNotifier.listen(self.update)
-
-    def fill(self):
-        params = dict(workspace=True, full=self.full)
-        result = Launcher.g.run("annotations", "get_levels", **params)
-        print(f"Getting levels except level {self.except_level}")
-        if result:
-            self.addCategory("Annotations")
-            for r in result:
-                level_name = r["name"]
-                if level_name != self.except_level:
-                    if r["kind"] == "level":
-                        self.addItem(r["id"], r["name"])
-
 
 @register_plugin
 class AnnotationPlugin(Plugin):
@@ -90,13 +93,14 @@ class AnnotationPlugin(Plugin):
         super().__init__(parent=parent)
         self.btn_addlevel = IconButton("fa.plus", "Add Level", accent=True)
         self.vbox = VBox(self, spacing=10)
-        self.button_pause_save = QPushButton("Pause Save to Server", self)
-        self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
-        self.vbox.addWidget(self.button_pause_save)
-        self.vbox.addWidget(self.btn_addlevel)
+        self.vbox2 = VBox(self, spacing=10)
+        #self.button_pause_save = QPushButton("Pause Save to Server", self)
+        #self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
+        #self.vbox.addWidget(self.button_pause_save)
+        
         self.levels = {}
         self.btn_addlevel.clicked.connect(self.add_level)
-        self.annotation_tool = AnnotationTool()
+        #self.annotation_tool = AnnotationTool()
         self.timer_id = -1
 
         hbox = HBox(self, margin=1, spacing=3)
@@ -109,19 +113,20 @@ class AnnotationPlugin(Plugin):
 
         cfg.three_dim_checkbox = CheckBox(checked=False)
         
-        hbox.addWidget(self.btn_set)
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
         self.width = Slider(value=10, vmin=2, vmax=50, step=2, auto_accept=True)
         hbox.addWidget(self.width)
+        hbox.addWidget(self.btn_set)
         
         
-        hbox2 = HBox(self, margin=1, spacing=3)
-        widgets = HWidgets("3d voxel brush:",cfg.three_dim_checkbox, Spacing(35), stretch=1)
-        hbox2.addWidget(widgets)
+        #hbox2 = HBox(self, margin=1, spacing=3)
+        #widgets = HWidgets("3d voxel brush:",cfg.three_dim_checkbox, stretch=1)
+        #hbox2.addWidget(widgets)
         
         self.vbox.addLayout(hbox)
-        self.vbox.addLayout(hbox2)
+        self.vbox.addWidget(self.btn_addlevel)
+        #self.vbox2.addLayout(hbox2)
         #_AnnotationNotifier.listen(self.set_sv)
 
     def on_created(self):
@@ -462,4 +467,5 @@ class AnnotationLabel(QCSWidget):
         if result:
             _AnnotationNotifier.notify()
             self.removed.emit(self.label_idx)
+
 
