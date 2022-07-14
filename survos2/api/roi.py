@@ -103,9 +103,9 @@ def create(workspace: String, roi_fname: String, roi: list, original_workspace: 
     return metadata
 
 @hug.get()
-def pull_anno(roi_fname : String):
-    roi_ws = ws.get(roi_fname)
-    ds = ws.get_dataset(roi_fname, '001_level', group="annotations")
+def pull_anno(roi_fname : String, anno_id='001_level', target_anno_id='001_level'):
+    print(f"{roi_fname} {anno_id}")
+    ds = ws.get_dataset(roi_fname, anno_id, group="annotations")
     roi_parts = roi_fname.split("_")
     z_min = int(roi_parts[-6])
     z_max = int(roi_parts[-5])
@@ -114,7 +114,7 @@ def pull_anno(roi_fname : String):
     y_min = int(roi_parts[-2])
     y_max = int(roi_parts[-1])
 
-    dst = DataModel.g.dataset_uri('001_level', group="annotations")
+    dst = DataModel.g.dataset_uri(target_anno_id, group="annotations")
     main_anno = dataset_from_uri(dst, mode="rw")
     main_anno[z_min:z_max, x_min:x_max, y_min:y_max] = ds[:]
     
@@ -142,4 +142,5 @@ def remove(workspace: String, roi_fname: String):
                 selected = k    
         del roi_fnames[selected]    
         src_dataset.set_metadata("roi_fnames", roi_fnames)
+
 

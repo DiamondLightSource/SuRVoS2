@@ -30,9 +30,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
-from survos2.frontend.plugins.annotations import LevelComboBox as AnnoComboBox
 from survos2.frontend.plugins.base import (
     ComboBox,
     LazyComboBox,
@@ -41,24 +39,23 @@ from survos2.frontend.plugins.base import (
     register_plugin,
 )
 from survos2.frontend.plugins.features import FeatureComboBox
-from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
 
 from survos2.frontend.components.base import *
 from survos2.frontend.components.base import HWidgets, Slider
-from survos2.frontend.plugins.annotations import *
-from survos2.frontend.plugins.base import *
+from survos2.frontend.plugins.annotations import LevelComboBox
+from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.base import ComboBox
-from survos2.frontend.plugins.features import *
-from survos2.frontend.plugins.superregions import *
+#from survos2.frontend.plugins.features import *
+#from survos2.frontend.plugins.superregions import *
 from survos2.frontend.utils import FileWidget
 from survos2.server.state import cfg
 from survos2.model.model import DataModel
 from survos2.frontend.utils import ComboDialog, FileWidget, MplCanvas
 from survos2.utils import decode_numpy
-
+from survos2.frontend.plugins.objects import ObjectComboBox
 
 FILE_TYPES = ["HDF5", "MRC", "TIFF"]
 HDF_EXT = ".h5"
@@ -492,10 +489,7 @@ class ROIPlugin(Plugin):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.vbox = VBox(self, spacing=10)
-
         hbox_layout3 = QtWidgets.QHBoxLayout()
-        
-        
         # self.roi_start = LineEdit3D(default=0, parse=int)
         # self.roi_end = LineEdit3D(default=0, parse=int)
         # button_setroi = QPushButton("Save ROI as workspace", self)
@@ -513,17 +507,26 @@ class ROIPlugin(Plugin):
         self.annotations_source.setMaximumWidth(250)
         widget = HWidgets("Annotation to copy:", self.annotations_source, stretch=1)
         self.vbox.addWidget(widget)
-
         button_selectroi = QPushButton("Select ROI", self)
         self.vbox.addWidget(button_selectroi)
         button_selectroi.clicked.connect(self._launch_data_loader)
+        self._add_boxes_source()
 
         #self.vbox.addLayout(self.roi_layout)
         self.vbox.addLayout(hbox_layout3)
         self.existing_roi = {}
         self.roi_layout = VBox(margin=0, spacing=5)
         self.vbox.addLayout(self.roi_layout)
-    
+
+    def _add_boxes_source(self):
+        self.boxes_source = ObjectComboBox(full=True)
+        self.boxes_source.fill()
+        self.boxes_source.setMaximumWidth(250)
+        button_add_boxes_as_roi = QPushButton("Add Boxes as ROI", self)
+
+        widget = HWidgets("Select Boxes:", self.boxes_source,  button_add_boxes_as_roi, stretch=1)
+        self.vbox.addWidget(widget)
+
     def _add_feature_source(self, label="Feature:"):
         self.feature_source = FeatureComboBox()
         self.feature_source.fill()
@@ -579,6 +582,20 @@ class ROIPlugin(Plugin):
             {"source": "panel_gui", "data": "make_roi_ws", "roi": roi, "feature_id":feature_id}
             )
             self.add_roi(roi_name, original_workspace, roi)
+
+    def add_rois(self, rois):
+        """Adds ROIs to the ROI list.
+
+        Args:
+            rois (list): List of ROIs.
+        """
+        # Load objects 
+        
+        
+        # Iterate through ROIs and add them to the ROI list
+
+        for roi in rois:
+            self.add_roi(roi)
 
     def setup(self):
         result = Launcher.g.run("roi", "existing")
@@ -674,9 +691,11 @@ class ROICard(Card):
         )
         self.rname = rname
         self.rid = rid
+        self.annotation_source = LevelComboBox(workspace=self.rname)
+        self.annotation_target = LevelComboBox()
         self.pull_btn = PushButton("Pull into workspace")
         self.pull_btn.clicked.connect(self.pull_anno)
-        self.add_row(HWidgets(None, self.pull_btn))
+        self.add_row(HWidgets(None, self.annotation_source, self.annotation_target, self.pull_btn))
 
     def card_deleted(self):
         """Removes an ROI from the server-side ROI list.
@@ -694,7 +713,11 @@ class ROICard(Card):
         """Gui handler for the pull_anno command that grabs the annotation from the ROI's workspace
         and copies it into the current workspace.
         """
-        all_params = dict(modal=True, roi_fname=self.rname, workspace=True)
+        anno_id = self.annotation_source.value().rsplit("/", 1)[-1]
+        target_id = self.annotation_target.value().rsplit("/", 1)[-1]
+        logger.debug(f"Pulling annotation into current workspace from workspace: {self.rname}, level: {anno_id}")
+        all_params = dict(modal=True, roi_fname=self.rname, workspace=True, anno_id=anno_id, target_anno_id=target_id)
         result = Launcher.g.run("roi", "pull_anno", **all_params)
+
 
 
