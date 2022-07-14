@@ -19,6 +19,7 @@ class _Config(type):
             "chunk_size_sparse": 10,
             "scale": False,
             "stretch": False,
+            "device": 0,
         },
         "model": {
             "chroot": "/",  # default location to store data
@@ -150,3 +151,4 @@ for k1, v in _Config.__data__.items():
                             k1, k2, os.environ[env_name]
                         )
                     )
+

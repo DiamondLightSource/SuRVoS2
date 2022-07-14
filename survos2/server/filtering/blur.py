@@ -13,6 +13,8 @@ import kornia
 from loguru import logger
 from kornia.filters import filter3d
 
+from survos2.model import DataModel
+
 def make_gaussian_kernel(kernel_size, sigma, dim=3):
     """Make gaussian kernel
 
@@ -61,7 +63,7 @@ def make_gaussian_kernel(kernel_size, sigma, dim=3):
     return kernel
 
 
-def gaussian_blur_t(img_t: torch.Tensor, sigma):
+def gaussian_blur_t(img_t: torch.Tensor, sigma, device=None):
     kernel_size = 3  # min size, expands to sigma if sigma is larger
     # kernel = torch.ones(1, 3, 3, 3) # example kernel
     kernel = make_gaussian_kernel(kernel_size, sigma, dim=3)
@@ -69,12 +71,16 @@ def gaussian_blur_t(img_t: torch.Tensor, sigma):
 
     p = int((kernel_size - 1) / 2)
     padded_img_t = F.pad(img_t, (p, p, p, p, p, p))
+    if device:
+        padded_img_t.to(device)
     output_t = filter3d(padded_img_t, kernel)
     output_t = output_t[:, :, p:-p, p:-p, p:-p]
+    if device:
+        output_t = output_t.cpu()
     return output_t
 
 
-def gaussian_blur_kornia(img: np.ndarray, sigma):
+def gaussian_blur_kornia(img: np.ndarray, sigma, device=None):
     """Gaussian blur using Kornia Filter3D
 
     Parameters
@@ -93,7 +99,8 @@ def gaussian_blur_kornia(img: np.ndarray, sigma):
     img_t = (
         kornia.utils.image_to_tensor(np.array(img)).float().unsqueeze(0).unsqueeze(0)
     )
-    output = gaussian_blur_t(img_t, sigma)
+    output = gaussian_blur_t(img_t, sigma, device=DataModel.g.device)
+    #print(f"Calculating gaussian blur on device {DataModel.g.device}")
     output: np.ndarray = kornia.tensor_to_image(output.squeeze(0).squeeze(0).float())
 
     return output
@@ -268,3 +275,4 @@ def tvdenoise_kornia(img, regularization_amount=0.001, max_iter=50):
 
     img_clean: np.ndarray = kornia.tensor_to_image(tv_denoiser.get_denoised_image())
     return img_clean
+

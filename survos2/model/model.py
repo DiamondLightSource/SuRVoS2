@@ -18,6 +18,7 @@ class DataModel(object):
         self.DATABASE = Config["model.dbtype"]
         self.CHUNK_DATA = Config["computing.chunks"]
         self.CHUNK_SIZE = Config["computing.chunk_size"]
+        self.device = Config["computing.device"]
 
     def load_settings(self):
         print("Loading settings from yaml")
@@ -45,3 +46,4 @@ class DataModel(object):
 
     def dataset_name(self, dataset_uri):
         return dataset_uri.split(":")[-1]
+
