@@ -32,7 +32,7 @@ def load_model(detmod, file_path):
         return checkpoint
 
     checkpoint = load_model_parameters(file_path)
-    detmod.load_state_dict(checkpoint["model_state"])
+    detmod.load_state_dict(checkpoint["model_state"], strict=False)
     detmod.eval()
 
     print(f"Loaded model from {file_path}")

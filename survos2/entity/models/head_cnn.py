@@ -151,7 +151,7 @@ def setup_fpn_for_extraction(wf, checkpoint_file, gpu_id=0):
         full_path = checkpoint_file
         
     checkpoint = checkpoint = torch.load(full_path)
-    model3d.load_state_dict(checkpoint["model_state"])
+    model3d.load_state_dict(checkpoint["model_state"], strict=False)
     #optimizer.load_state_dict(checkpoint["model_optimizer"])
     model3d = model3d.eval()
 
@@ -223,7 +223,7 @@ def prepare_fpn_features(wf, checkpoint_file, dataloaders, gpu_id=0):
     model3d, optimizer, lr_scheduler = prepare_fpn3d(gpu_id=gpu_id)
     full_path = os.path.join(wf.params["torch_models_fullpath"], checkpoint_file)
     checkpoint = checkpoint = torch.load(full_path)
-    model3d.load_state_dict(checkpoint["model_state"])
+    model3d.load_state_dict(checkpoint["model_state"], strict=False)
     #optimizer.load_state_dict(checkpoint["model_optimizer"])
     model3d.eval()
     feats = process_fpn3d_pred(model3d, dataloaders["train"], device=gpu_id)

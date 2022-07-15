@@ -651,7 +651,9 @@ def train_3d_fcn(
     grid_dim: IntOrVector = 4,
     patch_size: IntOrVector = 64,
     patch_overlap: IntOrVector = 16,
-    fcn_type: String = 'fpn3d'
+    fcn_type: String = 'fpn3d',
+    threshold: Float = 0.5,
+
 ):
     logger.debug(
         f"Train_3d fcn using anno {anno_id} and feature {feature_id}"
@@ -670,7 +672,8 @@ def train_3d_fcn(
         },
     }
 
-    
+    # point sampling either by generating random points or loading in a list of points
+
     padded_vol = pad_vol(src_array, padding )
     
     entity_arr = generate_random_points_in_volume(padded_vol, num_samples, padding)
@@ -681,7 +684,7 @@ def train_3d_fcn(
         entity_arr = decode_numpy(result)
 
     combined_clustered_pts, classwise_entities = organize_entities(
-        src_array, entity_arr, entity_meta, plot_all=False
+        src_array, entity_arr, entity_meta, plot_all=False, flipxy=True
     )
 
     wparams = {}
@@ -698,12 +701,14 @@ def train_3d_fcn(
         src_dataset = DM.sources[0]
         anno_level = src_dataset[:] & 15
 
+    # generate patches
     logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
     logger.debug(f"Making patches in path {src_dataset._path}")
     train_v_density = make_patches(wf, entity_arr, src_dataset._path, 
         proposal_vol=(anno_level == 1)* 1.0, 
         padding=padding, num_augs=num_augs, max_vols=-1)
 
+    # setup model filename
     ws_object = ws.get(workspace)
     data_out_path = Path(ws_object.path, "fcn")
     now = datetime.now()
@@ -724,6 +729,7 @@ def train_3d_fcn(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_array = DM.sources[0][:]
     
+    # use trained model to predict on original feature volume
     proposal = make_proposal(
     src_array,
     os.path.join(wf_params["torch_models_fullpath"],model_file),
@@ -732,14 +738,16 @@ def train_3d_fcn(
     patch_overlap=patch_overlap,
     overlap_mode=overlap_mode,
     )
+    # normalize volume and threshold
     proposal -= np.min(proposal)
-    final_seg = proposal = proposal / np.max(proposal)
-    #final_seg = (proposal > 0) * 1.0
-    map_blocks(pass_through, final_seg, out=dst, normalize=False)
+    proposal = proposal = proposal / np.max(proposal)
+    thresholded = (proposal > threshold) * 1.0
+    map_blocks(pass_through, thresholded, out=dst, normalize=False)
     
+    # save logit map
     confidence = 1
     if confidence:
-        dst = auto_create_dataset(DataModel.g.current_workspace,name="confidence_map", group="features",  dtype="float32")
+        dst = auto_create_dataset(DataModel.g.current_workspace,name="logit_map", group="features",  dtype="float32")
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = final_seg.copy()
@@ -776,14 +784,10 @@ def predict_3d_fcn(
         overlap_mode=overlap_mode,
     )
 
-    if model_type=='unet3d':
-        proposal -= np.min(proposal)
-        proposal = proposal / np.max(proposal)
+    proposal -= np.min(proposal)
+    proposal = proposal / np.max(proposal)
     
-    #
-    #    proposal = 1.0 - proposal
-    #proposal = ((proposal < threshold) * 1) + 1
-    
+   
     confidence = 1
     if confidence:
         dst = auto_create_dataset(DataModel.g.current_workspace,name="confidence_map", group="features",  dtype="float32")
