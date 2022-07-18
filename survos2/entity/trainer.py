@@ -121,8 +121,8 @@ def predict(test_loader, model, device):
 
 
 def fpn3d_loss(preds, label_batch, bce_weight):
-    bce = F.binary_cross_entropy_with_logits(preds, label_batch)
     preds = F.sigmoid(preds)
+    bce = F.binary_cross_entropy_with_logits(preds, label_batch)
     dice = dice_loss(preds, label_batch)
     # loss = bce * (1 - dice_weight) + dice * dice_weight
     loss = bce * bce_weight + dice * (1 - bce_weight)

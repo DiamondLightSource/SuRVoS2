@@ -316,9 +316,9 @@ def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
         print(existing_model_fname)
         detmod = load_model(detmod, str(existing_model_fname))
 
-    if torch.cuda.device_count() > 1:
-        print("Using", torch.cuda.device_count(), "GPUs")
-        detmod = nn.DataParallel(detmod)
+    #if torch.cuda.device_count() > 1:
+    #    print("Using", torch.cuda.device_count(), "GPUs")
+    #    detmod = nn.DataParallel(detmod)
 
 
     detmod = detmod.train()

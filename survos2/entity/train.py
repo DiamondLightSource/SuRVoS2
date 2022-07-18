@@ -110,8 +110,8 @@ def train_all(
     patch_size=(64, 64, 64),
     model=None,
     batch_size=1,
-    bce_weight=0.7,
-    initial_lr=0.001,
+    bce_weight=0.3,
+    initial_lr=0.01,
     display_plots=False,
 ):
 
@@ -157,7 +157,7 @@ def train_all(
             prepare_labels=prepare_labels_fpn3d,
             num_epochs=num_epochs,
             initial_lr=0.01,
-            num_out_channels=1,
+            num_out_channels=2,
             device=gpu_id,
         )
 

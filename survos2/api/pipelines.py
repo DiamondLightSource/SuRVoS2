@@ -706,7 +706,7 @@ def train_3d_fcn(
     logger.debug(f"Making patches in path {src_dataset._path}")
     train_v_density = make_patches(wf, entity_arr, src_dataset._path, 
         proposal_vol=(anno_level == 1)* 1.0, 
-        padding=padding, num_augs=num_augs, max_vols=-1)
+        padding=padding, num_augs=num_augs, max_vols=-1, plot_all=True)
 
     # setup model filename
     ws_object = ws.get(workspace)
@@ -750,7 +750,7 @@ def train_3d_fcn(
         dst = auto_create_dataset(DataModel.g.current_workspace,name="logit_map", group="features",  dtype="float32")
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-            DM.out[:] = final_seg.copy()
+            DM.out[:] = proposal.copy()
 
 
 @hug.get()
@@ -784,24 +784,19 @@ def predict_3d_fcn(
         overlap_mode=overlap_mode,
     )
 
+    # normalize volume and threshold
     proposal -= np.min(proposal)
-    proposal = proposal / np.max(proposal)
+    proposal = proposal = proposal / np.max(proposal)
+    thresholded = (proposal > threshold) * 1.0
+    map_blocks(pass_through, thresholded, out=dst, normalize=False)
     
-   
+    # save logit map
     confidence = 1
     if confidence:
-        dst = auto_create_dataset(DataModel.g.current_workspace,name="confidence_map", group="features",  dtype="float32")
+        dst = auto_create_dataset(DataModel.g.current_workspace,name="logit_map", group="features",  dtype="float32")
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = proposal.copy()
-
-    proposal = (proposal > threshold) * 1.0
-    map_blocks(pass_through, proposal, out=dst, normalize=False)
-    
-    # # store resulting segmentation in dst
-    # dst = DataModel.g.dataset_uri(dst)
-    # with DatasetManager(dst, out=dst, dtype="int32", fillvalue=0) as DM:
-    #     DM.out[:] = proposal
 
 
 
