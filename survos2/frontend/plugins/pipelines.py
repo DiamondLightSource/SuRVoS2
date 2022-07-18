@@ -946,7 +946,7 @@ class PipelineCard(Card):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
+                {"source": "workspace_gui", "data": "refresh_plugin", "plugin_name" : "features"}
             )
 
     def load_as_annotation(self):
@@ -1013,7 +1013,7 @@ class PipelineCard(Card):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
+                {"source": "workspace_gui", "data": "faster_refresh_plugin", "plugin_name": "annotations"}
             )
 
     def setup_params_superregion_segment(self, dst):
@@ -1246,5 +1246,6 @@ class PipelineCard(Card):
             _PipelineNotifier.notify()
 
         return result["done"]
+
 
 

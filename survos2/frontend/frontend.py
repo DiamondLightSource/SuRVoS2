@@ -465,14 +465,19 @@ def frontend(viewer):
             selected_layer = viewer.layers.selection.pop()
             if isinstance(selected_layer, Labels):
                 _transfer_labels(selected_layer)
+                pbar.update(1)
+                processEvents({"data": "refresh_plugin", "plugin_name" : "annotations"})
             elif isinstance(selected_layer, Points):
                 _transfer_points(selected_layer)
+                pbar.update(1)
+                processEvents({"data": "refresh_plugin", "plugin_name" : "objects"})
             elif isinstance(selected_layer, Image):
                 _transfer_features_http(selected_layer)
+                pbar.update(1)
+                processEvents({"data": "refresh_plugin", "plugin_name" : "features"})
             else:
                 logger.debug("Unsupported layer type.")
-            pbar.update(1)
-            processEvents({"data": "faster_refresh"})
+            
 
     def jump_to_slice(msg):
         cfg.supervoxels_cached = False
@@ -657,6 +662,14 @@ def frontend(viewer):
         elif msg["data"] == "faster_refresh":
             logger.debug("Faster refresh")
             dw.ppw.setup2()
+        elif msg["data"] == "refresh_plugin":
+            plugin_name = msg["plugin_name"]
+            logger.debug("Refresh plugin")
+            dw.ppw.setup_named_plugin(plugin_name)
+        elif msg["data"] == "faster_refresh_plugin":
+            plugin_name = msg["plugin_name"]
+            logger.debug("Refresh plugin")
+            dw.ppw.faster_setup_named_plugin(plugin_name)
         elif msg["data"] == "empty_viewer":
             logger.debug("\n\nEmptying viewer")
             for l in viewer.layers:
@@ -708,5 +721,6 @@ def frontend(viewer):
     dw.Config = Config
     dw.cfg = cfg
     return dw
+
 
 

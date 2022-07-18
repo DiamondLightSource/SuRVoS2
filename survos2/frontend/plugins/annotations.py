@@ -469,3 +469,4 @@ class AnnotationLabel(QCSWidget):
             self.removed.emit(self.label_idx)
 
 
+

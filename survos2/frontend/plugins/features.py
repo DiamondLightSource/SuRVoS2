@@ -418,7 +418,7 @@ class FeatureCard(CardWithId):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "refresh", "value": None}
+                {"source": "workspace_gui", "data": "faster_refresh_plugin", "plugin_name": "annotations"}
             )
 
     def compute_feature(self):
@@ -462,4 +462,5 @@ class FeatureCard(CardWithId):
             _FeatureNotifier.notify()
 
         return result["done"]
+
 

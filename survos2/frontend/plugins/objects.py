@@ -408,7 +408,7 @@ class ObjectsCard(Card):
             boxes.append([c, z,x,y, z_st, x_st, y_st, z_end, x_end, y_end])
         from survos2.entity.entities import load_boxes_via_file
         load_boxes_via_file(np.array(boxes), flipxy=False)
-        cfg.ppw.clientEvent.emit({"source": "objects_plugin", "data": "faster_refresh", "value": None})
+        cfg.ppw.clientEvent.emit({"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "objects"})
 
             
     def make_bvol_mask(self):
@@ -436,7 +436,7 @@ class ObjectsCard(Card):
                 DM.out[:] = gold_mask
 
             cfg.ppw.clientEvent.emit(
-                {"source": "objects_plugin", "data": "faster_refresh", "value": None}
+                {"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "features"}
             )
 
 
@@ -473,7 +473,7 @@ class ObjectsCard(Card):
                 DM.out[:] = gold_mask
 
             cfg.ppw.clientEvent.emit(
-                {"source": "objects_plugin", "data": "faster_refresh", "value": None}
+                {"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "objects"}
             )
 
     def make_patches(self):
@@ -523,6 +523,7 @@ class ObjectsCard(Card):
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "view_patches", "patches_fullname": train_v_density}
         )
+
 
 
 

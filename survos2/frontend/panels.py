@@ -222,14 +222,30 @@ class PluginPanelWidget(QtWidgets.QWidget):
                 cfg.viewer.layers.remove(l)
         cfg.emptying_viewer = False
 
-
     def setup2(self):
-            for plugin_name in list_plugins():
-                plugin = get_plugin(plugin_name)
-                name = plugin["name"]
-                tab = plugin["tab"]
-                self.pluginContainer.show_plugin2(name, tab)
+        for plugin_name in list_plugins():
+            plugin = get_plugin(plugin_name)
+            name = plugin["name"]
+            tab = plugin["tab"]
+            self.pluginContainer.show_plugin2(name, tab)
 
+    def setup_features(self):
+        plugin = get_plugin('features')
+        name = plugin["name"]
+        tab = plugin["tab"]
+        self.pluginContainer.show_plugin2(name, tab)
+
+    def setup_named_plugin(self, name):
+        plugin = get_plugin(name)
+        name = plugin["name"]
+        tab = plugin["tab"]
+        self.pluginContainer.show_plugin(name, tab)
+
+    def faster_setup_named_plugin(self, name):
+        plugin = get_plugin(name)
+        name = plugin["name"]
+        tab = plugin["tab"]
+        self.pluginContainer.show_plugin2(name, tab)
 
 
 class QtPlotWidget(QtWidgets.QWidget):
@@ -247,5 +263,6 @@ class QtPlotWidget(QtWidgets.QWidget):
             color="w",
             parent=self.canvas.scene,
         )
+
 
 

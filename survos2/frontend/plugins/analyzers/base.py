@@ -294,7 +294,7 @@ class AnalyzerCardBase(Card):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
+                {"source": "workspace_gui", "data": "refresh_plugin", "plugin_name": "features"}
             )
 
     def load_as_annotation(self):
@@ -361,7 +361,7 @@ class AnalyzerCardBase(Card):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "faster_refresh", "value": None}
+                {"source": "workspace_gui", "data": "faster_refresh_plugin", "plugin_name":"annotations"}
             )
 
     def card_deleted(self):
@@ -626,7 +626,7 @@ class AnalyzerCardBase(Card):
         self.entities_arr = self.entities_arr[selected_b]
         load_entities_via_file(self.entities_arr, flipxy=False)
         cfg.ppw.clientEvent.emit(
-            {"source": "analyzer_plugin", "data": "faster_refresh", "value": None}
+            {"source": "analyzer_plugin", "data": "refresh_plugin", "plugin_name": "objects"}
         )
 
     # def clustering_plot(self, src_arr):
@@ -811,9 +811,9 @@ class AnalyzerCardBase(Card):
     def load_as_objects(self):
         logger.debug("Load analyzer result as objects")
         from survos2.entity.entities import load_entities_via_file
-        load_entities_via_file(self.entities_arr, flipxy=False)
+        load_entities_via_file(self.entities_arr, flipxy=True)
         cfg.ppw.clientEvent.emit(
-            {"source": "analyzer_plugin", "data": "faster_refresh", "value": None}
+            {"source": "analyzer_plugin", "data": "refresh_plugin", "plugin_name": "objects"}
         )
 
 
@@ -855,4 +855,5 @@ class RuleCard(Card):
         self.parent.op_cards.remove(self)
         self.setParent(None)
         
+
 
