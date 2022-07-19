@@ -118,13 +118,13 @@ def init_ws(workspace_params):
         "features", "create", uri=None, workspace=ws_name, feature_type="raw"
     )
 
-    # src = DataModel.g.dataset_uri("__data__", None)
-    # dst = DataModel.g.dataset_uri("001_raw", group="features")
-    # with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
-    #     orig_dataset = DM.sources[0]
-    #     dst_dataset = DM.out
-    #     src_arr = orig_dataset[:]
-    #     dst_dataset[:] = src_arr
+    src = DataModel.g.dataset_uri("__data__", None)
+    dst = DataModel.g.dataset_uri("001_raw", group="features")
+    with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
+        orig_dataset = DM.sources[0]
+        dst_dataset = DM.out
+        src_arr = orig_dataset[:]
+        dst_dataset[:] = src_arr
 
     return (_, response)
 
@@ -196,4 +196,5 @@ def start_client():
     from survos2.frontend.frontend import frontend
 
     frontend()
+
 
