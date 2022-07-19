@@ -17,9 +17,13 @@ def _fill_features(combo, full=False, filter=True, ignore=None):
 
     result = Launcher.g.run("features", "existing", **params)
 
+    if ignore==None:
+        ignore=[]
+
+
     if result:
         for fid in result:
-            if fid != ignore:
+            if fid not in ignore:
                 combo.addItem(fid, result[fid]["name"])
 
     else:
@@ -195,4 +199,5 @@ class Label(QtWidgets.QLabel):
 
     def value(self):
         return self.text()
+
 

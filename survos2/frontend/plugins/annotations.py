@@ -37,10 +37,11 @@ _AnnotationNotifier = PluginNotifier()
 
 
 
+
 class LevelComboBox(LazyComboBox):
-    def __init__(self, full=False, header=(None, "None"), parent=None, workspace=True):
+    def __init__(self, full=False, header=(None, "None"), parent=None, workspace=True, ignore=None):
         self.full = full
-        self.except_level = None
+        self.ignore = ignore
         self.workspace = workspace
         super().__init__(header=header, parent=parent)
         _AnnotationNotifier.listen(self.update)
@@ -49,14 +50,14 @@ class LevelComboBox(LazyComboBox):
     def fill(self):
         params = dict(workspace=self.workspace, full=self.full)
         result = Launcher.g.run("annotations", "get_levels", **params)
-        print(f"Getting levels except level {self.except_level}")
         if result:
             self.addCategory("Annotations")
             for r in result:
                 level_name = r["name"]
-                if level_name != self.except_level:
+                if level_name != self.ignore:
                     if r["kind"] == "level":
                         self.addItem(r["id"], r["name"])
+
 
 
 def dilate_annotations(yy, xx, img_shape, line_width):

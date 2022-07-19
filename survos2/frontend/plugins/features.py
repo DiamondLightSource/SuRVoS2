@@ -29,7 +29,7 @@ class FeatureComboBox(LazyComboBox):
         _fill_features(self, full=self.full)
 
 
-def _fill_features(combo, full=False, filter=True, ignore=None):
+def _fill_features(combo, full=False, filter=True, ignore='001 Raw'):
     params = dict(
         workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
         full=full,
@@ -37,6 +37,7 @@ def _fill_features(combo, full=False, filter=True, ignore=None):
     )
     logger.debug(f"Filling features from session: {params}")
     result = Launcher.g.run("features", "existing", **params)
+
     if result:
         for fid in result:
             if fid != ignore:
@@ -264,9 +265,9 @@ class FeatureCard(CardWithId):
 
     def _add_source(self):
         chk_clamp = CheckBox("Clamp")
-        self.cmb_source = SourceComboBox(self.feature_id)
+        self.cmb_source = SourceComboBox([self.feature_id,'001 Raw'])
         self.cmb_source.fill()
-        widget = HWidgets(chk_clamp, self.cmb_source, Spacing(35), stretch=1)
+        widget = HWidgets(self.cmb_source, Spacing(35), stretch=1)
         self.add_row(widget)
 
     def _add_param(self, name, type="String", default=None):

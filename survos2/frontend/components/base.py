@@ -1333,3 +1333,4 @@ class DataTableWidgetItem(QtWidgets.QTableWidgetItem):
     def get_hidden_field(self):
         return self.hidden_field
 
+
