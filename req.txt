@@ -73,6 +73,7 @@ simpleitk
 snowballstemmer
 tensorly
 torchio
+torchmetrics
 tqdm
 traitlets
 umap-learn

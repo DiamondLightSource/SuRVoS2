@@ -1,6 +1,7 @@
 from survos2.frontend.plugins.analyzers.base import MplCanvas, AnalyzerCardBase
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.base import PushButton, LineEdit, HWidgets
+from survos2.frontend.plugins.plugins_components import Label
 from survos2.model import DataModel
 from survos2.utils import decode_numpy
 from loguru import logger
@@ -104,6 +105,14 @@ class SegmentationStats(AnalyzerCardBase):
         widget = HWidgets("Label index:", self.label_index_B)
         self.add_row(widget)
 
+        self.dice_score = Label()
+        widget = HWidgets("Dice: ", self.dice_score)
+        self.add_row(widget)
+
+        self.iou_score = Label()
+        widget = HWidgets("IOU (Jaccard): ", self.iou_score)
+        self.add_row(widget)
+
     def calculate(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
         src = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
@@ -125,8 +134,13 @@ class SegmentationStats(AnalyzerCardBase):
         all_params["annotations_id_B"] = str(self.annotations_source2.value())
         
         result = Launcher.g.run("analyzer", "segmentation_stats", **all_params)
+        
         logger.debug(f"{result}")
-        #self.display_component_results(result)
+
+        dice, iou = result
+        self.dice_score.setText(str(dice))
+
+        self.iou_score.setText(str(iou))
 
 
 

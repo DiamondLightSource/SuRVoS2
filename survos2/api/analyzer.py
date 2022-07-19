@@ -18,7 +18,7 @@ from matplotlib import offsetbox
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
-
+import torch
 from survos2.api import workspace as ws
 from survos2.api.types import (
     DataURI,
@@ -660,15 +660,27 @@ def segmentation_stats(
 
     single_label_level_A = (src_dataset_arr_A == label_index_A) * 1.0
     single_label_level_B = (src_dataset_arr_B == label_index_B) * 1.0
-
     
     print(f"Count: {np.sum(single_label_level_A * single_label_level_B)}")
 
-    from survos2.entity.trainer import score_dice
+    #from survos2.entity.trainer import score_dice
+    #print(f"Dice loss {score_dice(single_label_level_A, single_label_level_B)}")
 
-    print(f"Dice loss {score_dice(single_label_level_A, single_label_level_B)}")
+    from torchmetrics import JaccardIndex, Dice
+    dice = Dice(average='micro')
+    jaccard = JaccardIndex(num_classes=2)
+        
+    A_t = torch.IntTensor(single_label_level_A)
+    B_t = torch.IntTensor(single_label_level_B)
+    
+    print(f"Jaccard (IOU): {jaccard(A_t, B_t)}")
+    print(f"Dice (torchmetrics): {dice(A_t, B_t)}")
 
-    result_list = []
+    
+    dice_score = dice(A_t, B_t)
+    iou_score = jaccard(A_t, B_t)
+    
+    result_list = [float(dice_score.numpy()), float(iou_score.numpy())]
 
     return result_list
 
@@ -1372,5 +1384,6 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
 
 
