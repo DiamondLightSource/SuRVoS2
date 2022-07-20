@@ -584,7 +584,7 @@ class CardWithId(QCSWidget):
         self.add_row(HWidgets(*header, stretch=1), header=True)
         self._visible = True
 
-    def add_row(self, widget, max_height=60, header=False):
+    def add_row(self, widget, max_height=40, header=False):
         widget.setProperty("header", header)
         widget.setMaximumHeight(max_height)
         self.vbox.addWidget(widget)
@@ -695,7 +695,7 @@ class Card(QCSWidget):
         self.add_row(HWidgets(*header, stretch=1), header=True)
         self._visible = True
 
-    def add_row(self, widget, max_height=60, header=False):
+    def add_row(self, widget, max_height=40, header=False):
         widget.setProperty("header", header)
         widget.setMaximumHeight(max_height)
         self.vbox.addWidget(widget)

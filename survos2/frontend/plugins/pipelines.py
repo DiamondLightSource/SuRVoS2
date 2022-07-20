@@ -635,7 +635,7 @@ class PipelineCard(Card):
         self.clf_container.setLayout(clf_vbox)
 
         self.add_row(widget)
-        self.add_row(self.clf_container, max_height=500)
+        self.add_row(self.clf_container, max_height=300)
         self.clf_container.layout().addWidget(self.ensembles)
 
     def _on_classifier_changed(self, idx):
