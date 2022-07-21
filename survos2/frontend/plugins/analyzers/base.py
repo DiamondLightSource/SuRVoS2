@@ -76,7 +76,6 @@ class AnalyzerCardBase(Card):
         self.annotations_selected = False
         self.op_cards = []
         self.model_fullname = "None"
-
         self.setup()
     
         self.calc_btn = PushButton("Compute")

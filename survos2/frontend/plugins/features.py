@@ -15,7 +15,8 @@ from survos2.frontend.utils import FileWidget
 from napari.qt.progress import progress
 from survos2.improc.utils import DatasetManager
 import yaml
-
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 _FeatureNotifier = PluginNotifier()
 
 
@@ -44,6 +45,19 @@ def _fill_features(combo, full=False, filter=True, ignore='001 Raw'):
                 combo.addItem(fid, result[fid]["name"])
 
 
+class MplCanvas(FigureCanvasQTAgg):
+    def __init__(self, parent=None, width=5, height=4, dpi=100, suptitle="Feature"):
+        self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.fig.tight_layout(pad=60)
+        self.axes = self.fig.add_subplot(111)
+        self.suptitle = suptitle
+        super(MplCanvas, self).__init__(self.fig)
+    def set_suptitle(self,suptitle):
+        self.suptitle = suptitle
+        self.fig.suptitle(suptitle)
+
+
+
 @register_plugin
 class FeaturesPlugin(Plugin):
     __icon__ = "fa.picture-o"
@@ -62,6 +76,7 @@ class FeaturesPlugin(Plugin):
         self.existing_features = dict()
         
         self._populate_features()
+
         self.vbox.addLayout(self.vbox2)
         self.workflow_button = PushButton("Save workflow", accent=True)
         self.workflow_button.clicked.connect(self.save_workflow)
@@ -79,6 +94,8 @@ class FeaturesPlugin(Plugin):
         hbox_layout2.addWidget(button_runworkflow)
         self.vbox.addLayout(hbox_layout2)
         
+        
+
     def load_workflow(self, path):
         self.workflow_fullname = path
         print(f"Setting workflow fullname: {self.workflow_fullname}")
@@ -165,6 +182,8 @@ class FeaturesPlugin(Plugin):
             workflow_yaml = path #os.path.join(os.path.dirname(__file__), "../../..", "workflow.yaml")
             with open(workflow_yaml, "w") as outfile:
                 yaml.dump(workflow, outfile, default_flow_style=False)
+
+
 
 
     def setup(self):
@@ -350,6 +369,7 @@ class FeatureCard(CardWithId):
                 }
             )
             pbar.update(1)    
+        
 
     def load_as_annotation(self):
         logger.debug(f"Loading feature {self.feature_id} as annotation.")
@@ -433,8 +453,7 @@ class FeatureCard(CardWithId):
             logger.info(f"Setting src: {self.cmb_source.value()} ")
 
             dst = DataModel.g.dataset_uri(self.feature_id, group="features")
-            # self.pbar.setValue(50)
-
+            
             logger.info(f"Setting dst: {self.feature_id}")
             logger.info(f"widgets.items() {self.widgets.items()}")
             pbar.update(1)
@@ -448,13 +467,12 @@ class FeatureCard(CardWithId):
             all_params.update({k: v.value() for k, v in self.widgets.items()})
 
             logger.info(f"Computing features: {self.feature_type} {all_params}")
-            # result = Launcher.g.run("features", self.feature_type, **all_params)
+                        
             Launcher.g.run("features", self.feature_type, **all_params)
-
-            # pbar.update(1)
-            # if result is not None:
-            #     self.pbar.setValue(100)
-
+            pbar.update(1)
+            
+                
+            
     def card_title_edited(self, newtitle):
         params = dict(feature_id=self.feature_id, new_name=newtitle, workspace=True)
         result = Launcher.g.run("features", "rename", **params)

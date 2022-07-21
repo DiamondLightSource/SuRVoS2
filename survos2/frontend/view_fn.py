@@ -68,6 +68,7 @@ def view_feature(viewer, msg, new_name=None):
                     viewer.add_image(src_arr, name=new_name)
                 else:
                     viewer.add_image(src_arr, name=msg["feature_id"])
+                cfg.bpw.display_histogram_plot(src_arr.ravel())
 
     elif cfg.retrieval_mode == "volume":
         # use DatasetManager to load feature from workspace as array and then add it to viewer
@@ -85,6 +86,9 @@ def view_feature(viewer, msg, new_name=None):
                 viewer.add_image(src_arr, name=new_name)
             else:
                 viewer.add_image(src_arr, name=msg["feature_id"])
+
+            cfg.bpw.display_histogram_plot(src_arr.ravel())
+                
 
 
 def view_regions(viewer, msg):
@@ -229,6 +233,8 @@ def view_pipeline(viewer, msg, analyzers=False):
                         name=msg["pipeline_id"],
                         color=cmapping,
                     )
+
+                cfg.bpw.display_histogram_plot(src_arr.ravel())
     except AttributeError as e:
         print(e)
 
@@ -332,4 +338,5 @@ def view_entities(viewer, msg):
     entity_layer = viewer.add_points(
         centers, size=[10] * len(centers), opacity=0.5, face_color=face_color_list
     )
+
 

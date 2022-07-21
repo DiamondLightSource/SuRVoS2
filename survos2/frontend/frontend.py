@@ -111,6 +111,7 @@ def frontend(viewer):
     cfg.supervoxels_cache = None
     cfg.supervoxels_cached = False
     cfg.supervoxel_size = 10
+    cfg.brush_size = 10
     cfg.local_sv = True
     cfg.pause_save = False
     cfg.remote_annotation = True
@@ -273,7 +274,6 @@ def frontend(viewer):
         if cfg.label_value is not None:
             label_layer.selected_label = int(cfg.label_value["idx"]) - 1
 
-        #print(f"Returning label layer {label_layer}")
         return label_layer
 
     def setup_paint_undo_remote(label_layer):
@@ -396,8 +396,7 @@ def frontend(viewer):
 
     def paint_annotations(msg):
         if not cfg.emptying_viewer:
-            #logger.debug(f"paint_annotation {msg['level_id']}")
-            
+            #logger.debug(f"paint_annotation {msg['level_id']}") 
             try:
                 label_layer = refresh_annotations_in_viewer(msg)
                 #print(f"paint_annotations label_layer {label_layer}")
@@ -679,7 +678,6 @@ def frontend(viewer):
             cfg.current_pipeline_name = None
             cfg.current_regions_name = None
             cfg.current_analyzers_name = None
-
         elif msg["data"] == "save_annotation":
             save_annotation(msg)
         elif msg["data"] == "set_paint_params":
@@ -714,12 +712,17 @@ def frontend(viewer):
             jump_to_slice({"frame": 0})
         except AttributeError as e:
             print(e)
+
+
+    # setup message based event handling mechanism and return it to the dockwidget
     dw.ppw.clientEvent.connect(lambda x: processEvents(x))
     cfg.ppw = dw.ppw
+    cfg.bpw = dw.bpw
     cfg.processEvents = processEvents
     cfg.viewer = viewer
     dw.Config = Config
     dw.cfg = cfg
+
     return dw
 
 

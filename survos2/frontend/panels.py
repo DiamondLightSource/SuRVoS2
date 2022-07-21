@@ -25,7 +25,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         QtWidgets.QWidget.__init__(self, *args, **kwargs)
         self.slice_mode = False
-
         self.slider = Slider(value=0, vmax=cfg.slice_max - 1)
         self.slider.setMinimumWidth(150)
         self.slider.sliderReleased.connect(self._params_updated)
@@ -36,7 +35,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         button_refresh_all = QPushButton("Reload Workspace", self)
         button_refresh_all.clicked.connect(self.button_refresh_all_clicked)
     
-
         button_transfer = QPushButton("Transfer Layer")
         button_transfer.clicked.connect(self.button_transfer_clicked)
 
@@ -66,12 +64,35 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         #hbox_layout1.addWidget(self.button_slicemode)
         hbox_layout1.addWidget(button_refresh)
         
-        
         vbox = VBox(self, margin=(1, 1, 1, 1), spacing=2)
-        vbox.addLayout(self.hbox_layout0)
-        vbox.addLayout(hbox_layout1)
-        vbox.addLayout(hbox_layout_ws)
+
+        self.tabwidget = QTabWidget()
+        vbox.addWidget(self.tabwidget)
+
+        self.tabs = [
+            (QWidget(), t)
+            for t in ['Workspace', 'Histogram']
+        ]
+
+        # create tabs for button/info panel
+        tabs = []
+        for t in self.tabs:
+            self.tabwidget.addTab(t[0], t[1].capitalize())
+            t[0].layout = QVBoxLayout()
+            t[0].setLayout(t[0].layout)
+            tabs.append(t)
+
+        self.plotbox = VBox(self, spacing=1)
+        self.display_histogram_plot(np.array([0,1]))
         
+        # add tabs to button/info panel
+        tabs[0][0].layout.addLayout(self.hbox_layout0)
+        tabs[0][0].layout.addLayout(hbox_layout1)
+        tabs[0][0].layout.addLayout(hbox_layout_ws)
+
+        tabs[1][0].layout.addLayout(self.plotbox)
+
+    
 
     def refresh_workspaces(self):
         workspaces = os.listdir(DataModel.g.CHROOT)
@@ -177,6 +198,43 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             {"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()}
         )
 
+    def clear_layout(self, layout):
+        while layout.count():
+            child = layout.takeAt(0)
+            childWidget = child.widget()
+            if childWidget:
+                childWidget.setParent(None)
+                childWidget.deleteLater()
+
+    def display_histogram_plot(self, array, title="Plot", vert_line_at=None):
+        array = array.ravel()
+        self.clear_layout(self.plotbox)
+        self.plot = MplCanvas(self, width=3, height=1, dpi=80)
+        max_height = 180
+        self.plot.setProperty("header", False)
+        self.plot.setMaximumHeight(max_height)
+        self.plot.axes.margins(0)
+        self.plot.axes.axis("off")
+        
+        self.plotbox.addWidget(self.plot)
+        self.setMinimumHeight(max_height)
+        y, x, _ = self.plot.axes.hist(array, bins=256, color = "gray", lw=0,  ec="skyblue")
+        self.plot.fig.set_facecolor((0.15, 0.15, 0.18))
+        #self.plot.fig.set_alpha(0.5)
+        #self.plot.axes.set_title(title)
+        self.plot.axes.vlines(x=np.min(x), ymin=0, ymax=np.max(y), colors='w')
+        self.plot.axes.vlines(x=np.max(x), ymin=0, ymax=np.max(y), colors='w')
+
+
+        self.plotbox.addWidget(
+            HWidgets(
+                "Min: " + str(np.min(x)),
+                "Max: " + str(np.max(x)),
+                stretch=[0, 0],
+            )
+        )
+
+
 
 
 class PluginPanelWidget(QtWidgets.QWidget):
@@ -250,9 +308,7 @@ class PluginPanelWidget(QtWidgets.QWidget):
 
 class QtPlotWidget(QtWidgets.QWidget):
     def __init__(self):
-
         super().__init__()
-
         self.canvas = scene.SceneCanvas(bgcolor="k", keys=None, vsync=True)
         self.canvas.native.setMinimumSize(QSize(300, 100))
         self.setLayout(QtWidgets.QHBoxLayout())
