@@ -732,12 +732,12 @@ class ServerPlugin(Plugin):
         select_data_button = QPushButton("Select")
         workspace_fields = QGroupBox("Create New Workspace:")
         wf_layout = QGridLayout()
-        wf_layout.addWidget(QLabel("Data File Path:"), 0, 0)
+        wf_layout.addWidget(QLabel("Data File Path:"), 1, 0, 1, 2)
         current_data_path = Path(
             self.workspace_config["datasets_dir"], self.workspace_config["vol_fname"]
         )
         self.data_filepth_linedt = QLineEdit(str(current_data_path))
-        wf_layout.addWidget(self.data_filepth_linedt, 1, 0, 1, 2)
+        wf_layout.addWidget(self.data_filepth_linedt, 1, 1, 1, 2)
         wf_layout.addWidget(select_data_button, 1, 2)
         wf_layout.addWidget(QLabel("HDF5 Internal Data Path:"), 2, 0, 1, 1)
         ws_dataset_name = self.workspace_config["dataset_name"]
