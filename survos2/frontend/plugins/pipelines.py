@@ -361,15 +361,21 @@ class PipelineCard(Card):
             self._add_annotations_source(label="Layer Over: ")
             self._add_annotations_source2(label="Layer Base: ")
             self.label_index = LineEdit(default=-1, parse=int)
-            #widget = HWidgets("Selected label:", self.label_index, Spacing(35), stretch=1)
+            #widget = HWidgets("Selected label:", self.label_index,  stretch=1)
             #self.add_row(widget)
             #self.offset = LineEdit(default=-1, parse=int)
-            #widget2 = HWidgets("Offset:", self.offset, Spacing(35), stretch=1)
+            #widget2 = HWidgets("Offset:", self.offset, stretch=1)
             #self.add_row(widget2)
         elif self.pipeline_type == "feature_postprocess":
             self._add_feature_source()
             self._add_feature_source2()
             self.label_index = LineEdit(default=-1, parse=int)
+            self.op_type = ComboBox()
+            self.op_type.addItem(key="*")
+            self.op_type.addItem(key="+")
+            widget = HWidgets("Operation:", self.op_type, stretch=0)
+            self.add_row(widget)
+
         elif self.pipeline_type == "per_object_cleaning":
             self._add_feature_source()
             self._add_objects_source()
@@ -469,19 +475,19 @@ class PipelineCard(Card):
         self.add_row(data_label)
         self.workspaces_list = self._get_workspaces_list()
         self.workspaces_list.currentTextChanged.connect(self.on_ws_combobox_changed)
-        ws_widget = HWidgets("Workspace:", self.workspaces_list, Spacing(35), stretch=1)
+        ws_widget = HWidgets("Workspace:", self.workspaces_list,  stretch=1)
         self.add_row(ws_widget)
 
     def _add_2dunet_annotations_source(self):
         self.annotations_source = ComboBox()
         self.annotations_source.setMaximumWidth(250)
-        anno_widget = HWidgets("Annotation (Labels):", self.annotations_source, Spacing(35), stretch=1)
+        anno_widget = HWidgets("Annotation (Labels):", self.annotations_source,  stretch=1)
         self.add_row(anno_widget)
 
     def _add_2dunet_feature_source(self):
         self.feature_source = ComboBox()
         self.feature_source.setMaximumWidth(250)
-        feature_widget = HWidgets("Feature (Data):", self.feature_source, Spacing(35), stretch=1)
+        feature_widget = HWidgets("Feature (Data):", self.feature_source,  stretch=1)
         self.add_row(feature_widget)
 
     def _update_annotations_from_ws(self, workspace):
@@ -511,7 +517,7 @@ class PipelineCard(Card):
         self._update_annotations_from_ws(workspace)
         train_data_btn = PushButton("Add to list", accent=True)
         train_data_btn.clicked.connect(self._add_item_to_data_table)
-        widget = HWidgets(None, train_data_btn, Spacing(35), stretch=0)
+        widget = HWidgets(None, train_data_btn,  stretch=0)
         self.add_row(widget)
 
     def _get_workspaces_list(self):
@@ -531,15 +537,15 @@ class PipelineCard(Card):
         self.model_type = ComboBox()
         self.model_type.addItem(key="unet3d")
         self.model_type.addItem(key="fpn3d")
-        widget = HWidgets("Model type:", self.model_type, Spacing(35), stretch=0)
+        widget = HWidgets("Model type:", self.model_type,  stretch=0)
         self.add_row(widget)
 
     def _add_patch_params(self):
         self.patch_size = LineEdit3D(default=64, parse=int)
-        self.add_row(HWidgets("Patch Size:", self.patch_size, Spacing(35), stretch=1))
+        self.add_row(HWidgets("Patch Size:", self.patch_size,  stretch=1))
 
     def _add_unet_2d_training_params(self):
-        self.add_row(HWidgets("Training Parameters:", Spacing(35), stretch=1))
+        self.add_row(HWidgets("Training Parameters:",  stretch=1))
         self.cycles_frozen = LineEdit(default=8, parse=int)
         self.cycles_unfrozen = LineEdit(default=5, parse=int)
         refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
@@ -567,8 +573,8 @@ class PipelineCard(Card):
         self.unet_pred_refresh_btn = PushButton("Refresh Data", accent=True)
         self.unet_pred_refresh_btn.clicked.connect(self.refresh_unet_data)
         self.unet_train_refresh_btn = None
-        self.add_row(HWidgets(self.model_file_line_edit, model_input_btn, Spacing(35)))
-        self.add_row(HWidgets("Prediction Parameters:", Spacing(35), stretch=1))
+        self.add_row(HWidgets(self.model_file_line_edit, model_input_btn, ))
+        self.add_row(HWidgets("Prediction Parameters:",  stretch=1))
         self.add_row(HWidgets(single_pp_rb, triple_pp_rb, stretch=1))
         self.add_row(HWidgets(refresh_label, stretch=1))
         self.add_row(HWidgets(self.unet_pred_refresh_btn, stretch=1))
@@ -595,7 +601,7 @@ class PipelineCard(Card):
         load_as_float_btn.clicked.connect(self.load_as_float)
         self.add_row(
             HWidgets(
-                None, load_as_float_btn, load_as_annotation_btn, view_btn, Spacing(35)
+                None, load_as_float_btn, load_as_annotation_btn, view_btn, 
             )
         )
 
@@ -604,13 +610,13 @@ class PipelineCard(Card):
     def _add_refine_choice(self):
         self.refine_checkbox = CheckBox(checked=True)
         self.add_row(
-            HWidgets("MRF Refinement:", self.refine_checkbox, Spacing(35), stretch=0)
+            HWidgets("MRF Refinement:", self.refine_checkbox,  stretch=0)
         )
 
     def _add_confidence_choice(self):
         self.confidence_checkbox = CheckBox(checked=False)
         self.add_row(
-            HWidgets("Confidence Map as Feature:", self.confidence_checkbox, Spacing(35), stretch=0)
+            HWidgets("Confidence Map as Feature:", self.confidence_checkbox,  stretch=0)
         )
 
     def _add_objects_source(self):
@@ -618,14 +624,14 @@ class PipelineCard(Card):
         self.objects_source.fill()
         self.objects_source.setMaximumWidth(250)
 
-        widget = HWidgets("Objects:", self.objects_source, Spacing(35), stretch=1)
+        widget = HWidgets("Objects:", self.objects_source,  stretch=1)
         self.add_row(widget)
 
     def _add_classifier_choice(self):
         self.classifier_type = ComboBox()
         self.classifier_type.addItem(key="Ensemble")
         self.classifier_type.addItem(key="SVM")
-        widget = HWidgets("Classifier:", self.classifier_type, Spacing(35), stretch=0)
+        widget = HWidgets("Classifier:", self.classifier_type,  stretch=0)
 
         self.classifier_type.currentIndexChanged.connect(self._on_classifier_changed)
 
@@ -650,7 +656,7 @@ class PipelineCard(Card):
         self.fcn_type = ComboBox()
         self.fcn_type.addItem(key="fpn3d")
         self.fcn_type.addItem(key="unet3d")
-        widget = HWidgets("FCN Type:", self.fcn_type, Spacing(35), stretch=0)
+        widget = HWidgets("FCN Type:", self.fcn_type,  stretch=0)
         self.add_row(widget)
 
     def _add_projection_choice(self):
@@ -660,7 +666,7 @@ class PipelineCard(Card):
         self.projection_type.addItem(key="rbp")
         self.projection_type.addItem(key="rproj")
         self.projection_type.addItem(key="std")
-        widget = HWidgets("Projection:", self.projection_type, Spacing(35), stretch=0)
+        widget = HWidgets("Projection:", self.projection_type,  stretch=0)
         self.add_row(widget)
 
     def _add_feature_source(self):
@@ -668,7 +674,7 @@ class PipelineCard(Card):
         self.feature_source.fill()
         self.feature_source.setMaximumWidth(250)
 
-        widget = HWidgets("Feature:", self.feature_source, Spacing(35), stretch=1)
+        widget = HWidgets("Feature:", self.feature_source,  stretch=1)
         self.add_row(widget)
 
     def _add_feature_source2(self):
@@ -676,7 +682,7 @@ class PipelineCard(Card):
         self.feature_source2.fill()
         self.feature_source2.setMaximumWidth(250)
 
-        widget = HWidgets("Feature:", self.feature_source2, Spacing(35), stretch=1)
+        widget = HWidgets("Feature:", self.feature_source2,  stretch=1)
         self.add_row(widget)
 
     def _add_features_source(self):
@@ -684,7 +690,7 @@ class PipelineCard(Card):
         self.features_source.fill()
         self.features_source.setMaximumWidth(250)
         cfg.pipelines_features_source = self.features_source
-        widget = HWidgets("Features:", self.features_source, Spacing(35), stretch=1)
+        widget = HWidgets("Features:", self.features_source,  stretch=1)
         self.add_row(widget)
 
     def _add_constrain_source(self):
@@ -696,7 +702,7 @@ class PipelineCard(Card):
         self.constrain_mask_source.setMaximumWidth(250)
 
         widget = HWidgets(
-            "Constrain mask:", self.constrain_mask_source, Spacing(35), stretch=1
+            "Constrain mask:", self.constrain_mask_source,  stretch=1
         )
         self.add_row(widget)
 
@@ -705,7 +711,7 @@ class PipelineCard(Card):
         self.annotations_source.fill()
         self.annotations_source.setMaximumWidth(250)
 
-        widget = HWidgets(label, self.annotations_source, Spacing(35), stretch=1)
+        widget = HWidgets(label, self.annotations_source,  stretch=1)
 
         self.add_row(widget)
 
@@ -714,7 +720,7 @@ class PipelineCard(Card):
         self.annotations_source2.fill()
         self.annotations_source2.setMaximumWidth(250)
 
-        widget = HWidgets(label, self.annotations_source2, Spacing(35), stretch=1)
+        widget = HWidgets(label, self.annotations_source2,  stretch=1)
         self.add_row(widget)
 
     def _add_pipelines_source(self):
@@ -722,7 +728,7 @@ class PipelineCard(Card):
         self.pipelines_source.fill()
         self.pipelines_source.setMaximumWidth(250)
         widget = HWidgets(
-            "Segmentation:", self.pipelines_source, Spacing(35), stretch=1
+            "Segmentation:", self.pipelines_source,  stretch=1
         )
         self.add_row(widget)
 
@@ -731,14 +737,14 @@ class PipelineCard(Card):
         self.regions_source.fill()
         self.regions_source.setMaximumWidth(250)
 
-        widget = HWidgets("Superregions:", self.regions_source, Spacing(35), stretch=1)
+        widget = HWidgets("Superregions:", self.regions_source,  stretch=1)
         cfg.pipelines_regions_source = self.regions_source
         self.add_row(widget)
     def _add_overlap_choice(self):
         self.overlap_type = ComboBox()
         self.overlap_type.addItem(key="crop")
         self.overlap_type.addItem(key="average")
-        widget = HWidgets("Overlap:", self.overlap_type, Spacing(35), stretch=0)
+        widget = HWidgets("Overlap:", self.overlap_type,  stretch=0)
         self.add_row(widget)
 
     def _add_param(self, name, title=None, type="String", default=None):
@@ -764,12 +770,12 @@ class PipelineCard(Card):
 
         if p:
             self.widgets[name] = p
-            self.add_row(HWidgets(None, title, p, Spacing(35)))
+            self.add_row(HWidgets(None, title, p))
 
     def _add_compute_btn(self):
         compute_btn = PushButton("Compute", accent=True)
         compute_btn.clicked.connect(self.compute_pipeline)
-        self.add_row(HWidgets(None, compute_btn, Spacing(35)))
+        self.add_row(HWidgets(None, compute_btn ))
 
     def update_params(self, params):
         logger.debug(f"Pipeline update params {params}")
@@ -867,6 +873,7 @@ class PipelineCard(Card):
             pbar.update(1)
             if self.annotations_source:
                 logger.debug(f"anno source value {self.annotations_source.value()}")
+                
                 if self.annotations_source.value():
                     level_id = str(self.annotations_source.value().rsplit("/", 1)[-1])
                     # To cover situtations where the level_id might not exist in ws:
@@ -876,6 +883,7 @@ class PipelineCard(Card):
                         level_id = anno_result[-1]["id"]
                 else:
                     level_id = '001_level'
+                
                 logger.debug(f"Assigning annotation level {level_id}")
 
                 cfg.ppw.clientEvent.emit(
@@ -1075,7 +1083,6 @@ class PipelineCard(Card):
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         return all_params
 
-
     def setup_params_feature_postprocess(self, dst):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         all_params = dict(src=src, modal=True)
@@ -1083,6 +1090,7 @@ class PipelineCard(Card):
         all_params["feature_A"] = str(self.feature_source.value())
         all_params["feature_B"] = str(self.feature_source2.value())
         all_params["dst"] = dst
+        all_params["op"] = str(self.op_type.value())
         return all_params
 
     def setup_params_label_postprocess(self, dst):
@@ -1189,8 +1197,6 @@ class PipelineCard(Card):
         all_params["no_of_planes"] = self.radio_group.checkedId()
         return all_params
         
-
-
     def compute_pipeline(self):
         dst = DataModel.g.dataset_uri(self.pipeline_id, group="pipelines")
         

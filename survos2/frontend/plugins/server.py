@@ -107,7 +107,7 @@ class LoadDataDialog(QDialog):
         container = QWidget(self)
         hbox = QHBoxLayout(container)
         container.setMaximumWidth(950)
-        container.setMaximumHeight(530)
+        container.setMaximumHeight(630)
         container.setLayout(hbox)
         container.setObjectName("loaderContainer")
         container.setStyleSheet(

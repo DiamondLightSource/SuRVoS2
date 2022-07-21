@@ -117,6 +117,7 @@ def feature_postprocess(
     workspace: String,
     feature_A: DataURI,
     feature_B: DataURI,
+    op: String
 ):
     src_A = DataModel.g.dataset_uri(feature_A, group="features")
     with DatasetManager(src_A, out=None, dtype="uint16", fillvalue=0) as DM:
@@ -129,8 +130,10 @@ def feature_postprocess(
         src_B_dataset = DM.sources[0]
         src_B_arr = src_B_dataset[:]
         logger.info(f"Obtained src B with shape {src_B_arr.shape}")
-    
-    result = src_A_arr * src_B_arr        
+    if op == '+':
+        result = src_A_arr + src_B_arr        
+    else:
+        result = src_A_arr * src_B_arr
     map_blocks(pass_through, result, out=dst, normalize=False)
 
 
@@ -784,19 +787,24 @@ def predict_3d_fcn(
         overlap_mode=overlap_mode,
     )
 
-    # normalize volume and threshold
     proposal -= np.min(proposal)
-    proposal = proposal = proposal / np.max(proposal)
-    thresholded = (proposal > threshold) * 1.0
-    map_blocks(pass_through, thresholded, out=dst, normalize=False)
+    proposal = proposal / np.max(proposal)
     
-    # save logit map
+   
     confidence = 1
     if confidence:
-        dst = auto_create_dataset(DataModel.g.current_workspace,name="logit_map", group="features",  dtype="float32")
+        dst = auto_create_dataset(DataModel.g.current_workspace,name="confidence_map", group="features",  dtype="float32")
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = proposal.copy()
+
+    proposal = (proposal > threshold) * 1.0
+    map_blocks(pass_through, proposal, out=dst, normalize=False)
+    
+    # # store resulting segmentation in dst
+    # dst = DataModel.g.dataset_uri(dst)
+    # with DatasetManager(dst, out=dst, dtype="int32", fillvalue=0) as DM:
+    #     DM.out[:] = proposal
 
 
 
@@ -907,4 +915,5 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
 
