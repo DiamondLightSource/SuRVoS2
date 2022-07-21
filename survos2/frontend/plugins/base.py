@@ -99,7 +99,7 @@ class PluginContainer(QCSWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setMinimumWidth(self.__sidebar_width__ + 50)
-        self.setMinimumHeight(600)
+        self.setMinimumHeight(450)
         self.tabwidget = QTabWidget()
         vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
         vbox.addWidget(self.tabwidget, 1)
@@ -140,8 +140,6 @@ class PluginContainer(QCSWidget):
 
     def show_plugin(self, name, tab):
         if name in self.plugins:
-            logger.debug(f"show_plugin: {name}")
-
             self.selected_name = name
             self.selected = self.plugins[name]
             self.title.setText(self.selected["title"].capitalize())
@@ -159,4 +157,5 @@ class PluginContainer(QCSWidget):
             self.selected = self.plugins[name]
             if hasattr(self.selected["widget"], "setup"):
                 self.selected["widget"].setup()
+
 

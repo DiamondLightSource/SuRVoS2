@@ -37,7 +37,6 @@ _AnnotationNotifier = PluginNotifier()
 
 
 
-
 class LevelComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None, workspace=True, ignore=None):
         self.full = full
@@ -57,7 +56,6 @@ class LevelComboBox(LazyComboBox):
                 if level_name != self.ignore:
                     if r["kind"] == "level":
                         self.addItem(r["id"], r["name"])
-
 
 
 def dilate_annotations(yy, xx, img_shape, line_width):
@@ -109,18 +107,17 @@ class AnnotationPlugin(Plugin):
         self.region = RegionComboBox(header=(None, "Voxels"), full=True)
         self.label.currentIndexChanged.connect(self.set_sv)
         self.region.currentIndexChanged.connect(self.set_sv)
-        self.btn_set = IconButton("fa.pencil", "Set", accent=True)
+        self.btn_set = IconButton("fa.pencil", accent=True)
         self.btn_set.clicked.connect(self.set_sv)
 
         cfg.three_dim_checkbox = CheckBox(checked=False)
         
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
-        self.width = Slider(value=10, vmin=2, vmax=50, step=2, auto_accept=True)
+        self.width = Slider(value=10, vmin=2, vmax=100, step=2, auto_accept=True)
         hbox.addWidget(self.width)
         hbox.addWidget(self.btn_set)
-        
-        
+                
         #hbox2 = HBox(self, margin=1, spacing=3)
         #widgets = HWidgets("3d voxel brush:",cfg.three_dim_checkbox, stretch=1)
         #hbox2.addWidget(widgets)
@@ -140,7 +137,7 @@ class AnnotationPlugin(Plugin):
             _AnnotationNotifier.notify()
 
     def _add_level_widget(self, level):
-        widget = AnnotationLevel(level)
+        widget = AnnotationLevel(level, None, self.width)
         widget.removed.connect(self.remove_level)
         self.vbox.addWidget(widget)
         self.levels[level["id"]] = widget
@@ -192,64 +189,54 @@ class AnnotationPlugin(Plugin):
         self.timer_id = -1
         self.set_sv()
 
-    def slider_value_changed(self):
-        if self.timer_id != -1:
-            self.killTimer(self.timer_id)
-        self.timer_id = self.startTimer(2000)
-
     def set_sv(self):
-        with progress(total=3) as pbar:
-            pbar.set_description("Viewing feature")
-            pbar.update(1)
-            cfg.current_supervoxels = self.region.value()
-            cfg.label_value = self.label.value()
-            cfg.brush_size = self.width.value()
-            print(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
+        cfg.current_supervoxels = self.region.value()
+        cfg.label_value = self.label.value()
+        cfg.brush_size = self.width.value()
+        print(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
+        #cfg.three_dim = cfg.three_dim_checkbox.value()
 
-            cfg.three_dim = cfg.three_dim_checkbox.value()
-
-            if cfg.label_value is not None:
-                # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
-                cfg.ppw.clientEvent.emit(
-                    {
-                        "source": "annotations",
-                        "data": "set_paint_params",
-                        "paint_params": {
-                            "current_supervoxels": self.region.value(),
-                            "label_value": self.label.value(),
-                            "brush_size": self.width.value(),
-                            "level_id": self.label.value()["level"],
-                        },
-                    }
-                )
-                pbar.update(1)
-                cfg.ppw.clientEvent.emit(
-                    {
-                        "source": "annotations",
-                        "data": "paint_annotations",
+        if cfg.label_value is not None:
+            # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "set_paint_params",
+                    "paint_params": {
+                        "current_supervoxels": self.region.value(),
+                        "label_value": self.label.value(),
+                        "brush_size": self.width.value(),
                         "level_id": self.label.value()["level"],
-                    }
-                )
-                cfg.ppw.clientEvent.emit(
-                    {
-                        "source": "annotations",
-                        "data": "set_paint_params",
-                        "paint_params": {
-                            "current_supervoxels": self.region.value(),
-                            "label_value": self.label.value(),
-                            "brush_size": self.width.value(),
-                            "level_id": self.label.value()["level"],
-                        },
-                    }
-                )
-            pbar.update(1)
+                    },
+                }
+            )
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "paint_annotations",
+                    "level_id": self.label.value()["level"],
+                }
+            )
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "set_paint_params",
+                    "paint_params": {
+                        "current_supervoxels": self.region.value(),
+                        "label_value": self.label.value(),
+                        "brush_size": self.width.value(),
+                        "level_id": self.label.value()["level"],
+                    },
+                }
+            )
+
 
 
 class AnnotationLevel(Card):
 
     removed = QtCore.Signal(str)
 
-    def __init__(self, level, parent=None):
+    def __init__(self, level, parent=None, brush_slider=None):
         super().__init__(
             level["name"],
             editable=True,
@@ -258,12 +245,14 @@ class AnnotationLevel(Card):
             addbtn=True,
             parent=parent,
         )
+        self.brush_slider = brush_slider
         self.level_id = level["id"]
         self.le_title = LineEdit(level["name"])
         self.le_title.setProperty("header", True)
         self.labels = {}
         self._add_view_btn()
         self._populate_labels()
+        
 
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
@@ -300,7 +289,7 @@ class AnnotationLevel(Card):
             self.update_height()
 
     def _add_label_widget(self, label):
-        widget = AnnotationLabel(label, self.level_id)
+        widget = AnnotationLabel(label, self.level_id, None, self.brush_slider)
         widget.removed.connect(self.remove_label)
         self.add_row(widget)
         self.labels[label["idx"]] = widget
@@ -326,10 +315,11 @@ class AnnotationLevel(Card):
                 }
             )
             pbar.update(1)
+            
     def _add_view_btn(self):
         btn_view = PushButton("View", accent=True)
         btn_view.clicked.connect(self.view_level)
-        self.add_row(HWidgets(None, btn_view, Spacing(35)))
+        self.add_row(HWidgets(None, btn_view))
 
 
 class AnnotationLabel(QCSWidget):
@@ -337,7 +327,7 @@ class AnnotationLabel(QCSWidget):
     __height__ = 30
     removed = QtCore.Signal(int)
 
-    def __init__(self, label, level_dataset, parent=None):
+    def __init__(self, label, level_dataset, parent=None, brush_slider=None):
         super().__init__(parent=parent)
         print(f"Adding label: {label}")
         self.level_dataset = level_dataset
@@ -351,10 +341,12 @@ class AnnotationLabel(QCSWidget):
         self.txt_label_name = LineEdit(label["name"])
         self.txt_idx = LineEdit(str(label["idx"]))
         self.btn_label_color = ColorButton(label["color"])
+        self.btn_set = IconButton("fa.pencil", accent=True)
 
+        self.brush_slider = brush_slider
+        
         params = dict(workspace=True, level=level_dataset, label_idx=int(label["idx"]))
         result = Launcher.g.run("annotations", "get_label_parent", **params)
-        print(result)
 
         if result[0] == -1:
             self.parent_level = -1
@@ -380,7 +372,7 @@ class AnnotationLabel(QCSWidget):
         self.txt_label_name.editingFinished.connect(self.update_label)
         self.btn_label_color.colorChanged.connect(self.update_label)
         self.btn_del.clicked.connect(self.delete)
-        # self.btn_select.clicked.connect(self.set_label)
+        self.btn_set.clicked.connect(self.set_label)
         self.btn_label_parent.colorChanged.connect(self.set_parent)
 
         hbox = HBox(self)
@@ -391,31 +383,51 @@ class AnnotationLabel(QCSWidget):
                 self.btn_label_color,
                 self.btn_label_parent,
                 self.txt_label_name,
-                # self.btn_select,
+                self.btn_set,
                 stretch=4,
             )
         )
 
     def set_label(self):
-        logger.debug(f"Setting label to {self.label_idx}")
-
         label_dict = {
             "level": self.level_dataset,
             "idx": self.label_idx,
             "color": self.label_color,
         }
         cfg.ppw.clientEvent.emit(
-            {
-                "source": "annotations",
-                "data": "set_paint_params",
-                "paint_params": {
-                    "current_supervoxels": cfg.current_supervoxels,
-                    "label_value": label_dict,
-                    "brush_size": cfg.brush_size,
-                },
-            }
+                {
+                    "source": "annotations",
+                    "data": "set_paint_params",
+                    "paint_params": {
+                        "current_supervoxels": cfg.current_supervoxels,
+                        "label_value": label_dict,
+                        "brush_size": self.brush_slider.value(),
+                        "level_id": self.level_dataset,
+                    },
+                }
         )
+        cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "paint_annotations",
+                    "level_id": self.level_dataset,
+                }
+        )
+        cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "set_paint_params",
+                    "paint_params": {
+                        "current_supervoxels": cfg.current_supervoxels,
+                        "label_value": label_dict,
+                        "brush_size": self.brush_slider.value(),
+                        "level_id": self.level_dataset,
+                    },
+                }
+        )
+        cfg.brush_size = self.brush_slider.value()
 
+        
     def set_parent(self):
         try:
             logger.debug(
