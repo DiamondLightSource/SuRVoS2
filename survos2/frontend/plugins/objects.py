@@ -26,27 +26,28 @@ from survos2.entity.patches import PatchWorkflow, organize_entities, make_patche
 
 
 class ObjectComboBox(LazyComboBox):
-    def __init__(self, full=False, header=(None, "None"), parent=None):
+    def __init__(self, full=False, header=(None, "None"), parent=None, filter=None):
         self.full = full
+        if not filter:
+            self.filter_objects_type = ["points", "boxes"]
+        else:
+            self.filter_objects_type = filter
         super().__init__(header=header, parent=parent)
 
     def fill(self):
         params = dict(workspace=True, full=self.full)
-
         result = Launcher.g.run("objects", "existing", **params)
         logger.debug(f"Result of objects existing: {result}")
         if result:
-            # self.addCategory("Points")
             for fid in result:
-                if result[fid]["kind"] == "points":
+                if result[fid]["kind"] == "points" and result[fid]["kind"] in self.filter_objects_type:
                     self.addItem(fid, result[fid]["name"])
-                elif result[fid]["kind"] == "boxes":
+                elif result[fid]["kind"] == "boxes" and result[fid]["kind"] in self.filter_objects_type:
                     self.addItem(fid, result[fid]["name"])
 
 
 @register_plugin
 class ObjectsPlugin(Plugin):
-
     __icon__ = "fa.picture-o"
     __pname__ = "objects"
     __views__ = ["slice_viewer"]
@@ -57,11 +58,9 @@ class ObjectsPlugin(Plugin):
         self.vbox = VBox(self, spacing=10)
         self.objects_combo = ComboBox()
         self.vbox.addWidget(self.objects_combo)
-
         self.existing_objects = {}
         self.objects_layout = VBox(margin=0, spacing=5)
         self.objects_combo.currentIndexChanged.connect(self.add_objects)
-
         self.vbox.addLayout(self.objects_layout)
         self._populate_objects()
 

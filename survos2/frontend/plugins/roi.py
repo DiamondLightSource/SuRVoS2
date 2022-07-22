@@ -1,5 +1,4 @@
 import re
-
 import h5py as h5
 import mrcfile
 from skimage import io
@@ -29,7 +28,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
+from survos2.api.objects import get_entities
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.base import (
     ComboBox,
@@ -74,7 +73,6 @@ LOAD_DATA_EXT = "*.h5 *.hdf5 *.tif *.tiff *.rec *.mrc"
 
 class LoadDataDialog(QDialog):
     """Dialog box that contains a data preview for a 3d HDF5 dataset.
-
     Preview window allows selection of a ROI using a mouse or manual input.
     An estimated data size is calculated based upon ROI size and downsampling factor.
     """
@@ -117,13 +115,6 @@ class LoadDataDialog(QDialog):
         self.canvas.roi_updated.connect(self.on_roi_box_update)
         lvbox.addWidget(self.canvas)
 
-        # INPUT
-        #rvbox.addWidget(QLabel("Input Dataset:"))
-        #self.winput = FileWidget(extensions=LOAD_DATA_EXT, save=False)
-        #rvbox.addWidget(self.winput)
-        #rvbox.addWidget(QLabel("Internal HDF5 data path:"))
-        #self.int_h5_pth = QLabel("None selected")
-        #rvbox.addWidget(self.int_h5_pth)
         roi_fields = self.setup_roi_fields()
         rvbox.addWidget(QWidget(), 1)
         rvbox.addWidget(roi_fields)
@@ -480,7 +471,6 @@ class LoadDataDialog(QDialog):
 
 @register_plugin
 class ROIPlugin(Plugin):
-
     __icon__ = "fa.qrcode"
     __pname__ = "roi"
     __views__ = ["slice_viewer"]
@@ -490,16 +480,7 @@ class ROIPlugin(Plugin):
         super().__init__(parent=parent)
         self.vbox = VBox(self, spacing=10)
         hbox_layout3 = QtWidgets.QHBoxLayout()
-        # self.roi_start = LineEdit3D(default=0, parse=int)
-        # self.roi_end = LineEdit3D(default=0, parse=int)
-        # button_setroi = QPushButton("Save ROI as workspace", self)
-        # button_setroi.clicked.connect(self.button_setroi_clicked)
-        # self.roi_start_row = HWidgets("ROI Start:", self.roi_start)
-        # self.roi_end_row = HWidgets("Roi End: ", self.roi_end)
         self.roi_layout = QtWidgets.QVBoxLayout()
-        # self.roi_layout.addWidget(self.roi_start_row)
-        # self.roi_layout.addWidget(self.roi_end_row)
-        # self.roi_layout.addWidget(button_setroi)
         
         self._add_feature_source()
         self.annotations_source = LevelComboBox(full=True)
@@ -519,11 +500,11 @@ class ROIPlugin(Plugin):
         self.vbox.addLayout(self.roi_layout)
 
     def _add_boxes_source(self):
-        self.boxes_source = ObjectComboBox(full=True)
+        self.boxes_source = ObjectComboBox(full=True, filter=["boxes"])
         self.boxes_source.fill()
         self.boxes_source.setMaximumWidth(250)
         button_add_boxes_as_roi = QPushButton("Add Boxes as ROI", self)
-
+        button_add_boxes_as_roi.clicked.connect(self.add_rois)
         widget = HWidgets("Select Boxes:", self.boxes_source,  button_add_boxes_as_roi, stretch=1)
         self.vbox.addWidget(widget)
 
@@ -561,7 +542,6 @@ class ROIPlugin(Plugin):
             y_st, y_end, x_st, x_end,  z_st, z_end = dialog.get_roi_limits()
             roi = [z_st, z_end, x_st, x_end, y_st, y_end]
             original_workspace = DataModel.g.current_workspace 
-
             roi_name = (
                     DataModel.g.current_workspace
                     + "_roi_"
@@ -585,17 +565,54 @@ class ROIPlugin(Plugin):
 
     def add_rois(self, rois):
         """Adds ROIs to the ROI list.
-
         Args:
             rois (list): List of ROIs.
         """
         # Load objects 
+        objects_id = str(self.boxes_source.value().rsplit("/", 1)[-1])
+        #str(self.boxes_source.value())
         
+        logger.debug(f"Get objects {objects_id}")
+        objects_src = DataModel.g.dataset_uri(objects_id, group="objects")
+        params = dict(workpace=True,src=objects_src, entity_type="boxes")
         
+        result = Launcher.g.run("objects", "get_entities", **params)
+        
+        if result:
+            entities_arr = decode_numpy(result)
+        
+        rois = entities_arr[:,4:]
+        print(rois)
+
         # Iterate through ROIs and add them to the ROI list
+        original_workspace = DataModel.g.current_workspace 
 
         for roi in rois:
-            self.add_roi(roi)
+            roi_list = list(roi)
+            roi_list = [int(el) for el in roi_list]    
+            # reorder to z_st, z_end, x_st, x_end, y_st, y_end
+            roi_list = [roi_list[0], roi_list[3], roi_list[1], roi_list[4], roi_list[2], roi_list[5]]
+
+            roi_name = (
+                    DataModel.g.current_workspace
+                    + "_roi_"
+                    + str(roi[0])
+                    + "_"
+                    + str(roi[3])
+                    + "_"
+                    + str(roi[1])
+                    + "_"
+                    + str(roi[4])
+                    + "_"
+                    + str(roi[2])
+                    + "_"
+                    + str(roi[5])
+            )
+            cfg.ppw.clientEvent.emit(
+            {"source": "panel_gui", "data": "make_roi_ws", "roi": roi_list}
+            )   
+            self.add_roi(roi_name, original_workspace, roi_list)
+
 
     def setup(self):
         result = Launcher.g.run("roi", "existing")
@@ -638,7 +655,7 @@ class ROIPlugin(Plugin):
         
         cfg.ppw.clientEvent.emit(
                 {"source": "panel_gui", "data": "refresh", "value": None}
-            )
+        )
 
     def clear(self):
         for region in list(self.existing_roi.keys()):
@@ -718,6 +735,7 @@ class ROICard(Card):
         logger.debug(f"Pulling annotation into current workspace from workspace: {self.rname}, level: {anno_id}")
         all_params = dict(modal=True, roi_fname=self.rname, workspace=True, anno_id=anno_id, target_anno_id=target_id)
         result = Launcher.g.run("roi", "pull_anno", **all_params)
+
 
 
 

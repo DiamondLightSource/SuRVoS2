@@ -87,7 +87,7 @@ def load_entities_via_file(entities_arr, flipxy=True):
     os.remove(tmp_fullpath)
 
 
-def get_entities(objects_id):
+def get_entities_df(objects_id):
     msg = {"objects_id": objects_id}
     logger.debug(f"view_objects {msg['objects_id']}")
     src = DataModel.g.dataset_uri(msg["objects_id"], group="objects")
@@ -340,4 +340,5 @@ def make_bounding_vols(entities, patch_size=(14, 14, 14)):
     bbs = np.array(bbs)
 
     return bbs
+
 
