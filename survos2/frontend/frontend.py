@@ -132,8 +132,8 @@ def frontend(viewer):
     dw = AttrDict()
     dw.ppw = PluginPanelWidget()  # Main SuRVoS panel
     dw.bpw = ButtonPanelWidget()  # Additional controls
-    dw.ppw.setMinimumSize(QSize(450, 750))
-
+    dw.ppw.setMinimumSize(QSize(500, 650))
+    dw.bpw.setMinimumSize(QSize(500, 200))
     if DataModel.g.current_workspace != '':
         ws = Workspace(DataModel.g.current_workspace)
         dw.ws = ws
