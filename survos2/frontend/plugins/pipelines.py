@@ -395,18 +395,18 @@ class PipelineCard(Card):
             self._add_model_type()
             self._add_overlap_choice()
             # self._add_patch_params()
-        elif self.pipeline_type == "train_2d_unet":
-            self._add_2dunet_training_ws_widget()
-            self._add_2dunet_annotations_features_from_ws(DataModel.g.current_workspace)
+        elif self.pipeline_type == "train_multi_axis_cnn":
+            self._add_multi_ax_cnn_training_ws_widget()
+            self._add_multi_ax_cnn_annotations_features_from_ws(DataModel.g.current_workspace)
             self._add_volseg_model_type()
-            self._add_2dunet_data_table()
-            self._add_unet_2d_training_params()
+            self._add_multi_ax_cnn_data_table()
+            self._add_multi_ax_2d_training_params()
             self.adv_train_fields.hide()
-        elif self.pipeline_type == "predict_2d_unet":
+        elif self.pipeline_type == "predict_multi_axis_cnn":
             self.annotations_source = LevelComboBox()
             self.annotations_source.hide()
             self._add_feature_source()
-            self._add_unet_2d_prediction_params()
+            self._add_multi_ax_2d_prediction_params()
 
         else:
             logger.debug(f"Unsupported pipeline type {self.pipeline_type}.")
@@ -419,7 +419,7 @@ class PipelineCard(Card):
         self._add_view_btn()
 
 
-    def _add_2dunet_data_table(self):
+    def _add_multi_ax_cnn_data_table(self):
         columns = ["Workspace", "Data", "Labels", ""]
         self.table = QtWidgets.QTableWidget(0, 4)
         self.table.setHorizontalHeaderLabels(columns)
@@ -468,11 +468,11 @@ class PipelineCard(Card):
             lbl_item.hidden_field = lbl[0]
             self._add_data_row(ws_item, ds_item, lbl_item)
 
-    def _update_2d_unet_train_params(self, frozen, unfrozen):
+    def _update_multi_axis_cnn_train_params(self, frozen, unfrozen):
         self.cycles_frozen.setText(str(frozen))
         self.cycles_unfrozen.setText(str(unfrozen))
 
-    def _add_2dunet_training_ws_widget(self):
+    def _add_multi_ax_cnn_training_ws_widget(self):
         data_label = QtWidgets.QLabel("Select training data:")
         self.add_row(data_label)
         self.workspaces_list = self._get_workspaces_list()
@@ -480,13 +480,13 @@ class PipelineCard(Card):
         ws_widget = HWidgets("Workspace:", self.workspaces_list,  stretch=1)
         self.add_row(ws_widget)
 
-    def _add_2dunet_annotations_source(self):
+    def _add_multi_ax_cnn_annotations_source(self):
         self.annotations_source = ComboBox()
         self.annotations_source.setMaximumWidth(250)
         anno_widget = HWidgets("Annotation (Labels):", self.annotations_source,  stretch=1)
         self.add_row(anno_widget)
 
-    def _add_2dunet_feature_source(self):
+    def _add_multi_ax_cnn_feature_source(self):
         self.feature_source = ComboBox()
         self.feature_source.setMaximumWidth(250)
         feature_widget = HWidgets("Feature (Data):", self.feature_source,  stretch=1)
@@ -512,10 +512,10 @@ class PipelineCard(Card):
             for fid in result:
                 self.feature_source.addItem(fid, result[fid]["name"])
 
-    def _add_2dunet_annotations_features_from_ws(self, workspace):
-        self._add_2dunet_feature_source()
+    def _add_multi_ax_cnn_annotations_features_from_ws(self, workspace):
+        self._add_multi_ax_cnn_feature_source()
         self._update_features_from_ws(workspace)
-        self._add_2dunet_annotations_source()
+        self._add_multi_ax_cnn_annotations_source()
         self._update_annotations_from_ws(workspace)
         train_data_btn = PushButton("Add to list", accent=True)
         train_data_btn.clicked.connect(self._add_item_to_data_table)
@@ -558,8 +558,8 @@ class PipelineCard(Card):
         self.patch_size = LineEdit3D(default=64, parse=int)
         self.add_row(HWidgets("Patch Size:", self.patch_size,  stretch=1))
 
-    def _add_unet_2d_training_params(self):
-        self.unet_train_settings = cfg["volume_segmantics"]["train_settings"]
+    def _add_multi_ax_2d_training_params(self):
+        self.multi_ax_train_settings = cfg["volume_segmantics"]["train_settings"]
         self.add_row(HWidgets("Training Parameters:", stretch=1))
         self.cycles_frozen = LineEdit(default=8, parse=int)
         self.cycles_unfrozen = LineEdit(default=5, parse=int)
@@ -567,20 +567,20 @@ class PipelineCard(Card):
         self.setup_adv_train_fields()
         self.adv_train_fields.hide()
         refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
-        self.unet_train_refresh_btn = PushButton("Refresh Data", accent=True)
-        self.unet_train_refresh_btn.clicked.connect(self.refresh_unet_data)
-        self.unet_pred_refresh_btn = None
+        self.multi_ax_train_refresh_btn = PushButton("Refresh Data", accent=True)
+        self.multi_ax_train_refresh_btn.clicked.connect(self.refresh_multi_ax_data)
+        self.multi_ax_pred_refresh_btn = None
         self.add_row(HWidgets("No. Cycles Frozen:", self.cycles_frozen,
                               "No. Cycles Unfrozen", self.cycles_unfrozen,
                               stretch=1))
         self.add_row(HWidgets(train_advanced_button, Spacing(35), stretch=1))
         self.add_row(self.adv_train_fields, max_height=250)
         self.add_row(HWidgets(refresh_label, stretch=1))
-        self.add_row(HWidgets(self.unet_train_refresh_btn, stretch=1))
+        self.add_row(HWidgets(self.multi_ax_train_refresh_btn, stretch=1))
         train_advanced_button.toggled.connect(self.toggle_advanced_train)
         
-    def _add_unet_2d_prediction_params(self):
-        self.unet_pred_settings = cfg["volume_segmantics"]["predict_settings"]
+    def _add_multi_ax_2d_prediction_params(self):
+        self.multi_ax_pred_settings = cfg["volume_segmantics"]["predict_settings"]
         self.model_file_line_edit = LineEdit(default="Filepath", parse=str)
         model_input_btn = PushButton("Select Model", accent=True)
         model_input_btn.clicked.connect(self.get_model_path)
@@ -597,16 +597,16 @@ class PipelineCard(Card):
         self.setup_adv_pred_fields()
         self.adv_pred_fields.hide()
         refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
-        self.unet_pred_refresh_btn = PushButton("Refresh Data", accent=True)
-        self.unet_pred_refresh_btn.clicked.connect(self.refresh_unet_data)
-        self.unet_train_refresh_btn = None
+        self.multi_ax_pred_refresh_btn = PushButton("Refresh Data", accent=True)
+        self.multi_ax_pred_refresh_btn.clicked.connect(self.refresh_multi_ax_data)
+        self.multi_ax_train_refresh_btn = None
         self.add_row(HWidgets(self.model_file_line_edit, model_input_btn, Spacing(35)))
         self.add_row(HWidgets("Prediction Parameters:", stretch=1))
         self.add_row(HWidgets(single_pp_rb, triple_pp_rb, twelve_pp_rb))
         self.add_row(HWidgets(advanced_button, stretch=1))
         self.add_row(HWidgets(self.adv_pred_fields))
         self.add_row(HWidgets(refresh_label, stretch=1))
-        self.add_row(HWidgets(self.unet_pred_refresh_btn, stretch=1))
+        self.add_row(HWidgets(self.multi_ax_pred_refresh_btn, stretch=1))
         advanced_button.toggled.connect(self.toggle_advanced_pred)
         advanced_button.setChecked(True)
         advanced_button.setChecked(False)
@@ -617,10 +617,10 @@ class PipelineCard(Card):
          learning training."""
         self.adv_train_fields = QtWidgets.QGroupBox("Advanced Training Settings:")
         adv_train_layout = QtWidgets.QGridLayout()
-        cuda_device = str(self.unet_train_settings["cuda_device"])
-        patience = str(self.unet_train_settings["patience"])
-        bce_dice_alpha = str(self.unet_train_settings["alpha"])
-        bce_dice_beta = str(self.unet_train_settings["beta"])
+        cuda_device = str(self.multi_ax_train_settings["cuda_device"])
+        patience = str(self.multi_ax_train_settings["patience"])
+        bce_dice_alpha = str(self.multi_ax_train_settings["alpha"])
+        bce_dice_beta = str(self.multi_ax_train_settings["beta"])
         self.train_cuda_dev_linedt = LineEdit(cuda_device)
         self.train_patience_linedt = LineEdit(patience)
         self.volseg_encoder_type = ComboBox()
@@ -662,7 +662,7 @@ class PipelineCard(Card):
         self.adv_pred_fields = QtWidgets.QGroupBox("Advanced Prediction Settings:")
         adv_pred_layout = QtWidgets.QGridLayout()
         adv_pred_layout.addWidget(QLabel("CUDA Device:"), 0, 0)
-        cuda_device = str(self.unet_pred_settings["cuda_device"])
+        cuda_device = str(self.multi_ax_pred_settings["cuda_device"])
         self.pred_cuda_dev_linedt = LineEdit(cuda_device)
         adv_pred_layout.addWidget(self.pred_cuda_dev_linedt, 0, 1)
         self.adv_pred_fields.setLayout(adv_pred_layout)
@@ -953,15 +953,15 @@ class PipelineCard(Card):
                 )
                 print(f"Constrain mask source {constrain_mask_source}")
                 self.constrain_mask_source.select(constrain_mask_source)
-        if "unet_train_params" in params:
+        if "multi_ax_train_params" in params:
             if params["anno_id"]:
                 table_dict = dict(Labels=params["anno_id"],
                                 Data=params["feature_id"],
                                 Workspaces=params["workspace"])
                 self._update_data_table_from_dict(table_dict)
-                self._update_2d_unet_train_params(
-                    params["unet_train_params"]["cyc_frozen"],
-                    params["unet_train_params"]["cyc_unfrozen"]
+                self._update_multi_axis_cnn_train_params(
+                    params["multi_ax_train_params"]["cyc_frozen"],
+                    params["multi_ax_train_params"]["cyc_unfrozen"]
                     )
 
     def card_deleted(self):
@@ -1025,15 +1025,15 @@ class PipelineCard(Card):
         ("Select model"), workspace_path, ("Model files (*.pytorch)"))
         self.model_file_line_edit.setValue(self.model_path)
 
-    def refresh_unet_data(self):
+    def refresh_multi_ax_data(self):
         sender = self.sender()
         cfg.ppw.clientEvent.emit(
                 {"source": "workspace_gui", "data": "refresh", "value": None}
             )
-        if sender == self.unet_pred_refresh_btn:
+        if sender == self.multi_ax_pred_refresh_btn:
             search_str = "U-Net prediction"
             self.annotations_source.fill()
-        elif sender == self.unet_train_refresh_btn:
+        elif sender == self.multi_ax_train_refresh_btn:
             search_str = "U-Net Training"
             self._update_annotations_from_ws(DataModel.g.current_workspace)
         index = self.annotations_source.findText(search_str, QtCore.Qt.MatchFixedString)
@@ -1274,7 +1274,7 @@ class PipelineCard(Card):
         
         return all_params
     
-    def setup_params_train_2d_unet(self, dst):
+    def setup_params_train_multi_axis_cnn(self, dst):
         # Retrieve params from table
         num_rows = self.table.rowCount()
         if num_rows == 0:
@@ -1297,7 +1297,7 @@ class PipelineCard(Card):
         all_params["workspace"] = workspace_list
         all_params["feature_id"] = data_list
         all_params["anno_id"] = label_list
-        all_params["unet_train_params"] = dict(model_type=self.volseg_model_type.key(),
+        all_params["multi_ax_train_params"] = dict(model_type=self.volseg_model_type.key(),
                                                encoder_type=self.volseg_encoder_type.key(),
                                                cyc_frozen=self.cycles_frozen.value(),
                                                cyc_unfrozen=self.cycles_unfrozen.value(),
@@ -1307,7 +1307,7 @@ class PipelineCard(Card):
                                                bce_dice_beta=self.bce_dice_beta_linedt.value())
         return all_params
 
-    def setup_params_predict_2d_unet(self, dst):
+    def setup_params_predict_multi_axis_cnn(self, dst):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         all_params = dict(src=src, dst=dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
@@ -1342,10 +1342,10 @@ class PipelineCard(Card):
                     all_params = self.setup_params_cleaning(dst)
                 elif self.pipeline_type == "per_object_cleaning":
                     all_params = self.setup_params_per_object_cleaning(dst)
-                elif self.pipeline_type == "train_2d_unet":
-                    all_params = self.setup_params_train_2d_unet(dst)
-                elif self.pipeline_type == "predict_2d_unet":
-                    all_params = self.setup_params_predict_2d_unet(dst)
+                elif self.pipeline_type == "train_multi_axis_cnn":
+                    all_params = self.setup_params_train_multi_axis_cnn(dst)
+                elif self.pipeline_type == "predict_multi_axis_cnn":
+                    all_params = self.setup_params_predict_multi_axis_cnn(dst)
                 elif self.pipeline_type == "train_3d_fcn":
                     all_params = self.setup_params_train_3d_fcn(dst)
                 elif self.pipeline_type == "predict_3d_fcn":

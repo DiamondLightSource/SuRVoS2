@@ -473,32 +473,31 @@ def _unpack_lists(input_list):
 
 @hug.get()
 @save_metadata
-def train_2d_unet(
+def train_multi_axis_cnn(
     src: DataURI,
     dst: DataURI,
     workspace: StringList,
     anno_id: DataURIList,
     feature_id: DataURIList,
-    unet_train_params: dict,
+    multi_ax_train_params: dict,
 ):
     # Unpack the list
     workspace = _unpack_lists(workspace)
     anno_id = _unpack_lists(anno_id)
     feature_id = _unpack_lists(feature_id)
 
-    model_type = unet_train_params["model_type"]
-    encoder_type = unet_train_params["encoder_type"]
-    patience = int(unet_train_params["patience"])
-    loss_criterion = unet_train_params["loss_criterion"]
-    bce_dice_alpha = float(unet_train_params["bce_dice_alpha"])
-    bce_dice_beta = float(unet_train_params["bce_dice_beta"])
+    model_type = multi_ax_train_params["model_type"]
+    encoder_type = multi_ax_train_params["encoder_type"]
+    patience = int(multi_ax_train_params["patience"])
+    loss_criterion = multi_ax_train_params["loss_criterion"]
+    bce_dice_alpha = float(multi_ax_train_params["bce_dice_alpha"])
+    bce_dice_beta = float(multi_ax_train_params["bce_dice_beta"])
     logger.info(
         f"Train {model_type} with {encoder_type} encoder using workspaces {workspace} annos {anno_id} and features {feature_id}"
     )
     from volume_segmantics.data import TrainingDataSlicer, get_settings_data
     from volume_segmantics.model import (
         VolSeg2DPredictionManager,
-        VolSeg2dPredictor,
         VolSeg2dTrainer,
     )
     from volume_segmantics.utilities import Quality
@@ -552,8 +551,8 @@ def train_2d_unet(
 
     logger.info(f"Creating model Trainer with label codes: {label_codes}")
     trainer = VolSeg2dTrainer(data_slice_path, anno_slice_path, label_codes, settings)
-    num_cyc_frozen = unet_train_params["cyc_frozen"]
-    num_cyc_unfrozen = unet_train_params["cyc_unfrozen"]
+    num_cyc_frozen = multi_ax_train_params["cyc_frozen"]
+    num_cyc_unfrozen = multi_ax_train_params["cyc_unfrozen"]
     model_type = settings.model["type"].name
     now = datetime.now()
     dt_string = now.strftime("%d%m%Y_%H_%M_%S")
@@ -613,7 +612,7 @@ def train_2d_unet(
 
 @hug.get()
 @save_metadata
-def predict_2d_unet(
+def predict_multi_axis_cnn(
     src: DataURI,
     dst: DataURI,
     workspace: String,
@@ -625,7 +624,7 @@ def predict_2d_unet(
     model_pred_label = "Deep Learning Prediction"
     if feature_id:
         logger.debug(
-            f"Predict_2d_unet with feature {feature_id} in {no_of_planes} planes"
+            f"Predict_multi_axis_cnn with feature {feature_id} in {no_of_planes} planes"
         )
 
         src = DataModel.g.dataset_uri(feature_id, group="features")
@@ -636,7 +635,7 @@ def predict_2d_unet(
             feature = src_dataset[:]
 
         logger.info(
-            f"Predict_2d_unet with feature shape {feature.shape} using model {model_path}"
+            f"Predict_multi_axis_cnn with feature shape {feature.shape} using model {model_path}"
         )
     else:
         logging.error("No feature selected!")
