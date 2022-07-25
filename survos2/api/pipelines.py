@@ -599,8 +599,7 @@ def train_2d_unet(
     # Load in the prediction settings
     predict_settings_dict = cfg["volume_segmantics"]["predict_settings"]
     predict_settings = get_settings_data(predict_settings_dict)
-    predictor = VolSeg2dPredictor(model_out, predict_settings)
-    pred_manager = VolSeg2DPredictionManager(predictor, feature, predict_settings)
+    pred_manager = VolSeg2DPredictionManager(model_out, feature, predict_settings)
     segmentation = pred_manager.predict_volume_to_path(None, Quality.LOW)
     # If more than one annotation label is provided add 1 to the segmentation
     if not np.array_equal(np.array([0, 1]), label_values):
@@ -670,17 +669,15 @@ def predict_2d_unet(
         ws_object = ws.get(workspace)
         root_path = Path(ws_object.path, "volseg")
         root_path.mkdir(exist_ok=True, parents=True)
-        # Create predictor and get label codes
-        predictor = VolSeg2dPredictor(model_path, predict_settings)
-        label_codes = predictor.label_codes
+        # Create prediction manager and get label codes
+        pred_manager = VolSeg2DPredictionManager(model_path, feature, predict_settings)
+        label_codes = pred_manager.get_label_codes()
         logger.info(f"Labels found: {label_codes}")
-        pred_manager = VolSeg2DPredictionManager(predictor, feature, predict_settings)
         create_new_labels_for_level(workspace, level_id, label_codes)
         quality = Quality(no_of_planes)
         segmentation = pred_manager.predict_volume_to_path(None, quality)
         segmentation += np.ones_like(segmentation)
         logger.info("Freeing GPU memory.")
-        del predictor
         del pred_manager
         torch.cuda.empty_cache()
 
