@@ -32,10 +32,13 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         button_refresh = QPushButton("Refresh", self)
         button_refresh.clicked.connect(self.button_refresh_clicked)
     
-        button_refresh_all = QPushButton("Reload Workspace", self)
-        button_refresh_all.clicked.connect(self.button_refresh_all_clicked)
+        button_load_workspace = QPushButton("Load", self)
+        button_load_workspace.clicked.connect(self.button_load_workspace_clicked)
     
-        button_transfer = QPushButton("Transfer Layer")
+        button_clear_client = QPushButton("Clear client")
+        button_clear_client.clicked.connect(self.button_clear_client_clicked)
+
+        button_transfer = QPushButton("Transfer Layer to Server")
         button_transfer.clicked.connect(self.button_transfer_clicked)
 
         #self.button_slicemode = QPushButton("Slice mode", self)
@@ -58,11 +61,12 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.slider.hide()
 
         hbox_layout_ws.addWidget(workspaces_widget)
-        hbox_layout_ws.addWidget(button_refresh_all)
+        hbox_layout_ws.addWidget(button_load_workspace)
         
         hbox_layout1.addWidget(button_transfer)
         #hbox_layout1.addWidget(self.button_slicemode)
         hbox_layout1.addWidget(button_refresh)
+        hbox_layout1.addWidget(button_clear_client)
         
         vbox = VBox(self, margin=(1, 1, 1, 1), spacing=2)
 
@@ -141,7 +145,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             {"source": "panel_gui", "data": "make_roi_ws", "roi": roi}
         )
 
-    def button_refresh_all_clicked(self):
+    def button_load_workspace_clicked(self):
         self.refresh_workspaces()
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "empty_viewer", "value": None}
@@ -149,6 +153,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "refresh", "value": None}
         )
+        cfg.ppw.clientEvent.emit({'data' : 'view_feature', 'feature_id' : '001_raw'})
 
 
     def button_refresh_clicked(self):
@@ -157,7 +162,13 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             {"source": "panel_gui", "data": "empty_viewer", "value": None}
         )
         cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "fast_refresh", "value": None}
+            {"source": "panel_gui", "data": "faster_refresh", "value": None}
+        )
+
+    def button_clear_client_clicked(self):
+        self.refresh_workspaces()
+        cfg.ppw.clientEvent.emit(
+            {"source": "panel_gui", "data": "empty_viewer", "value": None}
         )
 
     def button_pause_save_clicked(self):
@@ -319,6 +330,7 @@ class QtPlotWidget(QtWidgets.QWidget):
             color="w",
             parent=self.canvas.scene,
         )
+
 
 
 

@@ -80,8 +80,7 @@ class FeaturesPlugin(Plugin):
         self.vbox.addLayout(self.vbox2)
         self.workflow_button = PushButton("Save workflow", accent=True)
         self.workflow_button.clicked.connect(self.save_workflow)
-        self.vbox.addWidget(self.workflow_button)
-
+       
         self.filewidget = FileWidget(extensions="*.yaml", save=False)
         self.filewidget_open = FileWidget(extensions="*.yaml", save=False)
         self.filewidget_open.path_updated.connect(self.load_workflow)
@@ -90,6 +89,7 @@ class FeaturesPlugin(Plugin):
         button_runworkflow.clicked.connect(self.button_runworkflow_clicked)
     
         hbox_layout2 = QtWidgets.QHBoxLayout()
+        hbox_layout2.addWidget(self.workflow_button)
         hbox_layout2.addWidget(self.filewidget_open)
         hbox_layout2.addWidget(button_runworkflow)
         self.vbox.addLayout(hbox_layout2)
@@ -481,5 +481,6 @@ class FeatureCard(CardWithId):
             _FeatureNotifier.notify()
 
         return result["done"]
+
 
 

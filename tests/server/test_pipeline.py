@@ -283,6 +283,7 @@ class Tests(object):
             "threshold": 0,
             "iterations": 1,
             "smoothing": 0,
+            "selected_class": 0,
         }
         result = survos.run_command(
             "pipelines",

@@ -4,6 +4,7 @@ import mrcfile
 from skimage import io
 import numpy as np
 from loguru import logger
+from qtpy import QtWidgets, QtGui
 from qtpy.QtWidgets import QFileDialog, QGridLayout, QGroupBox, QLabel
 import os
 
@@ -59,6 +60,7 @@ from survos2.frontend.plugins.base import ComboBox
 from survos2.config import Config
 
 
+from survos2.frontend.plugins.base import PushButton
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotations import LevelComboBox as AnnoComboBox
@@ -704,21 +706,55 @@ class ServerPlugin(Plugin):
         output_config_button.clicked.connect(self.output_config_clicked)
         self.layout.addWidget(tabwidget)
 
-        self.setGeometry(300, 300, 600, 400)
+        #self.setGeometry(300, 300, 600, 400)
         self.setWindowTitle("SuRVoS Settings Editor")
         current_fpth = os.path.dirname(os.path.abspath(__file__))
         self.setWindowIcon(QIcon(os.path.join(current_fpth, "resources", "logo.png")))
         self.setLayout(self.layout)
         self.show()
 
+
+    def select_chroot_path(self):
+        full_path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Select project path", "." , QtWidgets.QFileDialog.ShowDirsOnly
+        )
+        if isinstance(full_path, tuple):
+            full_path = full_path[0]
+        self.given_chroot_linedt.setText(full_path)
+        self.set_chroot()
+        cfg.bpw.refresh_workspaces()
+
+        # edit the settings file to store the chosen chroot path
+        import ruamel.yaml
+        import pathlib
+        current_path = pathlib.Path(__file__).parent.resolve()
+        yaml = ruamel.yaml.YAML()
+        yaml.preserve_quotes = True
+
+        with open(str(current_path) + "/../../../settings.yaml") as f:
+            settings = yaml.load(f)
+
+        for entry in settings:
+            if entry == "model":
+                settings["model"]["chroot"] = full_path
+                print(settings)
+
+        with open(str(current_path) + "/../../../settings.yaml", "w") as f:
+            yaml.dump(settings, f)
+
+
+
     def get_chroot_fields(self):
         chroot_fields = QGroupBox("Set Main Directory for Storing Workspaces:")
         chroot_fields.setMaximumHeight(130)
         chroot_layout = QGridLayout()
         self.given_chroot_linedt = QLineEdit(CHROOT)
+        select_chroot_path_btn = PushButton("Select Path")
+        select_chroot_path_btn.clicked.connect(self.select_chroot_path)
+
         chroot_layout.addWidget(self.given_chroot_linedt, 1, 0, 1, 2)
         set_chroot_button = QPushButton("Set Workspaces Root")
-        chroot_layout.addWidget(set_chroot_button, 1, 2)
+        chroot_layout.addWidget(select_chroot_path_btn, 1, 2)
         chroot_fields.setLayout(chroot_layout)
         set_chroot_button.clicked.connect(self.set_chroot)
         return chroot_fields
@@ -1182,7 +1218,7 @@ class ServerPlugin(Plugin):
             cfg.ppw.clientEvent.emit(
                 {"source": "panel_gui", "data": "refresh", "value": None}
             )
-            #cfg.ppw.clientEvent.emit({'data' : 'view_feature', 'feature_id' : '001_raw'})
+            cfg.ppw.clientEvent.emit({'data' : 'view_feature', 'feature_id' : '001_raw'})
         pbar.update(1)
     @pyqtSlot()
     def existing_clicked(self):
@@ -1202,6 +1238,7 @@ class ServerPlugin(Plugin):
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "refresh", "value": None}
         )
+        cfg.ppw.clientEvent.emit({'data' : 'view_feature', 'feature_id' : '001_raw'})
 
     def start_client(self):
         if not self.ssh_error:
@@ -1220,5 +1257,6 @@ class ServerPlugin(Plugin):
                     + str(self.run_config["server_port"]),
                 ]
             )
+
 
 

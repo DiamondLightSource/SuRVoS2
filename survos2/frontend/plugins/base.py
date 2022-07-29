@@ -94,12 +94,12 @@ def list_plugins():
 
 class PluginContainer(QCSWidget):
     view_requested = QtCore.Signal(str, dict)
-    __sidebar_width__ = 400
+    __sidebar_width__ = 500
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setMinimumWidth(self.__sidebar_width__ + 50)
-        self.setMinimumHeight(450)
+        #self.setMinimumHeight(450)
         self.tabwidget = QTabWidget()
         vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
         vbox.addWidget(self.tabwidget, 1)
@@ -157,5 +157,6 @@ class PluginContainer(QCSWidget):
             self.selected = self.plugins[name]
             if hasattr(self.selected["widget"], "setup"):
                 self.selected["widget"].setup()
+
 
 

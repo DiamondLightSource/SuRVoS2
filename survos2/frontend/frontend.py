@@ -132,8 +132,8 @@ def frontend(viewer):
     dw = AttrDict()
     dw.ppw = PluginPanelWidget()  # Main SuRVoS panel
     dw.bpw = ButtonPanelWidget()  # Additional controls
-    dw.ppw.setMinimumSize(QSize(500, 650))
-    dw.bpw.setMinimumSize(QSize(500, 200))
+    dw.ppw.setMinimumSize(QSize(600, 600))
+    dw.bpw.setMinimumSize(QSize(600, 200))
     if DataModel.g.current_workspace != '':
         ws = Workspace(DataModel.g.current_workspace)
         dw.ws = ws
@@ -607,6 +607,7 @@ def frontend(viewer):
         viewer.camera.zoom = 4
 
     def processEvents(msg):
+        "Main event handling function uses the message to update the viewer"
         logger.debug(msg)
         if msg["data"] == "jump_to_slice":
             jump_to_slice(msg)
@@ -673,6 +674,9 @@ def frontend(viewer):
             logger.debug("\n\nEmptying viewer")
             for l in viewer.layers:
                 viewer.layers.remove(l)
+            # some bug does not allow to remove all layers at once
+            for l in viewer.layers:
+                viewer.layers.remove(l)
             cfg.current_feature_name = "001_raw"
             cfg.current_annotation_name = None
             cfg.current_pipeline_name = None
@@ -724,6 +728,7 @@ def frontend(viewer):
     dw.cfg = cfg
 
     return dw
+
 
 
 
