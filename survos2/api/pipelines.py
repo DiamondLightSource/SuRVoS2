@@ -41,6 +41,14 @@ from survos2.entity.pipeline_ops import make_proposal
 from survos2.entity.sampler import generate_random_points_in_volume
 from survos2.entity.train import train_oneclass_detseg
 from survos2.entity.utils import pad_vol
+from survos2.entity.entities import make_entity_bvol, make_bounding_vols, make_entity_df
+from survos2.frontend.components.entity import setup_entity_table
+from survos2.frontend.nb_utils import slice_plot
+from scipy.ndimage.morphology import binary_erosion
+from survos2.entity.utils import pad_vol, get_largest_cc, get_surface
+from survos2.entity.entities import offset_points
+from survos2.entity.patches import BoundingVolumeDataset
+from survos2.entity.sampler import centroid_to_bvol
 from survos2.improc import map_blocks
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
@@ -229,6 +237,7 @@ def rasterize_points(
     threshold: Float,
     iterations: Int,
     smoothing: Int,
+    selected_class : Int,
 ):
 
     from survos2.entity.anno.pseudo import organize_entities
@@ -267,6 +276,10 @@ def rasterize_points(
     )
 
     entities = np.array(make_entity_df(np.array(entities_df), flipxy=False))
+    entities = entities[entities[:,3]==selected_class]
+    entities[:,3] = np.array([0] * len(entities))
+    print(len(entities))
+    print(entities)
 
     # default params TODO make generic, allow editing
     entity_meta = {
@@ -282,6 +295,21 @@ def rasterize_points(
         },
         "2": {
             "name": "class2",
+            "size": np.array(size),
+            "core_radius": np.array((7, 7, 7)),
+        },
+        "3": {
+            "name": "class3",
+            "size": np.array(size),
+            "core_radius": np.array((7, 7, 7)),
+        },
+        "4": {
+            "name": "class4",
+            "size": np.array(size),
+            "core_radius": np.array((7, 7, 7)),
+        },
+        "5": {
+            "name": "class5",
             "size": np.array(size),
             "core_radius": np.array((7, 7, 7)),
         },
@@ -719,7 +747,7 @@ def create_new_labels_for_level(workspace, level_id, label_codes):
 
 @hug.get()
 @save_metadata
-def train_3d_fcn(
+def train_3d_cnn(
     src: DataURI,
     dst: DataURI,
     workspace: String,
@@ -844,7 +872,7 @@ def train_3d_fcn(
 
 @hug.get()
 @save_metadata
-def predict_3d_fcn(
+def predict_3d_cnn(
     src: DataURI,
     dst: DataURI,
     workspace: String,
@@ -892,6 +920,40 @@ def predict_3d_fcn(
     # dst = DataModel.g.dataset_uri(dst)
     # with DatasetManager(dst, out=dst, dtype="int32", fillvalue=0) as DM:
     #     DM.out[:] = proposal
+
+
+@hug.get()
+def per_object_cleaning(
+    dst: DataURI,
+    feature_id: DataURI, 
+    object_id: DataURI,
+    patch_size: IntOrVector = 64,
+):
+
+
+    # get image feature
+    src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
+    logger.debug(f"Getting features {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        feature = DM.sources[0][:]
+        logger.debug(f"Feature shape {feature.shape}")
+
+    # get object entities
+    src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
+    logger.debug(f"Getting objects {src}")
+    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        ds_objects = DM.sources[0]
+    entities_fullname = ds_objects.get_metadata("fullname")
+    tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
+    entities_arr = np.array(entities_df)
+    entities_arr[:,3] = np.array([[1] * len(entities_arr)])
+    entities = np.array(make_entity_df(entities_arr, flipxy=False))
+    print(entities)
+
+    target = per_object_cleaning(entities, feature, display_plots=False, bvol_dim=patch_size)
+    #dst = DataModel.g.dataset_uri(dst, group="pipelines")
+    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
+        DM.out[:] = target
 
 
 
@@ -1015,5 +1077,6 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
 
 
