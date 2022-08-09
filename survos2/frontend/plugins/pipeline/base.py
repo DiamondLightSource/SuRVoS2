@@ -72,6 +72,7 @@ class PipelineCardBase(Card):
             pbar.set_description("Computing pipeline...")
             pbar.update(1)
             all_params = self.compute_pipeline()
+            all_params.update({k: v.value() for k, v in self.widgets.items()})
             try:
                 pbar.update(1)
                 result = Launcher.g.run("pipelines", self.pipeline_type, **all_params)

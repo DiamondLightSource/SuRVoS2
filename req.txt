@@ -55,7 +55,8 @@ qtawesome
 qtconsole
 qtpy
 requests
-scikit-image
+ruamel.yaml
+scikit-image==0.19.2
 scikit-learn
 scipy
 seaborn

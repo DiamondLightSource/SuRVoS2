@@ -1,5 +1,5 @@
 model:
-  chroot: /dls/science/groups/das/SuRVoS/s2/data
+  chroot: /dls/science/groups/das/SuRVoS/s2/data/avery
   dbtype: yaml
 api:
   host: 127.0.0.1
@@ -93,14 +93,14 @@ volume_segmantics:
     data_im_dirname: data # Name of folder that sliced data 2D images will be output to
     seg_im_out_dirname: seg # Name of folder that sliced segmentation 2D images with be output to 
     model_output_fn: trained_2d_model # Suffix for the saved model filename
-    clip_data: True # Clip and rescale the image data intensities before saving to disk
+    clip_data: true # Clip and rescale the image data intensities before saving to disk
     st_dev_factor: 2.575 # The number of standard deviations from the mean to clip data to
     data_hdf5_path: /data # The internal HDF5 path to the image data
     seg_hdf5_path: /data # The internal HDF5 path to the label data
 
     # Settings for model training
     image_size: 256 # size of images in databunch used for training (must be multiple of 32)
-    downsample: False # If True, data will be downsampled by 2
+    downsample: false # If True, data will be downsampled by 2
     training_set_proportion: 0.8 # Proportion of images to use the training, rest are used for validation
     cuda_device: 0 # The graphics card to use (between 0 and 3 for a machine with 4 GPUs)
     num_cyc_frozen: 8 # Number of times to run fit_one_cycle on frozen model
@@ -117,7 +117,7 @@ volume_segmantics:
     end_lr: 50 # Upper Bound of learning rate search
     lr_find_epochs: 1 # Number of training epochs for learning rate search
     lr_reduce_factor: 500 # Divisor for start and end LR when finding LR on reloaded model
-    plot_lr_graph: False # Set to True if gnuplot is installed and a terminal plot of learning rate is required 
+    plot_lr_graph: false # Set to True if gnuplot is installed and a terminal plot of learning rate is required 
 
     # Parameters to control model architecture
     model:
@@ -134,10 +134,10 @@ volume_segmantics:
   predict_settings:
     # Settings for prediction of a 3d volume using a 2d model
     quality: medium # One of [low, medium, high]. low = Single axis, medium = 3 axis, high = 12 ways
-    output_probs: False # If set to True a separate volume of probabilty values for the predictions will be saved alongside the labels.
-    clip_data: True # If set to True, the image data intensities will be clipped and rescaled before prediction. Set to False if data is already clipped.
+    output_probs: false # If set to True a separate volume of probabilty values for the predictions will be saved alongside the labels.
+    clip_data: true # If set to True, the image data intensities will be clipped and rescaled before prediction. Set to False if data is already clipped.
     st_dev_factor: 2.575 # Number of standard deviations from the mean to clip data to.
     data_hdf5_path: /data # Internal path in the HDF5 file where the image data for prediction is stored.
     cuda_device: 0 # Change this if you would like to run the prediction on a different GPU
-    downsample: False # If True, data will be downsampled by 2 and segmentation will be upsampled by 2
-    one_hot: False # Output one-hot encoded data
+    downsample: false # If True, data will be downsampled by 2 and segmentation will be upsampled by 2
+    one_hot: false # Output one-hot encoded data
