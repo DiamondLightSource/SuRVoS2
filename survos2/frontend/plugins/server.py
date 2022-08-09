@@ -1218,7 +1218,6 @@ class ServerPlugin(Plugin):
             cfg.ppw.clientEvent.emit(
                 {"source": "panel_gui", "data": "refresh", "value": None}
             )
-            cfg.ppw.clientEvent.emit({'data' : 'view_feature', 'feature_id' : '001_raw'})
         pbar.update(1)
     @pyqtSlot()
     def existing_clicked(self):
@@ -1238,8 +1237,7 @@ class ServerPlugin(Plugin):
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "refresh", "value": None}
         )
-        cfg.ppw.clientEvent.emit({'data' : 'view_feature', 'feature_id' : '001_raw'})
-
+        
     def start_client(self):
         if not self.ssh_error:
             self.button_feedback_response(
