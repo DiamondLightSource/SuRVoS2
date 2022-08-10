@@ -168,37 +168,44 @@ def label_postprocess(
     workspace: String,
     level_over: DataURI,
     level_base: DataURI,
-    selected_label: Int,
+    selected_label_for_over: Int,
     offset: Int,
+    base_offset: Int
+
 ):
+    """Takes two label (integer) image and performs an operation to combine them.
+    Args:
+        src (DataURI): stub
+        dst (DataURI): Destination pipeline to save into
+        workspace (String): workspace id
+        level_over (DataURI): Image B
+        level_base (DataURI): Image A
+        selected_label (Int): 
+        offset (Int): Integer value to offset the label
+    """
     if level_over != "None":
         src1 = DataModel.g.dataset_uri(level_over, group="annotations")
         with DatasetManager(src1, out=None, dtype="uint16", fillvalue=0) as DM:
             src1_dataset = DM.sources[0]
-            anno1_level = src1_dataset[:] & 15
-            logger.info(
-                f"Obtained over annotation level with labels {np.unique(anno1_level)}"
-            )
+            anno_over_level = src1_dataset[:] & 15
+            
 
     src_base = DataModel.g.dataset_uri(level_base, group="annotations")
     with DatasetManager(src_base, out=None, dtype="uint16", fillvalue=0) as DM:
         src_base_dataset = DM.sources[0]
         anno_base_level = src_base_dataset[:] & 15
-        logger.info(
-            f"Obtained base annotation level with labels {np.unique(anno_base_level)}"
-        )
-
-    print(f"Selected label {selected_label}")
-    result = anno_base_level
+        
+    result = anno_base_level + base_offset
 
     if level_over != "None":
-        result = anno_base_level * (1.0 - ((anno1_level > 0) * 1.0))
-        anno1_level[anno1_level == selected_label] += offset
-
-        result += anno1_level
-
+        # zero out everything but the selected level in the over image
+        anno_over_level[anno_over_level != selected_label_for_over] = 0
+        anno_over_level[anno_over_level == selected_label_for_over] = selected_label_for_over + offset
+        # mask out those voxels that are in the over image, in the base image
+        result = result * (1.0 - (anno_over_level > 0) * 1.0) 
+        result += anno_over_level
+        
     map_blocks(pass_through, result, out=dst, normalize=False)
-
 
 @hug.get()
 def watershed(src: DataURI, anno_id: DataURI, dst: DataURI):
