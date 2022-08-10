@@ -43,9 +43,6 @@ def ndimage_laplacian(img, kernel_size=1.0):
     img = np.nan_to_num(img)
     img = ndimage.laplace(gaussian(img, kernel_size))
 
-    img = img - np.min(img)
-    img = img / np.max(img)
-
     return img
 
 
@@ -75,8 +72,6 @@ def spatial_gradient_3d(vol_gray: np.ndarray, dim=0) -> np.ndarray:
     result_arr: np.ndarray = kornia.tensor_to_image(result.float())
     logger.debug(f"Calculated gradient of shape {result_arr.shape}")
 
-    result_arr -= np.min(result_arr)
-    result_arr /= np.max(result_arr)
     
     return result_arr
 
@@ -99,8 +94,6 @@ def laplacian(img: np.ndarray, kernel_size) -> np.ndarray:
     laplacian_img: np.ndarray = kornia.tensor_to_image(laplacian.float())
 
     laplacian_img = np.nan_to_num(laplacian_img)
-    laplacian_img -= np.min(laplacian_img)
-    laplacian_img /= np.max(laplacian_img)
 
     return laplacian_img
 
@@ -142,8 +135,6 @@ def compute_difference_gaussians(
 
     response = np.nan_to_num(response)
 
-    response -= np.min(response)
-    response /= np.max(response)
 
     return response
 

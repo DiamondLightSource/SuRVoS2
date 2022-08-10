@@ -239,13 +239,10 @@ class FeatureCard(CardWithId):
 
         self.params = fparams
         self.widgets = dict()
-
-        self._add_source()
-        for pname, params in fparams.items():
-            if pname not in ["src", "dst", "threshold"]:
-                self._add_param(pname, **params)
+        
 
         if self.feature_type == "wavelet":
+            self._add_source()
             self.wavelet_type = ComboBox()
             self.wavelet_type.addItem(key="sym2")
             self.wavelet_type.addItem(key="sym3")
@@ -278,9 +275,26 @@ class FeatureCard(CardWithId):
                 "Threshold:", self.wavelet_threshold, Spacing(35), stretch=0, 
             )
             self.add_row(widget)
+        elif self.feature_type=="feature_composite":
+            self._add_feature_source()
+            self._add_feature_source2()
+            self.label_index = LineEdit(default=-1, parse=int)
+            self.op_type = ComboBox()
+            self.op_type.addItem(key="*")
+            self.op_type.addItem(key="+")
+            widget = HWidgets("Operation:", self.op_type, stretch=0)
+            self.add_row(widget)
+        else:
+            self._add_source()
 
+        for pname, params in fparams.items():
+            if pname not in ["src", "dst", "threshold"]:
+                self._add_param(pname, **params)
+
+        
         self._add_compute_btn()
         self._add_view_btn()
+
 
     def _add_source(self):
         chk_clamp = CheckBox("Clamp")
@@ -289,6 +303,22 @@ class FeatureCard(CardWithId):
         widget = HWidgets(self.cmb_source, Spacing(35), stretch=1)
         self.add_row(widget)
 
+    def _add_feature_source(self):
+        self.feature_source = FeatureComboBox()
+        self.feature_source.fill()
+        self.feature_source.setMaximumWidth(250)
+
+        widget = HWidgets("Feature:", self.feature_source,  stretch=1)
+        self.add_row(widget)
+
+    def _add_feature_source2(self):
+        self.feature_source2 = FeatureComboBox()
+        self.feature_source2.fill()
+        self.feature_source2.setMaximumWidth(250)
+
+        widget = HWidgets("Feature:", self.feature_source2,  stretch=1)
+        self.add_row(widget)
+    
     def _add_param(self, name, type="String", default=None):
         if type == "Int":
             feature = LineEdit(default=default, parse=int)
@@ -332,8 +362,10 @@ class FeatureCard(CardWithId):
 
     def update_params(self, params):
         src = params.pop("source", None)
+
         if src is not None:
-            self.cmb_source.select(src)
+            if self.feature_type != "feature_composite":
+                self.cmb_source.select(src)
         for k, v in params.items():
             if k in self.widgets:
                 self.widgets[k].setValue(v)
@@ -447,13 +479,16 @@ class FeatureCard(CardWithId):
             pbar.set_description("Calculating feature")
             # self.pbar.setValue(25)
             pbar.update(1)
-            src_grp = None if self.cmb_source.currentIndex() == 0 else "features"
 
-            src = DataModel.g.dataset_uri(self.cmb_source.value(), group=src_grp)
-            logger.info(f"Setting src: {self.cmb_source.value()} ")
+            if self.feature_type != "feature_composite":
+                src_grp = None if self.cmb_source.currentIndex() == 0 else "features"
+                src = DataModel.g.dataset_uri(self.cmb_source.value(), group=src_grp)
+            else:
+                src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
 
             dst = DataModel.g.dataset_uri(self.feature_id, group="features")
             
+
             logger.info(f"Setting dst: {self.feature_id}")
             logger.info(f"widgets.items() {self.widgets.items()}")
             pbar.update(1)
@@ -463,6 +498,13 @@ class FeatureCard(CardWithId):
             if self.feature_type == "wavelet":
                 all_params["wavelet"] = str(self.wavelet_type.value())
                 all_params["threshold"] = self.wavelet_threshold.value()
+
+            elif self.feature_type == "feature_composite":
+                all_params["workspace"] = DataModel.g.current_workspace
+                all_params["feature_A"] = str(self.feature_source.value())
+                all_params["feature_B"] = str(self.feature_source2.value())
+                all_params["op"] = str(self.op_type.value())
+
 
             all_params.update({k: v.value() for k, v in self.widgets.items()})
 

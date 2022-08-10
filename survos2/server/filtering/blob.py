@@ -191,8 +191,6 @@ def hessian_eigvals_image(data, sigma, correct=False):
     img = np.transpose(img, (0, 3, 1, 2))
     img = img[:, :, :, 0]  # return primay eigenvalue
     img = np.nan_to_num(img)
-    img -= np.min(img)
-    img /= np.max(img)
     return img
 
 
@@ -292,9 +290,7 @@ def compute_structure_tensor_determinant(data, sigma=1):
         + Sxz * (Sxy * Syz - Syy * Sxz)
     )
 
-    determinant -= np.min(determinant)
-    determinant /= np.max(determinant)
-
+    
     return determinant
 
 
@@ -388,9 +384,6 @@ def compute_frangi(
 
         filtered_array[i] = np.nan_to_num(tmp)
     
-    img = np.max(filtered_array, axis=0)
-    img -= np.min(img)
-    img /= np.max(img)
-    return img 
+    return np.max(filtered_array, axis=0)
     
 

@@ -42,31 +42,3 @@ class LabelPostprocess(PipelineCardBase):
         
         return all_params
 
-
-class FeaturePostprocess(PipelineCardBase):
-    def __init__(self,fid, ftype, fname, fparams, parent=None):
-        super().__init__(
-            fid=fid,
-            ftype=ftype,
-            fname=fname,
-            fparams=fparams
-        )
-    def setup(self):
-        self._add_feature_source()
-        self._add_feature_source2()
-        self.label_index = LineEdit(default=-1, parse=int)
-        self.op_type = ComboBox()
-        self.op_type.addItem(key="*")
-        self.op_type.addItem(key="+")
-        widget = HWidgets("Operation:", self.op_type, stretch=0)
-        self.add_row(widget)
-    def compute_pipeline(self):
-        src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
-        all_params = dict(src=src, modal=True)
-        all_params["workspace"] = DataModel.g.current_workspace
-        all_params["feature_A"] = str(self.feature_source.value())
-        all_params["feature_B"] = str(self.feature_source2.value())
-        all_params["dst"] = self.dst
-        all_params["op"] = str(self.op_type.value())
-        return all_params
-

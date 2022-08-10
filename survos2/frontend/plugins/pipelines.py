@@ -24,7 +24,7 @@ from survos2.frontend.utils import FileWidget
 
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 from survos2.frontend.plugins.pipeline.superregion_segment import SuperregionSegment
-from survos2.frontend.plugins.pipeline.postprocess import LabelPostprocess, FeaturePostprocess
+from survos2.frontend.plugins.pipeline.postprocess import LabelPostprocess
 from survos2.frontend.plugins.pipeline.cleaning import Cleaning, PerObjectCleaning
 from survos2.frontend.plugins.pipeline.rasterize import RasterizePoints
 from survos2.frontend.plugins.pipeline.watershed import Watershed
@@ -133,8 +133,6 @@ class PipelinesPlugin(Plugin):
             widget = SuperregionSegment(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "label_postprocess":
             widget = LabelPostprocess(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
-        elif ftype == "feature_postprocess":
-            widget = FeaturePostprocess(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "per_object_cleaning":
             widget = PerObjectCleaning(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "cleaning":

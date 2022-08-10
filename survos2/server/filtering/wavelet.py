@@ -63,8 +63,6 @@ def wavelet(I, level, wavelet="db3", threshold=64.0, hard=True):
         arr_rec = waverec2(coeffs_H, wavelet=wavelet)
         result[i,0:I.shape[1],0:I.shape[2]] = arr_rec[0:I.shape[1],0:I.shape[2]].copy()
 
-    result -= np.min(result)
-    result /= np.max(result)
 
     return result
 

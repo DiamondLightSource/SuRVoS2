@@ -88,6 +88,36 @@ def get_slice(src: DataURI, slice_idx: Int, order: tuple):
 
 @hug.get()
 @save_metadata
+def feature_composite(
+    src: DataURI,
+    dst: DataURI,
+    workspace: String,
+    feature_A: DataURI,
+    feature_B: DataURI,
+    op: String
+):
+    src_A = DataModel.g.dataset_uri(feature_A, group="features")
+    with DatasetManager(src_A, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_A_dataset = DM.sources[0]
+        src_A_arr = src_A_dataset[:]
+        logger.info(f"Obtained src A with shape {src_A_arr.shape}")
+
+    src_B = DataModel.g.dataset_uri(feature_B, group="features")
+    with DatasetManager(src_B, out=None, dtype="uint16", fillvalue=0) as DM:
+        src_B_dataset = DM.sources[0]
+        src_B_arr = src_B_dataset[:]
+        logger.info(f"Obtained src B with shape {src_B_arr.shape}")
+    if op == '+':
+        result = src_A_arr + src_B_arr        
+    else:
+        result = src_A_arr * src_B_arr
+
+    map_blocks(pass_through, result, out=dst, normalize=False)
+
+
+
+@hug.get()
+@save_metadata
 def structure_tensor_determinant(
     src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
 ) -> "BLOB":
@@ -348,7 +378,7 @@ def difference_of_gaussians(
         sigma=sigma,
         sigma_ratio=sigma_ratio,
         pad=max(4, int((max(sigma) * 3))),
-        normalize=False,
+        normalize=True,
     )
 
 
