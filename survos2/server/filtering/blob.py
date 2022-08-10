@@ -148,8 +148,10 @@ def hessian_eigvals(data, sigma, correct=False):
 
     img: np.ndarray = kornia.tensor_to_image(e)
     img = np.transpose(img, (0, 3, 1, 2))
-
-    return np.nan_to_num(img)
+    img = np.nan_to_num(img)
+    img -= np.min(img)
+    img /= np.max(img)
+    return img
 
 
 def hessian_eigvals_image(data, sigma, correct=False):
@@ -188,8 +190,10 @@ def hessian_eigvals_image(data, sigma, correct=False):
     img: np.ndarray = kornia.tensor_to_image(e)
     img = np.transpose(img, (0, 3, 1, 2))
     img = img[:, :, :, 0]  # return primay eigenvalue
-
-    return np.nan_to_num(img)
+    img = np.nan_to_num(img)
+    img -= np.min(img)
+    img /= np.max(img)
+    return img
 
 
 def hessian_eigvals_p(data, sigma, correct=False):
@@ -288,6 +292,9 @@ def compute_structure_tensor_determinant(data, sigma=1):
         + Sxz * (Sxy * Syz - Syy * Sxz)
     )
 
+    determinant -= np.min(determinant)
+    determinant /= np.max(determinant)
+
     return determinant
 
 
@@ -380,5 +387,10 @@ def compute_frangi(
             tmp[e3 > 0] = 0
 
         filtered_array[i] = np.nan_to_num(tmp)
+    
+    img = np.max(filtered_array, axis=0)
+    img -= np.min(img)
+    img /= np.max(img)
+    return img 
+    
 
-    return np.max(filtered_array, axis=0)

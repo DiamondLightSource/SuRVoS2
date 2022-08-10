@@ -412,7 +412,7 @@ def gaussian_norm(
         out=dst,
         sigma=sigma,
         pad=max(4, int((max(sigma) * 2))),
-        normalize=True,
+        normalize=False,
     )
 
 
@@ -430,7 +430,7 @@ def gaussian_center(
         out=dst,
         sigma=sigma,
         pad=max(4, int((max(sigma) * 2))),
-        normalize=True,
+        normalize=False,
     )
 
 
@@ -557,6 +557,7 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
 
 
 

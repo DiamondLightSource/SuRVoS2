@@ -32,12 +32,10 @@ def wavelet3d(I, level, wavelet="sym3", threshold=64.0, hard=True):
 def wavelet(I, level, wavelet="db3", threshold=64.0, hard=True):
     mode = "symmetric"
     result = np.zeros_like(I)
-    print(I.shape)
     for i in range(I.shape[0]):
         s = np.zeros_like(result[i,:])
         s[0:I.shape[1],0:I.shape[2]] = I[i,:]
         arr = np.float32(s)
-        print(f"arr.shape {arr.shape}")
         coeffs = wavedec2(arr, wavelet=wavelet, level=7)
         coeffs_H = list(coeffs)
 
@@ -63,8 +61,11 @@ def wavelet(I, level, wavelet="db3", threshold=64.0, hard=True):
         #     coeffs_H[idx][1] = np.sign(coeffs_H[idx][1]) * np.abs(coeffs_H[idx][1] - threshold)
 
         arr_rec = waverec2(coeffs_H, wavelet=wavelet)
-        print(f"arr_rec {arr_rec.shape}")
         result[i,0:I.shape[1],0:I.shape[2]] = arr_rec[0:I.shape[1],0:I.shape[2]].copy()
 
+    result -= np.min(result)
+    result /= np.max(result)
+
     return result
+
 

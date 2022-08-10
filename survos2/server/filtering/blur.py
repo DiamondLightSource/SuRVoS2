@@ -168,6 +168,9 @@ def gaussian_center(data, sigma=0.5, **kwargs):
 
     result = data - gaussian_blur_kornia(data, sigma=sigma)
 
+    result -= np.min(result)
+    result /= np.max(result)
+    
     return result
 
 
@@ -192,6 +195,9 @@ def gaussian_norm(data, sigma=0.5, **kwargs):
 
     # TODO numerical precision ignore den < 1e-7
     num /= den
+
+    num -= np.min(num)
+    num /= np.max(num)
 
     return num
 
@@ -275,4 +281,5 @@ def tvdenoise_kornia(img, regularization_amount=0.001, max_iter=50):
 
     img_clean: np.ndarray = kornia.tensor_to_image(tv_denoiser.get_denoised_image())
     return img_clean
+
 
