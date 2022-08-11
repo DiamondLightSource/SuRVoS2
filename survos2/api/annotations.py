@@ -101,7 +101,7 @@ def set_label_parent(
 def get_label_parent(workspace: String, level: String, label_idx: Int):
     ds = get_level(workspace, level)
     labels = ds.get_metadata("labels", {})
-    print(
+    logger.debug(
         f"get_label_parent with level {level}, label_idx {label_idx}, result labels: {labels}"
     )
     parent_level = -1
@@ -331,10 +331,8 @@ def annotate_regions(
             {"level_id": parent_level}, retrieval_mode="volume"
         )
         parent_arr = parent_arr & 15
-        # print(f"Using parent dataset for masking {parent_annotations_dataset}")
         parent_mask = parent_arr == parent_label_idx
     else:
-        # print("Not masking using parent level")
         parent_arr = None
         parent_mask = None
 

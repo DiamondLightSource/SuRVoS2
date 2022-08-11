@@ -486,63 +486,6 @@ def apply_rules(
     return out, result_features
 
 
-# def plot_clustered_img(
-#     proj,
-#     colors,
-#     images=None,
-#     ax=None,
-#     thumb_frac=0.02,
-#     cmap="gray",
-#     title="Clustered Images",
-# ):
-
-#     num_classes = len(np.unique(colors))
-#     palette = np.array(sns.color_palette("hls", num_classes))
-#     # ax = ax or plt.gca()
-#     if images is not None:
-#         min_dist_2 = (thumb_frac * max(proj.max(0) - proj.min(0))) ** 2
-#         shown_images = np.array([2 * proj.max(0)])
-#         for i in range(proj.shape[0]):
-#             dist = np.sum((proj[i] - shown_images) ** 2, 1)
-#             if np.min(dist) < min_dist_2 / 5:
-#                 continue
-#             shown_images = np.vstack([shown_images, proj[i]])
-#             imagebox = offsetbox.AnnotationBbox(
-#                 offsetbox.OffsetImage(images[i], cmap=cmap, zorder=1), proj[i]
-#             )
-#             ax.add_artist(imagebox)
-
-#     ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=40, zorder=200)
-
-
-# @hug.get()
-# def level_image_stats(
-#     src: DataURI, dst: DataURI, anno_id: DataURI, label_index: Int
-# ) -> "SEGMENTATION":
-#     logger.debug(f"Finding connected components on annotation: {anno_id}")
-
-#     with DatasetManager(anno_id, out=None, dtype="uint16", fillvalue=0) as DM:
-#         src1_dataset = DM.sources[0]
-#         anno_level = src1_dataset[:] & 15
-#         logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
-
-#     bbs_tables, selected_entities = detect_blobs((anno_level == label_index) * 1.0)
-#     print(bbs_tables)
-#     print(selected_entities)
-
-#     result_list = []
-#     for i in range(len(bbs_tables[0])):
-#         result_list.append(
-#             [
-#                 bbs_tables[0].iloc[i]["area"],
-#                 bbs_tables[0].iloc[i]["z"],
-#                 bbs_tables[0].iloc[i]["y"],
-#                 bbs_tables[0].iloc[i]["x"],
-#             ]
-#         )
-
-#     return result_list
-
 
 @hug.get()
 def find_connected_components(
@@ -605,7 +548,6 @@ def find_connected_components(
 
     map_blocks(pass_through, single_label_level, out=dst, normalize=False)
     
-    print(result_list)
 
     return result_list
 
@@ -703,8 +645,7 @@ def binary_image_stats(
 
     src_thresh = (src_dataset_arr > threshold) * 1.0
     bbs_tables, selected_entities = detect_blobs(src_thresh, area_min=area_min, area_max=area_max)
-    print(bbs_tables)
-    print(selected_entities)
+
     result_list = []
 
     for i in range(len(bbs_tables[0])):
@@ -730,7 +671,6 @@ def plot_to_image(arr, title="Histogram", vert_line_at=None):
     fig.suptitle(title)
 
     if vert_line_at:
-        print(f"Plotting vertical line at: {vert_line_at} {y.max()}")
         ax.axvline(x=vert_line_at, ymin=0, ymax=y.max(), color="r")
 
     canvas.draw()
@@ -765,7 +705,7 @@ def spatial_clustering(
     from survos2.entity.anno.crowd import aggregate
 
     refined_entity_df = aggregate(entities_df, src_dataset_arr.shape, params=params)
-    print(refined_entity_df)
+
 
     result_list = []
     for i in range(len(refined_entity_df)):
@@ -817,7 +757,6 @@ def remove_masked_objects(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
     scale = ds_objects.get_metadata("scale")
-    print(f"Scaling objects by: {scale}")
 
     objects_fullname = ds_objects.get_metadata("fullname")
     objects_scale = ds_objects.get_metadata("scale")
@@ -1050,7 +989,6 @@ def object_analyzer(
         #         'dens_lambda':3.0
         # }
         embedding_params.pop("context")
-        print(embedding_params)
         patch_clusterer.embed_UMAP(params=embedding_params)
 
     patch_clusterer.density_cluster(min_cluster_size=min_cluster_size)
@@ -1074,7 +1012,6 @@ def object_analyzer(
 
     clustered = (labels >= 0)
     standard_embedding = patch_clusterer.embedding
-    print(standard_embedding)
     standard_embedding = np.array(standard_embedding)
     # ax.scatter(standard_embedding[~clustered, 0],
     #             standard_embedding[~clustered, 1],
@@ -1169,7 +1106,7 @@ def binary_classifier(
     entities_arr = np.array(entities_df)
     entities_arr[:,3] = np.array([[1] * len(entities_arr)])
     entities = np.array(make_entity_df(entities_arr, flipxy=False))
-    print(entities)
+
 
     # get background entities
     src = DataModel.g.dataset_uri(ntpath.basename(background_id), group="objects")
@@ -1181,7 +1118,7 @@ def binary_classifier(
     entities_arr = np.array(entities_df)
     entities_arr[:,3] = np.array([[0] * len(entities_arr)])
     bg_entities = np.array(make_entity_df(entities_arr, flipxy=False))
-    print(bg_entities)
+
 
     padding = np.array(bvol_dim) // 2
     feature = pad_vol(feature, padding)

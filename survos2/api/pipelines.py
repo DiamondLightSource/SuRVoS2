@@ -257,8 +257,7 @@ def rasterize_points(
     entities = np.array(make_entity_df(np.array(entities_df), flipxy=False))
     entities = entities[entities[:,3]==selected_class]
     entities[:,3] = np.array([0] * len(entities))
-    print(len(entities))
-    print(entities)
+
 
     # default params TODO make generic, allow editing
     entity_meta = {
@@ -407,7 +406,6 @@ def superregion_segment(
         import ast
 
         constrain_mask = ast.literal_eval(constrain_mask)
-        print(constrain_mask)
         constrain_mask_id = ntpath.basename(constrain_mask["level"])
         label_idx = constrain_mask["idx"]
 
@@ -927,7 +925,7 @@ def per_object_cleaning(
     entities_arr = np.array(entities_df)
     entities_arr[:,3] = np.array([[1] * len(entities_arr)])
     entities = np.array(make_entity_df(entities_arr, flipxy=False))
-    print(entities)
+
 
     target = per_object_cleaning(entities, feature, display_plots=False, bvol_dim=patch_size)
     #dst = DataModel.g.dataset_uri(dst, group="pipelines")
@@ -963,7 +961,7 @@ def per_object_cleaning(
     c = bvol_dim[0], bvol_dim[1], bvol_dim[2]
 
     for i, p in enumerate(bvol_seg):
-        print(bvol_seg.bvols[i])
+
         seg, _ = bvol_seg[i]
         cleaned_patch = (get_largest_cc(seg) > 0) * 1.0
         # try:

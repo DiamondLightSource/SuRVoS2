@@ -128,9 +128,8 @@ def upload(body, request, response):
     encoded_buffer = body['file']
     array_shape = body['shape']
     entities_arr = np.frombuffer(encoded_buffer, dtype="float32")
-    print(entities_arr)
     entities_arr.shape = literal_eval(array_shape)
-    print(f"Uploaded array of entities of shape {entities_arr.shape}")
+    logger.debug(f"Uploaded array of entities of shape {entities_arr.shape}")
     load_entities(entities_arr)
 
 

@@ -325,7 +325,7 @@ class Dataset(BaseDataset):
         return os.path.join(self._path, "chunk_%s.h5" % "x".join(map(str, idx)))
 
     def create_chunk(self, idx, data=None, cslices=None):
-        logger.debug(f"Creating chunk {idx} {data} {cslices}")
+        #logger.debug(f"Creating chunk {idx} {data} {cslices}")
         if self.readonly:
             raise DatasetException("Dataset is in readonly mode. Cannot create chunk.")
         if self.has_chunk(idx):
