@@ -4,7 +4,7 @@ import numpy as np
 from skimage import color
 from scipy import ndimage
 
-from _features import _position_3d, _position_2d
+#from _features import _position_3d, _position_2d
 
 
 class DensePositionExtractor(object):
@@ -118,3 +118,4 @@ class DensePatchExtractor3D(object):
             return np.lib.stride_tricks.as_strided(padded, shape=shape, strides=strides).reshape(-1, self.patch_size[0] * self.patch_size[1])
         else:
             return np.lib.stride_tricks.as_strided(padded, shape=shape, strides=strides)
+

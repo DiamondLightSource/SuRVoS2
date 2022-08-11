@@ -148,28 +148,6 @@ def supervoxels_chunked(
 
 
 @hug.get()
-@save_metadata
-def connected_components(src: DataURI, dst: DataURI, remap: SmartBoolean):
-    """
-    API wrapper for `survos2.improc.regions.ccl3d`.
-    """
-    from ..improc.regions.ccl import ccl3d
-
-    map_blocks(ccl3d, src, out=dst, remap=remap)
-
-
-@hug.get()
-@save_metadata
-def merge_regions(src: DataURI, labels: DataURI, dst: DataURI, min_size: Float):
-    """
-    API wrapper for `survos2.improc.regions.merge_small`.
-    """
-    from ..improc.regions.ccl import merge_small
-
-    map_blocks(merge_small, src, labels, out=dst, min_size=min_size)
-
-
-@hug.get()
 def create(workspace: String, order: Int = 1, big: bool = False):
     region_type = __region_names__[order]
     if big:
