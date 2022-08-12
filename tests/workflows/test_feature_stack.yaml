@@ -1,0 +1,27 @@
+f1:
+    action: features.gaussian_blur
+    src: 001_raw
+    dst: 002_gblur
+    params:
+        sigma: 5
+f2:
+    action: features.gaussian_blur
+    src: 001_raw
+    dst: 003_gblur
+    params:
+        sigma: 5
+f3:
+    action: features.gaussian_blur
+    src: 001_raw
+    dst: 004_gblur
+    params:
+        sigma: 5
+f4:
+    action: features.gaussian_blur
+    src: 001_raw
+    dst: 005_gblur
+    params:
+        sigma: 5
+
+
+

@@ -6,6 +6,8 @@ from qtpy import QtWidgets
 from survos2.model import DataModel
 from survos2.frontend.components.base import LineEdit, ComboBox, HWidgets
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
+from survos2.frontend.utils import FileWidget
+
 
 class Train3DCNN(PipelineCardBase):
     def __init__(self,fid, ftype, fname, fparams, parent=None):
@@ -49,8 +51,9 @@ class Predict3DCNN(PipelineCardBase):
     def setup(self):
         self._add_annotations_source()
         self._add_feature_source()
-        self._add_objects_source()
+        self._add_model_file()
         self._add_fcn_choice()
+        self._add_overlap_choice()
     def compute_pipeline(self):
         src = DataModel.g.dataset_uri(
             self.feature_source.value(), group="features"
@@ -60,9 +63,23 @@ class Predict3DCNN(PipelineCardBase):
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         all_params["feature_id"] = self.feature_source.value()
         all_params["model_fullname"] = self.model_fullname
-        all_params["model_type"] = self.model_type.value()
+        all_params["model_type"] = self.fcn_type.value()
         all_params["dst"] = self.dst
         all_params["overlap_mode"] = self.overlap_type.value()
         
         return all_params
+    def _add_model_file(self):
+        self.filewidget = FileWidget(extensions="*.pt", save=False)
+        self.add_row(self.filewidget)
+        self.filewidget.path_updated.connect(self.load_data)
+    def _add_overlap_choice(self):
+        self.overlap_type = ComboBox()
+        self.overlap_type.addItem(key="crop")
+        self.overlap_type.addItem(key="average")
+        widget = HWidgets("Overlap:", self.overlap_type,  stretch=0)
+        self.add_row(widget)
+
+    def load_data(self, path):
+        self.model_fullname = path
+        print(f"Setting model fullname: {self.model_fullname}")
 

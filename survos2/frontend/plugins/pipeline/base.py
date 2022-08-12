@@ -360,7 +360,7 @@ class PipelineCardBase(Card):
         result = Launcher.g.run("pipelines", "remove", **params)
         if result["done"]:
             self.setParent(None)
-            self._PipelineNotifier.notify()
+            #self._PipelineNotifier.notify()
 
         cfg.ppw.clientEvent.emit(
             {

@@ -739,7 +739,7 @@ def train_3d_cnn(
     grid_dim: IntOrVector = 4,
     patch_size: IntOrVector = 64,
     patch_overlap: IntOrVector = 16,
-    fcn_type: String = 'fpn3d',
+    fcn_type: String = 'unet3d',
     threshold: Float = 0.5,
 
 ):
@@ -834,7 +834,7 @@ def train_3d_cnn(
     )
     # normalize volume and threshold
     proposal -= np.min(proposal)
-    proposal = proposal = proposal / np.max(proposal)
+    proposal = proposal / np.max(proposal)
     thresholded = (proposal > threshold) * 1.0
     map_blocks(pass_through, thresholded, out=dst, normalize=False)
     
@@ -881,22 +881,19 @@ def predict_3d_cnn(
     proposal -= np.min(proposal)
     proposal = proposal / np.max(proposal)
     
+    thresholded = (proposal > threshold) * 1.0
+    map_blocks(pass_through, thresholded, out=dst, normalize=False)
    
     confidence = 1
     if confidence:
-        dst = auto_create_dataset(DataModel.g.current_workspace,name="confidence_map", group="features",  dtype="float32")
+        dst = auto_create_dataset(DataModel.g.current_workspace,name="logit_map", group="features",  dtype="float32")
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = proposal.copy()
 
-    proposal = (proposal > threshold) * 1.0
-    map_blocks(pass_through, proposal, out=dst, normalize=False)
+
 
     
-    # # store resulting segmentation in dst
-    # dst = DataModel.g.dataset_uri(dst)
-    # with DatasetManager(dst, out=dst, dtype="int32", fillvalue=0) as DM:
-    #     DM.out[:] = proposal
 
 
 @hug.get()

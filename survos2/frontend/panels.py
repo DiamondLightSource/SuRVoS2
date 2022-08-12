@@ -153,8 +153,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "refresh", "value": None}
         )
-        cfg.ppw.clientEvent.emit({'data' : 'view_feature', 'feature_id' : '001_raw'})
-
 
     def button_refresh_clicked(self):
         self.refresh_workspaces()
