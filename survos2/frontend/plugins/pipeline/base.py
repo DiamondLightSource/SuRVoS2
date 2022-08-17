@@ -64,8 +64,8 @@ class PipelineCardBase(Card):
             if pname not in ["src", "dst"]:
                 self._add_param(pname, **params)
 
-        self._add_compute_btn()
-        self._add_view_btn()
+
+        self._add_btns()
         self.dst = DataModel.g.dataset_uri(self.pipeline_id, group="pipelines")
     def _compute_pipeline(self):
         with progress(total=2) as pbar:
@@ -99,18 +99,7 @@ class PipelineCardBase(Card):
         self.model_fullname = path
         print(f"Setting model fullname: {self.model_fullname}")
 
-    def _add_view_btn(self):
-        view_btn = PushButton("View", accent=True)
-        view_btn.clicked.connect(self.view_pipeline)
-        load_as_annotation_btn = PushButton("Load as annotation", accent=True)
-        load_as_annotation_btn.clicked.connect(self.load_as_annotation)
-        load_as_float_btn = PushButton("Load as image", accent=True)
-        load_as_float_btn.clicked.connect(self.load_as_float)
-        self.add_row(
-            HWidgets(
-                None, load_as_float_btn, load_as_annotation_btn, view_btn, 
-            )
-        )
+
 
 
     def _add_refine_choice(self):
@@ -278,10 +267,21 @@ class PipelineCardBase(Card):
             self.widgets[name] = p
             self.add_row(HWidgets(None, title, p))
 
-    def _add_compute_btn(self):
+    def _add_btns(self):
+        view_btn = PushButton("View", accent=True)
+        view_btn.clicked.connect(self.view_pipeline)
+        load_as_annotation_btn = PushButton("Load as annotation", accent=True)
+        load_as_annotation_btn.clicked.connect(self.load_as_annotation)
+        load_as_float_btn = PushButton("Load as image", accent=True)
+        load_as_float_btn.clicked.connect(self.load_as_float)
         compute_btn = PushButton("Compute", accent=True)
         compute_btn.clicked.connect(self._compute_pipeline)
-        self.add_row(HWidgets(None, compute_btn ))
+        self.add_row(
+            HWidgets(
+                None, load_as_float_btn, load_as_annotation_btn, compute_btn, view_btn, 
+            )
+        )
+        
 
     def _update_params(self, params):
         logger.debug(f"Pipeline update params {params}")
@@ -535,3 +535,4 @@ class PipelineCardBase(Card):
             cfg.ppw.clientEvent.emit(
                 {"source": "workspace_gui", "data": "faster_refresh_plugin", "plugin_name": "annotations"}
             )
+

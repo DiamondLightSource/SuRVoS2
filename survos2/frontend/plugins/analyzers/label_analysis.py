@@ -295,3 +295,4 @@ class FindConnectedComponents(AnalyzerCardBase):
         if result:
             logger.debug(f"Segmentation stats result table {len(result)}")
             self.display_component_results(result)
+

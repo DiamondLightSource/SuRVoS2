@@ -377,6 +377,8 @@ def spatial_gradient_3d(src: DataURI, dst: DataURI, dim: Int = 0) -> "EDGES":
         normalize=True,
     )
 
+    simple_norm(dst)
+
 
 @hug.get()
 @save_metadata

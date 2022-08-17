@@ -212,7 +212,7 @@ class ObjectsCard(Card):
 
         self.compute_btn = PushButton("Compute")
         self.view_btn = PushButton("View", accent=True)
-        self.get_btn = PushButton("Get", accent=True)
+        self.get_btn = PushButton("Load", accent=True)
 
         self._add_param("scale", title="Scale: ", type="Float", default=1)
         self._add_param("offset", title="Offset: ", type="FloatOrVector", default=0)
@@ -225,7 +225,7 @@ class ObjectsCard(Card):
 
         self.flipxy_checkbox = CheckBox(checked=False)
         self.add_row(HWidgets(None, "Flip XY", self.flipxy_checkbox))
-        self.add_row(HWidgets(None, self.view_btn, self.get_btn))
+        self.add_row(HWidgets(None, self.get_btn, self.view_btn, ))
 
         self.view_btn.clicked.connect(self.view_objects)
         self.get_btn.clicked.connect(self.get_objects)
@@ -522,6 +522,7 @@ class ObjectsCard(Card):
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "view_patches", "patches_fullname": train_v_density}
         )
+
 
 
 

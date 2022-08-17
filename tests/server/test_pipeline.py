@@ -285,14 +285,14 @@ class Tests(object):
             "smoothing": 0,
             "selected_class": 0,
         }
-        result = survos.run_command(
-            "pipelines",
-            "rasterize_points",
-            workspace=DataModel.g.current_workspace,
-            src=src,
-            dst=dst,
-            **params
-        )
+        #result = survos.run_command(
+        #    "pipelines",
+        #    "rasterize_points",
+        #    workspace=DataModel.g.current_workspace,
+        #    src=src,
+        #    dst=dst,
+        #    **params
+        #)
 
     def test_objects(self, datamodel):
         DataModel = datamodel

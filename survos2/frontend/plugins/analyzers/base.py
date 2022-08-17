@@ -79,11 +79,13 @@ class AnalyzerCardBase(Card):
         self.setup()
     
         self.calc_btn = PushButton("Compute")
-        self.add_row(HWidgets(None, self.calc_btn))
+        
 
         if len(self.additional_buttons) > 0:
-            self.add_row(HWidgets(None, *self.additional_buttons, ))
-    
+            self.add_row(HWidgets(None, *self.additional_buttons, self.calc_btn))
+        else:
+            self.add_row(HWidgets(None, self.calc_btn))
+
         self.calc_btn.clicked.connect(self.calculate)
         self.table_control = None
         self.plots = []
@@ -854,5 +856,6 @@ class RuleCard(Card):
         self.parent.op_cards.remove(self)
         self.setParent(None)
         
+
 
 

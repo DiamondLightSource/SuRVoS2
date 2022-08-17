@@ -134,8 +134,8 @@ class SupervoxelCard(Card):
         self.add_row(HWidgets("Shape:", self.svshape, "Spacing:", self.svspacing))
         self.add_row(HWidgets("Compactness:", self.svcompactness, stretch=1))
         self.add_row(HWidgets("Int64:", self.int64_checkbox, "Find parameters:", self.zero_parameter_checkbox, "Max Iter:", self.max_num_iter ))
-        self.add_row(HWidgets(None, self.compute_btn))
-        self.add_row(HWidgets(None, self.view_btn))
+        self.add_row(HWidgets(None, self.compute_btn, self.view_btn))
+        
 
         self.compute_btn.clicked.connect(self.compute_supervoxels)
         self.view_btn.clicked.connect(self.view_regions)
@@ -244,4 +244,5 @@ class SupervoxelCard(Card):
         if "source" in params:
             for source in params["source"]:
                 self.svsource.select(source)
+
 

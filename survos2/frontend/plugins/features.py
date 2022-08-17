@@ -292,8 +292,7 @@ class FeatureCard(CardWithId):
                 self._add_param(pname, **params)
 
         
-        self._add_compute_btn()
-        self._add_view_btn()
+        self._add_btns()
 
 
     def _add_source(self):
@@ -337,28 +336,26 @@ class FeatureCard(CardWithId):
             self.widgets[name] = feature
             self.add_row(HWidgets(None, name, feature, Spacing(35)))
 
-    def _add_view_btn(self):
+    def _add_btns(self):
         view_btn = PushButton("View", accent=True)
         view_btn.clicked.connect(self.view_feature)
         load_as_annotation_btn = PushButton("Load as annotation", accent=True)
         load_as_annotation_btn.clicked.connect(self.load_as_annotation)
-        self.add_row(
-            HWidgets(
-                None,
-                load_as_annotation_btn, view_btn, Spacing(35)
-            )
-        )
 
-    def _add_compute_btn(self):
+
         compute_btn = PushButton("Compute", accent=True)
         compute_btn.clicked.connect(self.compute_feature)
         self.add_row(
             HWidgets(
                 None,
+                load_as_annotation_btn, 
                 compute_btn,
+                view_btn,
                 Spacing(35)
             )
         )
+
+
 
     def update_params(self, params):
         src = params.pop("source", None)
@@ -523,6 +520,7 @@ class FeatureCard(CardWithId):
             _FeatureNotifier.notify()
 
         return result["done"]
+
 
 
 
