@@ -85,6 +85,15 @@ def get_slice(src: DataURI, slice_idx: Int, order: tuple):
     data = ds[slice_idx]
     return encode_numpy_slice(data.astype(np.float32))
 
+def simple_norm(dst):    
+    with DatasetManager(dst, out=None, dtype="float32", fillvalue=0) as DM:
+        arr = DM.sources[0][:]
+        arr -= np.min(arr)
+        arr /= np.max(arr)
+    map_blocks(pass_through, arr, out=dst, normalize=False)
+
+
+
 
 @hug.get()
 @save_metadata
@@ -132,6 +141,8 @@ def structure_tensor_determinant(
         normalize=True,
     )
 
+    simple_norm(dst)
+
 
 @hug.get()
 @save_metadata
@@ -161,6 +172,7 @@ def frangi(
         pad=max(4, int((scale_max * 2))),
     )
 
+    simple_norm(dst)
 
 @hug.get()
 @save_metadata
@@ -176,6 +188,8 @@ def hessian_eigenvalues(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) ->
         sigma=sigma,
         normalize=True,
     )
+
+    simple_norm(dst)
 
 
 def pass_through(x):
@@ -380,6 +394,7 @@ def difference_of_gaussians(
         pad=max(4, int((max(sigma) * 3))),
         normalize=True,
     )
+    simple_norm(dst)
 
 
 @hug.get()
@@ -418,7 +433,6 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
 def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "EDGES":
     from ..server.filtering import ndimage_laplacian
 
-    print(kernel_size)
     map_blocks(
         ndimage_laplacian,
         src,
@@ -428,6 +442,7 @@ def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "ED
         normalize=False,
     )
 
+    simple_norm(dst)
 
 @hug.get()
 @save_metadata
@@ -444,6 +459,9 @@ def gaussian_norm(
         pad=max(4, int((max(sigma) * 2))),
         normalize=False,
     )
+
+    simple_norm(dst)
+
 
 
 @hug.get()
@@ -462,7 +480,7 @@ def gaussian_center(
         pad=max(4, int((max(sigma) * 2))),
         normalize=False,
     )
-
+    simple_norm(dst)
 
 @hug.get()
 @save_metadata
@@ -587,6 +605,7 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
 
 
 

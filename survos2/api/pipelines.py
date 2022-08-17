@@ -797,7 +797,7 @@ def train_3d_cnn(
     logger.debug(f"Making patches in path {src_dataset._path}")
     train_v_density = make_patches(wf, entity_arr, src_dataset._path, 
         proposal_vol=(anno_level == 1)* 1.0, 
-        padding=padding, num_augs=num_augs, max_vols=-1, plot_all=True)
+        padding=padding, num_augs=num_augs, max_vols=-1, plot_all=False, patch_size=patch_size)
 
     # setup model filename
     ws_object = ws.get(workspace)
@@ -897,6 +897,7 @@ def predict_3d_cnn(
 
 
 @hug.get()
+@save_metadata
 def per_object_cleaning(
     dst: DataURI,
     feature_id: DataURI, 
@@ -1051,6 +1052,7 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
 
 
 
