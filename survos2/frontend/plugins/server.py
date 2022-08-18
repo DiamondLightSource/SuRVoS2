@@ -720,27 +720,28 @@ class ServerPlugin(Plugin):
         )
         if isinstance(full_path, tuple):
             full_path = full_path[0]
-        self.given_chroot_linedt.setText(full_path)
-        self.set_chroot()
-        cfg.bpw.refresh_workspaces()
+        if full_path!="":
+            self.given_chroot_linedt.setText(full_path)
+            self.set_chroot()
+            cfg.bpw.refresh_workspaces()
 
-        # edit the settings file to store the chosen chroot path
-        import ruamel.yaml
-        import pathlib
-        current_path = pathlib.Path(__file__).parent.resolve()
-        yaml = ruamel.yaml.YAML()
-        yaml.preserve_quotes = True
+            # edit the settings file to store the chosen chroot path
+            import ruamel.yaml
+            import pathlib
+            current_path = pathlib.Path(__file__).parent.resolve()
+            yaml = ruamel.yaml.YAML()
+            yaml.preserve_quotes = True
 
-        with open(str(current_path) + "/../../../settings.yaml") as f:
-            settings = yaml.load(f)
+            with open(str(current_path) + "/../../../settings.yaml") as f:
+                settings = yaml.load(f)
 
-        for entry in settings:
-            if entry == "model":
-                settings["model"]["chroot"] = full_path
-                print(settings)
+            for entry in settings:
+                if entry == "model":
+                    settings["model"]["chroot"] = full_path
+                    
 
-        with open(str(current_path) + "/../../../settings.yaml", "w") as f:
-            yaml.dump(settings, f)
+            with open(str(current_path) + "/../../../settings.yaml", "w") as f:
+                yaml.dump(settings, f)
 
 
 
@@ -1255,6 +1256,7 @@ class ServerPlugin(Plugin):
                     + str(self.run_config["server_port"]),
                 ]
             )
+
 
 
 
