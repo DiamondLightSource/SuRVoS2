@@ -492,11 +492,8 @@ class ROIPlugin(Plugin):
         self.vbox.addWidget(button_selectroi)
         button_selectroi.clicked.connect(self._launch_data_loader)
         self._add_boxes_source()
-
-        #self.vbox.addLayout(self.roi_layout)
         self.vbox.addLayout(hbox_layout3)
         self.existing_roi = {}
-        self.roi_layout = VBox(margin=0, spacing=5)
         self.vbox.addLayout(self.roi_layout)
 
     def _add_boxes_source(self):
@@ -735,6 +732,7 @@ class ROICard(Card):
         logger.debug(f"Pulling annotation into current workspace from workspace: {self.rname}, level: {anno_id}")
         all_params = dict(modal=True, roi_fname=self.rname, workspace=True, anno_id=anno_id, target_anno_id=target_id)
         result = Launcher.g.run("roi", "pull_anno", **all_params)
+
 
 
 
