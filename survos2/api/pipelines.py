@@ -103,33 +103,25 @@ def cleaning(
     dst: DataURI,
     min_component_size: Int = 100,
 ):
-    from survos2.entity.saliency import (
+    from survos2.entity.components import (
         filter_small_components,
-        single_component_cleaning,
     )
 
-    # src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
-    # logger.debug(f"Getting objects {src}")
-    # with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-    #     ds_objects = DM.sources[0]
-    # entities_fullname = ds_objects.get_metadata("fullname")
-    # tabledata, entities_df = setup_entity_table(entities_fullname)
-    # selected_entities = np.array(entities_df)
 
     logger.debug(f"Calculating stats on feature: {feature_id}")
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        feature_dataset_arr = DM.sources[0][:]
+        feature = DM.sources[0][:]
 
-    seg_cleaned, tables, labeled_images = filter_small_components(
-        [feature_dataset_arr], min_component_size=min_component_size
-    )
-    # seg_cleaned = single_component_cleaning(selected_entities, feature_dataset_arr, bvol_dim=(42,42,42))
+    from skimage.morphology import remove_small_objects
+    from skimage.measure import label
+    
+    feature = feature > 0
 
-    # map_blocks(pass_through, (seg_cleaned > 0) * 1.0, out=dst, normalize=False)
-
+    seg_cleaned = remove_small_objects(feature, min_component_size)
+    
     with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
-        DM.out[:] = (seg_cleaned > 0) * 1.0
+        DM.out[:] = seg_cleaned #(seg_cleaned > 0) * 1.0
 
 
 @hug.get()
