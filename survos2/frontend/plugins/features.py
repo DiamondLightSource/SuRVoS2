@@ -275,6 +275,7 @@ class FeatureCard(CardWithId):
                 "Threshold:", self.wavelet_threshold, Spacing(35), stretch=0, 
             )
             self.add_row(widget)
+            self._add_btns()
         elif self.feature_type=="feature_composite":
             self._add_feature_source()
             self._add_feature_source2()
@@ -284,15 +285,20 @@ class FeatureCard(CardWithId):
             self.op_type.addItem(key="+")
             widget = HWidgets("Operation:", self.op_type, stretch=0)
             self.add_row(widget)
+            self._add_btns()
+        elif self.feature_type=="raw":
+            self._add_view_and_load_btns()
+
         else:
             self._add_source()
+            self._add_btns()
 
         for pname, params in fparams.items():
             if pname not in ["src", "dst", "threshold"]:
                 self._add_param(pname, **params)
 
         
-        self._add_btns()
+        
 
 
     def _add_source(self):
@@ -350,6 +356,21 @@ class FeatureCard(CardWithId):
                 None,
                 load_as_annotation_btn, 
                 compute_btn,
+                view_btn,
+                Spacing(35)
+            )
+        )
+
+    def _add_view_and_load_btns(self):
+        view_btn = PushButton("View", accent=True)
+        view_btn.clicked.connect(self.view_feature)
+        load_as_annotation_btn = PushButton("Load as annotation", accent=True)
+        load_as_annotation_btn.clicked.connect(self.load_as_annotation)
+
+        self.add_row(
+            HWidgets(
+                None,
+                load_as_annotation_btn, 
                 view_btn,
                 Spacing(35)
             )
