@@ -492,8 +492,11 @@ class ROIPlugin(Plugin):
         self.vbox.addWidget(button_selectroi)
         button_selectroi.clicked.connect(self._launch_data_loader)
         self._add_boxes_source()
+
+        #self.vbox.addLayout(self.roi_layout)
         self.vbox.addLayout(hbox_layout3)
         self.existing_roi = {}
+        #self.roi_layout = VBox(margin=0, spacing=5)
         self.vbox.addLayout(self.roi_layout)
 
     def _add_boxes_source(self):
@@ -612,6 +615,12 @@ class ROIPlugin(Plugin):
 
 
     def setup(self):
+        self.existing_roi = {}
+        #self.roi_layout = QtWidgets.QVBoxLayout()
+        #self.vbox.addLayout(self.roi_layout)
+        
+        for i in reversed(range(self.roi_layout.count())): 
+            self.roi_layout.itemAt(i).widget().setParent(None)
         result = Launcher.g.run("roi", "existing")
         logger.debug(f"roi result {result}")
         if result:
@@ -695,6 +704,10 @@ class ROIPlugin(Plugin):
            {"source": "panel_gui", "data": "make_roi_ws", "roi": roi}
         )
         self.add_roi(roi_name, original_workspace, roi)
+
+        cfg.ppw.clientEvent.emit(
+            {"source": "panel_gui", "data": "faster_refresh", "value": None}
+        )
 
 
 
