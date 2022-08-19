@@ -140,48 +140,6 @@ def load_metadata(source: "Dataset URI to load in HDF5, MRC or SuRVoS format"):
         logger.info("Dataset `{}` has no metadata.".format(source))
 
 
-@begin.subcommand
-def view_data(
-    source: "Dataset URI to load in HDF5, MRC or SuRVoS format",
-    boundaries: "Boundaries to show on top of the `source`" = None,
-    overlay: "Overlay dataset to show on top of the `source`" = None,
-    bcolor: "Color of the overlaid boundaries" = "#000099",
-    balpha: "Alpha of the overlaid boundaries" = 0.7,
-    oalpha: "Overlay alpha." = 0.5,
-):
-    """
-    Visualizes a 3D volume with sliders.
-    Allows to overlay a segmentation / other image and to overlay
-    boundaries, from either supervoxels or other boundary extraction
-    method.
-    """
-    from survos2.io import dataset_from_uri
-    from survos2.volume_utils import view
-
-    logger.info(f"Loading source volume {source}")
-    source = dataset_from_uri(source)
-    if boundaries:
-        logger.info("Loading boundaries")
-        boundaries = dataset_from_uri(boundaries)
-    if overlay:
-        logger.info("Loading overlay")
-        overlay = dataset_from_uri(overlay)
-
-    view(
-        source,
-        boundaries=boundaries,
-        overlay=overlay,
-        bcolor=bcolor,
-        balpha=balpha,
-        oalpha=oalpha,
-    )
-
-    source.close()
-    if boundaries:
-        boundaries.close()
-    if overlay:
-        overlay.close()
-
 
 @begin.subcommand
 def process(
