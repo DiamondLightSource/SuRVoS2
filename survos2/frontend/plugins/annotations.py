@@ -231,14 +231,14 @@ class AnnotationPlugin(Plugin):
             )
 
 
-
-class AnnotationLevel(Card):
+class AnnotationLevel(CardWithId):
 
     removed = QtCore.Signal(str)
 
     def __init__(self, level, parent=None, brush_slider=None):
         super().__init__(
-            level["name"],
+            level["name"], 
+            level["id"],
             editable=True,
             collapsible=True,
             removable=True,
@@ -252,7 +252,6 @@ class AnnotationLevel(Card):
         self.labels = {}
         self._add_view_btn()
         self._populate_labels()
-        
 
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
