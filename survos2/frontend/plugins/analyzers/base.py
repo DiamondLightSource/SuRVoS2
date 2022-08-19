@@ -27,6 +27,8 @@ from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
 from survos2.utils import decode_numpy
+from survos2.frontend.plugins.analyzers.constants import feature_names
+
 
 
 
