@@ -266,13 +266,13 @@ class FeatureCard(CardWithId):
             self.wavelet_type.addItem(key="bior3.5")
 
             widget = HWidgets(
-                "Wavelet type:", self.wavelet_type, Spacing(35), stretch=0
+                "Wavelet type:", self.wavelet_type,  stretch=0
             )
             self.add_row(widget)
 
             self.wavelet_threshold = RealSlider(value=0.0, vmax=128, vmin=0, n=2000)
             widget = HWidgets(
-                "Threshold:", self.wavelet_threshold, Spacing(35), stretch=0, 
+                "Threshold:", self.wavelet_threshold, stretch=0, 
             )
             self.add_row(widget)
             self._add_btns()
@@ -305,7 +305,7 @@ class FeatureCard(CardWithId):
         chk_clamp = CheckBox("Clamp")
         self.cmb_source = SourceComboBox([self.feature_id,'001 Raw'])
         self.cmb_source.fill()
-        widget = HWidgets(self.cmb_source, Spacing(35), stretch=1)
+        widget = HWidgets(self.cmb_source,  stretch=1)
         self.add_row(widget)
 
     def _add_feature_source(self):
@@ -340,7 +340,7 @@ class FeatureCard(CardWithId):
 
         if feature:
             self.widgets[name] = feature
-            self.add_row(HWidgets(None, name, feature, Spacing(35)))
+            self.add_row(HWidgets(None, name, feature))
 
     def _add_btns(self):
         view_btn = PushButton("View", accent=True)
@@ -356,8 +356,7 @@ class FeatureCard(CardWithId):
                 None,
                 load_as_annotation_btn, 
                 compute_btn,
-                view_btn,
-                Spacing(35)
+                view_btn
             )
         )
 
@@ -371,8 +370,7 @@ class FeatureCard(CardWithId):
             HWidgets(
                 None,
                 load_as_annotation_btn, 
-                view_btn,
-                Spacing(35)
+                view_btn
             )
         )
 
@@ -380,9 +378,9 @@ class FeatureCard(CardWithId):
 
     def update_params(self, params):
         src = params.pop("source", None)
-
+        print(params)
         if src is not None:
-            if self.feature_type != "feature_composite":
+            if self.feature_type != "feature_composite" and self.feature_type != "raw":
                 self.cmb_source.select(src)
         for k, v in params.items():
             if k in self.widgets:
