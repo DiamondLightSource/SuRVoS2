@@ -25,7 +25,6 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 
 
-
 def load_model(detmod, file_path):
     def load_model_parameters(full_path):
         checkpoint = torch.load(full_path)
@@ -238,7 +237,6 @@ def prepare_unet3d(existing_model_fname=None, num_epochs=2, initial_lr=0.001, de
     # else:
     #     model3d = model3d.to(device).eval()
 
-
     model3d = model3d.to(device).eval()
     # optimizer = optim.Adam(model3d.parameters(), lr=initial_lr)
     # scheduler = optim.lr_scheduler.ExponentialLR(optimizer, num_epochs)
@@ -256,17 +254,17 @@ def prepare_unet3d(existing_model_fname=None, num_epochs=2, initial_lr=0.001, de
     return model3d, optimizer, scheduler
 
 
-
 def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
     from survos2.entity.models.fpn import CNNConfigs
     from survos2.entity.models.detNet2 import detNet
+
     cf = CNNConfigs("mymodel")
-    #metrics = defaultdict(float)
-    #epoch_samples = 0
+    # metrics = defaultdict(float)
+    # epoch_samples = 0
     device = torch.device(gpu_id)
     print(f"Device {device}")
     print(f"Dim: {cf.dim} {cf.num_seg_classes}")
-    
+
     detmod = detNet(cf).to(device)
 
     if existing_model_fname is not None:
@@ -335,11 +333,10 @@ def make_proposal(
             patch_overlap=patch_overlap,
             device=gpu_id,
             fpn=False,
-            overlap_mode=overlap_mode
+            overlap_mode=overlap_mode,
         )
         output_tensor1 = aggregator.get_output_tensor()
         print(f"Aggregated volume of {output_tensor1.shape}")
         seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
 
     return seg_out
-

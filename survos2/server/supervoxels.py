@@ -45,9 +45,7 @@ def generate_supervoxels(
     from cuda_slic import slic
 
     logger.debug(f"Using feature idx {dataset_feats_idx} for supervoxels.")
-    logger.debug(
-        f"SRFeatures for supervoxels have shape {dataset_feats[dataset_feats_idx].shape}"
-    )
+    logger.debug(f"SRFeatures for supervoxels have shape {dataset_feats[dataset_feats_idx].shape}")
     logger.debug(f"Generating supervoxels with params: {slic_params}")
 
     block_z, block_x, block_y = dataset_feats[0].shape
@@ -73,15 +71,11 @@ def generate_supervoxels(
     )
     supervoxel_features = rmeans(filtered_stack, supervoxel_vol)
 
-    logger.debug(
-        f"Finished rmeans with supervoxel_features of shape {supervoxel_features.shape}"
-    )
+    logger.debug(f"Finished rmeans with supervoxel_features of shape {supervoxel_features.shape}")
 
     supervoxel_rag = create_rag(np.array(supervoxel_vol), connectivity=6)
 
-    logger.debug(
-        "MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol))
-    )
+    logger.debug("MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol)))
 
     superregions = SRData(supervoxel_vol, supervoxel_features, supervoxel_rag)
 
@@ -101,18 +95,12 @@ def superregion_factory(
     elif desc_type == "Covar":
         descriptors = rstats(features_stack, supervoxel_vol, mode="add", norm=None)
     elif desc_type == "Sigma Set":
-        descriptors = rstats(
-            features_stack, supervoxel_vol, mode="add", sigmaset=True, norm=None
-        )
+        descriptors = rstats(features_stack, supervoxel_vol, mode="add", sigmaset=True, norm=None)
 
-    logger.debug(
-        f"Finished calculating superregion descriptors of shape {descriptors.shape}"
-    )
+    logger.debug(f"Finished calculating superregion descriptors of shape {descriptors.shape}")
 
     supervoxel_rag = create_rag(np.array(supervoxel_vol), connectivity=6)
-    logger.debug(
-        "MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol))
-    )
+    logger.debug("MaxMin SV Feat: {} {}".format(np.max(supervoxel_vol), np.min(supervoxel_vol)))
 
     superregions = SRData(supervoxel_vol, descriptors, supervoxel_rag)
 
@@ -156,9 +144,7 @@ def prepare_supervoxels(
     )
 
     supervoxel_features = rmeans(filtered_stack, supervoxel_proc)
-    supervoxel_rag = create_rag(
-        np.array(supervoxel_proc).astype(np.uint32), connectivity=6
-    )
+    supervoxel_rag = create_rag(np.array(supervoxel_proc).astype(np.uint32), connectivity=6)
 
     supervoxel_features = []
     supervoxel_rag = []

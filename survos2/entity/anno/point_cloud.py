@@ -8,6 +8,7 @@ import seaborn as sns
 from sklearn.cluster import DBSCAN
 import hdbscan
 
+
 def centroid_3d(arr):
     """Calculate the centroid of a set of points"""
     length = arr.shape[0]
@@ -153,9 +154,9 @@ def aggregation(
     #
 
     if method == "hdbscan":
-        clusterer = hdbscan.HDBSCAN(
-            min_cluster_size=min_cluster_size, min_samples=1
-        ).fit(X_rescaled)
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=1).fit(
+            X_rescaled
+        )
         label_code = clusterer.labels_
         num_clusters_found = len(np.unique(label_code))
         threshold = pd.Series(clusterer.outlier_scores_).quantile(quantile_threshold)
@@ -174,11 +175,7 @@ def aggregation(
                     X_rescaled.shape[0], X_rescaled_cl.shape[0], num_outliers_removed
                 )
             )
-            print(
-                "Proportion removed: {}".format(
-                    num_outliers_removed / X_rescaled.shape[0]
-                )
-            )
+            print("Proportion removed: {}".format(num_outliers_removed / X_rescaled.shape[0]))
 
     elif method == "dbscan":
 
@@ -197,9 +194,7 @@ def aggregation(
     cluster_sizes = np.array([len(cluster_coord) for cluster_coord in cluster_coords])
     print(f"Cluster sizes {cluster_sizes.shape}")
 
-    cluster_centroids = np.array(
-        [centroid_3d(cluster_coord) for cluster_coord in cluster_coords]
-    )
+    cluster_centroids = np.array([centroid_3d(cluster_coord) for cluster_coord in cluster_coords])
 
     cluster_centroids = np.array(cluster_centroids)
     cluster_sizes = np.array(cluster_sizes)
@@ -263,4 +258,3 @@ def aggregation(
     print(f"Produced clustered output of shape: {clustered.shape}")
 
     return clustered
-

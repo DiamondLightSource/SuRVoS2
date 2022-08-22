@@ -11,6 +11,7 @@ import pywt
 from pywt import wavedec2, waverec2
 from skimage.filters import gaussian, difference_of_gaussians
 
+
 def wavelet3d(I, level, wavelet="sym3", threshold=64.0, hard=True):
     mode = "symmetric"
     arr = np.float32(I)
@@ -28,13 +29,12 @@ def wavelet3d(I, level, wavelet="sym3", threshold=64.0, hard=True):
     return arr_rec
 
 
-
 def wavelet(I, level, wavelet="db3", threshold=64.0, hard=True):
     mode = "symmetric"
     result = np.zeros_like(I)
     for i in range(I.shape[0]):
-        s = np.zeros_like(result[i,:])
-        s[0:I.shape[1],0:I.shape[2]] = I[i,:]
+        s = np.zeros_like(result[i, :])
+        s[0 : I.shape[1], 0 : I.shape[2]] = I[i, :]
         arr = np.float32(s)
         coeffs = wavedec2(arr, wavelet=wavelet, level=7)
         coeffs_H = list(coeffs)
@@ -42,28 +42,27 @@ def wavelet(I, level, wavelet="db3", threshold=64.0, hard=True):
         idx = int(level)
 
         if hard:
-            for idx in range(idx,7):
-                for idx2 in [0,1,2]:
-                    #print(np.mean(coeffs_H[idx][idx2]), np.max(coeffs_H[idx][idx2]), np.min(coeffs_H[idx][idx2]))
-                    coeffs_H[idx][idx2][coeffs_H[idx][idx2] < threshold] =  0
+            for idx in range(idx, 7):
+                for idx2 in [0, 1, 2]:
+                    # print(np.mean(coeffs_H[idx][idx2]), np.max(coeffs_H[idx][idx2]), np.min(coeffs_H[idx][idx2]))
+                    coeffs_H[idx][idx2][coeffs_H[idx][idx2] < threshold] = 0
 
-            #coeffs_H[-idx] == tuple([np.zeros_like(v) for v in coeffs_H[-idx]])
+            # coeffs_H[-idx] == tuple([np.zeros_like(v) for v in coeffs_H[-idx]])
         else:
-            for idx in range(idx,0,-1):
-                for idx2 in [0,1,2]:
+            for idx in range(idx, 0, -1):
+                for idx2 in [0, 1, 2]:
                     coeffs_H[idx] = list(coeffs_H[idx])
-                    #coeffs_H[idx][idx2] = np.sign(coeffs_H[idx][idx2]) * np.abs(coeffs_H[idx][idx2] + threshold)
-                    coeffs_H[idx][idx2][coeffs_H[idx][idx2] < threshold] =  difference_of_gaussians(coeffs_H[idx][idx2][coeffs_H[idx][idx2] < threshold],1)
-            
+                    # coeffs_H[idx][idx2] = np.sign(coeffs_H[idx][idx2]) * np.abs(coeffs_H[idx][idx2] + threshold)
+                    coeffs_H[idx][idx2][coeffs_H[idx][idx2] < threshold] = difference_of_gaussians(
+                        coeffs_H[idx][idx2][coeffs_H[idx][idx2] < threshold], 1
+                    )
+
         # if hard:
         #     coeffs_H[idx][1][coeffs_H[idx][1] < threshold] = 0
         # else:
         #     coeffs_H[idx][1] = np.sign(coeffs_H[idx][1]) * np.abs(coeffs_H[idx][1] - threshold)
 
         arr_rec = waverec2(coeffs_H, wavelet=wavelet)
-        result[i,0:I.shape[1],0:I.shape[2]] = arr_rec[0:I.shape[1],0:I.shape[2]].copy()
-
+        result[i, 0 : I.shape[1], 0 : I.shape[2]] = arr_rec[0 : I.shape[1], 0 : I.shape[2]].copy()
 
     return result
-
-

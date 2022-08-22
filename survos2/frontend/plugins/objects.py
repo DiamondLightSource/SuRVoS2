@@ -24,7 +24,6 @@ from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.entity.patches import PatchWorkflow, organize_entities, make_patches
 
 
-
 class ObjectComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None, filter=None):
         self.full = full
@@ -40,9 +39,15 @@ class ObjectComboBox(LazyComboBox):
         logger.debug(f"Result of objects existing: {result}")
         if result:
             for fid in result:
-                if result[fid]["kind"] == "points" and result[fid]["kind"] in self.filter_objects_type:
+                if (
+                    result[fid]["kind"] == "points"
+                    and result[fid]["kind"] in self.filter_objects_type
+                ):
                     self.addItem(fid, result[fid]["name"])
-                elif result[fid]["kind"] == "boxes" and result[fid]["kind"] in self.filter_objects_type:
+                elif (
+                    result[fid]["kind"] == "boxes"
+                    and result[fid]["kind"] in self.filter_objects_type
+                ):
                     self.addItem(fid, result[fid]["name"])
 
 
@@ -69,9 +74,7 @@ class ObjectsPlugin(Plugin):
         self.objects_combo.clear()
         self.objects_combo.addItem("Add objects")
 
-        params = dict(
-            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
-        )
+        params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("objects", "available", **params)
 
         print(result)
@@ -80,9 +83,7 @@ class ObjectsPlugin(Plugin):
             all_categories = sorted(set(p["category"] for p in result))
             for i, category in enumerate(all_categories):
                 self.objects_combo.addItem(category)
-                self.objects_combo.model().item(
-                    i + len(self.objects_params) + 1
-                ).setEnabled(False)
+                self.objects_combo.model().item(i + len(self.objects_params) + 1).setEnabled(False)
 
                 for f in [p for p in result if p["category"] == category]:
                     self.objects_params[f["name"]] = f["params"]
@@ -100,17 +101,13 @@ class ObjectsPlugin(Plugin):
         if order == 1:
             params = dict(
                 order=order,
-                workspace=DataModel.g.current_session
-                + "@"
-                + DataModel.g.current_workspace,
+                workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
                 fullname="survos2/entity/blank_boxes.csv",
             )
         else:
             params = dict(
                 order=order,
-                workspace=DataModel.g.current_session
-                + "@"
-                + DataModel.g.current_workspace,
+                workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
                 fullname="survos2/entity/blank_entities.csv",
             )
         result = Launcher.g.run("objects", "create", **params)
@@ -120,16 +117,12 @@ class ObjectsPlugin(Plugin):
             objectsname = result["name"]
             objectsfullname = result["fullname"]
             objectstype = result["kind"]
-            self._add_objects_widget(
-                objectsid, objectsname, objectsfullname, objectstype, True
-            )
+            self._add_objects_widget(objectsid, objectsname, objectsfullname, objectstype, True)
 
     def _add_objects_widget(
         self, objectsid, objectsname, objectsfullname, objectstype, expand=False
     ):
-        logger.debug(
-            f"Add objects {objectsid} {objectsname} {objectsfullname} {objectstype}"
-        )
+        logger.debug(f"Add objects {objectsid} {objectsname} {objectsfullname} {objectstype}")
         widget = ObjectsCard(objectsid, objectsname, objectsfullname, objectstype)
         widget.showContent(expand)
         self.objects_layout.addWidget(widget)
@@ -149,9 +142,7 @@ class ObjectsPlugin(Plugin):
 
     def setup(self):
         self._populate_objects()
-        params = dict(
-            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
-        )
+        params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("objects", "existing", **params)
 
         logger.debug(f"objects result {result}")
@@ -188,9 +179,7 @@ class ObjectsPlugin(Plugin):
 
 
 class ObjectsCard(Card):
-    def __init__(
-        self, objectsid, objectsname, objectsfullname, objectstype, parent=None
-    ):
+    def __init__(self, objectsid, objectsname, objectsfullname, objectstype, parent=None):
         super().__init__(
             title=objectsname,
             collapsible=True,
@@ -216,16 +205,18 @@ class ObjectsCard(Card):
 
         self._add_param("scale", title="Scale: ", type="Float", default=1)
         self._add_param("offset", title="Offset: ", type="FloatOrVector", default=0)
-        self._add_param(
-            "crop_start", title="Crop Start: ", type="FloatOrVector", default=0
-        )
-        self._add_param(
-            "crop_end", title="Crop End: ", type="FloatOrVector", default=10000
-        )
+        self._add_param("crop_start", title="Crop Start: ", type="FloatOrVector", default=0)
+        self._add_param("crop_end", title="Crop End: ", type="FloatOrVector", default=10000)
 
         self.flipxy_checkbox = CheckBox(checked=False)
         self.add_row(HWidgets(None, "Flip XY", self.flipxy_checkbox))
-        self.add_row(HWidgets(None, self.get_btn, self.view_btn, ))
+        self.add_row(
+            HWidgets(
+                None,
+                self.get_btn,
+                self.view_btn,
+            )
+        )
 
         self.view_btn.clicked.connect(self.view_objects)
         self.get_btn.clicked.connect(self.get_objects)
@@ -236,9 +227,9 @@ class ObjectsCard(Card):
         cfg.object_crop_end = self.widgets["crop_end"].value()
 
         cfg.object_scale = 1.0
-        cfg.object_offset = (0,0,0)
-        cfg.object_crop_start = (0,0,0)
-        cfg.object_crop_end = (1e9,1e9,1e9)
+        cfg.object_offset = (0, 0, 0)
+        cfg.object_crop_start = (0, 0, 0)
+        cfg.object_crop_end = (1e9, 1e9, 1e9)
 
         if self.objectstype == "patches":
             self._add_annotations_source()
@@ -250,19 +241,18 @@ class ObjectsCard(Card):
             self.make_patches_btn.clicked.connect(self.make_patches)
 
             self.add_row(HWidgets(None, self.entity_mask_bvol_size, self.make_entity_mask_btn))
-            self.add_row(HWidgets(None,  self.make_patches_btn))
+            self.add_row(HWidgets(None, self.make_patches_btn))
         elif self.objectstype == "boxes":
             self._add_annotations_source()
             self._add_feature_source()
             self.make_bvol_mask_btn = PushButton("Make bounding volume mask", accent=True)
             self.make_bvol_mask_btn.clicked.connect(self.make_bvol_mask)
-            self.add_row(HWidgets(None,  self.make_bvol_mask_btn))
+            self.add_row(HWidgets(None, self.make_bvol_mask_btn))
         elif self.objectstype == "points":
             self._add_param("box_dim", title="Box dim: ", type="IntOrVector", default=16)
             self.make_boxes_btn = PushButton("Make boxes from points", accent=True)
             self.make_boxes_btn.clicked.connect(self.make_boxes_from_points)
-            self.add_row(HWidgets(None,  self.make_boxes_btn))
- 
+            self.add_row(HWidgets(None, self.make_boxes_btn))
 
         self.table_control = TableWidget()
         self.add_row(self.table_control.w, max_height=500)
@@ -301,9 +291,7 @@ class ObjectsCard(Card):
         self.annotations_source.fill()
         self.annotations_source.setMaximumWidth(250)
 
-        widget = HWidgets(
-            "Annotation:", self.annotations_source, stretch=1
-        )
+        widget = HWidgets("Annotation:", self.annotations_source, stretch=1)
         self.add_row(widget)
 
     def card_title_edited(self, newtitle):
@@ -353,16 +341,16 @@ class ObjectsCard(Card):
         )
         logger.debug(f"Getting objects with params {params}")
         result = Launcher.g.run("objects", "update_metadata", workspace=True, **params)
-          
-        if self.objectstype == "points":            
+
+        if self.objectstype == "points":
             tabledata, self.entities_df = setup_entity_table(
-                 self.objectsfullname,
-                 scale=cfg.object_scale,
-                 offset=cfg.object_offset,
-                 crop_start=cfg.object_crop_start,
-                 crop_end=cfg.object_crop_end,
-                 flipxy=self.flipxy_checkbox.value()
-             )
+                self.objectsfullname,
+                scale=cfg.object_scale,
+                offset=cfg.object_offset,
+                crop_start=cfg.object_crop_start,
+                crop_end=cfg.object_crop_end,
+                flipxy=self.flipxy_checkbox.value(),
+            )
         elif self.objectstype == "boxes":
             tabledata, self.entities_df = setup_bb_table(
                 self.objectsfullname,
@@ -370,7 +358,7 @@ class ObjectsCard(Card):
                 offset=cfg.object_offset,
                 crop_start=cfg.object_crop_start,
                 crop_end=cfg.object_crop_end,
-                flipxy=self.flipxy_checkbox.value()
+                flipxy=self.flipxy_checkbox.value(),
             )
         elif self.objectstype == "patches":
             tabledata, self.entities_df = setup_entity_table(
@@ -379,8 +367,8 @@ class ObjectsCard(Card):
                 offset=cfg.object_offset,
                 crop_start=cfg.object_crop_start,
                 crop_end=cfg.object_crop_end,
-                flipxy=self.flipxy_checkbox.value()
-            )      
+                flipxy=self.flipxy_checkbox.value(),
+            )
 
         cfg.tabledata = tabledata
         self.table_control.set_data(tabledata)
@@ -396,20 +384,22 @@ class ObjectsCard(Card):
         box_dim = self.widgets["box_dim"].value()
         boxes = []
 
-        for z,x,y,c in entity_arr:
+        for z, x, y, c in entity_arr:
             z_st = z - box_dim[0] // 2
             z_end = z + box_dim[0] // 2
             x_st = x - box_dim[1] // 2
             x_end = x + box_dim[1] // 2
             y_st = y - box_dim[2] // 2
             y_end = y + box_dim[2] // 2
-            print(f"{z_st},{z_end},{x_st},{x_end},{y_st},{y_end}")     
-            boxes.append([c, z,x,y, z_st, x_st, y_st, z_end, x_end, y_end])
+            print(f"{z_st},{z_end},{x_st},{x_end},{y_st},{y_end}")
+            boxes.append([c, z, x, y, z_st, x_st, y_st, z_end, x_end, y_end])
         from survos2.entity.entities import load_boxes_via_file
-        load_boxes_via_file(np.array(boxes), flipxy=False)
-        cfg.ppw.clientEvent.emit({"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "objects"})
 
-            
+        load_boxes_via_file(np.array(boxes), flipxy=False)
+        cfg.ppw.clientEvent.emit(
+            {"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "objects"}
+        )
+
     def make_bvol_mask(self):
         logger.debug(f"Making bvol mask")
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
@@ -417,6 +407,7 @@ class ObjectsCard(Card):
             src_array = DM.sources[0][:]
         entity_arr = np.array(self.entities_df)
         from survos2.entity.sampler import viz_bb
+
         print(entity_arr)
         gold_mask = viz_bb(src_array, entity_arr, flipxy=True)
 
@@ -438,7 +429,6 @@ class ObjectsCard(Card):
                 {"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "features"}
             )
 
-
     def make_entity_mask(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -453,9 +443,7 @@ class ObjectsCard(Card):
 
         from survos2.entity.entities import make_entity_mask
 
-        gold_mask = make_entity_mask(
-            src_array, entity_arr, flipxy=True, bvol_dim=bvol_dim
-        )[0]
+        gold_mask = make_entity_mask(src_array, entity_arr, flipxy=True, bvol_dim=bvol_dim)[0]
 
         # create new raw feature
         params = dict(feature_type="raw", workspace=True)
@@ -488,10 +476,9 @@ class ObjectsCard(Card):
                 "core_radius": np.array((7, 7, 7)) * objects_scale,
             },
         }
-    
+
         entity_arr = np.array(self.entities_df)
 
-        
         combined_clustered_pts, classwise_entities = organize_entities(
             src_array, entity_arr, entity_meta, plot_all=False
         )
@@ -502,10 +489,17 @@ class ObjectsCard(Card):
         wparams["workflow_name"] = "Make_Patches"
         wparams["proj"] = DataModel.g.current_workspace
         wf = PatchWorkflow(
-            [src_array], combined_clustered_pts, classwise_entities, src_array, wparams, combined_clustered_pts
+            [src_array],
+            combined_clustered_pts,
+            classwise_entities,
+            src_array,
+            wparams,
+            combined_clustered_pts,
         )
 
-        src = DataModel.g.dataset_uri(self.annotations_source.value().rsplit("/", 1)[-1], group="annotations")
+        src = DataModel.g.dataset_uri(
+            self.annotations_source.value().rsplit("/", 1)[-1], group="annotations"
+        )
         with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
             src_dataset = DM.sources[0]
             anno_level = src_dataset[:] & 15
@@ -513,17 +507,18 @@ class ObjectsCard(Card):
         logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
 
         logger.debug(f"Making patches in path {src_dataset._path}")
-        train_v_density = make_patches(wf, entity_arr, src_dataset._path, 
-        proposal_vol=(anno_level > 0)* 1.0, 
-        padding=self.entity_mask_bvol_size.value(), num_augs=0, max_vols=-1)
+        train_v_density = make_patches(
+            wf,
+            entity_arr,
+            src_dataset._path,
+            proposal_vol=(anno_level > 0) * 1.0,
+            padding=self.entity_mask_bvol_size.value(),
+            num_augs=0,
+            max_vols=-1,
+        )
 
         self.patches = train_v_density
 
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "view_patches", "patches_fullname": train_v_density}
         )
-
-
-
-
-

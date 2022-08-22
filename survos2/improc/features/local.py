@@ -1,9 +1,9 @@
 import numpy as np
 from loguru import logger
-#from pycuda import cumath, gpuarray
-#from ..cuda import asgpuarray
-from ..utils import gpufeature
 
+# from pycuda import cumath, gpuarray
+# from ..cuda import asgpuarray
+from ..utils import gpufeature
 
 
 @gpufeature
@@ -87,6 +87,6 @@ def compute_local_norm(data=None, params=None):
 
 def compute_local_magnitude(data=None, params=None):
     gz, gy, gx = np.gradient(data)
-    mag = np.sqrt(gz ** 2 + gy ** 2 + gx ** 2)
+    mag = np.sqrt(gz**2 + gy**2 + gx**2)
     mean = compute_local_mean(data=mag, params=params)
     return mean

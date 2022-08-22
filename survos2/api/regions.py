@@ -186,10 +186,7 @@ def existing(workspace: String, full: SmartBoolean = False, order: Int = 1):
     filter = __region_names__[order]
     datasets = ws.existing_datasets(workspace, group=__region_group__, filter=filter)
     if full:
-        return {
-            "{}/{}".format(__region_group__, k): dataset_repr(v)
-            for k, v in datasets.items()
-        }
+        return {"{}/{}".format(__region_group__, k): dataset_repr(v) for k, v in datasets.items()}
     return {k: dataset_repr(v) for k, v in datasets.items()}
 
 

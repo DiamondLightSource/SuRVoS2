@@ -25,7 +25,6 @@ def produce_patches(padded_vol, padded_anno, offset_locs, bvol_grid):
     return patches, patches_anno, patches_bvols, patches_pts
 
 
-
 def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
     """Centroid to bounding volume
 
@@ -46,20 +45,15 @@ def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
     d, w, h = bvol_dim
     if flipxy:
         bvols = np.array(
-            [
-                (cz - d, cx - w, cy - h, cz + d, cx + w, cy + h)
-                for cz, cx, cy, _ in centers
-            ]
+            [(cz - d, cx - w, cy - h, cz + d, cx + w, cy + h) for cz, cx, cy, _ in centers]
         )
     else:
         bvols = np.array(
-            [
-                (cz - d, cx - w, cy - h, cz + d, cx + w, cy + h)
-                for cz, cy, cx, _ in centers
-            ]
+            [(cz - d, cx - w, cy - h, cz + d, cx + w, cy + h) for cz, cy, cx, _ in centers]
         )
 
     return bvols
+
 
 def centroid_to_detnet_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
     """Centroid to bounding volume for patches
@@ -82,20 +76,15 @@ def centroid_to_detnet_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
 
     if flipxy:
         bvols = np.array(
-            [
-                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
-                for cz, cx, cy, _ in centers
-            ]
+            [(cx - w, cy - h, cx + w, cy + h, cz - d, cz + d) for cz, cx, cy, _ in centers]
         )
     else:
         bvols = np.array(
-            [
-                (cx - w, cy - h, cx + w, cy + h, cz - d, cz + d)
-                for cz, cy, cx, _ in centers
-            ]
+            [(cx - w, cy - h, cx + w, cy + h, cz - d, cz + d) for cz, cy, cx, _ in centers]
         )
 
     return bvols
+
 
 def centroid_to_boxes(centers, bvol_dim=(10, 10, 10), flipxy=False):
     """Centroid to bounding volume
@@ -133,7 +122,6 @@ def centroid_to_boxes(centers, bvol_dim=(10, 10, 10), flipxy=False):
     return bvols
 
 
-
 def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16)):
     """Grid of points
 
@@ -156,7 +144,7 @@ def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16)):
     spacey = np.linspace(0, padded_vol.shape[2] - (2 * padding[2]), y_dim)
 
     zv, xv, yv = np.meshgrid(spacez, spacex, spacey)
-   
+
     zv = zv + padding[0]
     xv = xv + padding[1]
     yv = yv + padding[2]
@@ -173,7 +161,6 @@ def grid_of_points(padded_vol, padding, grid_dim=(4, 16, 16)):
     trans_pts = np.stack((zv_f, xv_f, yv_f, class_code)).T.astype(np.uint32)
 
     return trans_pts
-
 
 
 def generate_random_points_in_volume(vol, num_pts, border=(32, 32, 32)):
@@ -236,8 +223,6 @@ def offset_points(pts, offset, scale=32, random_offset=False):
     return trans_pts
 
 
-
-
 def sample_volumes(sel_entities, precropped_vol):
     sampled_vols = []
     for i in range(len(sel_entities)):
@@ -268,7 +253,7 @@ def viz_bvols(input_array, bvols, flip_coords=False):
         x_f = np.min((bvol[4], input_array.shape[1]))
         y_s = np.max((0, bvol[2]))
         y_f = np.min((bvol[5], input_array.shape[2]))
-        
+
         if flip_coords:
             bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
         else:
@@ -290,7 +275,7 @@ def viz_bb(input_array, bvols, flip_coords=False):
         x_f = np.min((x_f, input_array.shape[1]))
         y_s = np.max((0, y_s))
         y_f = np.min((y_f, input_array.shape[2]))
-        
+
         if flip_coords:
             bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
         else:
@@ -298,27 +283,27 @@ def viz_bb(input_array, bvols, flip_coords=False):
 
     return bvol_mask
 
+
 def viz_bb(input_array, bvols, flipxy=False):
     bvol_mask = np.zeros_like(input_array)
     print(f"Making {len(bvols)} bvols")
     for bvol in bvols:
         # print(bvol)
         bvol = bvol.astype(np.int32)
-        c,z,x,y, z_s, x_s, y_s, z_f, x_f, y_f = bvol
+        c, z, x, y, z_s, x_s, y_s, z_f, x_f, y_f = bvol
         z_s = np.max((0, z_s))
         z_f = np.min((z_f, input_array.shape[0]))
         x_s = np.max((0, x_s))
         x_f = np.min((x_f, input_array.shape[1]))
         y_s = np.max((0, y_s))
         y_f = np.min((y_f, input_array.shape[2]))
-        
+
         if flipxy:
             bvol_mask[z_s:z_f, y_s:y_f, x_s:x_f] = 1.0
         else:
             bvol_mask[z_s:z_f, x_s:x_f, y_s:y_f] = 1.0
 
     return bvol_mask
-
 
 
 def sample_region_at_pt(img_volume, pt, dim):
@@ -403,9 +388,7 @@ class MarkedPatches:
 
 # todo: list of patch sizes
 # todo: pad
-def sample_marked_patches(
-    img_volume, locs, pts, patch_size=(32, 32, 32), debug_verbose=False
-):
+def sample_marked_patches(img_volume, locs, pts, patch_size=(32, 32, 32), debug_verbose=False):
     """Samples a large image volume into a MarkedPatches object.
     Uses bounding volumes, and crops the image volume and associated geometry
     into a list of cropped volumes and cropped geometry.
@@ -434,9 +417,7 @@ def sample_marked_patches(
     vols_locs = []
     vols_bbs = []
 
-    print(
-        f"Generating {len(locs)} patch volumes from image of shape {img_volume.shape}"
-    )
+    print(f"Generating {len(locs)} patch volumes from image of shape {img_volume.shape}")
 
     for j in range(len(locs)):
 
@@ -560,9 +541,8 @@ def crop_vol_and_pts(
 
     return img, cropped_pts
 
-def crop_pts_bb2(
-    pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offset=False
-):
+
+def crop_pts_bb2(pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offset=False):
 
     z_st, x_st, y_st, z_end, x_end, y_end = bounding_box
     print(z_st, x_st, y_st, z_end, x_end, y_end)
@@ -592,9 +572,8 @@ def crop_pts_bb2(
 
     return cropped_pts
 
-def crop_pts_bb(
-    pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offset=False
-):
+
+def crop_pts_bb(pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offset=False):
 
     z_st, z_end, x_st, x_end, y_st, y_end = bounding_box
     print(z_st, z_end, x_st, x_end, y_st, y_end)
@@ -625,9 +604,7 @@ def crop_pts_bb(
     return cropped_pts
 
 
-def crop_vol_and_pts_bb(
-    img_volume, pts, bounding_box, debug_verbose=False, offset=False
-):
+def crop_vol_and_pts_bb(img_volume, pts, bounding_box, debug_verbose=False, offset=False):
 
     # TODO: clip bbox to img_volume
     z_st, z_end, y_st, y_end, x_st, x_end = bounding_box
@@ -714,9 +691,7 @@ def crop_vol_and_pts_centered(
 
 def sample_patch_slices(img_vol, entities_df):
     entities_locs = np.array(entities_df[["slice", "x", "y"]])
-    mp = sample_marked_patches(
-        img_vol, entities_locs, entities_locs, patch_size=(64, 64, 64)
-    )
+    mp = sample_marked_patches(img_vol, entities_locs, entities_locs, patch_size=(64, 64, 64))
     vol_list = mp.vols
     vol_locs = mp.vols_locs
     vol_pts = mp.vols_pts
@@ -729,9 +704,7 @@ def sample_patch_slices(img_vol, entities_df):
 
 
 def gather_single_class(img_vol, entities_locs, class_code, patch_size=(64, 64, 64)):
-    entities_locs_singleclass = entities_locs.loc[
-        entities_locs["class_code"].isin([class_code])
-    ]
+    entities_locs_singleclass = entities_locs.loc[entities_locs["class_code"].isin([class_code])]
     entities_locs_singleclass = np.array(entities_locs_singleclass[["slice", "x", "y"]])
 
     mp = sample_marked_patches(
@@ -756,14 +729,11 @@ def sample_patch2d(img_volume, pts, patch_size=(40, 40)):
     for j in range(len(pts)):
         sliceno, y, x = pts[j]
         w, h = patch_size
-        img = get_centered_img_in_bbox(
-            img_volume, sliceno, int(np.ceil(x)), int(np.ceil(y)), w, h
-        )
+        img = get_centered_img_in_bbox(img_volume, sliceno, int(np.ceil(x)), int(np.ceil(y)), w, h)
         img_shortlist.append(img)
         img_titles.append(str(int(x)) + "_" + str(int(y)) + "_" + str(sliceno))
 
     return img_shortlist, img_titles
-
 
 
 def entitybvol_to_cropbvol(bvol):
@@ -811,5 +781,3 @@ def cropbvol_to_detnet_bvol(bvol):
     b[4] = bvol[0]
     b[5] = bvol[3]
     return b
-
-

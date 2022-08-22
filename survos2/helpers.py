@@ -180,9 +180,7 @@ def plot_2d_data(data, labels, titles=["x", "y"], suptitle="2d data"):
     ys = list(data[:, 1])
 
     # sns.reset_orig()  # get default matplotlib styles back
-    rgb_palette = sns.color_palette(
-        "husl", n_colors=len(np.unique(labels))
-    )  # a list of RGB tuples
+    rgb_palette = sns.color_palette("husl", n_colors=len(np.unique(labels)))  # a list of RGB tuples
 
     clrs = [rgb_palette[idx] for idx in labels]
 
@@ -221,9 +219,7 @@ def plot_3d_data_in_2d(
     size = list(data[:, 2] * 5)
 
     # sns.reset_orig()  # get default matplotlib styles back
-    rgb_palette = sns.color_palette(
-        "husl", n_colors=len(np.unique(labels))
-    )  # a list of RGB tuples
+    rgb_palette = sns.color_palette("husl", n_colors=len(np.unique(labels)))  # a list of RGB tuples
 
     clrs = [rgb_palette[idx] for idx in labels]
 
@@ -310,9 +306,7 @@ def plot_4d_data(data, labels, titles=["P", "Q", "R", "S"], suptitle="4d data"):
     size = list(data[:, 3] * 3)
 
     # sns.reset_orig()  # get default matplotlib styles back
-    rgb_palette = sns.color_palette(
-        "husl", n_colors=len(np.unique(labels))
-    )  # a list of RGB tuples
+    rgb_palette = sns.color_palette("husl", n_colors=len(np.unique(labels)))  # a list of RGB tuples
 
     clrs = [rgb_palette[idx] for idx in labels]
 

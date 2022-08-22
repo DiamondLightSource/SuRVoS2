@@ -33,9 +33,9 @@ def annotate_voxels(
     label=0,
     parent_mask=None,
     viewer_order=(0, 1, 2),
-    three_dim = False,
-    brush_size= 10,
-    centre_point = (8,8,8)
+    three_dim=False,
+    brush_size=10,
+    centre_point=(8, 8, 8),
 ):
     mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
     modified = dataset.get_attr("modified")
@@ -48,9 +48,7 @@ def annotate_voxels(
     original_shape = ds.shape
     if len(viewer_order) == 3:
         ds_t = np.transpose(ds, viewer_order)
-        logger.info(
-            f"viewer_order {viewer_order} Dataset after first transpose: {ds_t.shape}"
-        )
+        logger.info(f"viewer_order {viewer_order} Dataset after first transpose: {ds_t.shape}")
     else:
         ds_t = ds
 
@@ -65,25 +63,47 @@ def annotate_voxels(
         mask = np.zeros_like(ds_t)
         logger.info(f"Drawing voxels in 3d at {centre_point}")
         ellipse_size = brush_size
-        ellipse_mask = ellipsoidal_mask(ellipse_size,ellipse_size,ellipse_size, radius=box_half_dim, center=(ellipse_size//2, ellipse_size//2, ellipse_size//2 )).astype(np.bool_)   
+        ellipse_mask = ellipsoidal_mask(
+            ellipse_size,
+            ellipse_size,
+            ellipse_size,
+            radius=box_half_dim,
+            center=(ellipse_size // 2, ellipse_size // 2, ellipse_size // 2),
+        ).astype(np.bool_)
         print(ellipse_mask.shape)
         for i in range(len(yy)):
-            bbsz, bbfz, bbsy,bbfy, bbsx, bbfx = slice_idx-box_half_dim, slice_idx+box_half_dim, xx[i]-box_half_dim, xx[i]+box_half_dim,yy[i]-box_half_dim, yy[i]+box_half_dim     
-            bbsz, bbfz, bbsy,bbfy, bbsx, bbfx = np.max((0,bbsz)), np.min((ds_t.shape[0], bbfz)),np.max((0,bbsy)), np.min((ds_t.shape[1], bbfy)), np.max((0,bbsx)), np.min((ds_t.shape[2], bbfx))
-            d,w,h = bbfz-bbsz, bbfy-bbsy, bbfx-bbsx
-            if ((d != brush_size) | (w != brush_size) | (h != brush_size)):
-                ellipse_mask = ellipse_mask[ellipse_mask.shape[0]-d:(ellipse_mask.shape[0]-d)+d, ellipse_mask.shape[1]-w:(ellipse_mask.shape[1]-w)+w,ellipse_mask.shape[2]-h:(ellipse_mask.shape[2]-h)+h]
-            
-            mask[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx] = ellipse_mask
+            bbsz, bbfz, bbsy, bbfy, bbsx, bbfx = (
+                slice_idx - box_half_dim,
+                slice_idx + box_half_dim,
+                xx[i] - box_half_dim,
+                xx[i] + box_half_dim,
+                yy[i] - box_half_dim,
+                yy[i] + box_half_dim,
+            )
+            bbsz, bbfz, bbsy, bbfy, bbsx, bbfx = (
+                np.max((0, bbsz)),
+                np.min((ds_t.shape[0], bbfz)),
+                np.max((0, bbsy)),
+                np.min((ds_t.shape[1], bbfy)),
+                np.max((0, bbsx)),
+                np.min((ds_t.shape[2], bbfx)),
+            )
+            d, w, h = bbfz - bbsz, bbfy - bbsy, bbfx - bbsx
+            if (d != brush_size) | (w != brush_size) | (h != brush_size):
+                ellipse_mask = ellipse_mask[
+                    ellipse_mask.shape[0] - d : (ellipse_mask.shape[0] - d) + d,
+                    ellipse_mask.shape[1] - w : (ellipse_mask.shape[1] - w) + w,
+                    ellipse_mask.shape[2] - h : (ellipse_mask.shape[2] - h) + h,
+                ]
+
+            mask[bbsz:bbfz, bbsy:bbfy, bbsx:bbfx] = ellipse_mask
             if parent_mask is not None:
                 mask = mask * parent_mask_t
             mask = mask > 0
             ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
 
+        print(ds_t[bbsz:bbfz, bbsy:bbfy, bbsx:bbfx].shape, ellipse_mask.shape)
 
-        print(ds_t[bbsz:bbfz,bbsy:bbfy,bbsx:bbfx].shape, ellipse_mask.shape)
-    
-        
     else:
         data_slice = ds_t[slice_idx, :]
         data_slice[yy, xx] = (data_slice[yy, xx] & _MaskPrev) | label
@@ -94,15 +114,13 @@ def annotate_voxels(
             mask = parent_mask_t
             mask = mask > 0
             mask = mask[slice_idx, :]
-            data_slice = data_slice * mask 
+            data_slice = data_slice * mask
 
         ds_t[slice_idx, :] = data_slice
 
     if len(viewer_order) == 3:
         new_order = get_order(viewer_order)
-        logger.info(
-            f"new order {new_order} Dataset before second transpose: {ds_t.shape}"
-        )
+        logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
         ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
     else:
         ds_o = ds_t
@@ -172,9 +190,7 @@ def annotate_regions(
 
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
         new_order = get_order(viewer_order)
-        logger.info(
-            f"new order {new_order} Dataset before second transpose: {ds_t.shape}"
-        )
+        logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
         ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
         logger.info(f"Dataset after second transpose: {ds_o.shape}")
     else:
@@ -193,7 +209,7 @@ def undo_annotation(dataset):
         data = dataset[:]
         # data = (data << _MaskSize) | (data >> _MaskSize)
         data = data >> _MaskSize
-        dataset[:] = data #& 15
+        dataset[:] = data  # & 15
     else:  # annotate voxels
         for i in range(dataset.total_chunks):
 
@@ -219,7 +235,7 @@ def erase_label(dataset, label=0):
     lmask = _MaskCopy - label
     # remove label from all history
     nbit = np.dtype(dataset.dtype).itemsize * 8
-    btop = 2 ** nbit - 1
+    btop = 2**nbit - 1
 
     for i in range(dataset.total_chunks):
         idx = dataset.unravel_chunk_index(i)

@@ -7,10 +7,8 @@ from survos2.utils import decode_numpy
 from loguru import logger
 
 
-
-
 class BinaryImageStats(AnalyzerCardBase):
-    def __init__(self,analyzer_id, analyzer_name, analyzer_type, parent=None):
+    def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
         super().__init__(
             analyzer_name=analyzer_name,
             analyzer_id=analyzer_id,
@@ -21,6 +19,7 @@ class BinaryImageStats(AnalyzerCardBase):
             editable=True,
             parent=parent,
         )
+
     def setup(self):
         self._add_feature_source()
         self.threshold = LineEdit(default=0.5, parse=float)
@@ -31,6 +30,7 @@ class BinaryImageStats(AnalyzerCardBase):
         self.load_as_objects_btn = PushButton("Load as Objects")
         self.additional_buttons.append(self.load_as_objects_btn)
         self.load_as_objects_btn.clicked.connect(self.load_as_objects)
+
     def calculate(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
         src = DataModel.g.dataset_uri(self.feature_source.value())
@@ -48,7 +48,7 @@ class BinaryImageStats(AnalyzerCardBase):
 
 
 class ImageStats(AnalyzerCardBase):
-    def __init__(self,analyzer_id, analyzer_name, analyzer_type, parent=None):
+    def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
         super().__init__(
             analyzer_name=analyzer_name,
             analyzer_id=analyzer_id,
@@ -59,10 +59,12 @@ class ImageStats(AnalyzerCardBase):
             editable=True,
             parent=parent,
         )
+
     def setup(self):
         self._add_features_source()
         self.plot_btn = PushButton("Plot")
         self.additional_buttons.append(self.plot_btn)
+
     def calculate(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
         src = DataModel.g.dataset_uri(self.features_source.value())
@@ -80,10 +82,8 @@ class ImageStats(AnalyzerCardBase):
             self.add_row(sc, max_height=300)
 
 
-
-
 class SegmentationStats(AnalyzerCardBase):
-    def __init__(self,analyzer_id, analyzer_name, analyzer_type, parent=None):
+    def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
         super().__init__(
             analyzer_name=analyzer_name,
             analyzer_id=analyzer_id,
@@ -94,12 +94,13 @@ class SegmentationStats(AnalyzerCardBase):
             editable=True,
             parent=parent,
         )
+
     def setup(self):
         self.add_source_selector()
         self.label_index_A = LineEdit(default=1, parse=int)
         widget = HWidgets("Label index:", self.label_index_A)
         self.add_row(widget)
-        
+
         self.add_source_selector2()
         self.label_index_B = LineEdit(default=1, parse=int)
         widget = HWidgets("Label index:", self.label_index_B)
@@ -121,26 +122,23 @@ class SegmentationStats(AnalyzerCardBase):
 
         all_params["modeA"] = self.radio_group.checkedId()
         all_params["modeB"] = self.radio_group2.checkedId()
-        
+
         all_params["label_index_A"] = self.label_index_A.value()
         all_params["label_index_B"] = self.label_index_B.value()
 
         all_params["pipelines_id_A"] = str(self.pipelines_source.value())
         all_params["analyzers_id_A"] = str(self.analyzers_source.value())
         all_params["annotations_id_A"] = str(self.annotations_source.value())
-        
+
         all_params["pipelines_id_B"] = str(self.pipelines_source2.value())
         all_params["analyzers_id_B"] = str(self.analyzers_source2.value())
         all_params["annotations_id_B"] = str(self.annotations_source2.value())
-        
+
         result = Launcher.g.run("analyzer", "segmentation_stats", **all_params)
-        
+
         logger.debug(f"{result}")
 
         dice, iou = result
         self.dice_score.setText(str(dice))
 
         self.iou_score.setText(str(iou))
-
-
-

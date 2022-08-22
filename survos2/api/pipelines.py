@@ -74,9 +74,7 @@ class InterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(
-            level, record.getMessage()
-        )
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
@@ -107,7 +105,6 @@ def cleaning(
         filter_small_components,
     )
 
-
     logger.debug(f"Calculating stats on feature: {feature_id}")
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -115,13 +112,13 @@ def cleaning(
 
     from skimage.morphology import remove_small_objects
     from skimage.measure import label
-    
+
     feature = feature > 0
 
     seg_cleaned = remove_small_objects(feature, min_component_size)
-    
+
     with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
-        DM.out[:] = seg_cleaned #(seg_cleaned > 0) * 1.0
+        DM.out[:] = seg_cleaned  # (seg_cleaned > 0) * 1.0
 
 
 @hug.get()
@@ -134,8 +131,7 @@ def label_postprocess(
     level_base: DataURI,
     selected_label_for_over: Int,
     offset: Int,
-    base_offset: Int
-
+    base_offset: Int,
 ):
     """Takes two label (integer) image and performs an operation to combine them.
     Args:
@@ -144,7 +140,7 @@ def label_postprocess(
         workspace (String): workspace id
         level_over (DataURI): Image B
         level_base (DataURI): Image A
-        selected_label (Int): 
+        selected_label (Int):
         offset (Int): Integer value to offset the label
     """
     if level_over != "None":
@@ -152,24 +148,26 @@ def label_postprocess(
         with DatasetManager(src1, out=None, dtype="uint16", fillvalue=0) as DM:
             src1_dataset = DM.sources[0]
             anno_over_level = src1_dataset[:] & 15
-            
 
     src_base = DataModel.g.dataset_uri(level_base, group="annotations")
     with DatasetManager(src_base, out=None, dtype="uint16", fillvalue=0) as DM:
         src_base_dataset = DM.sources[0]
         anno_base_level = src_base_dataset[:] & 15
-        
+
     result = anno_base_level + base_offset
 
     if level_over != "None":
         # zero out everything but the selected level in the over image
         anno_over_level[anno_over_level != selected_label_for_over] = 0
-        anno_over_level[anno_over_level == selected_label_for_over] = selected_label_for_over + offset
+        anno_over_level[anno_over_level == selected_label_for_over] = (
+            selected_label_for_over + offset
+        )
         # mask out those voxels that are in the over image, in the base image
-        result = result * (1.0 - (anno_over_level > 0) * 1.0) 
+        result = result * (1.0 - (anno_over_level > 0) * 1.0)
         result += anno_over_level
-        
+
     map_blocks(pass_through, result, out=dst, normalize=False)
+
 
 @hug.get()
 def watershed(src: DataURI, anno_id: DataURI, dst: DataURI):
@@ -208,7 +206,7 @@ def rasterize_points(
     threshold: Float,
     iterations: Int,
     smoothing: Int,
-    selected_class : Int,
+    selected_class: Int,
 ):
 
     from survos2.entity.anno.pseudo import organize_entities
@@ -247,9 +245,8 @@ def rasterize_points(
     )
 
     entities = np.array(make_entity_df(np.array(entities_df), flipxy=False))
-    entities = entities[entities[:,3]==selected_class]
-    entities[:,3] = np.array([0] * len(entities))
-
+    entities = entities[entities[:, 3] == selected_class]
+    entities[:, 3] = np.array([0] * len(entities))
 
     # default params TODO make generic, allow editing
     entity_meta = {
@@ -301,9 +298,7 @@ def rasterize_points(
         combined_clustered_pts,
     )
 
-    combined_clustered_pts, classwise_entities = organize_entities(
-        wf.vols[0], wf.locs, entity_meta
-    )
+    combined_clustered_pts, classwise_entities = organize_entities(wf.vols[0], wf.locs, entity_meta)
 
     wf.params["entity_meta"] = entity_meta
 
@@ -521,9 +516,7 @@ def train_multi_axis_cnn(
     data_slice_path.mkdir(exist_ok=True, parents=True)
     anno_slice_path.mkdir(exist_ok=True, parents=True)
     # Get datsets from workspaces and slice to disk
-    for count, (workspace_id, data_id, label_id) in enumerate(
-        zip(workspace, feature_id, anno_id)
-    ):
+    for count, (workspace_id, data_id, label_id) in enumerate(zip(workspace, feature_id, anno_id)):
         logger.info(f"Current workspace: {workspace_id}. Retrieving datasets.")
         DataModel.g.current_workspace = workspace_id
         src = DataModel.g.dataset_uri(data_id, group="features")
@@ -556,9 +549,7 @@ def train_multi_axis_cnn(
     model_fn = f"{dt_string}_{model_type}_{settings.model_output_fn}.pytorch"
     model_out = Path(data_out_path, model_fn)
     if num_cyc_frozen > 0:
-        trainer.train_model(
-            model_out, num_cyc_frozen, settings.patience, create=True, frozen=True
-        )
+        trainer.train_model(model_out, num_cyc_frozen, settings.patience, create=True, frozen=True)
     if num_cyc_unfrozen > 0 and num_cyc_frozen > 0:
         trainer.train_model(
             model_out, num_cyc_unfrozen, settings.patience, create=False, frozen=False
@@ -582,9 +573,7 @@ def train_multi_axis_cnn(
         logger.info("Creating new level for prediction.")
         level_result = add_level(current_ws)
     else:
-        level_result = (
-            [x for x in levels if model_train_label in x["name"]] or [None]
-        )[0]
+        level_result = ([x for x in levels if model_train_label in x["name"]] or [None])[0]
         delete_all_labels(current_ws, level_result["id"])
     level_id = level_result["id"]
     logger.info(f"Using labels from level with ID {level_id}, changing level name.")
@@ -620,9 +609,7 @@ def predict_multi_axis_cnn(
 ):
     model_pred_label = "Deep Learning Prediction"
     if feature_id:
-        logger.debug(
-            f"Predict_multi_axis_cnn with feature {feature_id} in {no_of_planes} planes"
-        )
+        logger.debug(f"Predict_multi_axis_cnn with feature {feature_id} in {no_of_planes} planes")
 
         src = DataModel.g.dataset_uri(feature_id, group="features")
         logger.debug(f"Getting features {src}")
@@ -645,9 +632,7 @@ def predict_multi_axis_cnn(
     if not anno_exists:
         level_result = add_level(workspace)
     else:
-        level_result = ([x for x in levels if model_pred_label in x["name"]] or [None])[
-            0
-        ]
+        level_result = ([x for x in levels if model_pred_label in x["name"]] or [None])[0]
         delete_all_labels(workspace, level_result["id"])
     if level_result:
         import torch
@@ -707,11 +692,8 @@ def create_new_labels_for_level(workspace, level_id, label_codes):
                     "name": code,
                     "visible": True,
                 }
-                update_result = update_label(
-                    workspace=workspace, level=level_id, **codes_dict
-                )
+                update_result = update_label(workspace=workspace, level=level_id, **codes_dict)
                 logger.info(f"Label created: {update_result}")
-
 
 
 @hug.get()
@@ -731,9 +713,8 @@ def train_3d_cnn(
     grid_dim: IntOrVector = 4,
     patch_size: IntOrVector = 64,
     patch_overlap: IntOrVector = 16,
-    fcn_type: String = 'unet3d',
+    fcn_type: String = "unet3d",
     threshold: Float = 0.5,
-
 ):
     logger.debug(f"Train_3d fcn using anno {anno_id} and feature {feature_id}")
 
@@ -752,8 +733,8 @@ def train_3d_cnn(
 
     # point sampling either by generating random points or loading in a list of points
 
-    padded_vol = pad_vol(src_array, padding )
-    
+    padded_vol = pad_vol(src_array, padding)
+
     entity_arr = generate_random_points_in_volume(padded_vol, num_samples, padding)
 
     if objects_id != "None":
@@ -787,9 +768,17 @@ def train_3d_cnn(
     # generate patches
     logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
     logger.debug(f"Making patches in path {src_dataset._path}")
-    train_v_density = make_patches(wf, entity_arr, src_dataset._path, 
-        proposal_vol=(anno_level == 1)* 1.0, 
-        padding=padding, num_augs=num_augs, max_vols=-1, plot_all=False, patch_size=patch_size)
+    train_v_density = make_patches(
+        wf,
+        entity_arr,
+        src_dataset._path,
+        proposal_vol=(anno_level == 1) * 1.0,
+        padding=padding,
+        num_augs=num_augs,
+        max_vols=-1,
+        plot_all=False,
+        patch_size=patch_size,
+    )
 
     # setup model filename
     ws_object = ws.get(workspace)
@@ -814,7 +803,6 @@ def train_3d_cnn(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_array = DM.sources[0][:]
 
-    
     # use trained model to predict on original feature volume
     proposal = make_proposal(
         src_array,
@@ -829,11 +817,13 @@ def train_3d_cnn(
     proposal = proposal / np.max(proposal)
     thresholded = (proposal > threshold) * 1.0
     map_blocks(pass_through, thresholded, out=dst, normalize=False)
-    
+
     # save logit map
     confidence = 1
     if confidence:
-        dst = auto_create_dataset(DataModel.g.current_workspace,name="logit_map", group="features",  dtype="float32")
+        dst = auto_create_dataset(
+            DataModel.g.current_workspace, name="logit_map", group="features", dtype="float32"
+        )
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = proposal.copy()
@@ -872,31 +862,28 @@ def predict_3d_cnn(
 
     proposal -= np.min(proposal)
     proposal = proposal / np.max(proposal)
-    
+
     thresholded = (proposal > threshold) * 1.0
     map_blocks(pass_through, thresholded, out=dst, normalize=False)
-   
+
     confidence = 1
     if confidence:
-        dst = auto_create_dataset(DataModel.g.current_workspace,name="logit_map", group="features",  dtype="float32")
+        dst = auto_create_dataset(
+            DataModel.g.current_workspace, name="logit_map", group="features", dtype="float32"
+        )
         dst.set_attr("kind", "raw")
         with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
             DM.out[:] = proposal.copy()
-
-
-
-    
 
 
 @hug.get()
 @save_metadata
 def per_object_cleaning(
     dst: DataURI,
-    feature_id: DataURI, 
+    feature_id: DataURI,
     object_id: DataURI,
     patch_size: IntOrVector = 64,
 ):
-
 
     # get image feature
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
@@ -913,15 +900,13 @@ def per_object_cleaning(
     entities_fullname = ds_objects.get_metadata("fullname")
     tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
     entities_arr = np.array(entities_df)
-    entities_arr[:,3] = np.array([[1] * len(entities_arr)])
+    entities_arr[:, 3] = np.array([[1] * len(entities_arr)])
     entities = np.array(make_entity_df(entities_arr, flipxy=False))
 
-
     target = per_object_cleaning(entities, feature, display_plots=False, bvol_dim=patch_size)
-    #dst = DataModel.g.dataset_uri(dst, group="pipelines")
+    # dst = DataModel.g.dataset_uri(dst, group="pipelines")
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         DM.out[:] = target
-
 
 
 def per_object_cleaning(
@@ -941,13 +926,9 @@ def per_object_cleaning(
     entities = offset_points(entities, -np.array(bvol_dim))
 
     if display_plots:
-        slice_plot(
-            seg, np.array(make_entity_df(entities, flipxy=flipxy)), seg, (60, 300, 300)
-        )
+        slice_plot(seg, np.array(make_entity_df(entities, flipxy=flipxy)), seg, (60, 300, 300))
     bvol = centroid_to_bvol(np.array(entities), bvol_dim=bvol_dim)
-    bvol_seg = BoundingVolumeDataset(
-        seg, bvol, labels=[1] * len(bvol), patch_size=patch_size
-    )
+    bvol_seg = BoundingVolumeDataset(seg, bvol, labels=[1] * len(bvol), patch_size=patch_size)
     c = bvol_dim[0], bvol_dim[1], bvol_dim[2]
 
     for i, p in enumerate(bvol_seg):
@@ -996,15 +977,12 @@ def create(workspace: String, pipeline_type: String):
 
 @hug.get()
 @hug.local()
-def existing(
-    workspace: String, full: SmartBoolean = False, filter: SmartBoolean = True
-):
+def existing(workspace: String, full: SmartBoolean = False, filter: SmartBoolean = True):
     datasets = ws.existing_datasets(workspace, group=__pipeline_group__)
 
     if full:
         datasets = {
-            "{}/{}".format(__pipeline_group__, k): dataset_repr(v)
-            for k, v in datasets.items()
+            "{}/{}".format(__pipeline_group__, k): dataset_repr(v) for k, v in datasets.items()
         }
     else:
         datasets = {k: dataset_repr(v) for k, v in datasets.items()}
@@ -1044,7 +1022,3 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
-
-
-
-

@@ -23,9 +23,9 @@ def cluster_scatter(x, colors, text_labels=False):
 
     ax.axis("off")
     ax.axis("tight")
-    #ax.set_title(
+    # ax.set_title(
     #    "Plot of k-means clustering of small click windows using ResNet-18 Features"
-    #)
+    # )
 
     if text_labels:
         txts = []
@@ -64,14 +64,13 @@ def plot_clustered_img(
                 continue
             shown_images = np.vstack([shown_images, proj[i]])
             imagebox = offsetbox.AnnotationBbox(
-                offsetbox.OffsetImage(images[i], cmap=cmap), proj[i], 
+                offsetbox.OffsetImage(images[i], cmap=cmap),
+                proj[i],
             )
             imagebox.set_zorder(-1)
             ax.add_artist(imagebox)
 
-    ax.scatter(
-        proj[:, 0], proj[:, 1], lw=0, s=40, c=palette[colors.astype(np.int)], zorder=1
-    )
+    ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=40, c=palette[colors.astype(np.int)], zorder=1)
     txts = []
 
     for i in range(num_classes):
@@ -79,7 +78,7 @@ def plot_clustered_img(
         txt = ax.text(xtext, ytext, str(i), fontsize=24, zorder=200)
         print(f"Class {i}")
         txt.set_path_effects(
-            [PathEffects.Stroke(linewidth=5, foreground='w'), PathEffects.Normal()]
+            [PathEffects.Stroke(linewidth=5, foreground="w"), PathEffects.Normal()]
         )
 
     txts.append(txt)
@@ -98,7 +97,7 @@ def image_grid(
     if len(image_list) < n_cols:
         show_images(image_list)
     else:
-        n_rows = (len(image_list) // n_cols)  + 1
+        n_rows = (len(image_list) // n_cols) + 1
         print(f"Number of rows: {n_rows}, Number of columns {n_cols}")
         images = [image_list[i] for i in range(len(image_list))]
 
@@ -113,7 +112,7 @@ def image_grid(
                 print(index)
                 if index < len(images):
                     axarr[i, j].imshow(images[index], cmap="gray")
-                
+
                 axarr[i, j].grid(False)
                 # axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10, color=color)
                 axarr[i, j].tick_params(
@@ -122,12 +121,14 @@ def image_grid(
         f.suptitle(bigtitle, color=color)
     return f, axarr
 
+
 from survos2.frontend.nb_utils import grid_of_images2, show_images, show_image_grid
+
 
 def image_grid2(
     image_list,
     n_cols,
-    fig, 
+    fig,
     axarr,
     image_titles="",
     bigtitle="",
@@ -137,7 +138,7 @@ def image_grid2(
     if len(image_list) < n_cols:
         print("Too few images.")
     else:
-        n_rows = min((len(image_list) // n_cols)  + 1,5)
+        n_rows = min((len(image_list) // n_cols) + 1, 5)
         print(f"Number of rows: {n_rows}, Number of columns {n_cols}")
         images = [image_list[i] for i in range(len(image_list))]
 
@@ -150,27 +151,24 @@ def image_grid2(
                 print(index)
                 if index < len(images):
                     axarr[i, j].imshow(images[index], cmap="gray")
-                
+
                 axarr[i, j].grid(False)
                 # axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10, color=color)
                 axarr[i, j].tick_params(
                     labeltop=False, labelleft=False, labelbottom=False, labelright=False
                 )
-                axarr[i,j].margins(0)
-                axarr[i,j].axes.axis("off")
-            
+                axarr[i, j].margins(0)
+                axarr[i, j].axes.axis("off")
+
         fig.suptitle(bigtitle, color=color)
 
     return fig, axarr
-    
 
 
 def image_grids(images, labels):
     figs = []
     for i in np.unique(labels):
         print(i)
-        fig, _ = image_grid(images[labels==i], 3, figsize=(8,8))
+        fig, _ = image_grid(images[labels == i], 3, figsize=(8, 8))
         figs.append(fig)
     return figs
-    
-

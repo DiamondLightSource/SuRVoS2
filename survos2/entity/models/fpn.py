@@ -43,9 +43,7 @@ class NDConvGenerator(object):
                 elif norm == "batch_norm":
                     norm_layer = nn.BatchNorm2d(c_out)
                 else:
-                    raise ValueError(
-                        "norm type as specified in configs is not implemented..."
-                    )
+                    raise ValueError("norm type as specified in configs is not implemented...")
                 conv = nn.Sequential(conv, norm_layer)
 
         else:
@@ -57,9 +55,7 @@ class NDConvGenerator(object):
                     norm_layer = nn.BatchNorm3d(c_out)
                 else:
                     raise ValueError(
-                        "norm type as specified in configs is not implemented... {}".format(
-                            norm
-                        )
+                        "norm type as specified in configs is not implemented... {}".format(norm)
                     )
                 conv = nn.Sequential(conv, norm_layer)
 
@@ -69,9 +65,7 @@ class NDConvGenerator(object):
             elif relu == "leaky_relu":
                 relu_layer = nn.LeakyReLU(inplace=True)
             else:
-                raise ValueError(
-                    "relu type as specified in configs is not implemented..."
-                )
+                raise ValueError("relu type as specified in configs is not implemented...")
             conv = nn.Sequential(conv, relu_layer)
 
         return conv
@@ -103,9 +97,7 @@ class ConvGenerator:
                 elif norm == "batch_norm":
                     norm_layer = nn.BatchNorm2d(c_out)
                 else:
-                    raise ValueError(
-                        "norm type as specified in configs is not implemented..."
-                    )
+                    raise ValueError("norm type as specified in configs is not implemented...")
                 module = nn.Sequential(module, norm_layer)
 
         elif self.dim == 3:
@@ -117,15 +109,11 @@ class ConvGenerator:
                     norm_layer = nn.BatchNorm3d(c_out)
                 else:
                     raise ValueError(
-                        "norm type as specified in configs is not implemented... {}".format(
-                            norm
-                        )
+                        "norm type as specified in configs is not implemented... {}".format(norm)
                     )
                 module = nn.Sequential(module, norm_layer)
         else:
-            raise Exception(
-                "Invalid dimension {} in conv-layer generation.".format(self.dim)
-            )
+            raise Exception("Invalid dimension {} in conv-layer generation.".format(self.dim))
 
         if relu is not None:
             if relu == "relu":
@@ -133,9 +121,7 @@ class ConvGenerator:
             elif relu == "leaky_relu":
                 relu_layer = nn.LeakyReLU(inplace=True)
             else:
-                raise ValueError(
-                    "relu type as specified in configs is not implemented..."
-                )
+                raise ValueError("relu type as specified in configs is not implemented...")
             module = nn.Sequential(module, relu_layer)
 
         return module
@@ -149,9 +135,7 @@ class Interpolate(nn.Module):
         self.mode = mode
 
     def forward(self, x):
-        x = self.interp(
-            x, scale_factor=self.scale_factor, mode=self.mode, align_corners=False
-        )
+        x = self.interp(x, scale_factor=self.scale_factor, mode=self.mode, align_corners=False)
         return x
 
 
@@ -179,9 +163,7 @@ class ResBlock(nn.Module):
         """
         super(ResBlock, self).__init__()
 
-        self.conv1 = conv(
-            start_filts, planes, ks=1, stride=stride, norm=norm, relu=relu
-        )
+        self.conv1 = conv(start_filts, planes, ks=1, stride=stride, norm=norm, relu=relu)
         self.conv2 = conv(planes, planes, ks=3, pad=1, norm=norm, relu=relu)
         self.conv3 = conv(planes, end_filts, ks=1, norm=norm, relu=None)
         if relu == "relu":
@@ -240,9 +222,7 @@ class FPN(nn.Module):
         self.out_channels = cf.end_filts
         self.n_blocks = [3, 4, {"resnet50": 6, "resnet101": 23}[cf.res_architecture], 3]
         self.block = ResBlock
-        self.block_exp = (
-            4  # factor by which to increase nr of channels in first block layer.
-        )
+        self.block_exp = 4  # factor by which to increase nr of channels in first block layer.
         self.relu_enc = relu_enc
         self.relu_dec = relu_dec
         self.operate_stride1 = operate_stride1
@@ -434,9 +414,7 @@ class FPN(nn.Module):
         self.P3_conv1 = conv(
             sf * self.block_exp * 2, self.out_channels, ks=1, stride=1, relu=relu_dec
         )
-        self.P2_conv1 = conv(
-            sf * self.block_exp, self.out_channels, ks=1, stride=1, relu=relu_dec
-        )
+        self.P2_conv1 = conv(sf * self.block_exp, self.out_channels, ks=1, stride=1, relu=relu_dec)
         self.P1_conv1 = conv(sf, self.out_channels, ks=1, stride=1, relu=relu_dec)
 
         if operate_stride1:
@@ -495,9 +473,7 @@ class FPN(nn.Module):
         if self.sixth_pooling:
             c6_out = self.C6(c5_out)
             p6_pre_out = self.P6_conv1(c6_out)
-            p5_pre_out = self.P5_conv1(c5_out) + F.interpolate(
-                p6_pre_out, scale_factor=2
-            )
+            p5_pre_out = self.P5_conv1(c5_out) + F.interpolate(p6_pre_out, scale_factor=2)
         else:
             p5_pre_out = self.P5_conv1(c5_out)
         # pre_out means last step before prediction output
@@ -532,13 +508,11 @@ class FPN(nn.Module):
         return out_list
 
 
+Label = namedtuple("Label", ["id", "name", "color"])
 
-Label = namedtuple(
-    "Label", ["id", "name", "color"]
-)  
+# binLabel = namedtuple("binLabel", ["id", "name", "color", "m_scores", "bin_vals"])
+# boxLabel = namedtuple("boxLabel", ["name", "color"])
 
-#binLabel = namedtuple("binLabel", ["id", "name", "color", "m_scores", "bin_vals"])
-#boxLabel = namedtuple("boxLabel", ["name", "color"])
 
 class CNNConfigs:
     def __init__(self, server_env=None):
@@ -546,7 +520,7 @@ class CNNConfigs:
         self.relu = "relu"
         # if True adds high-res decoder levels to feature pyramid: P1 + P0. (e.g. set to true in retina_unet configs)
         self.operate_stride1 = False
-         # add P6 to Feature Pyramid Network.
+        # add P6 to Feature Pyramid Network.
         self.sixth_pooling = False
         self.start_filts = 48 if self.dim == 2 else 18
         self.end_filts = self.start_filts * 4 if self.dim == 2 else self.start_filts * 2
@@ -555,11 +529,10 @@ class CNNConfigs:
         # one of 'xavier_uniform', 'xavier_normal', or 'kaiming_normal', None (=default = 'kaiming_uniform')
         self.weight_init = None
         self.seg_labels = [  # id      #name           #color
-                Label(0, "bg", (0.0,0.0,0.0, 1.0)),
-                Label(1, 'fg', (1.0,1.0,0.0, 1.))
-            ]
+            Label(0, "bg", (0.0, 0.0, 0.0, 1.0)),
+            Label(1, "fg", (1.0, 1.0, 0.0, 1.0)),
+        ]
         self.num_seg_classes = len(self.seg_labels)  # incl background
         self.pyramid_levels = [0, 1, 2, 3]
         self.channels = [0]
         self.n_channels = len(self.channels)
-

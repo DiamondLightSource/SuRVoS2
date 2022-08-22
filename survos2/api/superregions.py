@@ -59,7 +59,6 @@ def get_crop(src: DataURI, roi: IntList):
     return encode_numpy(data)
 
 
-
 @hug.get()
 @save_metadata
 def supervoxels(
@@ -74,14 +73,13 @@ def supervoxels(
     out_dtype="int",
     zero_parameter=False,
     max_num_iter=10,
-    
 ):
     with DatasetManager(src, out=None, dtype=out_dtype, fillvalue=0) as DM:
         src_data_arr = DM.sources[0][:]
 
     # get image feature for mask, if any
 
-    if mask_id=='None':
+    if mask_id == "None":
         mask_feature = None
     else:
         src = DataModel.g.dataset_uri(ntpath.basename(mask_id), group="features")
@@ -89,8 +87,7 @@ def supervoxels(
         with DatasetManager(src, out=None, dtype="uint32", fillvalue=0) as DM:
             mask_feature = DM.sources[0][:].astype(np.uint32)
             logger.debug(f"Feature to use as mask shape {mask_feature.shape}")
-    
-        
+
     supervoxel_image = slic(
         src_data_arr,
         n_segments=n_segments,
@@ -101,6 +98,7 @@ def supervoxels(
         slic_zero=zero_parameter,
         mask=mask_feature,
     )
+
     def pass_through(x):
         return x
 
@@ -181,10 +179,7 @@ def existing(workspace: String, full: SmartBoolean = False, order: Int = 1):
     filter = __region_names__[order]
     datasets = ws.existing_datasets(workspace, group=__region_group__, filter=filter)
     if full:
-        return {
-            "{}/{}".format(__region_group__, k): dataset_repr(v)
-            for k, v in datasets.items()
-        }
+        return {"{}/{}".format(__region_group__, k): dataset_repr(v) for k, v in datasets.items()}
     return {k: dataset_repr(v) for k, v in datasets.items()}
 
 
@@ -196,4 +191,3 @@ def remove(workspace: String, region_id: String):
 @hug.get()
 def rename(workspace: String, region_id: String, new_name: String):
     ws.rename_dataset(workspace, region_id, __region_group__, new_name)
-

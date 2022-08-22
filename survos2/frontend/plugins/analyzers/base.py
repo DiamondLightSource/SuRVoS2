@@ -6,9 +6,7 @@ from matplotlib.figure import Figure
 from napari.qt.progress import progress
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
-from survos2.entity.cluster.cluster_plotting import (cluster_scatter,
-                                                     image_grid2,
-                                                     plot_clustered_img)
+from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
 from survos2.entity.cluster.clusterer import select_clusters
 from survos2.frontend.components.base import *
 from survos2.frontend.components.entity import TableWidget
@@ -30,8 +28,6 @@ from survos2.utils import decode_numpy
 from survos2.frontend.plugins.analyzers.constants import feature_names
 
 
-
-
 class AnalyzersComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None):
         self.full = full
@@ -47,20 +43,30 @@ class AnalyzersComboBox(LazyComboBox):
                 self.addItem(fid, result[fid]["name"])
 
 
-
 class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None, width=5, height=4, dpi=100, suptitle="Feature"):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
         self.suptitle = suptitle
         super(MplCanvas, self).__init__(self.fig)
-    def set_suptitle(self,suptitle):
+
+    def set_suptitle(self, suptitle):
         self.suptitle = suptitle
         self.fig.suptitle(suptitle)
 
 
 class AnalyzerCardBase(Card):
-    def __init__(self, analyzer_id, analyzer_name, analyzer_type, title=None, collapsible=True, removable=True, editable=True, parent=None):
+    def __init__(
+        self,
+        analyzer_id,
+        analyzer_name,
+        analyzer_type,
+        title=None,
+        collapsible=True,
+        removable=True,
+        editable=True,
+        parent=None,
+    ):
         super().__init__(
             title=title,
             collapsible=True,
@@ -71,17 +77,14 @@ class AnalyzerCardBase(Card):
         self.analyzer_id = analyzer_id
         self.analyzer_name = analyzer_name
         self.analyzer_type = analyzer_type
-        self.annotations_source = (
-            "001_level"  # default annotation level to use for labels
-        )
+        self.annotations_source = "001_level"  # default annotation level to use for labels
         self.additional_buttons = []
         self.annotations_selected = False
         self.op_cards = []
         self.model_fullname = "None"
         self.setup()
-    
+
         self.calc_btn = PushButton("Compute")
-        
 
         if len(self.additional_buttons) > 0:
             self.add_row(HWidgets(None, *self.additional_buttons, self.calc_btn))
@@ -93,11 +96,13 @@ class AnalyzerCardBase(Card):
         self.plots = []
         self.object_analyzer_plots = []
         self.object_analyzer_controls = []
-    
+
     def _calculate(self):
         pass
+
     def setup(self):
         pass
+
     def calculate(self):
         with progress(total=2) as pbar:
             pbar.set_description("Calculating pipeline")
@@ -110,30 +115,27 @@ class AnalyzerCardBase(Card):
         self.objects_source = ObjectComboBox(full=True)
         self.objects_source.fill()
         self.objects_source.setMaximumWidth(250)
-        widget = HWidgets("Objects:", self.objects_source,  stretch=1)
+        widget = HWidgets("Objects:", self.objects_source, stretch=1)
         self.add_row(widget)
+
     def _add_objects_source2(self, title="Objects"):
         self.objects_source2 = ObjectComboBox(full=True)
         self.objects_source2.fill()
         self.objects_source2.setMaximumWidth(250)
-        widget = HWidgets(title, self.objects_source2,  stretch=1)
+        widget = HWidgets(title, self.objects_source2, stretch=1)
         self.add_row(widget)
 
     def _add_object_detection_stats_source(self):
         self.gold_objects_source = ObjectComboBox(full=True)
         self.gold_objects_source.fill()
         self.gold_objects_source.setMaximumWidth(250)
-        widget = HWidgets(
-            "Gold Objects:", self.gold_objects_source,  stretch=1
-        )
+        widget = HWidgets("Gold Objects:", self.gold_objects_source, stretch=1)
         self.add_row(widget)
 
         self.predicted_objects_source = ObjectComboBox(full=True)
         self.predicted_objects_source.fill()
         self.predicted_objects_source.setMaximumWidth(250)
-        widget = HWidgets(
-            "Predicted Objects:", self.predicted_objects_source,  stretch=1
-        )
+        widget = HWidgets("Predicted Objects:", self.predicted_objects_source, stretch=1)
         self.add_row(widget)
 
     def _add_annotations_source(self, label="Annotation"):
@@ -141,7 +143,7 @@ class AnalyzerCardBase(Card):
         self.annotations_source.fill()
         self.annotations_source.setMaximumWidth(250)
 
-        widget = HWidgets(label, self.annotations_source,  stretch=1)
+        widget = HWidgets(label, self.annotations_source, stretch=1)
 
         self.add_row(widget)
 
@@ -149,19 +151,14 @@ class AnalyzerCardBase(Card):
         self.pipelines_source = PipelinesComboBox()
         self.pipelines_source.fill()
         self.pipelines_source.setMaximumWidth(250)
-        widget = HWidgets(
-            "Segmentation:", self.pipelines_source,  stretch=1
-        )
+        widget = HWidgets("Segmentation:", self.pipelines_source, stretch=1)
         self.add_row(widget)
-
 
     def _add_pipelines_source2(self):
         self.pipelines_source = PipelinesComboBox()
         self.pipelines_source.fill()
         self.pipelines_source.setMaximumWidth(250)
-        widget = HWidgets(
-            "Segmentation:", self.pipelines_source,  stretch=1
-        )
+        widget = HWidgets("Segmentation:", self.pipelines_source, stretch=1)
         self.add_row(widget)
         load_as_objects = PushButton("Load as Objects")
         return load_as_objects
@@ -170,30 +167,28 @@ class AnalyzerCardBase(Card):
         self.analyzers_source = AnalyzersComboBox()
         self.analyzers_source.fill()
         self.analyzers_source.setMaximumWidth(250)
-        widget = HWidgets(
-            "Analyzers:", self.analyzers_source,  stretch=1
-        )
+        widget = HWidgets("Analyzers:", self.analyzers_source, stretch=1)
         self.add_row(widget)
 
     def _add_feature_source(self, label="Feature:"):
         self.feature_source = FeatureComboBox()
         self.feature_source.fill()
         self.feature_source.setMaximumWidth(250)
-        widget = HWidgets(label, self.feature_source,  stretch=1)
+        widget = HWidgets(label, self.feature_source, stretch=1)
         self.add_row(widget)
 
     def _add_feature_source3(self, label="Feature:"):
         self.feature_source3 = FeatureComboBox()
         self.feature_source3.fill()
         self.feature_source3.setMaximumWidth(250)
-        widget = HWidgets(label, self.feature_source3,  stretch=1)
+        widget = HWidgets(label, self.feature_source3, stretch=1)
         self.add_row(widget)
 
     def _add_feature_source2(self, label="Feature:"):
         self.feature_source2 = FeatureComboBox()
         self.feature_source2.fill()
         self.feature_source2.setMaximumWidth(250)
-        widget = HWidgets(label, self.feature_source2,  stretch=1)
+        widget = HWidgets(label, self.feature_source2, stretch=1)
         self.add_row(widget)
 
     def _add_features_source(self):
@@ -201,7 +196,7 @@ class AnalyzerCardBase(Card):
         self.features_source.fill()
         self.features_source.setMaximumWidth(250)
 
-        widget = HWidgets("Features:", self.features_source,  stretch=1)
+        widget = HWidgets("Features:", self.features_source, stretch=1)
         self.add_row(widget)
 
     def _add_view_btn(self):
@@ -213,7 +208,10 @@ class AnalyzerCardBase(Card):
         load_as_float_btn.clicked.connect(self.load_as_float)
         self.add_row(
             HWidgets(
-                None, load_as_float_btn, load_as_annotation_btn, view_btn, 
+                None,
+                load_as_float_btn,
+                load_as_annotation_btn,
+                view_btn,
             )
         )
 
@@ -230,17 +228,27 @@ class AnalyzerCardBase(Card):
         self.load_as_objects_btn.clicked.connect(self.load_as_objects)
         self.export_csv_btn.clicked.connect(self.export_csv)
 
-        self.add_row(HWidgets(None, load_as_annotation_btn, load_as_float_btn, self.load_as_objects_btn, self.export_csv_btn,view_btn ))
-        
+        self.add_row(
+            HWidgets(
+                None,
+                load_as_annotation_btn,
+                load_as_float_btn,
+                self.load_as_objects_btn,
+                self.export_csv_btn,
+                view_btn,
+            )
+        )
 
     def _add_view_entities(self):
         view_btn = PushButton("View Entities", accent=True)
         view_btn.clicked.connect(self.view_entities)
         self.add_row(
             HWidgets(
-                None, view_btn, 
+                None,
+                view_btn,
             )
         )
+
     def load_data(self, path):
         self.model_fullname = path
         print(f"Setting model fullname: {self.model_fullname}")
@@ -255,7 +263,7 @@ class AnalyzerCardBase(Card):
         with progress(total=2) as pbar:
             pbar.set_description("Viewing analyzer")
             pbar.update(1)
-            
+
             if self.annotations_source:
                 if self.annotations_selected:
                     level_id = self.annotations_source.value().rsplit("/", 1)[-1]
@@ -271,9 +279,8 @@ class AnalyzerCardBase(Card):
                         "level_id": level_id,
                     }
                 )
-            
+
             pbar.update(1)
-            
 
     def load_as_float(self):
         logger.debug(f"Loading analyzer result {self.analyzer_id} as float image.")
@@ -364,7 +371,11 @@ class AnalyzerCardBase(Card):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "faster_refresh_plugin", "plugin_name":"annotations"}
+                {
+                    "source": "workspace_gui",
+                    "data": "faster_refresh_plugin",
+                    "plugin_name": "annotations",
+                }
             )
 
     def card_deleted(self):
@@ -392,15 +403,11 @@ class AnalyzerCardBase(Card):
                         os.path.join("annotations/", params["anno_id"][0])
                     )
                 else:
-                    self.annotations_source.select(
-                        os.path.join("annotations/", params["anno_id"])
-                    )
-        
+                    self.annotations_source.select(os.path.join("annotations/", params["anno_id"]))
+
         if "object_id" in params:
             if params["object_id"] is not None:
-                self.objects_source.select(
-                    os.path.join("objects/", params["object_id"])
-                )
+                self.objects_source.select(os.path.join("objects/", params["object_id"]))
         if "feature_id" in params:
             self.feature_source.select(params["feature_id"])
         if "feature_ids" in params:
@@ -408,9 +415,7 @@ class AnalyzerCardBase(Card):
                 self.features_source.select(os.path.join("features/", source))
         if "region_id" in params:
             if params["region_id"] is not None:
-                self.regions_source.select(
-                    os.path.join("regions/", params["region_id"])
-                )
+                self.regions_source.select(os.path.join("regions/", params["region_id"]))
 
     def display_splitter_results(self, result):
         entities = []
@@ -439,7 +444,6 @@ class AnalyzerCardBase(Card):
                 result[i][17],
                 result[i][18],
                 result[i][19],
-
             )
             tabledata.append(entry)
 
@@ -481,7 +485,7 @@ class AnalyzerCardBase(Card):
             self.vbox.addWidget(self.table_control.w)
             self.total_height += 500 + self.spacing
             self.setMinimumHeight(self.total_height)
-            
+
         self.table_control.set_data(tabledata)
         self.collapse()
         self.expand()
@@ -545,7 +549,6 @@ class AnalyzerCardBase(Card):
 
         self.entities_arr = np.array(entities)
 
-
     def display_component_results3(self, result):
         entities = []
         tabledata = []
@@ -565,7 +568,6 @@ class AnalyzerCardBase(Card):
 
         self.entities_arr = np.array(entities)
 
-
     def display_splitter_plot(self, feature_arrays, titles=[], vert_line_at=None):
         for i, feature_array in enumerate(feature_arrays):
             self.plots.append(MplCanvas(self, width=5, height=5, dpi=100))
@@ -576,10 +578,10 @@ class AnalyzerCardBase(Card):
             self.total_height += 500 + self.spacing
             self.setMinimumHeight(self.total_height)
 
-            colors = ['r','y','b','c','m','g']
+            colors = ["r", "y", "b", "c", "m", "g"]
             y, x, _ = self.plots[i].axes.hist(feature_array, bins=16, color=colors[i])
             self.plots[i].axes.set_title(titles[i])
-            
+
             if vert_line_at:
                 print(f"Plotting vertical line at: {vert_line_at[i]} {y.max()}")
                 self.plots[i].axes.axvline(x=vert_line_at[i], ymin=0, ymax=y.max(), color="k")
@@ -597,7 +599,6 @@ class AnalyzerCardBase(Card):
         self.vbox.addWidget(self.load_cluster_as_objects_btn)
         self.object_analyzer_controls.append(self.load_cluster_as_objects_btn)
         self.load_cluster_as_objects_btn.clicked.connect(self.load_cluster_as_objects)
-    
 
     def view_entities(self):
         logger.debug(f"Transferring entities to viewer")
@@ -605,24 +606,24 @@ class AnalyzerCardBase(Card):
             {
                 "source": "analyzer",
                 "data": "view_entities",
-                "entities" : self.entities_arr,
+                "entities": self.entities_arr,
                 "flipxy": self.flipxy_checkbox.value(),
             }
         )
 
-
     def load_cluster_as_objects(self):
         logger.debug("Load cluster as objects")
         from survos2.entity.entities import load_entities_via_file
+
         labels = self.labels_combo.value()
         labels = [int(l) for l in labels]
         print(f"Selected cluster: {labels}")
-        
+
         selected = []
         for l in labels:
-            selected.append(np.where(self.entities_arr[:,3] == l)[0])
+            selected.append(np.where(self.entities_arr[:, 3] == l)[0])
         selected = np.concatenate(selected)
-        selected_b = np.zeros_like(self.entities_arr[:,3])
+        selected_b = np.zeros_like(self.entities_arr[:, 3])
         for l in selected:
             selected_b[l] = 1
         selected_b = selected_b > 0
@@ -658,8 +659,8 @@ class AnalyzerCardBase(Card):
         out_df = pd.DataFrame(self.tabledata)
         out_df.to_csv(full_path)
         logger.debug(f"Exported to csv {full_path}")
-    
-    def add_source_selector(self):    
+
+    def add_source_selector(self):
         # radio buttons to select source type
         self.radio_group = QtWidgets.QButtonGroup()
         self.radio_group.setExclusive(True)
@@ -674,7 +675,7 @@ class AnalyzerCardBase(Card):
         self.radio_group.addButton(annotations_rb, 3)
         annotations_rb.toggled.connect(self._annotations_rb_checked)
         self.add_row(HWidgets(pipelines_rb, analyzers_rb, annotations_rb))
-        
+
         self.source_container = QtWidgets.QWidget()
         source_vbox = VBox(self, spacing=4)
         source_vbox.setContentsMargins(0, 0, 0, 0)
@@ -683,27 +684,23 @@ class AnalyzerCardBase(Card):
         self.pipelines_source = PipelinesComboBox()
         self.pipelines_source.fill()
         self.pipelines_source.setMaximumWidth(250)
-        self.pipelines_widget = HWidgets(
-        "Segmentation:", self.pipelines_source,  stretch=1
-        )
+        self.pipelines_widget = HWidgets("Segmentation:", self.pipelines_source, stretch=1)
         self.pipelines_widget.setParent(None)
 
         self.annotations_source = LevelComboBox(full=True)
         self.annotations_source.fill()
         self.annotations_source.setMaximumWidth(250)
-        self.annotations_widget = HWidgets("Annotation", self.annotations_source,  stretch=1)
+        self.annotations_widget = HWidgets("Annotation", self.annotations_source, stretch=1)
         self.annotations_widget.setParent(None)
         self.analyzers_source = AnalyzersComboBox()
         self.analyzers_source.fill()
         self.analyzers_source.setMaximumWidth(250)
-        self.analyzers_widget = HWidgets(
-            "Analyzers:", self.analyzers_source, stretch=1
-        )
+        self.analyzers_widget = HWidgets("Analyzers:", self.analyzers_source, stretch=1)
         self.analyzers_widget.setParent(None)
         self.source_container.layout().addWidget(self.pipelines_widget)
         self.current_widget = self.pipelines_widget
-        
-    def add_source_selector2(self):    
+
+    def add_source_selector2(self):
         # radio buttons to select source type
         self.radio_group2 = QtWidgets.QButtonGroup()
         self.radio_group2.setExclusive(True)
@@ -718,7 +715,7 @@ class AnalyzerCardBase(Card):
         self.radio_group2.addButton(annotations_rb2, 3)
         annotations_rb2.toggled.connect(self._annotations_rb2_checked)
         self.add_row(HWidgets(pipelines_rb2, analyzers_rb2, annotations_rb2))
-        
+
         self.source_container2 = QtWidgets.QWidget()
         source_vbox = VBox(self, spacing=4)
         source_vbox.setContentsMargins(0, 0, 0, 0)
@@ -727,22 +724,18 @@ class AnalyzerCardBase(Card):
         self.pipelines_source2 = PipelinesComboBox()
         self.pipelines_source2.fill()
         self.pipelines_source2.setMaximumWidth(250)
-        self.pipelines_widget2 = HWidgets(
-        "Segmentation:", self.pipelines_source2,  stretch=1
-        )
+        self.pipelines_widget2 = HWidgets("Segmentation:", self.pipelines_source2, stretch=1)
         self.pipelines_widget2.setParent(None)
 
         self.annotations_source2 = LevelComboBox(full=True)
         self.annotations_source2.fill()
         self.annotations_source2.setMaximumWidth(250)
-        self.annotations_widget2 = HWidgets("Annotation", self.annotations_source2,  stretch=1)
+        self.annotations_widget2 = HWidgets("Annotation", self.annotations_source2, stretch=1)
         self.annotations_widget2.setParent(None)
         self.analyzers_source2 = AnalyzersComboBox()
         self.analyzers_source2.fill()
         self.analyzers_source2.setMaximumWidth(250)
-        self.analyzers_widget2 = HWidgets(
-            "Analyzers:", self.analyzers_source2, stretch=1
-        )
+        self.analyzers_widget2 = HWidgets("Analyzers:", self.analyzers_source2, stretch=1)
         self.analyzers_widget2.setParent(None)
         self.source_container2.layout().addWidget(self.pipelines_widget2)
         self.current_widget2 = self.pipelines_widget2
@@ -754,6 +747,7 @@ class AnalyzerCardBase(Card):
                 self.current_widget.setParent(None)
             self.current_widget = self.pipelines_widget
             self.annotations_selected = False
+
     def _analyzers_rb_checked(self, enabled):
         if enabled:
             self.source_container.layout().addWidget(self.analyzers_widget)
@@ -761,6 +755,7 @@ class AnalyzerCardBase(Card):
                 self.current_widget.setParent(None)
             self.current_widget = self.analyzers_widget
             self.annotations_selected = False
+
     def _annotations_rb_checked(self, enabled):
         if enabled:
             self.source_container.layout().addWidget(self.annotations_widget)
@@ -768,29 +763,30 @@ class AnalyzerCardBase(Card):
                 self.current_widget.setParent(None)
             self.current_widget = self.annotations_widget
             self.annotations_selected = True
+
     def _pipelines_rb2_checked(self, enabled):
         if enabled:
             self.source_container2.layout().addWidget(self.pipelines_widget2)
             if self.current_widget2:
                 self.current_widget2.setParent(None)
             self.current_widget2 = self.pipelines_widget2
-            
+
     def _analyzers_rb2_checked(self, enabled):
         if enabled:
             self.source_container2.layout().addWidget(self.analyzers_widget2)
             if self.current_widget2:
                 self.current_widget2.setParent(None)
             self.current_widget2 = self.analyzers_widget2
-            
+
     def _annotations_rb2_checked(self, enabled):
         if enabled:
             self.source_container2.layout().addWidget(self.annotations_widget2)
             if self.current_widget2:
                 self.current_widget2.setParent(None)
             self.current_widget2 = self.annotations_widget2
-            
+
     def _setup_ops(self):
-        print(f"Current number of op cards {len(self.op_cards)}")      
+        print(f"Current number of op cards {len(self.op_cards)}")
         if self.table_control:
             self.table_control.w.setParent(None)
             self.table_control = None
@@ -799,65 +795,62 @@ class AnalyzerCardBase(Card):
                 plot.setParent(None)
                 plot = None
             self.plots = []
+
     def _setup_object_analyzer_plots(self):
         if len(self.object_analyzer_plots) > 0:
             for plot in self.object_analyzer_plots:
                 plot.setParent(None)
                 plot = None
             self.object_analyzer_plots = []
+
     def _add_rule(self):
-        op_card = RuleCard(title="Rule", editable=True, collapsible=False, removable=True, parent=self)
+        op_card = RuleCard(
+            title="Rule", editable=True, collapsible=False, removable=True, parent=self
+        )
         self.op_cards.append(op_card)
         self.add_row(op_card)
         self.add_to_widget_list(op_card)
-    
+
     def load_as_objects(self):
         logger.debug("Load analyzer result as objects")
         from survos2.entity.entities import load_entities_via_file
+
         load_entities_via_file(self.entities_arr, flipxy=True)
         cfg.ppw.clientEvent.emit(
             {"source": "analyzer_plugin", "data": "refresh_plugin", "plugin_name": "objects"}
         )
 
 
-
 class RuleCard(Card):
-    def __init__(self, title, collapsible=True, removable=True, editable=True,parent=None):
+    def __init__(self, title, collapsible=True, removable=True, editable=True, parent=None):
         super().__init__(
-            title=title, collapsible=collapsible, removable=removable, editable=editable, parent=parent
+            title=title,
+            collapsible=collapsible,
+            removable=removable,
+            editable=editable,
+            parent=parent,
         )
         self.title = title
         self.parent = parent
-        self.feature_name_combo_box = SimpleComboBox(
-            full=True, values=feature_names
-        )
+        self.feature_name_combo_box = SimpleComboBox(full=True, values=feature_names)
         self.feature_name_combo_box.fill()
-        self.split_op_combo_box = SimpleComboBox(
-            full=True, values=["None", ">", "<"]
-        )
+        self.split_op_combo_box = SimpleComboBox(full=True, values=["None", ">", "<"])
         self.split_op_combo_box.fill()
         self.split_threshold = LineEdit(default=0, parse=float)
-        measure_widget = HWidgets(
-            "Measurement:", self.feature_name_combo_box,  stretch=1
-        )
+        measure_widget = HWidgets("Measurement:", self.feature_name_combo_box, stretch=1)
         splitop_widget = HWidgets(
             "Split operation:",
             self.split_op_combo_box,
             self.split_threshold,
-            
             stretch=1,
         )
         self.vbox.addWidget(measure_widget)
-        self.add_to_widget_list(measure_widget)   
+        self.add_to_widget_list(measure_widget)
         self.vbox.addWidget(splitop_widget)
         self.setMinimumHeight(260)
         self.add_to_widget_list(splitop_widget)
-        
+
     def card_deleted(self):
         logger.debug(f"Deleted Rule {self.title}")
         self.parent.op_cards.remove(self)
         self.setParent(None)
-        
-
-
-

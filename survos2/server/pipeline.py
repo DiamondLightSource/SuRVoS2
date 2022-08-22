@@ -103,14 +103,12 @@ def run_workflow(workflow_file):
             all_params.update(params)
             logger.info(f"Executing workflow {all_params}")
 
-            print(
-                f"+ Running {k}, with {plugin}, {command} on {src}\n to dst {dst} {all_params}\n"
-            )
+            print(f"+ Running {k}, with {plugin}, {command} on {src}\n to dst {dst} {all_params}\n")
 
             import survos
+
             # Launcher.g.run(plugin, command, **all_params)
             survos.run_command(plugin, command, uri=None, src=src, dst=dst)
-
 
     else:
         print("Need input workflow YAML file")
@@ -155,7 +153,11 @@ def gridsampler_pipeline(
         label=tio.Image(tensor=img_tens, label=tio.LABEL),
     )
 
-    img_dataset = tio.ImagesDataset([one_subject,])
+    img_dataset = tio.ImagesDataset(
+        [
+            one_subject,
+        ]
+    )
     img_sample = img_dataset[-1]
     grid_sampler = GridSampler(img_sample, patch_size, patch_overlap)
     patch_loader = DataLoader(grid_sampler, batch_size=batch_size)
@@ -211,9 +213,21 @@ def gridsampler_pipeline(
             # )
 
             payload = Patch(
-                {"total_mask": np.random.random((4, 4),)},
-                {"total_anno": np.random.random((4, 4),)},
-                {"points": np.random.random((4, 3),)},
+                {
+                    "total_mask": np.random.random(
+                        (4, 4),
+                    )
+                },
+                {
+                    "total_anno": np.random.random(
+                        (4, 4),
+                    )
+                },
+                {
+                    "points": np.random.random(
+                        (4, 3),
+                    )
+                },
             )
             pipeline.init_payload(payload)
 
@@ -222,17 +236,13 @@ def gridsampler_pipeline(
 
             # Aggregation (Output: large volume aggregated from many smaller volumes)
             output_tensor = (
-                torch.FloatTensor(payload.annotation_layers["total_mask"])
-                .unsqueeze(0)
-                .unsqueeze(1)
+                torch.FloatTensor(payload.annotation_layers["total_mask"]).unsqueeze(0).unsqueeze(1)
             )
             logger.debug(f"Aggregating output tensor of shape: {output_tensor.shape}")
             aggregator1.add_batch(output_tensor, locations)
 
             output_tensor = (
-                torch.FloatTensor(payload.annotation_layers["prediction"])
-                .unsqueeze(0)
-                .unsqueeze(1)
+                torch.FloatTensor(payload.annotation_layers["prediction"]).unsqueeze(0).unsqueeze(1)
             )
             logger.debug(f"Aggregating output tensor of shape: {output_tensor.shape}")
             aggregator2.add_batch(output_tensor, locations)
@@ -247,4 +257,3 @@ def gridsampler_pipeline(
     output_arr2 = np.array(output_tensor2.squeeze(0))
 
     return [output_tensor1, output_tensor2], payloads
-

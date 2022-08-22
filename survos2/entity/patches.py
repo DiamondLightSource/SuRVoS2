@@ -63,6 +63,7 @@ from survos2.frontend.nb_utils import (
 )
 from survos2.entity.cluster.dataset import sample_bounding_volume
 
+
 class BoundingVolumeDataset(Dataset):
     def __init__(
         self,
@@ -102,9 +103,7 @@ class BoundingVolumeDataset(Dataset):
 
 # LabeledDataset
 class SmallVolDataset(Dataset):
-    def __init__(
-        self, images, labels, class_names=None, slice_num=None, dim=3, transform=None
-    ):
+    def __init__(self, images, labels, class_names=None, slice_num=None, dim=3, transform=None):
         self.input_images, self.target_labels = images, labels
         self.transform = transform
         self.class_names = class_names
@@ -175,10 +174,11 @@ def pad_vol(vol, padding):
 
     return padded_vol
 
+
 @dataclass
 class PatchWorkflow:
-    """Dataclass for PatchWorkflows used by the patch-based 3d fcn 
-    """
+    """Dataclass for PatchWorkflows used by the patch-based 3d fcn"""
+
     vols: List[np.ndarray]
     locs: np.ndarray
     entities: dict
@@ -186,9 +186,8 @@ class PatchWorkflow:
     params: dict
     gold: np.ndarray
 
-def organize_entities(
-    img_vol, clustered_pts, entity_meta, flipxy=False, plot_all=False
-):
+
+def organize_entities(img_vol, clustered_pts, entity_meta, flipxy=False, plot_all=False):
     class_idxs = entity_meta.keys()
     classwise_entities = []
 
@@ -199,7 +198,7 @@ def organize_entities(
         classwise_pts = np.array(clustered_df)
         classwise_entities.append(classwise_pts)
         entity_meta[c]["entities"] = classwise_pts
-        
+
     combined_clustered_pts = np.concatenate(classwise_entities)
 
     return combined_clustered_pts, entity_meta
@@ -224,6 +223,7 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
+
 def make_patches(
     wf,
     selected_locs,
@@ -237,7 +237,7 @@ def make_patches(
     num_augs=2,
     max_vols=-1,
     plot_all=False,
-    patch_size=(64,64,64)
+    patch_size=(64, 64, 64),
 ):
     # make bg mask
 
@@ -247,9 +247,7 @@ def make_patches(
 
     # Prepare patch dataset
     # selected_locs = wf.locs[wf.locs[:, 3] == 0]
-    mask_vol_size = wf.params["entity_meta"][list(wf.params["entity_meta"].keys())[0]][
-        "size"
-    ]
+    mask_vol_size = wf.params["entity_meta"][list(wf.params["entity_meta"].keys())[0]]["size"]
     mask_vol_size = (26, 26, 26)  # for viz
     target_cents = np.array(selected_locs)[:, 0:4]
     target_cents = target_cents[:, [0, 2, 1, 3]]
@@ -279,9 +277,7 @@ def make_patches(
         )
         print(f"Augmented point locations {some_pts.shape}")
     else:
-        some_pts = offset_points(
-            selected_locs, np.array(padding), scale=32, random_offset=False
-        )
+        some_pts = offset_points(selected_locs, np.array(padding), scale=32, random_offset=False)
 
     if plot_all:
         slice_plot(
@@ -298,9 +294,7 @@ def make_patches(
     marked_patches_anno = sample_marked_patches(
         padded_anno, some_pts, some_pts, patch_size=patch_size
     )
-    marked_patches = sample_marked_patches(
-        padded_vol, some_pts, some_pts, patch_size=patch_size
-    )
+    marked_patches = sample_marked_patches(padded_vol, some_pts, some_pts, patch_size=patch_size)
 
     img_vols = marked_patches.vols
     bvols = marked_patches.vols_bbs
@@ -378,15 +372,11 @@ def make_patches(
 
             from survos2.frontend.nb_utils import show_images
 
-            show_images(
-                [img[padding[0] // 2, :], lbl[padding[0] // 2, :]], figsize=(4, 4)
-            )
+            show_images([img[padding[0] // 2, :], lbl[padding[0] // 2, :]], figsize=(4, 4))
 
             print(f"Unique mask values: {np.unique(lbl)}")
 
-    print(
-        f"Augmented image vols shape {img_vols.shape}, label vols shape {label_vols.shape}"
-    )
+    print(f"Augmented image vols shape {img_vols.shape}, label vols shape {label_vols.shape}")
     # wf.params["selected_locs"] = selected_locs
     wf.params["outdir"] = outdir
 
@@ -450,7 +440,6 @@ def make_patches(
     return wf.params["img_vols_fullpath"], wf.params["label_vols_fullpath"]
 
 
-
 def make_patches2(
     wf,
     selected_locs,
@@ -489,17 +478,13 @@ def make_patches2(
         )
         print(f"Augmented point locations {some_pts.shape}")
     else:
-        some_pts = offset_points(
-            selected_locs, np.array(padding), scale=32, random_offset=False
-        )
+        some_pts = offset_points(selected_locs, np.array(padding), scale=32, random_offset=False)
 
     patch_size = padding
     marked_patches_anno = sample_marked_patches(
         padded_anno, some_pts, some_pts, patch_size=patch_size
     )
-    marked_patches = sample_marked_patches(
-        padded_vol, some_pts, some_pts, patch_size=patch_size
-    )
+    marked_patches = sample_marked_patches(padded_vol, some_pts, some_pts, patch_size=patch_size)
 
     img_vols = marked_patches.vols
     label_vols = marked_patches_anno.vols
@@ -523,7 +508,6 @@ def make_patches2(
 
         img_vols = np.vstack((img_vols, np.array(img_vols_flipped)))
         label_vols = np.vstack((label_vols, np.array(label_vols_flipped)))
-
 
     if max_vols > 0:
         img_vols = img_vols[0:max_vols]
@@ -590,10 +574,7 @@ def make_patches2(
     return wf.params["img_vols_fullpath"], wf.params["label_vols_fullpath"]
 
 
-
-def prepare_dataloaders(
-    img_vols, label_vols, model_type, batch_size=1
-):
+def prepare_dataloaders(img_vols, label_vols, model_type, batch_size=1):
     from sklearn.model_selection import train_test_split
 
     raw_X_train, raw_X_test, raw_y_train, raw_y_test = train_test_split(
@@ -622,10 +603,7 @@ def prepare_dataloaders(
             "train": DataLoader(
                 train_dataset3d, batch_size=batch_size, shuffle=True, num_workers=0
             ),
-            "val": DataLoader(
-                test_dataset3d, batch_size=batch_size, shuffle=False, num_workers=0
-            ),
+            "val": DataLoader(test_dataset3d, batch_size=batch_size, shuffle=False, num_workers=0),
         }
 
     return dataloaders
-

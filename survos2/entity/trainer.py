@@ -64,9 +64,7 @@ def score_dice(pred, targ, dim=1, smoothing=1.0, eps=1e-7) -> Tensor:
     targ = torch.FloatTensor(targ)
     pred, targ = pred.contiguous(), targ.contiguous()
     intersection = (pred * targ).sum(dim=dim).sum(dim=dim)
-    cardinality = (
-        pred.sum(dim=dim).sum(dim=dim) + targ.sum(dim=dim).sum(dim=dim) + smoothing
-    )
+    cardinality = pred.sum(dim=dim).sum(dim=dim) + targ.sum(dim=dim).sum(dim=dim) + smoothing
     loss = (2.0 * intersection + smoothing) / cardinality
 
     return loss.mean()
@@ -75,9 +73,7 @@ def score_dice(pred, targ, dim=1, smoothing=1.0, eps=1e-7) -> Tensor:
 def loss_dice(pred: Tensor, targ: Tensor, dim=2, smooth=1.0, eps=1e-7) -> Tensor:
     # pred, targ = pred.contiguous(), targ.contiguous()
     intersection = (pred * targ).sum(dim=dim).sum(dim=dim)
-    cardinality = (
-        pred.sum(dim=dim).sum(dim=dim) + targ.sum(dim=dim).sum(dim=dim) + smooth
-    )
+    cardinality = pred.sum(dim=dim).sum(dim=dim) + targ.sum(dim=dim).sum(dim=dim) + smooth
 
     loss = (2.0 * intersection + smooth) / cardinality
     loss = 1.0 - loss
@@ -105,6 +101,7 @@ def calc_loss(pred, target, metrics, bce_weight=0.5):
     loss = bce * bce_weight + dice * (1 - bce_weight)
 
     return loss
+
 
 def predict(test_loader, model, device):
     inputs, label_batch = next(iter(test_loader))
@@ -303,8 +300,7 @@ class Trainer:
         # if torch.cuda.device_count() > 1:
         #     print("Using", torch.cuda.device_count(), "GPUs")
         #     self.model = nn.DataParallel(self.model)
-        
-        
+
         num_steps = 0
 
         batch_iter = tqdm(
@@ -327,9 +323,7 @@ class Trainer:
             ###
             _ = self.callback.on_loss_end(loss_value)
             loss.backward()
-            if ((i + 1) % self.accumulate_iters == 0) or (
-                i + 1 == len(self.dataloaders["train"])
-            ):
+            if ((i + 1) % self.accumulate_iters == 0) or (i + 1 == len(self.dataloaders["train"])):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
@@ -461,8 +455,6 @@ def loss_calc(pred: Tensor, target: Tensor, metrics: dict, dice_weight=0.5) -> f
     return loss
 
 
-
-
 def train_detector_head(
     model3d,
     optimizer,
@@ -515,12 +507,8 @@ def train_detector_head(
 
             if n % num_samples_per_log_entry == 0:
                 iters_sub.append(n)
-                train_acc.append(
-                    make_classifications(model3d, dataloaders["train"], device)[1]
-                )
-                val_acc.append(
-                    make_classifications(model3d, dataloaders["val"], device)[1]
-                )
+                train_acc.append(make_classifications(model3d, dataloaders["train"], device)[1])
+                val_acc.append(make_classifications(model3d, dataloaders["val"], device)[1])
 
             n += 1
             if val_acc[-1] > best_validation_accuracy:
@@ -542,4 +530,3 @@ def train_detector_head(
     accuracies["val"] = val_acc
 
     return epochs, losses, accuracies
-

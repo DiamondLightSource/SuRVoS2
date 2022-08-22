@@ -139,9 +139,7 @@ class ModalManager(QtWidgets.QDialog, SWidget):
         from survos2.frontend.control import Launcher
 
         for i in range(5):
-            self.current_widget.setMessage(
-                "Attempting to reconnect.. ({}/5)".format(i + 1)
-            )
+            self.current_widget.setMessage("Attempting to reconnect.. ({}/5)".format(i + 1))
             Launcher.g.reconnect()
 
         if not Launcher.g.connected:

@@ -27,28 +27,39 @@ from survos2.io import dataset_from_uri
 from survos2.utils import encode_numpy
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
-from survos2.api.annotations import add_level, get_levels, get_level, add_label, update_label, get_single_level, get_labels
+from survos2.api.annotations import (
+    add_level,
+    get_levels,
+    get_level,
+    add_label,
+    update_label,
+    get_single_level,
+    get_labels,
+)
+
 __export_fill__ = 0
 __export_dtype__ = "float32"
 __export_group__ = "roi"
 
 
 @hug.get()
-def create(workspace: String, roi_fname: String, roi: list, original_workspace: String, original_level):
+def create(
+    workspace: String, roi_fname: String, roi: list, original_workspace: String, original_level
+):
     DataModel.g.current_workspace = original_workspace
     logger.debug(f"Original workspace: {original_workspace}")
     logger.debug(original_level)
     if original_level:
         anno_ds = ws.get_dataset(original_workspace, original_level, group="annotations")
-        anno_ds_crop = anno_ds[roi[0]:roi[1],roi[2]:roi[3], roi[4]:roi[5]] & 15
-        original_labels = get_labels(original_workspace,original_level)
+        anno_ds_crop = anno_ds[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]] & 15
+        original_labels = get_labels(original_workspace, original_level)
     roi_dict = {}
     DataModel.g.current_workspace = workspace
-    
+
     if original_level:
         add_level(roi_fname)
         new_anno_ds = get_level(roi_fname, level="001_level")
-    
+
     logger.debug(f"Switching to new workspace: {workspace}")
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -60,12 +71,12 @@ def create(workspace: String, roi_fname: String, roi: list, original_workspace: 
         else:
             roi_dict = src_dataset.get_metadata("roi_fnames")
         num_entries = len(roi_dict.keys())
-        roi_dict[num_entries+1] = roi_fname
+        roi_dict[num_entries + 1] = roi_fname
         src_dataset.set_metadata("roi_fnames", roi_dict)
         metadata = dict()
-        metadata['id'] = len(roi_dict.keys())
-        metadata['name'] = roi_fname
-         
+        metadata["id"] = len(roi_dict.keys())
+        metadata["name"] = roi_fname
+
     if original_level:
         label_values = np.unique(anno_ds_crop)
 
@@ -79,31 +90,29 @@ def create(workspace: String, roi_fname: String, roi: list, original_workspace: 
                     workspace=True,
                 )
                 label_result = add_label(workspace=roi_fname, level="001_level")
-        
+
         levels_result = get_single_level(roi_fname, level="001_level")
-        
+
         cmap_colors = []
-        for k,v in original_labels.items():
-            cmap_colors.append(v['color'])
+        for k, v in original_labels.items():
+            cmap_colors.append(v["color"])
 
         for i, v in enumerate(levels_result["labels"].keys()):
-            #label_rgb = (255 * label_rgb).astype(np.uint8)
-            #label_hex = "#{:02x}{:02x}{:02x}".format(*label_rgb)
-            label = dict(
-                idx=int(v),
-                name=str(int(v) - 1),
-                color= cmap_colors[i]         )
+            # label_rgb = (255 * label_rgb).astype(np.uint8)
+            # label_hex = "#{:02x}{:02x}{:02x}".format(*label_rgb)
+            label = dict(idx=int(v), name=str(int(v) - 1), color=cmap_colors[i])
             params = dict(level="001_level", workspace=roi_fname)
             label_result = update_label(**params, **label)
 
         new_anno_ds[:] = anno_ds_crop
 
     DataModel.g.current_workspace = original_workspace
-    
+
     return metadata
 
+
 @hug.get()
-def pull_anno(roi_fname : String, anno_id='001_level', target_anno_id='001_level'):
+def pull_anno(roi_fname: String, anno_id="001_level", target_anno_id="001_level"):
     print(f"{roi_fname} {anno_id}")
     ds = ws.get_dataset(roi_fname, anno_id, group="annotations")
     roi_parts = roi_fname.split("_")
@@ -117,7 +126,8 @@ def pull_anno(roi_fname : String, anno_id='001_level', target_anno_id='001_level
     dst = DataModel.g.dataset_uri(target_anno_id, group="annotations")
     main_anno = dataset_from_uri(dst, mode="rw")
     main_anno[z_min:z_max, x_min:x_max, y_min:y_max] = ds[:]
-    
+
+
 @hug.get()
 def existing():
     src = DataModel.g.dataset_uri("__data__")
@@ -137,10 +147,8 @@ def remove(workspace: String, roi_fname: String):
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         roi_fnames = src_dataset.get_metadata("roi_fnames")
-        for k,v in roi_fnames.items():
-            if (v==roi_fname):
-                selected = k    
-        del roi_fnames[selected]    
+        for k, v in roi_fnames.items():
+            if v == roi_fname:
+                selected = k
+        del roi_fnames[selected]
         src_dataset.set_metadata("roi_fnames", roi_fnames)
-
-

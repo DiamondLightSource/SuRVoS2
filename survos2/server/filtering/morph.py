@@ -14,12 +14,11 @@ def erode(I, num_iter, thresh=0.5):
 
     for i in range(num_iter):
         I = ndimage.binary_erosion(I, structure=struct2).astype(I.dtype)
-    
-    I = I.astype('int')
+
+    I = I.astype("int")
     print(I)
     I = np.nan_to_num(I)
-    return I.astype('int')
-
+    return I.astype("int")
 
 
 def dilate(I, num_iter, thresh=0.5):
@@ -104,9 +103,9 @@ def skeletonize(I, thresh=0.5):
     I -= np.min(I)
     I = I / np.max(I)
     I = (I >= thresh) * 1.0
-    skeleton = skeletonize_skimage(I) # returns 0-255
-    skeleton = (skeleton > 0) * 1.0 
-    
+    skeleton = skeletonize_skimage(I)  # returns 0-255
+    skeleton = (skeleton > 0) * 1.0
+
     return skeleton
 
 

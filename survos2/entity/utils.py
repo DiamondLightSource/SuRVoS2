@@ -29,7 +29,6 @@ from loguru import logger
 from survos2.frontend.main import init_ws, roi_ws
 
 
-
 import torch
 
 
@@ -38,6 +37,7 @@ def accuracy(prediction, groundtruth):
     N = FP + FN + TP + TN
     accuracy = np.divide(TP + TN, N)
     return accuracy * 100.0
+
 
 def load_model(detmod, file_path):
     def load_model_parameters(full_path):
@@ -50,7 +50,7 @@ def load_model(detmod, file_path):
 
     print(f"Loaded model from {file_path}")
     return detmod
-    
+
 
 def remove_masked_entities(bg_mask, entities):
     pts_vol = np.zeros_like(bg_mask)
@@ -139,7 +139,7 @@ def get_surface(img_vol, plot3d=False):
         s = skimage.measure.mesh_surface_area(verts, faces)
         v = np.sum(img_vol)
 
-        sphericity = (36 * math.pi * (v ** 2)) / (s ** 3)
+        sphericity = (36 * math.pi * (v**2)) / (s**3)
     except:
         s = 0
         v = 0
@@ -163,6 +163,3 @@ def accuracy(prediction, groundtruth):
     N = FP + FN + TP + TN
     accuracy = np.divide(TP + TN, N)
     return accuracy * 100.0
-
-
-

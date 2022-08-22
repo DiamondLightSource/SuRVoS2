@@ -9,13 +9,9 @@ def configuration(parent_package="", top_path=None):
         "superregions", parent_package, top_path, cmdclass={"build_ext": build_ext}
     )
 
-    config.add_extension(
-        "_rag", sources="_rag.pyx", include_dirs=[get_numpy_include_dirs()]
-    )
+    config.add_extension("_rag", sources="_rag.pyx", include_dirs=[get_numpy_include_dirs()])
 
-    config.add_extension(
-        "_ccl", sources="_ccl.pyx", include_dirs=[get_numpy_include_dirs()]
-    )
+    config.add_extension("_ccl", sources="_ccl.pyx", include_dirs=[get_numpy_include_dirs()])
 
     return config
 

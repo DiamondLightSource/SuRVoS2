@@ -60,19 +60,13 @@ def spatial_gradient_3d(vol_gray: np.ndarray, dim=0) -> np.ndarray:
 
     img_gray = img_as_float(np.clip(vol_gray, 0.0, 1.0))
 
-    t_gray = (
-        kornia.utils.image_to_tensor(np.array(img_gray))
-        .float()
-        .unsqueeze(0)
-        .unsqueeze(0)
-    )
+    t_gray = kornia.utils.image_to_tensor(np.array(img_gray)).float().unsqueeze(0).unsqueeze(0)
     spatialgradient3d = kornia.filters.SpatialGradient3d(mode="diff")
     result = spatialgradient3d(t_gray)
     result = result[0, 0, dim, :]
     result_arr: np.ndarray = kornia.tensor_to_image(result.float())
     logger.debug(f"Calculated gradient of shape {result_arr.shape}")
 
-    
     return result_arr
 
 
@@ -97,9 +91,8 @@ def laplacian(img: np.ndarray, kernel_size) -> np.ndarray:
 
     return laplacian_img
 
-def compute_difference_gaussians(
-    data, sigma, sigma_ratio, threshold=False, dark_response=False
-):
+
+def compute_difference_gaussians(data, sigma, sigma_ratio, threshold=False, dark_response=False):
     """Difference of Gaussians (DoG) filter
 
     Parameters
@@ -135,6 +128,4 @@ def compute_difference_gaussians(
 
     response = np.nan_to_num(response)
 
-
     return response
-

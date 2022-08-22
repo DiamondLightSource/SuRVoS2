@@ -163,4 +163,3 @@ def handle_exceptions(exception):
     log.critical(msg)
     log.critical("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
     return dict(error=True, error_message=msg, critical=True)
-

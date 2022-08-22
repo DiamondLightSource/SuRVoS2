@@ -50,9 +50,7 @@ from survos2.server.state import cfg
 from survos2.entity.entities import make_entity_df
 
 
-def organize_entities(
-    img_vol, clustered_pts, entity_meta, flipxy=False, plot_all=False
-):
+def organize_entities(img_vol, clustered_pts, entity_meta, flipxy=False, plot_all=False):
     """Sorts clustered points by class and stores in entity_meta for further processing by generate_annotation
 
     Parameters
@@ -70,7 +68,7 @@ def organize_entities(
 
     Returns
     -------
-    Tuple 
+    Tuple
         Tuple of (points, dict)
     """
     class_idxs = entity_meta.keys()
@@ -88,9 +86,7 @@ def organize_entities(
             plt.imshow(img_vol[img_vol.shape[0] // 4, :], cmap="gray")
             plt.scatter(classwise_pts[:, 1], classwise_pts[:, 2], c="cyan")
             plt.title(
-                str(entity_meta[c]["name"])
-                + " Clustered Locations: "
-                + str(len(classwise_pts))
+                str(entity_meta[c]["name"]) + " Clustered Locations: " + str(len(classwise_pts))
             )
 
     combined_clustered_pts = np.concatenate(classwise_entities)
@@ -101,14 +97,14 @@ def organize_entities(
 def make_acwe(patch: Patch, params: dict):
     """
     Active Contour
-    Setup and run ACWE 
+    Setup and run ACWE
 
-    """    
+    """
     edge_map = 1.0 - patch.image_layers["Main"]
     edge_map -= np.min(edge_map)
     edge_map = edge_map / np.max(edge_map)
     logger.debug("Calculating ACWE")
-    
+
     seg1 = ms.morphological_geodesic_active_contour(
         edge_map,
         iterations=params["iterations"],
@@ -119,7 +115,7 @@ def make_acwe(patch: Patch, params: dict):
     )
     outer_mask = ((seg1 * 1.0) > 0) * 2.0
     patch.image_layers["acwe"] = outer_mask
-    
+
     return patch
 
 
@@ -146,14 +142,12 @@ def generate_augmented_entities(
         gt_entities = entities
 
     if generate_random_bg_entities:
-        random_entities = generate_random_points_in_volume(
-            wf.vols[0], num_before_masking
-        ).astype(np.uint32)
+        random_entities = generate_random_points_in_volume(wf.vols[0], num_before_masking).astype(
+            np.uint32
+        )
         from survos2.entity.utils import remove_masked_entities
 
-        print(
-            f"Before masking random entities generated of shape {random_entities.shape}"
-        )
+        print(f"Before masking random entities generated of shape {random_entities.shape}")
         random_entities = remove_masked_entities(wf.bg_mask, random_entities)
 
         print(f"After masking: {random_entities.shape}")
@@ -225,17 +219,15 @@ def generate_annotation_volume(
         gt_entities = entities
 
     if generate_random_bg_entities:
-        random_entities = generate_random_points_in_volume(
-            wf.vols[0], num_before_masking
-        ).astype(np.uint32)
+        random_entities = generate_random_points_in_volume(wf.vols[0], num_before_masking).astype(
+            np.uint32
+        )
         from survos2.entity.utils import remove_masked_entities
 
-        print(
-            f"Before masking random entities generated of shape {random_entities.shape}"
-        )
-        #random_entities = remove_masked_entities(wf.bg_mask, random_entities)
+        print(f"Before masking random entities generated of shape {random_entities.shape}")
+        # random_entities = remove_masked_entities(wf.bg_mask, random_entities)
 
-        #print(f"After masking: {random_entities.shape}")
+        # print(f"After masking: {random_entities.shape}")
         random_entities[:, 3] = np.array([6] * len(random_entities))
         # augmented_entities = np.vstack((gt_entities, masked_entities))
         # print(f"Produced augmented entities array of shape {augmented_entities.shape}")
@@ -249,9 +241,7 @@ def generate_annotation_volume(
     return anno_masks, anno_all, gt_entities, random_entities
 
 
-def make_anno(
-    wf, entities, entity_meta, gt_proportion, padding, acwe=False, plot_all=True
-):
+def make_anno(wf, entities, entity_meta, gt_proportion, padding, acwe=False, plot_all=True):
     """Helper function to produce annotation with a single command
 
     Parameters
@@ -308,7 +298,7 @@ def make_pseudomasks(
     Parameters
     ----------
     wf : np.ndarray
-        PatchWorkflow object 
+        PatchWorkflow object
     classwise_entities : np.ndarray
         Sorted array of entities
     padding : tuple, optional
@@ -343,9 +333,7 @@ def make_pseudomasks(
     )
 
     anno_gen = np.sum([anno_masks[i]["mask"] for i in anno_masks.keys()], axis=0)
-    anno_shell_gen = np.sum(
-        [anno_masks[i]["shell_mask"] for i in anno_masks.keys()], axis=0
-    )
+    anno_shell_gen = np.sum([anno_masks[i]["shell_mask"] for i in anno_masks.keys()], axis=0)
 
     anno_all = [anno_masks[i]["mask"] for i in classwise_entities.keys()]
     anno_all.extend(anno_shell_gen)
@@ -376,4 +364,3 @@ def make_pseudomasks(
             anno_all = anno_acwe
 
     return anno_masks, anno_all
-

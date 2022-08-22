@@ -31,24 +31,27 @@ __feature_group__ = "features"
 __feature_dtype__ = "float32"
 __feature_fill__ = 0
 
+
 def rescale_denan(img):
     img = img - np.min(img)
     img = img / np.max(img)
     img = np.nan_to_num(img)
     return img
 
+
 @hug.post()
 def upload(body, request, response):
     print(f"Request: {request}")
     print(f"Response: {response}")
-    encoded_feature = body['file']
-    array_shape = body['shape']
+    encoded_feature = body["file"]
+    array_shape = body["shape"]
     print(f"shape {array_shape}")
     feature = np.frombuffer(encoded_feature, dtype="float32")
-    from ast import literal_eval 
+    from ast import literal_eval
+
     feature.shape = literal_eval(array_shape)
     print(f"Uploaded feature of shape {feature.shape}")
-    
+
     params = dict(feature_type="raw", workspace=DataModel.g.current_workspace)
     result = create(**params)
     fid = result["id"]
@@ -58,7 +61,6 @@ def upload(body, request, response):
     result = DataModel.g.dataset_uri(fid, group="features")
     with DatasetManager(result, out=result, dtype="float32", fillvalue=0) as DM:
         DM.out[:] = feature
-
 
 
 @hug.get()
@@ -85,14 +87,13 @@ def get_slice(src: DataURI, slice_idx: Int, order: tuple):
     data = ds[slice_idx]
     return encode_numpy_slice(data.astype(np.float32))
 
-def simple_norm(dst):    
+
+def simple_norm(dst):
     with DatasetManager(dst, out=None, dtype="float32", fillvalue=0) as DM:
         arr = DM.sources[0][:]
         arr -= np.min(arr)
         arr /= np.max(arr)
     map_blocks(pass_through, arr, out=dst, normalize=False)
-
-
 
 
 @hug.get()
@@ -103,7 +104,7 @@ def feature_composite(
     workspace: String,
     feature_A: DataURI,
     feature_B: DataURI,
-    op: String
+    op: String,
 ):
     src_A = DataModel.g.dataset_uri(feature_A, group="features")
     with DatasetManager(src_A, out=None, dtype="uint16", fillvalue=0) as DM:
@@ -116,20 +117,17 @@ def feature_composite(
         src_B_dataset = DM.sources[0]
         src_B_arr = src_B_dataset[:]
         logger.info(f"Obtained src B with shape {src_B_arr.shape}")
-    if op == '+':
-        result = src_A_arr + src_B_arr        
+    if op == "+":
+        result = src_A_arr + src_B_arr
     else:
         result = src_A_arr * src_B_arr
 
     map_blocks(pass_through, result, out=dst, normalize=False)
 
 
-
 @hug.get()
 @save_metadata
-def structure_tensor_determinant(
-    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
-) -> "BLOB":
+def structure_tensor_determinant(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
     from ..server.filtering.blob import compute_structure_tensor_determinant
 
     map_blocks(
@@ -174,12 +172,12 @@ def frangi(
 
     simple_norm(dst)
 
+
 @hug.get()
 @save_metadata
 def hessian_eigenvalues(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "BLOB":
     from ..server.filtering.blob import hessian_eigvals_image
 
-    
     map_blocks(
         hessian_eigvals_image,
         src,
@@ -405,11 +403,12 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
     from ..server.filtering import gaussian_blur_kornia
 
     if isinstance(sigma, float) or isinstance(sigma, int):
-         sigma = np.array([sigma] * 3)
-         print(f"Gaussian blur using sigma {sigma}")
-    
+        sigma = np.array([sigma] * 3)
+        print(f"Gaussian blur using sigma {sigma}")
+
     if sigma[0] == 0:
         from skimage.filters import gaussian
+
         map_blocks(
             gaussian,
             src,
@@ -446,11 +445,10 @@ def laplacian(src: DataURI, dst: DataURI, kernel_size: FloatOrVector = 1) -> "ED
 
     simple_norm(dst)
 
+
 @hug.get()
 @save_metadata
-def gaussian_norm(
-    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
-) -> "NEIGHBORHOOD":
+def gaussian_norm(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "NEIGHBORHOOD":
     from ..server.filtering.blur import gaussian_norm
 
     map_blocks(
@@ -465,12 +463,9 @@ def gaussian_norm(
     simple_norm(dst)
 
 
-
 @hug.get()
 @save_metadata
-def gaussian_center(
-    src: DataURI, dst: DataURI, sigma: FloatOrVector = 1
-) -> "NEIGHBORHOOD":
+def gaussian_center(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "NEIGHBORHOOD":
 
     from ..server.filtering.blur import gaussian_center
 
@@ -484,11 +479,10 @@ def gaussian_center(
     )
     simple_norm(dst)
 
+
 @hug.get()
 @save_metadata
-def median(
-    src: DataURI, dst: DataURI, median_size: Int = 1, num_iter: Int = 1
-) -> "DENOISING":
+def median(src: DataURI, dst: DataURI, median_size: Int = 1, num_iter: Int = 1) -> "DENOISING":
     from ..server.filtering import median
 
     map_blocks(
@@ -514,11 +508,12 @@ def wavelet(
 ) -> "WAVELET":
     from ..server.filtering import wavelet as wavelet_fn
 
-    
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset_arr = DM.sources[0][:]
-    
-    result = wavelet_fn(src_dataset_arr, level=level, wavelet=str(wavelet), threshold=threshold, hard=hard)    
+
+    result = wavelet_fn(
+        src_dataset_arr, level=level, wavelet=str(wavelet), threshold=threshold, hard=hard
+    )
     # map_blocks(
     #     wavelet,
     #     src,
@@ -532,7 +527,6 @@ def wavelet(
     # )
 
     map_blocks(pass_through, result, out=dst, normalize=False)
-
 
 
 @hug.get()
@@ -551,14 +545,11 @@ def create(workspace: String, feature_type: String):
 
 @hug.get()
 @hug.local()
-def existing(
-    workspace: String, full: SmartBoolean = False, filter: SmartBoolean = True
-):
+def existing(workspace: String, full: SmartBoolean = False, filter: SmartBoolean = True):
     datasets = ws.existing_datasets(workspace, group=__feature_group__)
     if full:
         datasets = {
-            "{}/{}".format(__feature_group__, k): dataset_repr(v)
-            for k, v in datasets.items()
+            "{}/{}".format(__feature_group__, k): dataset_repr(v) for k, v in datasets.items()
         }
     else:
         datasets = {k: dataset_repr(v) for k, v in datasets.items()}
@@ -607,8 +598,3 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
-
-
-
-
-

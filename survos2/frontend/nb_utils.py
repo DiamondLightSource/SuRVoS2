@@ -39,7 +39,7 @@ def add_anno(anno_vol, new_name, workspace_name):
         workspace=workspace_name,
     )
     new_anno_id = result[0]["id"]
-    
+
     src = DataModel.g.dataset_uri(new_anno_id, group="annotations")
 
     with DatasetManager(src, out=src, dtype="int32", fillvalue=0) as DM:
@@ -123,9 +123,7 @@ def slice_plot(
                 for i, u in enumerate(unique):
                     xs = pts[:, 1][pts[:, 3] == u]
                     ys = pts[:, 2][pts[:, 3] == u]
-                    color_list = [
-                        plt.cm.jet(i / float(len(unique))) for i in range(len(unique))
-                    ]
+                    color_list = [plt.cm.jet(i / float(len(unique))) for i in range(len(unique))]
 
                     plt.scatter(xs, ys, c=color_list[i], label=u, cmap="jet")
             else:
@@ -355,12 +353,12 @@ def show_images(images, titles=None, figsize=(12, 12), suptitle=""):
 
     fig.set_size_inches(np.array(fig.get_size_inches()) * n_images)
     plt.show()
-    
+
 
 def show_image_grid(images, titles=None, row_len=8, figsize=(12, 12), suptitle=""):
     n_images = len(images)
-    num_col = int(n_images/row_len)
-    
+    num_col = int(n_images / row_len)
+
     if titles is None:
         titles = [f"{im.shape} {str(im.dtype)}" for im in images]
 
@@ -376,8 +374,6 @@ def show_image_grid(images, titles=None, row_len=8, figsize=(12, 12), suptitle="
 
     fig.set_size_inches(np.array(fig.get_size_inches()) * n_images)
     plt.show()
-    
-
 
 
 def grid_of_images_and_clicks(
@@ -467,9 +463,7 @@ def show_images_and_points(
             ["cyan", "orange", "maroon", "navy", "mediumvioletred", "palegreen"], N=None
         )
 
-        scat = a.scatter(
-            points[:, 1], points[:, 2], c=cluster_classes, cmap=cmap, s=80, alpha=1.0
-        )
+        scat = a.scatter(points[:, 1], points[:, 2], c=cluster_classes, cmap=cmap, s=80, alpha=1.0)
         if uselegend:
             lgnd = a.legend(
                 handles=scat.legend_elements()[0],
@@ -487,6 +481,3 @@ def show_images_and_points(
         n += 1
 
     return fig
-
-
-

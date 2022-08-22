@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from collections import Counter
 from statistics import mode, StatisticsError
 from loguru import logger
+
 # from survos2.frontend.utils import get_img_in_bbox
 from survos2.entity.sampler import get_img_in_bbox
 
@@ -27,7 +28,7 @@ def aggregate(
     max_num_points=34,
     params={"algorithm": "HDBSCAN", "min_cluster_size": 2, "min_samples": 1},
 ):
-    """Aggregate classified points. Takes a dataframe of entities and an image size, clusters points 
+    """Aggregate classified points. Takes a dataframe of entities and an image size, clusters points
     (filtering out large clusters) and performs majority voting on the cluster class.
 
     Parameters
@@ -51,7 +52,6 @@ def aggregate(
     entity_df = make_entity_df(np.array(entity_df))
     X_rescaled, scaling = normalized_coords2(entity_df, img_shape)
 
-
     # use either HDBSCAN or DBSCAN to cluster the points
     if params["algorithm"] == "HDBSCAN":
         clusterer = hdbscan.HDBSCAN(
@@ -69,15 +69,13 @@ def aggregate(
         if remove_outliers:
             labels = labels[core_samples_mask]
     else:
-        clusterer = DBSCAN(eps=params["eps"], min_samples=params["min_samples"]).fit(
-            X_rescaled
-        )
+        clusterer = DBSCAN(eps=params["eps"], min_samples=params["min_samples"]).fit(X_rescaled)
         label_code = clusterer.labels_
         num_clusters_found = len(np.unique(label_code))
         print(f"Number of clustered found {num_clusters_found}")
         labels = clusterer.labels_
 
-    # Separate clusters into two groups based on the size of the cluster    
+    # Separate clusters into two groups based on the size of the cluster
     cluster_coords = []
     cluster_sizes = []
     other_coords = []
@@ -228,7 +226,7 @@ def cluster_centroid_coords(X_rescaled, labels, MAX_NUM_PTS_PER_CLUSTER=20):
     cluster_coords = np.array(cluster_coords)
     cluster_sizes = np.array(cluster_sizes)
     print(f"Mean cluster size: {np.mean(cluster_sizes)}")
-    
+
     return cluster_coords, cluster_sizes
 
 
@@ -255,8 +253,8 @@ def majority_voting(cluster_df):
     Dataframe
         Dataframe of points with classes
     """
-    unique_centroids = cluster_df.drop_duplicates(['slice', 'click_x', 'click_y'])
-    #unique_centroids = cluster_df
+    unique_centroids = cluster_df.drop_duplicates(["slice", "click_x", "click_y"])
+    # unique_centroids = cluster_df
     key_names = ["slice", "click_x", "click_y"]
     cc = []
 
@@ -268,9 +266,7 @@ def majority_voting(cluster_df):
             unique_centroids.iloc[i]["click_y"],
         )
         # get the class code for each of the points with a common centroid
-        class_codes = list(
-            cluster_df[(cluster_df[key_names] == key).all(1)]["class_code"]
-        )
+        class_codes = list(cluster_df[(cluster_df[key_names] == key).all(1)]["class_code"])
         # choose the most common class to be the class of the centroid
 
         c = Counter(class_codes)
@@ -278,9 +274,7 @@ def majority_voting(cluster_df):
         # print(classes_mostcommon)
         cc.append((key[0], key[2], key[1], classes_mostcommon[0][0]))
 
-    output_df = pd.DataFrame(
-        np.array(cc), columns=["slice", "click_x", "click_y", "class_code"]
-    )
+    output_df = pd.DataFrame(np.array(cc), columns=["slice", "click_x", "click_y", "class_code"])
 
     output_df = output_df.astype(
         {
@@ -292,6 +286,7 @@ def majority_voting(cluster_df):
     )
 
     return np.array(output_df)
+
 
 def aggregate_common_centroids(entities):
     unique_centroids = entities.drop_duplicates(["z", "x", "y"])
@@ -324,6 +319,7 @@ def aggregate_common_centroids(entities):
 
     return entities_df
 
+
 def parse_tuple(string):
     try:
         s = ast.literal_eval(str(string))
@@ -332,6 +328,7 @@ def parse_tuple(string):
         return
     except:
         return
+
 
 ##########################################################
 def extract_session_roi(
@@ -392,6 +389,7 @@ def extract_session_roi(
             plt.scatter(xs, ys, c="red")
 
     return click_data
+
 
 def extract_session_roi2(
     imstack,
@@ -464,9 +462,7 @@ def generate_clicklist(click_data_arr, crop_roi, slicestart, sliceend):
 
     sel_clicks = click_data_arr[
         np.where(
-            np.logical_and(
-                click_data_arr[:, 0] >= slicestart, click_data_arr[:, 0] <= sliceend
-            )
+            np.logical_and(click_data_arr[:, 0] >= slicestart, click_data_arr[:, 0] <= sliceend)
         )
     ]
 
@@ -508,8 +504,6 @@ def generate_full_click_plot_data(img_data, click_coords, patch_size=(40, 40)):
     return img_shortlist, img_titles, img_coords
 
 
-
-
 ##########################################################################################################################
 def generate_click_plot_data1(img_data, click_coords, patch_size=(40, 40)):
     sel_cropped_clicks = []
@@ -549,9 +543,7 @@ def generate_clicklist(click_data_arr, crop_roi, slicestart, sliceend):
 
     sel_clicks = click_data_arr[
         np.where(
-            np.logical_and(
-                click_data_arr[:, 0] >= slicestart, click_data_arr[:, 0] <= sliceend
-            )
+            np.logical_and(click_data_arr[:, 0] >= slicestart, click_data_arr[:, 0] <= sliceend)
         )
     ]
 
@@ -610,9 +602,7 @@ def generate_click_plot_data_cropped(img_data, click_coords, bv, patch_size=(40,
         if sliceno < bv[1] and sliceno > bv[0]:
 
             sel_cropped_clicks.append((sliceno, x, y, w, h))
-            img = get_img_in_bbox(
-                img_data, sliceno, int(np.ceil(x)), int(np.ceil(y)), w, h
-            )
+            img = get_img_in_bbox(img_data, sliceno, int(np.ceil(x)), int(np.ceil(y)), w, h)
 
             img_shortlist.append(img)
             y_str = "{:10.4f}".format(y)
@@ -661,16 +651,12 @@ def generate_full_click_plot_data(img_data, click_coords, patch_size=(40, 40)):
         img_shortlist.append(img)
         # y_str = "{:.3f}".format(y)
         # x_str = "{:.3f}".format(x)
-        img_titles.append(
-            str(int(x)) + "_" + str(int(y)) + "_" + str(int(sliceno)) + str(c)
-        )
+        img_titles.append(str(int(x)) + "_" + str(int(y)) + "_" + str(int(sliceno)) + str(c))
 
     return img_shortlist, img_titles, img_coords
 
 
-def generate_stacked_click_plot_data(
-    img_data_layers, click_coords, patch_size=(32, 32)
-):
+def generate_stacked_click_plot_data(img_data_layers, click_coords, patch_size=(32, 32)):
     img_shortlistA = []
     img_shortlistB = []
     img_titles = []
@@ -685,9 +671,7 @@ def generate_stacked_click_plot_data(
         # print(x,y,w,h,sliceno)
         sel_cropped_clicks.append((sliceno, x, y, w, h))
         # img1 = get_img_in_bbox(img_data1, sliceno-1, int(np.ceil(x)),int(np.ceil(y)),w,h)
-        img2 = get_img_in_bbox(
-            img_data1, sliceno, int(np.ceil(x)), int(np.ceil(y)), w, h
-        )
+        img2 = get_img_in_bbox(img_data1, sliceno, int(np.ceil(x)), int(np.ceil(y)), w, h)
         # img3 = get_img_in_bbox(img_data1, sliceno-1, int(np.ceil(x)),int(np.ceil(y)),w,h)
 
         # stacked_img = np.stack((img1, img2, img3), axis=-1)
@@ -698,15 +682,9 @@ def generate_stacked_click_plot_data(
         # img2 = get_img_in_bbox(img_data1, sliceno, int(np.ceil(x)),int(np.ceil(y)),w,h)
         # img3 = get_img_in_bbox(img_data1, sliceno+1, int(np.ceil(x)),int(np.ceil(y)),w,h)
 
-        img1 = get_img_in_bbox(
-            img_data2, sliceno - 1, int(np.ceil(x)), int(np.ceil(y)), w, h
-        )
-        img2 = get_img_in_bbox(
-            img_data1, sliceno, int(np.ceil(x)), int(np.ceil(y)), w, h
-        )
-        img3 = get_img_in_bbox(
-            img_data2, sliceno - 1, int(np.ceil(x)), int(np.ceil(y)), w, h
-        )
+        img1 = get_img_in_bbox(img_data2, sliceno - 1, int(np.ceil(x)), int(np.ceil(y)), w, h)
+        img2 = get_img_in_bbox(img_data1, sliceno, int(np.ceil(x)), int(np.ceil(y)), w, h)
+        img3 = get_img_in_bbox(img_data2, sliceno - 1, int(np.ceil(x)), int(np.ceil(y)), w, h)
 
         stacked_img = np.stack((img1, img2, img3), axis=-1)
 

@@ -113,10 +113,7 @@ class LoadDataDialog(QDialog):
         container.setLayout(hbox)
         container.setObjectName("loaderContainer")
         container.setStyleSheet(
-            "QWidget#loaderContainer {"
-            "  background-color: #1e1e1e; "
-            "  border-radius: 10px;"
-            "}"
+            "QWidget#loaderContainer {" "  background-color: #1e1e1e; " "  border-radius: 10px;" "}"
         )
         lvbox = QVBoxLayout()
         rvbox = QVBoxLayout()
@@ -167,9 +164,7 @@ class LoadDataDialog(QDialog):
         reset_button = QPushButton("Reset ROI")
         roi_fields = QGroupBox("Select Region of Interest:")
         roi_layout = QGridLayout()
-        roi_layout.addWidget(
-            QLabel("Drag a box in the image window or type manually"), 0, 0, 1, 3
-        )
+        roi_layout.addWidget(QLabel("Drag a box in the image window or type manually"), 0, 0, 1, 3)
         roi_layout.addWidget(QLabel("Axis"), 1, 0)
         roi_layout.addWidget(QLabel("Start Value:"), 1, 1)
         roi_layout.addWidget(QLabel("End Value:"), 1, 2)
@@ -325,7 +320,7 @@ class LoadDataDialog(QDialog):
         if len(self.data_shape) > 2:
             self.xstart_linedt.setText("0")
             self.xend_linedt.setText(str(self.data_shape[2]))
-        
+
         self.ystart_linedt.setText("0")
         self.yend_linedt.setText(str(self.data_shape[1]))
         self.zstart_linedt.setText("0")
@@ -363,9 +358,7 @@ class LoadDataDialog(QDialog):
         z_end = int(self.zend_linedt.text())
         size_tuple += (z_start, z_end)
         # Clip the values
-        x_start, x_end, y_start, y_end, z_start, z_end = self.clip_roi_box_vals(
-            size_tuple
-        )
+        x_start, x_end, y_start, y_end, z_start, z_end = self.clip_roi_box_vals(size_tuple)
         self.xstart_linedt.setText(str(x_start))
         self.xend_linedt.setText(str(x_end))
         self.ystart_linedt.setText(str(y_start))
@@ -489,13 +482,7 @@ class LoadDataDialog(QDialog):
             else:
                 y_size, x_size = self.data_shape
                 z_size = 1
-                x_start, x_end, y_start, y_end, z_start, z_end = (
-                    0,
-                    x_size,
-                    0,
-                    y_size,
-                    0,
-                    1)
+                x_start, x_end, y_start, y_end, z_start, z_end = (0, x_size, 0, y_size, 0, 1)
         # Show central slice if loading data or changing roi
         if idx is None or load:
             idx = z_size // 2
@@ -515,12 +502,12 @@ class LoadDataDialog(QDialog):
             if len(self.data_shape) > 2:
                 img = self.data[idx]
             else:
-                self.data = np.reshape(self.data, (1,self.data.shape[0], self.data.shape[1]))
+                self.data = np.reshape(self.data, (1, self.data.shape[0], self.data.shape[1]))
                 img = self.data[0]
         self.canvas.ax.set_facecolor((1, 1, 1))
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], "gray")
         self.canvas.ax.grid(False)
-        #self.canvas.redraw()
+        # self.canvas.redraw()
 
     def update_est_data_size(self, z_size, y_size, x_size):
         """Updates the estimated datasize label according to the dimensions and the downsampling factor.
@@ -531,7 +518,7 @@ class LoadDataDialog(QDialog):
             x_size (int): Length of x dimension.
         """
         data_size_tup = tuple(map(int, (z_size, y_size, x_size)))
-        est_data_size = (product(data_size_tup) * 4) / 10 ** 6
+        est_data_size = (product(data_size_tup) * 4) / 10**6
         est_data_size /= self.downsample_spinner.value() ** 3
         self.data_size_label.setText(f"{est_data_size:.2f}")
 
@@ -569,9 +556,7 @@ class SSHWorker(QObject):
             ws_name = self.run_config["workspace_name"]
             server_port = self.run_config["server_port"]
             # TODO Check if the server port is already in use
-            logger.info(
-                f"Checking if server port: {server_port} at ip: {ip} is already in use."
-            )
+            logger.info(f"Checking if server port: {server_port} at ip: {ip} is already in use.")
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             result = sock.connect_ex((ip, int(server_port)))
             if result == 0:
@@ -706,21 +691,20 @@ class ServerPlugin(Plugin):
         output_config_button.clicked.connect(self.output_config_clicked)
         self.layout.addWidget(tabwidget)
 
-        #self.setGeometry(300, 300, 600, 400)
+        # self.setGeometry(300, 300, 600, 400)
         self.setWindowTitle("SuRVoS Settings Editor")
         current_fpth = os.path.dirname(os.path.abspath(__file__))
         self.setWindowIcon(QIcon(os.path.join(current_fpth, "resources", "logo.png")))
         self.setLayout(self.layout)
         self.show()
 
-
     def select_chroot_path(self):
         full_path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Select project path", "." , QtWidgets.QFileDialog.ShowDirsOnly
+            self, "Select project path", ".", QtWidgets.QFileDialog.ShowDirsOnly
         )
         if isinstance(full_path, tuple):
             full_path = full_path[0]
-        if full_path!="":
+        if full_path != "":
             self.given_chroot_linedt.setText(full_path)
             self.set_chroot()
             cfg.bpw.refresh_workspaces()
@@ -728,6 +712,7 @@ class ServerPlugin(Plugin):
             # edit the settings file to store the chosen chroot path
             import ruamel.yaml
             import pathlib
+
             current_path = pathlib.Path(__file__).parent.resolve()
             yaml = ruamel.yaml.YAML()
             yaml.preserve_quotes = True
@@ -738,12 +723,9 @@ class ServerPlugin(Plugin):
             for entry in settings:
                 if entry == "model":
                     settings["model"]["chroot"] = full_path
-                    
 
             with open(str(current_path) + "/../../../settings.yaml", "w") as f:
                 yaml.dump(settings, f)
-
-
 
     def get_chroot_fields(self):
         chroot_fields = QGroupBox("Set Main Directory for Storing Workspaces:")
@@ -779,9 +761,7 @@ class ServerPlugin(Plugin):
         wf_layout.addWidget(QLabel("HDF5 Internal Data Path:"), 2, 0, 1, 1)
         ws_dataset_name = self.workspace_config["dataset_name"]
         internal_h5_path = (
-            ws_dataset_name
-            if str(ws_dataset_name).startswith("/")
-            else "/" + ws_dataset_name
+            ws_dataset_name if str(ws_dataset_name).startswith("/") else "/" + ws_dataset_name
         )
         self.h5_intpth_linedt = QLineEdit(internal_h5_path)
         wf_layout.addWidget(self.h5_intpth_linedt, 2, 1, 1, 1)
@@ -843,7 +823,7 @@ class ServerPlugin(Plugin):
         adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
         self.server_port_linedt = QLineEdit(self.run_config["server_port"])
         adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
-        
+
         # SSH Info
         self.ssh_button = QRadioButton("Use SSH")
         self.ssh_button.setAutoExclusive(False)
@@ -869,8 +849,8 @@ class ServerPlugin(Plugin):
         adv_ssh_layout.addWidget(ssh_port_label, 2, 0)
         adv_ssh_layout.addWidget(self.ssh_port_linedt, 2, 1, 1, 2)
         self.adv_ssh_fields.setLayout(adv_ssh_layout)
-        #adv_run_layout.addWidget(self.adv_ssh_fields, 1, 2, 2, 5)
-        
+        # adv_run_layout.addWidget(self.adv_ssh_fields, 1, 2, 2, 5)
+
         self.adv_run_fields.setLayout(adv_run_layout)
 
     def get_run_fields(self):
@@ -922,7 +902,6 @@ class ServerPlugin(Plugin):
             user = ""
         return user
 
-
     def refresh_chroot(self):
         workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list.clear()
@@ -956,9 +935,14 @@ class ServerPlugin(Plugin):
             if dialog.roi_changed:
                 self.roi_limits = tuple(map(str, dialog.get_roi_limits()))
                 self.roi_fields.show()
-                self.update_roi_fields_from_dialog() 
+                self.update_roi_fields_from_dialog()
                 # replace workspace name with autogenerated (original_data_file plus roi)
-                self.ws_name_linedt_1.setText(f"{os.path.splitext(os.path.basename(path))[0]}__roi_" + str(f"{self.roi_limits[4]}_{self.roi_limits[5]}_{self.roi_limits[2]}_{self.roi_limits[3]}_{self.roi_limits[0]}_{self.roi_limits[1]}"))
+                self.ws_name_linedt_1.setText(
+                    f"{os.path.splitext(os.path.basename(path))[0]}__roi_"
+                    + str(
+                        f"{self.roi_limits[4]}_{self.roi_limits[5]}_{self.roi_limits[2]}_{self.roi_limits[3]}_{self.roi_limits[0]}_{self.roi_limits[1]}"
+                    )
+                )
             else:
                 self.roi_fields.hide()
                 self.ws_name_linedt_1.setText(f"{os.path.splitext(os.path.basename(path))[0]}")
@@ -1000,9 +984,7 @@ class ServerPlugin(Plugin):
         if not vol_path.is_file():
             err_str = f"No data file exists at {vol_path}!"
             logger.error(err_str)
-            self.button_feedback_response(
-                err_str, self.create_workspace_button, "maroon"
-            )
+            self.button_feedback_response(err_str, self.create_workspace_button, "maroon")
         else:
             self.workspace_config["datasets_dir"] = str(vol_path.parent)
             self.workspace_config["vol_fname"] = str(vol_path.name)
@@ -1030,9 +1012,7 @@ class ServerPlugin(Plugin):
                     self.ws_name_linedt_2.setText(self.ws_name_linedt_1.text())
             except WorkspaceException as e:
                 logger.exception(e)
-                self.button_feedback_response(
-                    str(e), self.create_workspace_button, "maroon"
-                )
+                self.button_feedback_response(str(e), self.create_workspace_button, "maroon")
             self.refresh_chroot()
 
     def button_feedback_response(self, message, button, colour_str, timeout=2):
@@ -1050,9 +1030,7 @@ class ServerPlugin(Plugin):
         button.setText(message)
         button.setStyleSheet(f"background-color: {colour_str}; color: white")
         timer = QTimer()
-        timer.singleShot(
-            timeout, lambda: self.reset_button(button, msg_old, col_old, txt_col_old)
-        )
+        timer.singleShot(timeout, lambda: self.reset_button(button, msg_old, col_old, txt_col_old))
 
     @pyqtSlot()
     def reset_button(self, button, msg_old, col_old, txt_col_old):
@@ -1075,9 +1053,7 @@ class ServerPlugin(Plugin):
         out_fname = "pipeline_cfg.yml"
         logger.debug(f"Outputting pipeline config: {out_fname}")
         with open(out_fname, "w") as outfile:
-            yaml.dump(
-                self.pipeline_config, outfile, default_flow_style=False, sort_keys=False
-            )
+            yaml.dump(self.pipeline_config, outfile, default_flow_style=False, sort_keys=False)
 
     def get_ssh_params(self):
         ssh_host = self.ssh_host_linedt.text()
@@ -1129,9 +1105,7 @@ class ServerPlugin(Plugin):
 
     @pyqtSlot(list)
     def send_msg_to_run_button(self, param_list):
-        self.button_feedback_response(
-            param_list[0], self.run_button, param_list[1], param_list[2]
-        )
+        self.button_feedback_response(param_list[0], self.run_button, param_list[1], param_list[2])
 
     @pyqtSlot()
     def stop_clicked(self):
@@ -1150,9 +1124,7 @@ class ServerPlugin(Plugin):
             pbar.set_description("Starting server...")
             pbar.update(1)
 
-        self.ssh_error = (
-            False  # Flag which will be set to True if there is an SSH error
-        )
+        self.ssh_error = False  # Flag which will be set to True if there is an SSH error
         command_dir = os.path.abspath(os.path.dirname(__file__))  # os.getcwd()
 
         # Set current dir to survos root
@@ -1168,13 +1140,9 @@ class ServerPlugin(Plugin):
         self.run_config["workspace_name"] = self.ws_name_linedt_2.text()
         self.run_config["server_port"] = self.server_port_linedt.text()
         # Temporary measure to check whether the workspace exists or not
-        full_ws_path = os.path.join(
-            Config["model.chroot"], self.run_config["workspace_name"]
-        )
+        full_ws_path = os.path.join(Config["model.chroot"], self.run_config["workspace_name"])
         if not os.path.isdir(full_ws_path):
-            logger.error(
-                f"No workspace can be found at {full_ws_path}, Not starting SuRVoS."
-            )
+            logger.error(f"No workspace can be found at {full_ws_path}, Not starting SuRVoS.")
             self.button_feedback_response(
                 f"Workspace {self.run_config['workspace_name']} does not appear to exist!",
                 self.run_button,
@@ -1216,10 +1184,9 @@ class ServerPlugin(Plugin):
                     "workspace": self.ws_name_linedt_2.text(),
                 }
             )
-            cfg.ppw.clientEvent.emit(
-                {"source": "panel_gui", "data": "refresh", "value": None}
-            )
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
         pbar.update(1)
+
     @pyqtSlot()
     def existing_clicked(self):
         ssh_ip = self.server_ip_linedt.text()
@@ -1235,15 +1202,11 @@ class ServerPlugin(Plugin):
                 "workspace": self.ws_name_linedt_2.text(),
             }
         )
-        cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "refresh", "value": None}
-        )
-        
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+
     def start_client(self):
         if not self.ssh_error:
-            self.button_feedback_response(
-                "Starting Client.", self.run_button, "green", 7
-            )
+            self.button_feedback_response("Starting Client.", self.run_button, "green", 7)
             self.run_config["server_ip"] = self.server_ip_linedt.text()
             self.client_process = subprocess.Popen(
                 [
@@ -1251,12 +1214,6 @@ class ServerPlugin(Plugin):
                     self.script_fullname,
                     "nu_gui",
                     self.run_config["workspace_name"],
-                    str(self.run_config["server_ip"])
-                    + ":"
-                    + str(self.run_config["server_port"]),
+                    str(self.run_config["server_ip"]) + ":" + str(self.run_config["server_port"]),
                 ]
             )
-
-
-
-

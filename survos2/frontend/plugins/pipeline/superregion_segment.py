@@ -1,4 +1,3 @@
-
 import ast
 import logging
 import numpy as np
@@ -9,14 +8,18 @@ from qtpy.QtCore import QSize, Signal
 from survos2.frontend.components.base import *
 
 from survos2.frontend.plugins.base import *
-from survos2.frontend.plugins.base import ComboBox, LazyComboBox, LazyMultiComboBox,  DataTableWidgetItem
+from survos2.frontend.plugins.base import (
+    ComboBox,
+    LazyComboBox,
+    LazyMultiComboBox,
+    DataTableWidgetItem,
+)
 from survos2.model import DataModel
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 from napari.qt.progress import progress
 
 
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
-
 
 
 class SVMWidget(QtWidgets.QWidget):
@@ -88,7 +91,7 @@ class EnsembleWidget(QtWidgets.QWidget):
         self.type_combo.addItem("ExtraRandom Forest")
         self.type_combo.addItem("AdaBoost")
         self.type_combo.addItem("GradientBoosting")
-        #self.type_combo.addItem("XGBoost")
+        # self.type_combo.addItem("XGBoost")
 
         self.type_combo.currentIndexChanged.connect(self.on_ensemble_changed)
         vbox.addWidget(self.type_combo)
@@ -168,15 +171,10 @@ class EnsembleWidget(QtWidgets.QWidget):
         return params
 
 
-
 class SuperregionSegment(PipelineCardBase):
-    def __init__(self,fid, ftype, fname, fparams, parent=None):
-        super().__init__(
-            fid=fid,
-            ftype=ftype,
-            fname=fname,
-            fparams=fparams
-        )
+    def __init__(self, fid, ftype, fname, fparams, parent=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+
     def setup(self):
         logger.debug("Adding a superregion_segment pipeline")
         self._add_features_source()
@@ -193,12 +191,9 @@ class SuperregionSegment(PipelineCardBase):
         self._add_projection_choice()
         self._add_param("lam", type="FloatSlider", default=0.15)
         self._add_confidence_choice()
-    
 
     def compute_pipeline(self):
-        feature_names_list = [
-            n.rsplit("/", 1)[-1] for n in self.features_source.value()
-        ]
+        feature_names_list = [n.rsplit("/", 1)[-1] for n in self.features_source.value()]
         src_grp = None if self.annotations_source.currentIndex() == 0 else "pipelines"
         src = DataModel.g.dataset_uri(
             self.annotations_source.value().rsplit("/", 1)[-1],
@@ -212,14 +207,12 @@ class SuperregionSegment(PipelineCardBase):
         all_params["feature_ids"] = feature_names_list
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         if self.constrain_mask_source.value() != None:
-            all_params[
-                "constrain_mask"
-            ] = self.constrain_mask_source.value()  # .rsplit("/", 1)[-1]
+            all_params["constrain_mask"] = self.constrain_mask_source.value()  # .rsplit("/", 1)[-1]
         else:
             all_params["constrain_mask"] = "None"
 
         all_params["dst"] = self.dst
-        all_params["refine"] = self.widgets["refine"].value()  
+        all_params["refine"] = self.widgets["refine"].value()
         all_params["lam"] = self.widgets["lam"].value()
         all_params["classifier_type"] = self.classifier_type.value()
         all_params["projection_type"] = self.projection_type.value()

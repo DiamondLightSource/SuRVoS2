@@ -34,7 +34,7 @@ def compute_hessian(data, sigma):
         sigma = max(sigma)
 
     if sigma > 1:
-        H_elems = [elem * sigma ** 2 for elem in H_elems]
+        H_elems = [elem * sigma**2 for elem in H_elems]
     return H_elems
 
 
@@ -92,7 +92,7 @@ def hessian_eigvals_cython(data, sigma, correct=False):
         if not isinstance(sigma, numbers.Number):
             s = max(sigma) ** 2
         else:
-            s = sigma ** 2
+            s = sigma**2
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = [h * s for h in H]
     else:
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = H
@@ -136,7 +136,7 @@ def hessian_eigvals(data, sigma, correct=False):
         if not isinstance(sigma, numbers.Number):
             s = max(sigma) ** 2
         else:
-            s = sigma ** 2
+            s = sigma**2
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = [h * s for h in H]
     else:
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = H
@@ -177,7 +177,7 @@ def hessian_eigvals_image(data, sigma, correct=False):
         if not isinstance(sigma, numbers.Number):
             s = max(sigma) ** 2
         else:
-            s = sigma ** 2
+            s = sigma**2
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = [h * s for h in H]
     else:
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = H
@@ -218,7 +218,7 @@ def hessian_eigvals_p(data, sigma, correct=False):
         if not isinstance(sigma, numbers.Number):
             s = max(sigma) ** 2
         else:
-            s = sigma ** 2
+            s = sigma**2
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = [h * s for h in H]
     else:
         Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = H
@@ -244,11 +244,11 @@ def make_gaussian_1d(sigma=1.0, size=None, order=0, trunc=3):
     if order > 2:
         raise ValueError("Only orders up to 2 are supported")
     # compute unnormalized Gaussian response
-    response = np.exp(-(x ** 2) / (2.0 * sigma ** 2))
+    response = np.exp(-(x**2) / (2.0 * sigma**2))
     if order == 1:
         response = -response * x
     elif order == 2:
-        response = response * (x ** 2 - sigma ** 2)
+        response = response * (x**2 - sigma**2)
     # normalize
     response /= np.abs(response).sum()
 
@@ -290,7 +290,6 @@ def compute_structure_tensor_determinant(data, sigma=1):
         + Sxz * (Sxy * Syz - Syy * Sxz)
     )
 
-    
     return determinant
 
 
@@ -364,13 +363,13 @@ def compute_frangi(
         Rb = divide_nonzero(ae1sq, (ae2 * ae3))
         S = np.sqrt(ae1sq + ae2sq + ae3sq)
 
-        A = 2 * alpha ** 2
-        B = 2 * beta ** 2
-        C = 2 * gamma ** 2
+        A = 2 * alpha**2
+        B = 2 * beta**2
+        C = 2 * gamma**2
 
-        plate_factor = 1 - np.exp(-(Ra ** 2) / A)
+        plate_factor = 1 - np.exp(-(Ra**2) / A)
         blob_factor = np.exp(-(Rb) / B)
-        background_factor = 1 - np.exp(-(S ** 2) / C)
+        background_factor = 1 - np.exp(-(S**2) / C)
 
         tmp = plate_factor * blob_factor * background_factor
 
@@ -383,7 +382,5 @@ def compute_frangi(
             tmp[e3 > 0] = 0
 
         filtered_array[i] = np.nan_to_num(tmp)
-    
-    return np.max(filtered_array, axis=0)
-    
 
+    return np.max(filtered_array, axis=0)

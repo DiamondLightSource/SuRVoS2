@@ -81,7 +81,7 @@ def get_surface(img_vol, plot3d=False):
         s = skimage.measure.mesh_surface_area(verts, faces)
         v = np.sum(img_vol)
 
-        sphericity = (36 * math.pi * (v ** 2)) / (s ** 3)
+        sphericity = (36 * math.pi * (v**2)) / (s**3)
 
         return mesh, s, v, sphericity
 
@@ -131,9 +131,7 @@ def get3dcc(pred_vol):
     # print(pred_vol_mask.shape)
 
     connectivity = 6
-    labels_out = cc3d.connected_components(
-        pred_vol_mask, connectivity=connectivity
-    )  # 26-connected
+    labels_out = cc3d.connected_components(pred_vol_mask, connectivity=connectivity)  # 26-connected
 
     return labels_out
 
@@ -157,6 +155,4 @@ def plot_bb_2d(img, pred_info):
 
     for bbox, c, scr, bb_id in zip(bbs, preds, scores, bb_ids):
         txt = c
-        draw_bb(
-            ax, [bbox[1], bbox[0], bbox[3], bbox[2]], text=f"{txt} {scr:.2f} \n {bb_id}"
-        )
+        draw_bb(ax, [bbox[1], bbox[0], bbox[3], bbox[2]], text=f"{txt} {scr:.2f} \n {bb_id}")

@@ -55,7 +55,7 @@ class AnnotationComboBox(LazyComboBox):
         parent=None,
         header=(None, "Select Label"),
         exclude_from_fill=None,
-        workspace=True
+        workspace=True,
     ):
         self.full = full
         self.exclude_from_fill = exclude_from_fill
@@ -75,5 +75,3 @@ class MultiAnnotationComboBox(LazyMultiComboBox):
 
     def fill(self):
         _fill_annotations(self, full=self.full)
-
-

@@ -2,7 +2,7 @@ import numpy as np
 from loguru import logger
 import os
 from qtpy import QtWidgets
-from qtpy.QtWidgets import QRadioButton, QPushButton,QFileDialog
+from qtpy.QtWidgets import QRadioButton, QPushButton, QFileDialog
 from qtpy.QtCore import QSize, Signal
 
 from survos2.frontend.components.base import *
@@ -17,6 +17,7 @@ from survos2.improc.utils import DatasetManager
 import yaml
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+
 _FeatureNotifier = PluginNotifier()
 
 
@@ -30,7 +31,7 @@ class FeatureComboBox(LazyComboBox):
         _fill_features(self, full=self.full)
 
 
-def _fill_features(combo, full=False, filter=True, ignore='001 Raw'):
+def _fill_features(combo, full=False, filter=True, ignore="001 Raw"):
     params = dict(
         workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
         full=full,
@@ -52,10 +53,10 @@ class MplCanvas(FigureCanvasQTAgg):
         self.axes = self.fig.add_subplot(111)
         self.suptitle = suptitle
         super(MplCanvas, self).__init__(self.fig)
-    def set_suptitle(self,suptitle):
+
+    def set_suptitle(self, suptitle):
         self.suptitle = suptitle
         self.fig.suptitle(suptitle)
-
 
 
 @register_plugin
@@ -74,27 +75,25 @@ class FeaturesPlugin(Plugin):
         self.vbox.addWidget(self.feature_combo)
         self.feature_combo.currentIndexChanged.connect(self.add_feature)
         self.existing_features = dict()
-        
+
         self._populate_features()
 
         self.vbox.addLayout(self.vbox2)
         self.workflow_button = PushButton("Save workflow", accent=True)
         self.workflow_button.clicked.connect(self.save_workflow)
-       
+
         self.filewidget = FileWidget(extensions="*.yaml", save=False)
         self.filewidget_open = FileWidget(extensions="*.yaml", save=False)
         self.filewidget_open.path_updated.connect(self.load_workflow)
 
         button_runworkflow = QPushButton("Run workflow", self)
         button_runworkflow.clicked.connect(self.button_runworkflow_clicked)
-    
+
         hbox_layout2 = QtWidgets.QHBoxLayout()
         hbox_layout2.addWidget(self.workflow_button)
         hbox_layout2.addWidget(self.filewidget_open)
         hbox_layout2.addWidget(button_runworkflow)
         self.vbox.addLayout(hbox_layout2)
-        
-        
 
     def load_workflow(self, path):
         self.workflow_fullname = path
@@ -119,9 +118,7 @@ class FeaturesPlugin(Plugin):
             all_categories = sorted(set(p["category"] for p in result))
             for i, category in enumerate(all_categories):
                 self.feature_combo.addItem(category)
-                self.feature_combo.model().item(
-                    i + len(self.feature_params) + 1
-                ).setEnabled(False)
+                self.feature_combo.model().item(i + len(self.feature_params) + 1).setEnabled(False)
                 for f in [p for p in result if p["category"] == category]:
                     self.feature_params[f["name"]] = f["params"]
                     self.feature_combo.addItem(f["name"])
@@ -161,36 +158,31 @@ class FeaturesPlugin(Plugin):
     def save_workflow(self):
         fname_filter, ext = "YAML (*.yaml)", ".yaml"
         filename = "workflow" + ext
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Save Workflow", filename, fname_filter
-        )
+        path, _ = QFileDialog.getSaveFileName(self, "Save Workflow", filename, fname_filter)
         if path is not None and len(path) > 0:
             workflow = {}
-            for i,(k,v) in enumerate(self.existing_features.items()):
-                for x,y in v.widgets.items():
-                    print(x,y.value())
-                    workflow["f"+str(i)] = {}
-                    workflow["f"+str(i)]["action"] = "features." + str(v.feature_type)
-                    workflow["f"+str(i)]["src"] = "001_raw"
-                    workflow["f"+str(i)]["dst"] = "00" + str(i) + "_" + v.feature_type
-                    workflow["f"+str(i)]["params"] = {}
+            for i, (k, v) in enumerate(self.existing_features.items()):
+                for x, y in v.widgets.items():
+                    print(x, y.value())
+                    workflow["f" + str(i)] = {}
+                    workflow["f" + str(i)]["action"] = "features." + str(v.feature_type)
+                    workflow["f" + str(i)]["src"] = "001_raw"
+                    workflow["f" + str(i)]["dst"] = "00" + str(i) + "_" + v.feature_type
+                    workflow["f" + str(i)]["params"] = {}
                     param_value = y.value()
                     if isinstance(param_value, tuple):
                         param_value = list(param_value)
-                    workflow["f"+str(i)]["params"][x] = param_value 
-            
-            workflow_yaml = path #os.path.join(os.path.dirname(__file__), "../../..", "workflow.yaml")
+                    workflow["f" + str(i)]["params"][x] = param_value
+
+            workflow_yaml = (
+                path  # os.path.join(os.path.dirname(__file__), "../../..", "workflow.yaml")
+            )
             with open(workflow_yaml, "w") as outfile:
                 yaml.dump(workflow, outfile, default_flow_style=False)
 
-
-
-
     def setup(self):
         self._populate_features()
-        params = dict(
-            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
-        )
+        params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("features", "existing", **params)
         logger.debug(f"Feature result {result}")
 
@@ -217,9 +209,7 @@ class FeaturesPlugin(Plugin):
                     self.existing_features[fid] = widget
 
                 else:
-                    logger.debug(
-                        "+ Skipping loading feature: {}, {}".format(fid, fname)
-                    )
+                    logger.debug("+ Skipping loading feature: {}, {}".format(fid, fname))
                     if ftype:
                         widget = self._add_feature_widget(fid, ftype, fname)
                         if widget:
@@ -233,14 +223,11 @@ class FeatureCard(CardWithId):
         self.feature_type = ftype
         self.feature_name = fname
 
-        super().__init__(
-            fname, fid, removable=True, editable=True, collapsible=True, parent=parent
-        )
+        super().__init__(fname, fid, removable=True, editable=True, collapsible=True, parent=parent)
 
         self.params = fparams
         self.widgets = dict()
-        
- 
+
         if self.feature_type == "wavelet":
             self._add_source()
             self.wavelet_type = ComboBox()
@@ -265,19 +252,19 @@ class FeatureCard(CardWithId):
             self.wavelet_type.addItem(key="bior2.2")
             self.wavelet_type.addItem(key="bior3.5")
 
-            widget = HWidgets(
-                "Wavelet type:", self.wavelet_type,  stretch=0
-            )
+            widget = HWidgets("Wavelet type:", self.wavelet_type, stretch=0)
             self.add_row(widget)
 
             self.wavelet_threshold = RealSlider(value=0.0, vmax=128, vmin=0, n=2000)
             widget = HWidgets(
-                "Threshold:", self.wavelet_threshold, stretch=0, 
+                "Threshold:",
+                self.wavelet_threshold,
+                stretch=0,
             )
             self.add_row(widget)
             self._add_params(fparams)
             self._add_btns()
-        elif self.feature_type=="feature_composite":
+        elif self.feature_type == "feature_composite":
             self._add_feature_source()
             self._add_feature_source2()
             self.label_index = LineEdit(default=-1, parse=int)
@@ -288,7 +275,7 @@ class FeatureCard(CardWithId):
             self.add_row(widget)
             self._add_params(fparams)
             self._add_btns()
-        elif self.feature_type=="raw":
+        elif self.feature_type == "raw":
             self._add_view_and_load_btns()
 
         else:
@@ -296,20 +283,14 @@ class FeatureCard(CardWithId):
             self._add_params(fparams)
             self._add_btns()
 
-
-
-        
-        
-    def _add_params(self,fparams):
-       for pname, params in fparams.items():
+    def _add_params(self, fparams):
+        for pname, params in fparams.items():
             if pname not in ["src", "dst", "threshold"]:
                 self._add_param(pname, **params)
 
-
-
     def _add_source(self):
         chk_clamp = CheckBox("Clamp")
-        self.cmb_source = SourceComboBox([self.feature_id,'001 Raw'])
+        self.cmb_source = SourceComboBox([self.feature_id, "001 Raw"])
         self.cmb_source.fill()
         widget = HWidgets("Source:", self.cmb_source, stretch=1)
         self.add_row(widget)
@@ -319,7 +300,7 @@ class FeatureCard(CardWithId):
         self.feature_source.fill()
         self.feature_source.setMaximumWidth(250)
 
-        widget = HWidgets("Feature:", self.feature_source,  stretch=1)
+        widget = HWidgets("Feature:", self.feature_source, stretch=1)
         self.add_row(widget)
 
     def _add_feature_source2(self):
@@ -327,9 +308,9 @@ class FeatureCard(CardWithId):
         self.feature_source2.fill()
         self.feature_source2.setMaximumWidth(250)
 
-        widget = HWidgets("Feature:", self.feature_source2,  stretch=1)
+        widget = HWidgets("Feature:", self.feature_source2, stretch=1)
         self.add_row(widget)
-    
+
     def _add_param(self, name, type="String", default=None):
         if type == "Int":
             feature = LineEdit(default=default, parse=int)
@@ -354,17 +335,9 @@ class FeatureCard(CardWithId):
         load_as_annotation_btn = PushButton("Load as annotation", accent=True)
         load_as_annotation_btn.clicked.connect(self.load_as_annotation)
 
-
         compute_btn = PushButton("Compute", accent=True)
         compute_btn.clicked.connect(self.compute_feature)
-        self.add_row(
-            HWidgets(
-                None,
-                load_as_annotation_btn, 
-                compute_btn,
-                view_btn
-            )
-        )
+        self.add_row(HWidgets(None, load_as_annotation_btn, compute_btn, view_btn))
 
     def _add_view_and_load_btns(self):
         view_btn = PushButton("View", accent=True)
@@ -372,15 +345,7 @@ class FeatureCard(CardWithId):
         load_as_annotation_btn = PushButton("Load as annotation", accent=True)
         load_as_annotation_btn.clicked.connect(self.load_as_annotation)
 
-        self.add_row(
-            HWidgets(
-                None,
-                load_as_annotation_btn, 
-                view_btn
-            )
-        )
-
-
+        self.add_row(HWidgets(None, load_as_annotation_btn, view_btn))
 
     def update_params(self, params):
         src = params.pop("source", None)
@@ -422,13 +387,10 @@ class FeatureCard(CardWithId):
                     "feature_id": self.feature_id,
                 }
             )
-            pbar.update(1)    
-        
+            pbar.update(1)
 
     def load_as_annotation(self):
         logger.debug(f"Loading feature {self.feature_id} as annotation.")
-
-
 
         # get feature output
         src = DataModel.g.dataset_uri(self.feature_id, group="features")
@@ -457,7 +419,7 @@ class FeatureCard(CardWithId):
                 label_result = Launcher.g.run("annotations", "add_label", **params)
 
             params = dict(
-                level=str('001_level'),
+                level=str("001_level"),
                 workspace=True,
             )
             anno_result = Launcher.g.run("annotations", "get_levels", **params)[0]
@@ -493,13 +455,17 @@ class FeatureCard(CardWithId):
                 DM.out[:] = src_arr
 
             cfg.ppw.clientEvent.emit(
-                {"source": "workspace_gui", "data": "faster_refresh_plugin", "plugin_name": "annotations"}
+                {
+                    "source": "workspace_gui",
+                    "data": "faster_refresh_plugin",
+                    "plugin_name": "annotations",
+                }
             )
 
     def compute_feature(self):
         with progress(total=3) as pbar:
             pbar.set_description("Calculating feature")
-            
+
             pbar.update(1)
 
             if self.feature_type != "feature_composite":
@@ -509,7 +475,7 @@ class FeatureCard(CardWithId):
                 src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
 
             dst = DataModel.g.dataset_uri(self.feature_id, group="features")
-            
+
             pbar.update(1)
 
             all_params = dict(src=src, dst=dst, modal=True)
@@ -524,15 +490,11 @@ class FeatureCard(CardWithId):
                 all_params["feature_B"] = str(self.feature_source2.value())
                 all_params["op"] = str(self.op_type.value())
 
-
             all_params.update({k: v.value() for k, v in self.widgets.items()})
 
-                        
             Launcher.g.run("features", self.feature_type, **all_params)
             pbar.update(1)
-            
-                
-            
+
     def card_title_edited(self, newtitle):
         params = dict(feature_id=self.feature_id, new_name=newtitle, workspace=True)
         result = Launcher.g.run("features", "rename", **params)
@@ -541,7 +503,3 @@ class FeatureCard(CardWithId):
             _FeatureNotifier.notify()
 
         return result["done"]
-
-
-
-

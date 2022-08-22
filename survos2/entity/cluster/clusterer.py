@@ -8,7 +8,11 @@ from sklearn.manifold import TSNE
 from sklearn import metrics
 
 from survos2.entity.entities import make_bvol_df, offset_points
-from survos2.entity.cluster.patch_cluster import patch_2d_features, extract_cnn_features, extract_hog_features
+from survos2.entity.cluster.patch_cluster import (
+    patch_2d_features,
+    extract_cnn_features,
+    extract_hog_features,
+)
 from survos2.entity.cluster.utils import pad_vol, quick_norm
 from survos2.entity.cluster.cnn_features import prepare_3channel
 from survos2.entity.cluster.cluster_plotting import cluster_scatter, plot_clustered_img
@@ -43,7 +47,7 @@ def select_clusters(
             sel_1 = np.random.permutation(selected_images[sel_idx])
             # plt.figure()
 
-            if cluster_sz > grid_dim ** 2:
+            if cluster_sz > grid_dim**2:
                 grid_of_images2(
                     sel_1,
                     grid_dim,
@@ -57,9 +61,7 @@ def select_clusters(
     identified_cluster_num = bg_cluster_num.copy()
     identified_cluster_num.extend(target_cluster_num)
     other_cluster_num = list(range(num_classes))
-    other_cluster_num = [
-        e for e in other_cluster_num if e not in identified_cluster_num
-    ]
+    other_cluster_num = [e for e in other_cluster_num if e not in identified_cluster_num]
 
     print(
         "Objects {}\nBackground {}\nOther {}".format(
@@ -97,7 +99,7 @@ def select_clusters2(
             sel_1 = np.random.permutation(selected_images[sel_idx])
             # plt.figure()
 
-            if cluster_sz > grid_dim ** 2:
+            if cluster_sz > grid_dim**2:
                 grid_of_images2(
                     sel_1,
                     grid_dim,
@@ -112,9 +114,7 @@ def select_clusters2(
     identified_cluster_num = bg_cluster_num.copy()
     identified_cluster_num.extend(target_cluster_num)
     other_cluster_num = list(range(num_classes))
-    other_cluster_num = [
-        e for e in other_cluster_num if e not in identified_cluster_num
-    ]
+    other_cluster_num = [e for e in other_cluster_num if e not in identified_cluster_num]
 
     print("Objects {}\nBackground {}".format(target_cluster_num, bg_cluster_num))
     clustered_images = np.array(selected_images)
@@ -140,7 +140,7 @@ def cluster_and_embed_patch_features(
     selected_images,
     n_components=10,
     num_clusters=15,
-    params={'perplexity':150,'n_iter':2000},
+    params={"perplexity": 150, "n_iter": 2000},
     skip_px=2,
     embed_type="TSNE",
     min_cluster_size=5,
@@ -184,7 +184,7 @@ def cluster_and_embed_patch_features(
 
 
 def prepare_patches_for_clustering(
-    vol, entities, bvol_dim=(32, 32, 32), axis=0, slice_idx=16, flipxy=False, gpu_id=0, method='CNN'
+    vol, entities, bvol_dim=(32, 32, 32), axis=0, slice_idx=16, flipxy=False, gpu_id=0, method="CNN"
 ):
     """
     Extract features from patches, using CNN or HOG or a combination of both.
@@ -197,42 +197,33 @@ def prepare_patches_for_clustering(
     padded_vol = pad_vol(vol, bvol_dim)
     selected_entity_loc_offset = offset_points(entities, -np.array(bvol_dim))
 
-    entity_bvols = centroid_to_bvol(
-        selected_entity_loc_offset, bvol_dim=bvol_dim, flipxy=flipxy
-    )
-    bvd = BoundingVolumeDataset(
-        padded_vol, entity_bvols, selected_entity_loc_offset[:, 3]
-    )
-    if axis==0:    
+    entity_bvols = centroid_to_bvol(selected_entity_loc_offset, bvol_dim=bvol_dim, flipxy=flipxy)
+    bvd = BoundingVolumeDataset(padded_vol, entity_bvols, selected_entity_loc_offset[:, 3])
+    if axis == 0:
         selected_images = np.array([im[0][slice_idx, :] for im in bvd])
-    elif axis==1:
-        selected_images = np.array([im[0][:,slice_idx, :] for im in bvd])
-    elif axis==2:
-        selected_images = np.array([im[0][:,slice_idx] for im in bvd])
+    elif axis == 1:
+        selected_images = np.array([im[0][:, slice_idx, :] for im in bvd])
+    elif axis == 2:
+        selected_images = np.array([im[0][:, slice_idx] for im in bvd])
 
-    if method=='HOG':
+    if method == "HOG":
         features = extract_hog_features(selected_images)
-    elif method=='CNN_HOG':
+    elif method == "CNN_HOG":
         features = extract_cnn_features(selected_images)
         features = np.concatenate((features, extract_hog_features(selected_images)), axis=1)
     else:
         features = extract_cnn_features(selected_images)
 
-
     return features, selected_images
 
 
-def prepare_patches_for_clustering2(
-    vol, entities, bvol_dim=(32, 32, 32), flipxy=False, gpu_id=0
-):
+def prepare_patches_for_clustering2(vol, entities, bvol_dim=(32, 32, 32), flipxy=False, gpu_id=0):
     # padded_vol = pad_vol(vol, bvol_dim)
     # selected_entity_loc = np.array(offset_points(entities, (32, 32, 32)))
 
     padded_vol = vol
     selected_entity_loc = entities
-    entity_bvols = centroid_to_bvol(
-        selected_entity_loc, bvol_dim=bvol_dim, flipxy=flipxy
-    )
+    entity_bvols = centroid_to_bvol(selected_entity_loc, bvol_dim=bvol_dim, flipxy=flipxy)
     # entity_mask = viz_bvols(padded_vol, entity_bvols)
     # slice_plot(entity_mask, None, padded_vol, (60,400,400))
     print(entity_bvols.shape)
@@ -246,9 +237,7 @@ def prepare_patches_for_clustering2(
 
 
 def prepare_subset(clustered_images, preds, target_cluster_idxs, label_value=0):
-    target_samples = clustered_images[
-        np.any([preds == idx for idx in target_cluster_idxs], axis=0)
-    ]
+    target_samples = clustered_images[np.any([preds == idx for idx in target_cluster_idxs], axis=0)]
 
     # print("Number of selected object samples {}\nNumber of selected bg samples {}".format(
     #    len(target_samples), len(other_samples)))
@@ -291,9 +280,7 @@ class PatchCluster:
         self.n_clusters = n_clusters
         self.setup_model(method, n_clusters, n_init, epochs, cores)
 
-    def setup_model(
-        self, method="k-means++", n_clusters=5, n_init=15, epochs=300, cores=1
-    ):
+    def setup_model(self, method="k-means++", n_clusters=5, n_init=15, epochs=300, cores=1):
         self.n_clusters = n_clusters
         if method == "k-means++":
             self.model = KMeans(
@@ -305,6 +292,7 @@ class PatchCluster:
 
     def prepare_data(self, data):
         from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
         print(
             "Scaling and Reducing Dimensionality using PCA to {} number of components.".format(
                 self.n_components
@@ -359,9 +347,7 @@ class PatchCluster:
             self.fit()
             distortions.append(self.model.inertia_)
             silhouette.append(
-                metrics.silhouette_score(
-                    self.reduced_data, self.predictions, metric="euclidean"
-                )
+                metrics.silhouette_score(self.reduced_data, self.predictions, metric="euclidean")
             )
 
         fig = plt.figure(figsize=(15, 5))
@@ -376,13 +362,10 @@ class PatchCluster:
 
     def cluster_metrics(self):
         cluster_metrics = {
-            "davies_bouldin": metrics.davies_bouldin_score(
-                self.reduced_data, self.predictions
-            ),
+            "davies_bouldin": metrics.davies_bouldin_score(self.reduced_data, self.predictions),
             "silhouette": metrics.silhouette_score(
                 self.reduced_data, self.predictions, metric="euclidean"
             ),
         }
 
         return cluster_metrics
-

@@ -15,6 +15,7 @@ from kornia.filters import filter3d
 
 from survos2.model import DataModel
 
+
 def make_gaussian_kernel(kernel_size, sigma, dim=3):
     """Make gaussian kernel
 
@@ -45,16 +46,12 @@ def make_gaussian_kernel(kernel_size, sigma, dim=3):
         sigma = [sigma] * dim
 
     kernel = 1
-    meshgrids = torch.meshgrid(
-        [torch.arange(size, dtype=torch.float32) for size in kernel_size]
-    )
+    meshgrids = torch.meshgrid([torch.arange(size, dtype=torch.float32) for size in kernel_size])
 
     for size, std, mgrid in zip(kernel_size, sigma, meshgrids):
         mean = (size - 1) / 2
         kernel *= (
-            1
-            / (std * math.sqrt(2 * math.pi))
-            * torch.exp(-(((mgrid - mean) / (2 * std)) ** 2))
+            1 / (std * math.sqrt(2 * math.pi)) * torch.exp(-(((mgrid - mean) / (2 * std)) ** 2))
         )
 
     kernel = kernel / torch.sum(kernel)
@@ -67,7 +64,6 @@ def gaussian_blur_t(img_t: torch.Tensor, sigma, device=None):
     kernel_size = 3  # min size, expands to sigma if sigma is larger
     # kernel = torch.ones(1, 3, 3, 3) # example kernel
     kernel = make_gaussian_kernel(kernel_size, sigma, dim=3)
-    
 
     p = int((kernel_size - 1) / 2)
     padded_img_t = F.pad(img_t, (p, p, p, p, p, p))
@@ -96,11 +92,9 @@ def gaussian_blur_kornia(img: np.ndarray, sigma, device=None):
         filtered numpy array
     """
 
-    img_t = (
-        kornia.utils.image_to_tensor(np.array(img)).float().unsqueeze(0).unsqueeze(0)
-    )
+    img_t = kornia.utils.image_to_tensor(np.array(img)).float().unsqueeze(0).unsqueeze(0)
     output = gaussian_blur_t(img_t, sigma, device=DataModel.g.device)
-    #print(f"Calculating gaussian blur on device {DataModel.g.device}")
+    # print(f"Calculating gaussian blur on device {DataModel.g.device}")
     output: np.ndarray = kornia.tensor_to_image(output.squeeze(0).squeeze(0).float())
 
     return output
@@ -129,12 +123,7 @@ class GaussianSmoothing(nn.Module):
 
 
 def gaussian_blur_pytorch(img_gray: np.ndarray, sigma: float = 1.0):
-    t_gray = (
-        kornia.utils.image_to_tensor(np.array(img_gray))
-        .float()
-        .unsqueeze(0)
-        .unsqueeze(0)
-    )
+    t_gray = kornia.utils.image_to_tensor(np.array(img_gray)).float().unsqueeze(0).unsqueeze(0)
     smoothing = GaussianSmoothing(1, 5, sigma, dim=3)
     input_t = F.pad(t_gray, (2, 2, 2, 2, 2, 2))
     output = smoothing(input_t)
@@ -168,7 +157,6 @@ def gaussian_center(data, sigma=0.5, **kwargs):
 
     result = data - gaussian_blur_kornia(data, sigma=sigma)
 
-    
     return result
 
 
@@ -189,11 +177,10 @@ def gaussian_norm(data, sigma=0.5, **kwargs):
     result : 3 dimensional numpy array
     """
     num = gaussian_center(data, sigma=sigma)
-    den = np.sqrt(gaussian_blur_kornia(num ** 2, sigma=sigma))
+    den = np.sqrt(gaussian_blur_kornia(num**2, sigma=sigma))
 
     # TODO numerical precision ignore den < 1e-7
     num /= den
-
 
     return num
 
@@ -245,9 +232,7 @@ class TVDenoise(torch.nn.Module):
         super(TVDenoise, self).__init__()
         self.l2_term = torch.nn.MSELoss(reduction="mean")
         self.regularization_term = TotalVariation()
-        self.denoised_image = torch.nn.Parameter(
-            data=noisy_image.clone(), requires_grad=True
-        )
+        self.denoised_image = torch.nn.Parameter(data=noisy_image.clone(), requires_grad=True)
         self.noisy_image = noisy_image
         self.regularization_amount = regularization_amount
 
@@ -269,13 +254,9 @@ def tvdenoise_kornia(img, regularization_amount=0.001, max_iter=50):
         optimizer.zero_grad()
         loss = tv_denoiser()
         if i % 25 == 0:
-            logger.debug(
-                "Loss in iteration {} of {}: {:.3f}".format(i, max_iter, loss.item())
-            )
+            logger.debug("Loss in iteration {} of {}: {:.3f}".format(i, max_iter, loss.item()))
         loss.backward()
         optimizer.step()
 
     img_clean: np.ndarray = kornia.tensor_to_image(tv_denoiser.get_denoised_image())
     return img_clean
-
-

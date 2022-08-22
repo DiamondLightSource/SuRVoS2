@@ -36,7 +36,6 @@ from napari.qt.progress import progress
 _AnnotationNotifier = PluginNotifier()
 
 
-
 class LevelComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None, workspace=True, ignore=None):
         self.full = full
@@ -44,7 +43,6 @@ class LevelComboBox(LazyComboBox):
         self.workspace = workspace
         super().__init__(header=header, parent=parent)
         _AnnotationNotifier.listen(self.update)
-        
 
     def fill(self):
         params = dict(workspace=self.workspace, full=self.full)
@@ -79,7 +77,6 @@ def dilate_annotations(yy, xx, img_shape, line_width):
     return yy, xx
 
 
-
 @register_plugin
 class AnnotationPlugin(Plugin):
 
@@ -93,13 +90,13 @@ class AnnotationPlugin(Plugin):
         self.btn_addlevel = IconButton("fa.plus", "Add Level", accent=True)
         self.vbox = VBox(self, spacing=10)
         self.vbox2 = VBox(self, spacing=10)
-        #self.button_pause_save = QPushButton("Pause Save to Server", self)
-        #self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
-        #self.vbox.addWidget(self.button_pause_save)
-        
+        # self.button_pause_save = QPushButton("Pause Save to Server", self)
+        # self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
+        # self.vbox.addWidget(self.button_pause_save)
+
         self.levels = {}
         self.btn_addlevel.clicked.connect(self.add_level)
-        #self.annotation_tool = AnnotationTool()
+        # self.annotation_tool = AnnotationTool()
         self.timer_id = -1
 
         hbox = HBox(self, margin=1, spacing=3)
@@ -111,21 +108,21 @@ class AnnotationPlugin(Plugin):
         self.btn_set.clicked.connect(self.set_sv)
 
         cfg.three_dim_checkbox = CheckBox(checked=False)
-        
+
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
         self.width = Slider(value=10, vmin=2, vmax=100, step=2, auto_accept=True)
         hbox.addWidget(self.width)
         hbox.addWidget(self.btn_set)
-                
-        #hbox2 = HBox(self, margin=1, spacing=3)
-        #widgets = HWidgets("3d voxel brush:",cfg.three_dim_checkbox, stretch=1)
-        #hbox2.addWidget(widgets)
-        
+
+        # hbox2 = HBox(self, margin=1, spacing=3)
+        # widgets = HWidgets("3d voxel brush:",cfg.three_dim_checkbox, stretch=1)
+        # hbox2.addWidget(widgets)
+
         self.vbox.addLayout(hbox)
         self.vbox.addWidget(self.btn_addlevel)
-        #self.vbox2.addLayout(hbox2)
-        #_AnnotationNotifier.listen(self.set_sv)
+        # self.vbox2.addLayout(hbox2)
+        # _AnnotationNotifier.listen(self.set_sv)
 
     def on_created(self):
         pass
@@ -162,13 +159,11 @@ class AnnotationPlugin(Plugin):
             self.button_pause_save.setText("Pause Saving Annotations to Server")
         else:
             self.button_pause_save.setText("Resume Saving Annotations to Server")
-            
+
         cfg.pause_save = not cfg.pause_save
-        
+
     def setup(self):
-        params = dict(
-            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
-        )
+        params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("annotations", "get_levels", **params)
         if not result:
             return
@@ -194,7 +189,7 @@ class AnnotationPlugin(Plugin):
         cfg.label_value = self.label.value()
         cfg.brush_size = self.width.value()
         print(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
-        #cfg.three_dim = cfg.three_dim_checkbox.value()
+        # cfg.three_dim = cfg.three_dim_checkbox.value()
 
         if cfg.label_value is not None:
             # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
@@ -237,7 +232,7 @@ class AnnotationLevel(CardWithId):
 
     def __init__(self, level, parent=None, brush_slider=None):
         super().__init__(
-            level["name"], 
+            level["name"],
             level["id"],
             editable=True,
             collapsible=True,
@@ -314,7 +309,7 @@ class AnnotationLevel(CardWithId):
                 }
             )
             pbar.update(1)
-            
+
     def _add_view_btn(self):
         btn_view = PushButton("View", accent=True)
         btn_view.clicked.connect(self.view_level)
@@ -343,7 +338,7 @@ class AnnotationLabel(QCSWidget):
         self.btn_set = IconButton("fa.pencil", accent=True)
 
         self.brush_slider = brush_slider
-        
+
         params = dict(workspace=True, level=level_dataset, label_idx=int(label["idx"]))
         result = Launcher.g.run("annotations", "get_label_parent", **params)
 
@@ -394,39 +389,38 @@ class AnnotationLabel(QCSWidget):
             "color": self.label_color,
         }
         cfg.ppw.clientEvent.emit(
-                {
-                    "source": "annotations",
-                    "data": "set_paint_params",
-                    "paint_params": {
-                        "current_supervoxels": cfg.current_supervoxels,
-                        "label_value": label_dict,
-                        "brush_size": self.brush_slider.value(),
-                        "level_id": self.level_dataset,
-                    },
-                }
-        )
-        cfg.ppw.clientEvent.emit(
-                {
-                    "source": "annotations",
-                    "data": "paint_annotations",
+            {
+                "source": "annotations",
+                "data": "set_paint_params",
+                "paint_params": {
+                    "current_supervoxels": cfg.current_supervoxels,
+                    "label_value": label_dict,
+                    "brush_size": self.brush_slider.value(),
                     "level_id": self.level_dataset,
-                }
+                },
+            }
         )
         cfg.ppw.clientEvent.emit(
-                {
-                    "source": "annotations",
-                    "data": "set_paint_params",
-                    "paint_params": {
-                        "current_supervoxels": cfg.current_supervoxels,
-                        "label_value": label_dict,
-                        "brush_size": self.brush_slider.value(),
-                        "level_id": self.level_dataset,
-                    },
-                }
+            {
+                "source": "annotations",
+                "data": "paint_annotations",
+                "level_id": self.level_dataset,
+            }
+        )
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "annotations",
+                "data": "set_paint_params",
+                "paint_params": {
+                    "current_supervoxels": cfg.current_supervoxels,
+                    "label_value": label_dict,
+                    "brush_size": self.brush_slider.value(),
+                    "level_id": self.level_dataset,
+                },
+            }
         )
         cfg.brush_size = self.brush_slider.value()
 
-        
     def set_parent(self):
         try:
             logger.debug(
@@ -479,6 +473,3 @@ class AnnotationLabel(QCSWidget):
         if result:
             _AnnotationNotifier.notify()
             self.removed.emit(self.label_idx)
-
-
-

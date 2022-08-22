@@ -23,7 +23,7 @@ def run_workflow(msg):
     num_workflow_steps = len(workflows.keys())
     minVal, maxVal = 0, num_workflow_steps
     with progress(total=num_workflow_steps) as pbar:
-    
+
         for step_idx, k in enumerate(workflows):
             workflow = workflows[k]
             action = workflow.pop("action")
@@ -44,12 +44,8 @@ def run_workflow(msg):
             all_params.update(params)
             logger.info(f"Executing workflow {all_params}")
 
-            logger.debug(
-                f"+ Running {plugin}, {command} on {src}\n to dst {dst} {all_params}\n"
-            )
+            logger.debug(f"+ Running {plugin}, {command} on {src}\n to dst {dst} {all_params}\n")
 
             Launcher.g.run(plugin, command, **all_params)
             pbar.update(1)
-    cfg.ppw.clientEvent.emit(
-        {"source": "workspace_gui", "data": "refresh", "value": None}
-    )
+    cfg.ppw.clientEvent.emit({"source": "workspace_gui", "data": "refresh", "value": None})

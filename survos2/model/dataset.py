@@ -21,9 +21,7 @@ from survos2.improc.utils import optimal_chunksize
 from survos2.utils import AttributeDB
 
 CHUNKS = Config["computing.chunk_size"] if Config["computing.chunks"] else None
-CHUNKS_SPARSE = (
-    Config["computing.chunk_size_sparse"] if Config["computing.chunks"] else None
-)
+CHUNKS_SPARSE = Config["computing.chunk_size_sparse"] if Config["computing.chunks"] else None
 
 
 class DatasetException(Exception):
@@ -240,9 +238,7 @@ class Dataset(BaseDataset):
     # Create
 
     @staticmethod
-    def create(
-        path, shape=None, dtype=None, data=None, fillvalue=0, chunks=CHUNKS, **kwargs
-    ):
+    def create(path, shape=None, dtype=None, data=None, fillvalue=0, chunks=CHUNKS, **kwargs):
         logger.info(f"Creating dataset on {path} {shape} {dtype} {data} {chunks}")
 
         database = kwargs.pop("database", "yaml")
@@ -271,12 +267,8 @@ class Dataset(BaseDataset):
         elif isinstance(chunks, collections.Iterable) and len(chunks) == len(shape):
             chunk_size = list(chunks)
         elif isinstance(chunks, numbers.Number):
-            chunk_size = list(
-                optimal_chunksize(shape, chunks, item_size=isize, **kwargs)
-            )
-        chunk_grid = (
-            (np.ceil(np.asarray(shape, "f4") / chunk_size)).astype("i2").tolist()
-        )
+            chunk_size = list(optimal_chunksize(shape, chunks, item_size=isize, **kwargs))
+        chunk_grid = (np.ceil(np.asarray(shape, "f4") / chunk_size)).astype("i2").tolist()
 
         metadata = {
             Dataset.__dsname__: dict(
@@ -325,7 +317,7 @@ class Dataset(BaseDataset):
         return os.path.join(self._path, "chunk_%s.h5" % "x".join(map(str, idx)))
 
     def create_chunk(self, idx, data=None, cslices=None):
-        #logger.debug(f"Creating chunk {idx} {data} {cslices}")
+        # logger.debug(f"Creating chunk {idx} {data} {cslices}")
         if self.readonly:
             raise DatasetException("Dataset is in readonly mode. Cannot create chunk.")
         if self.has_chunk(idx):
@@ -370,9 +362,7 @@ class Dataset(BaseDataset):
 
     def set_chunk_data(self, idx, values, slices=None):
         if self.readonly:
-            raise DatasetException(
-                "Dataset is in readonly mode. Cannot modify chunk data."
-            )
+            raise DatasetException("Dataset is in readonly mode. Cannot modify chunk data.")
         self.get_chunk(idx)[slices] = values
 
     # Data setter/getters
@@ -428,9 +418,7 @@ class Dataset(BaseDataset):
         logger.debug(f"Loading dataset {data}")
         if tuple(data.shape) != tuple(self.shape):
             raise Exception(
-                "Data shape does not match: {} expected {}".format(
-                    self.shape, data.shape
-                )
+                "Data shape does not match: {} expected {}".format(self.shape, data.shape)
             )
         if isinstance(data, da.Array):
             data.store(self)
@@ -472,9 +460,7 @@ class Dataset(BaseDataset):
         elif np.isscalar(slices):
             slices = [int(slices)]
         elif type(slices) not in [list, tuple]:
-            raise Exception(
-                "Invalid Slicing with index of type `{}`".format(type(slices))
-            )
+            raise Exception("Invalid Slicing with index of type `{}`".format(type(slices)))
         else:
             slices = list(slices)
 
@@ -482,9 +468,7 @@ class Dataset(BaseDataset):
             nmiss = self.ndim - len(slices)
             while Ellipsis in slices:
                 idx = slices.index(Ellipsis)
-                slices = (
-                    slices[:idx] + ([slice(None)] * (nmiss + 1)) + slices[idx + 1 :]
-                )
+                slices = slices[:idx] + ([slice(None)] * (nmiss + 1)) + slices[idx + 1 :]
             if len(slices) < self.ndim:
                 slices = list(slices) + ([slice(None)] * nmiss)
         elif len(slices) > self.ndim:
@@ -511,15 +495,11 @@ class Dataset(BaseDataset):
                     stop = self.shape[i] + stop
                 if start < 0 or start >= self.shape[i]:
                     raise Exception(
-                        "Only possitive and in-bounds slicing supported: `{}`".format(
-                            slices
-                        )
+                        "Only possitive and in-bounds slicing supported: `{}`".format(slices)
                     )
                 if stop < 0 or stop > self.shape[i] or stop < start:
                     raise Exception(
-                        "Only possitive and in-bounds slicing supported: `{}`".format(
-                            slices
-                        )
+                        "Only possitive and in-bounds slicing supported: `{}`".format(slices)
                     )
                 if s.step is not None and s.step != 1:
                     raise Exception("Only slicing with step 1 supported")
@@ -590,9 +570,7 @@ class Dataset(BaseDataset):
 class DataChunk(object):
     def __init__(self, idx, path, shape, dtype, fillvalue):
         if not os.path.isfile(path):
-            raise Exception(
-                "Wrong initialization of a DataChunk({}): {}".format(idx, path)
-            )
+            raise Exception("Wrong initialization of a DataChunk({}): {}".format(idx, path))
         self._idx = idx
         self._path = path
         self._shape = shape

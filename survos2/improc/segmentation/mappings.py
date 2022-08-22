@@ -7,7 +7,7 @@ def normalize(X, norm="unit"):
     if norm in ["l1", "hellinger"]:
         X /= np.abs(X).sum(axis=1)[:, None]
     elif norm == "l2":
-        X /= np.sqrt((X ** 2).sum(axis=1))[:, None]
+        X /= np.sqrt((X**2).sum(axis=1))[:, None]
     elif norm == "linf":
         X /= np.abs(X).max(axis=1)[:, None]
     elif norm == "unit":

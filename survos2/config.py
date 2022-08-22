@@ -36,49 +36,49 @@ class _Config(type):
         "filters": {},
         "pipeline": {},
         "slic": "skimage",
-        "volume_mode" : "volume_http",
+        "volume_mode": "volume_http",
         "volume_segmantics": {
             "train_settings": {
-            "end_lr": 50, 
-            "training_set_proportion": 0.8, 
-            "eval_metric": "MeanIoU", 
-            "num_cyc_frozen": 8, 
-            "num_cyc_unfrozen": 5, 
-            "image_size": 256, 
-            "data_hdf5_path": "/data", 
-            "patience": 3, 
-            "beta": 0.25, 
-            "model_output_fn": "trained_2d_model", 
-            "starting_lr": "1e-6", 
-            "data_im_dirname": "data", 
-            "alpha": 0.75, 
-            "st_dev_factor": 2.575, 
-            "cuda_device": 0, 
-            "loss_criterion": "DiceLoss", 
-            "lr_reduce_factor": 500, 
-            "downsample": False, 
-            "seg_im_out_dirname": "seg", 
-            "seg_hdf5_path": "/data", 
-            "clip_data": True, 
-            "model": {
-                "type": "U_Net", 
-                "encoder_weights": "imagenet", 
-                "encoder_name": "resnet34"
-            }, 
-            "pct_lr_inc": 0.3, 
-            "lr_find_epochs": 1
-            }, 
+                "end_lr": 50,
+                "training_set_proportion": 0.8,
+                "eval_metric": "MeanIoU",
+                "num_cyc_frozen": 8,
+                "num_cyc_unfrozen": 5,
+                "image_size": 256,
+                "data_hdf5_path": "/data",
+                "patience": 3,
+                "beta": 0.25,
+                "model_output_fn": "trained_2d_model",
+                "starting_lr": "1e-6",
+                "data_im_dirname": "data",
+                "alpha": 0.75,
+                "st_dev_factor": 2.575,
+                "cuda_device": 0,
+                "loss_criterion": "DiceLoss",
+                "lr_reduce_factor": 500,
+                "downsample": False,
+                "seg_im_out_dirname": "seg",
+                "seg_hdf5_path": "/data",
+                "clip_data": True,
+                "model": {
+                    "type": "U_Net",
+                    "encoder_weights": "imagenet",
+                    "encoder_name": "resnet34",
+                },
+                "pct_lr_inc": 0.3,
+                "lr_find_epochs": 1,
+            },
             "predict_settings": {
-            "cuda_device": 0, 
-            "output_probs": False, 
-            "downsample": False, 
-            "st_dev_factor": 2.575, 
-            "data_hdf5_path": "/data", 
-            "clip_data": True, 
-            "quality": "medium", 
-            "one_hot": False
-            }
-        }       
+                "cuda_device": 0,
+                "output_probs": False,
+                "downsample": False,
+                "st_dev_factor": 2.575,
+                "data_hdf5_path": "/data",
+                "clip_data": True,
+                "quality": "medium",
+                "one_hot": False,
+            },
+        },
     }
 
     def __getitem__(self, key):
@@ -91,9 +91,7 @@ class _Config(type):
             if key in data:
                 data = data[key]
             else:
-                raise KeyError(
-                    "Config does not contain key `{}`".format(".".join(keys[: i + 1]))
-                )
+                raise KeyError("Config does not contain key `{}`".format(".".join(keys[: i + 1])))
         return data
 
     def __contains__(self, key):
@@ -189,8 +187,5 @@ for k1, v in _Config.__data__.items():
                     Config[k1][k2] = dtype(os.environ[env_name])
                 except ValueError:
                     raise ValueError(
-                        "Error updating config {}.{} to {}.".format(
-                            k1, k2, os.environ[env_name]
-                        )
+                        "Error updating config {}.{} to {}.".format(k1, k2, os.environ[env_name])
                     )
-

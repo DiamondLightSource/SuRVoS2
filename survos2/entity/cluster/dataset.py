@@ -62,9 +62,7 @@ class FilteredVolumeDataset(Dataset):
 
         for filtered_vol in self.images:
             # print(self.patch_size)
-            sample = sample_bounding_volume(
-                filtered_vol, bvol, patch_size=self.patch_size
-            )
+            sample = sample_bounding_volume(filtered_vol, bvol, patch_size=self.patch_size)
             samples.append(sample)
 
         if self.transform:
@@ -193,9 +191,7 @@ def setup_dataloaders_masked():
     batch_size = 32
 
     dataloaders = {
-        "train": DataLoader(
-            train_set, batch_size=batch_size, shuffle=False, num_workers=0
-        ),
+        "train": DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=0),
         "val": DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=0),
     }
 
@@ -415,8 +411,7 @@ class BBDataset(Dataset):
         bounding_boxes = [
             (prop.bbox, prop.centroid)
             for prop in props
-            if prop.eccentricity < eccentricity_thresh
-            and prop.bbox_area > bbox_area_thresh
+            if prop.eccentricity < eccentricity_thresh and prop.bbox_area > bbox_area_thresh
         ]
 
         expanded_bboxes = np.array(
@@ -473,9 +468,7 @@ class BBDataset(Dataset):
 
 # LabeledDataset
 class SmallVolDataset(Dataset):
-    def __init__(
-        self, images, labels, class_names=None, slice_num=None, dim=3, transform=None
-    ):
+    def __init__(self, images, labels, class_names=None, slice_num=None, dim=3, transform=None):
 
         self.input_images, self.target_labels = images, labels
         self.transform = transform
@@ -528,9 +521,7 @@ def setup_dataloaders_smallvol():
     image_datasets = {"train": train_set, "val": val_set}
 
     dataloaders = {
-        "train": DataLoader(
-            train_set, batch_size=batch_size, shuffle=False, num_workers=0
-        ),
+        "train": DataLoader(train_set, batch_size=batch_size, shuffle=False, num_workers=0),
         "val": DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=0),
     }
 
@@ -578,20 +569,12 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
 
         else:
             if self.threechan:
-                self.mean = self.X.reshape(self.X.shape[0], im_dim[0], im_dim[1], 3)[
-                    0
-                ].mean()
-                self.std = self.X.reshape(self.X.shape[0], im_dim[0], im_dim[1], 3)[
-                    0
-                ].std()
+                self.mean = self.X.reshape(self.X.shape[0], im_dim[0], im_dim[1], 3)[0].mean()
+                self.std = self.X.reshape(self.X.shape[0], im_dim[0], im_dim[1], 3)[0].std()
 
             else:
-                self.mean = self.X.reshape(self.X.shape[0], im_dim[0], im_dim[1], 1)[
-                    0
-                ].mean()
-                self.std = self.X.reshape(self.X.shape[0], im_dim[0], im_dim[1], 1)[
-                    0
-                ].std()
+                self.mean = self.X.reshape(self.X.shape[0], im_dim[0], im_dim[1], 1)[0].mean()
+                self.std = self.X.reshape(self.X.shape[0], im_dim[0], im_dim[1], 1)[0].std()
 
         self.class_names = ["BG", "Salient", "Thing1", "Thing2"]
 
@@ -658,9 +641,7 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
             label_tensor = torch.tensor(self.y[self.train_idx[idx]], dtype=torch.long)
 
             if self.onechan_to_3chan:
-                main_img = self.X[self.train_idx[idx]].reshape(
-                    self.im_dim[0], self.im_dim[1]
-                )
+                main_img = self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1])
 
                 img_out = np.zeros((self.im_dim[0], self.im_dim[1], 3))
 
@@ -679,19 +660,13 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
 
                 if self.threechan:
                     main_img = (
-                        self.X[self.train_idx[idx]].reshape(
-                            self.im_dim[0], self.im_dim[1], 3
-                        )
-                        * 255
+                        self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1], 3) * 255
                     )
 
                 else:
 
                     main_img = (
-                        self.X[self.train_idx[idx]].reshape(
-                            self.im_dim[0], self.im_dim[1]
-                        )
-                        * 255
+                        self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1]) * 255
                     )
 
                 return_tuple = (
@@ -705,9 +680,7 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
 
             if self.onechan_to_3chan:
 
-                main_img = self.X[self.test_idx[idx]].reshape(
-                    self.im_dim[0], self.im_dim[1]
-                )
+                main_img = self.X[self.test_idx[idx]].reshape(self.im_dim[0], self.im_dim[1])
                 img_out = np.zeros((self.im_dim[0], self.im_dim[1], 3))
 
                 img_out[:, :, 0] = main_img
@@ -723,16 +696,11 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
             else:
                 if self.threechan:
                     main_img = (
-                        self.X[self.train_idx[idx]].reshape(
-                            self.im_dim[0], self.im_dim[1], 3
-                        )
-                        * 255
+                        self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1], 3) * 255
                     )
 
                 else:
-                    main_img = self.X[self.test_idx[idx]].reshape(
-                        self.im_dim[0], self.im_dim[1]
-                    )
+                    main_img = self.X[self.test_idx[idx]].reshape(self.im_dim[0], self.im_dim[1])
                 return_tuple = (
                     self.preprocess_img(PIL.Image.fromarray(main_img.astype(np.uint8))),
                     label_tensor,
@@ -747,4 +715,3 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
             preprocessing = self.transforms
 
         return preprocessing(img).numpy()
-

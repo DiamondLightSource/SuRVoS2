@@ -26,13 +26,15 @@ CHUNK_SIZE = Config["computing.chunk_size_sparse"]
 def to_label(idx=0, name="Label", color="#000000", visible=True, **kwargs):
     return dict(idx=idx, name=name, color=color, visible=visible)
 
+
 @hug.post()
 def upload(body, request, response):
-    encoded_array = body['file']
-    array_shape = body['shape']
-    anno_id = body['name']
+    encoded_array = body["file"]
+    array_shape = body["shape"]
+    anno_id = body["name"]
     level_arr = np.frombuffer(encoded_array, dtype="uint32")
-    from ast import literal_eval 
+    from ast import literal_eval
+
     level_arr.shape = literal_eval(array_shape)
     logger.debug(f"Uploaded feature of shape {level_arr.shape}")
     dst = DataModel.g.dataset_uri(anno_id, group="annotations")
@@ -40,19 +42,19 @@ def upload(body, request, response):
     with DatasetManager(dst, out=dst, dtype="uint32", fillvalue=0) as DM:
         DM.out[:] = level_arr
 
-    modified_ds = dataset_from_uri(dst, mode="r")    
+    modified_ds = dataset_from_uri(dst, mode="r")
     modified = [1]
     modified_ds.set_attr("modified", modified)
 
-    
+
 @hug.get()
 def set_volume(src: DataURI, vol_array):
     logger.debug("Setting annotation volume")
     ds = dataset_from_uri(src, mode="rw")
     if ds[:].shape == vol_array.shape:
         ds[:] = vol_array
-    
-    
+
+
 @hug.get()
 def get_volume(src: DataURI):
     logger.debug("Getting annotation volume")
@@ -140,6 +142,7 @@ def get_level(workspace: String, level: String, full: SmartBoolean = False):
         return ws.get_dataset(workspace, level, group=__group_pattern__)
     return ws.get_dataset(workspace, level)
 
+
 @hug.get()
 @hug.local()
 def get_single_level(workspace: String, level: String):
@@ -162,9 +165,7 @@ def get_levels(workspace: String, full: SmartBoolean = False):
 
 
 @hug.get()
-def rename_level(
-    workspace: String, level: String, name: String, full: SmartBoolean = False
-):
+def rename_level(workspace: String, level: String, name: String, full: SmartBoolean = False):
     ds = get_level(workspace, level, full)
     ds.set_metadata("name", name)
 
@@ -235,9 +236,7 @@ def update_label(
 
 
 @hug.get()
-def delete_label(
-    workspace: String, level: String, idx: Int, full: SmartBoolean = False
-):
+def delete_label(workspace: String, level: String, idx: Int, full: SmartBoolean = False):
     ds = get_level(workspace, level, full)
     labels = ds.get_metadata("labels", {})
     if idx in labels:
@@ -246,13 +245,13 @@ def delete_label(
         return dict(done=True)
     raise APIException("Label {}::{} does not exist".format(level, idx))
 
+
 @hug.get()
-def delete_all_labels(
-    workspace: String, level: String, full: SmartBoolean = False
-):
+def delete_all_labels(workspace: String, level: String, full: SmartBoolean = False):
     ds = get_level(workspace, level, full)
     ds.set_metadata("labels", {})
     return dict(done=True)
+
 
 @hug.get()
 def annotate_voxels(
@@ -268,7 +267,7 @@ def annotate_voxels(
     viewer_order: tuple,
     three_dim: SmartBoolean,
     brush_size: Int,
-    centre_point: tuple
+    centre_point: tuple,
 ):
     from survos2.api.annotate import annotate_voxels
 
@@ -295,9 +294,9 @@ def annotate_voxels(
         label=label,
         parent_mask=parent_mask,
         viewer_order=viewer_order,
-        three_dim = three_dim,
+        three_dim=three_dim,
         brush_size=brush_size,
-        centre_point=centre_point
+        centre_point=centre_point,
     )
 
     dst = DataModel.g.dataset_uri(level, group="annotations")
@@ -360,6 +359,6 @@ def annotate_regions(
 @hug.get()
 def annotate_undo(workspace: String, level: String, full: SmartBoolean = False):
     from survos2.api.annotate import undo_annotation
+
     ds = get_level(workspace, level, full)
     undo_annotation(ds)
-

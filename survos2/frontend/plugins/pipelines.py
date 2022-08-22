@@ -10,7 +10,12 @@ from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.base import *
-from survos2.frontend.plugins.base import ComboBox, LazyComboBox, LazyMultiComboBox,  DataTableWidgetItem
+from survos2.frontend.plugins.base import (
+    ComboBox,
+    LazyComboBox,
+    LazyMultiComboBox,
+    DataTableWidgetItem,
+)
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.pipeline.rasterize import RasterizePoints
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
@@ -99,9 +104,9 @@ class PipelinesPlugin(Plugin):
 
             for i, category in enumerate(all_categories):
                 self.pipeline_combo.addItem(category)
-                self.pipeline_combo.model().item(
-                    i + len(self.pipeline_params) + 1
-                ).setEnabled(False)
+                self.pipeline_combo.model().item(i + len(self.pipeline_params) + 1).setEnabled(
+                    False
+                )
 
                 for f in [p for p in result if p["category"] == category]:
                     self.pipeline_params[f["name"]] = f["params"]
@@ -129,22 +134,34 @@ class PipelinesPlugin(Plugin):
             _PipelineNotifier.notify()
 
     def _add_pipeline_widget(self, fid, ftype, fname, expand=False):
-        if ftype=="superregion_segment":
-            widget = SuperregionSegment(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
+        if ftype == "superregion_segment":
+            widget = SuperregionSegment(
+                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
+            )
         elif ftype == "label_postprocess":
-            widget = LabelPostprocess(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
+            widget = LabelPostprocess(
+                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
+            )
         elif ftype == "per_object_cleaning":
-            widget = PerObjectCleaning(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
+            widget = PerObjectCleaning(
+                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
+            )
         elif ftype == "cleaning":
             widget = Cleaning(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "rasterize_points":
-            widget = RasterizePoints(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
+            widget = RasterizePoints(
+                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
+            )
         elif ftype == "watershed":
             widget = Watershed(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "train_multi_axis_cnn":
-            widget = TrainMultiaxisCNN(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
+            widget = TrainMultiaxisCNN(
+                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
+            )
         elif ftype == "predict_multi_axis_cnn":
-            widget = PredictMultiaxisCNN(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
+            widget = PredictMultiaxisCNN(
+                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
+            )
         elif ftype == "train_3d_cnn":
             widget = Train3DCNN(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "predict_3d_cnn":
@@ -152,7 +169,7 @@ class PipelinesPlugin(Plugin):
         else:
             widget = None
         # widget = PipelineCard(fid, ftype, fname, self.pipeline_params[ftype])
-        
+
         if widget:
             widget.showContent(expand)
             self.vbox.addWidget(widget)
@@ -167,9 +184,7 @@ class PipelinesPlugin(Plugin):
 
     def setup(self):
         self._populate_pipelines()
-        params = dict(
-            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
-        )
+        params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("pipelines", "existing", **params)
         logger.debug(f"Pipeline result {result}")
 
@@ -195,19 +210,11 @@ class PipelinesPlugin(Plugin):
 
 
 class PipelineFunctionTest(PipelineCardBase):
-    def __init__(self,fid, ftype, fname, fparams, parent=None):
-        super().__init__(
-            fid=fid,
-            ftype=ftype,
-            fname=fname,
-            fparams=fparams
-        )
+    def __init__(self, fid, ftype, fname, fparams, parent=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+
     def setup(self):
         pass
+
     def compute_pipeline(self):
         pass
-
-
-
-
-

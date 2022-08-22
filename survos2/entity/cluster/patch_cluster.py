@@ -12,6 +12,7 @@ from survos2.entity.cluster.cnn_features import CNNFeatures, prepare_3channel
 from survos2.entity.cluster.utils import get_surface
 from skimage.feature import hog
 
+
 def calc_sphericity(label_vols):
     sphericities = []
     for i in range(len(label_vols)):
@@ -86,6 +87,7 @@ def extract_cnn_features(selected_images, gpu_id=0):
 
     return vec_mat
 
+
 def extract_hog_features(selected_images, gpu_id=0):
     num_fv = len(selected_images)
     vec_mat = np.zeros((num_fv, 512))
@@ -93,15 +95,19 @@ def extract_hog_features(selected_images, gpu_id=0):
     for i, img in enumerate(selected_images):
         fv = []
         img_3channel = np.stack((img, img, img)).T
-        fd = hog(img_3channel, orientations=8, pixels_per_cell=(8, 8),
-                        cells_per_block=(1, 1), visualize=False) #, channel_axis=-1)
+        fd = hog(
+            img_3channel,
+            orientations=8,
+            pixels_per_cell=(8, 8),
+            cells_per_block=(1, 1),
+            visualize=False,
+        )  # , channel_axis=-1)
         fv.extend(fd)
         vec_mat[i, 0 : len(fv)] = fv
 
     print(f"Produced image stack of {len(selected_images)}")
 
     return vec_mat
-
 
 
 def extract_cnn_features2(patch_dict, gpu_id=0):
@@ -138,9 +144,7 @@ def patch_2d_features(img_volume, bvol_table, gpu_id=0, padvol=10):
 def patch_2d_features2(img_volume, bvol_table, gpu_id=0, padvol=10):
     # patch_dict, bbs_info = sample_patch_roi(img_vol, bvol_table)
 
-    raligned, raligned_labels, bvol_info = roi_pool_vol(
-        img_volume, [bvol_table], padvol=padvol
-    )
+    raligned, raligned_labels, bvol_info = roi_pool_vol(img_volume, [bvol_table], padvol=padvol)
     patch_dict, bvol_info = prepare_patch_dict(raligned, raligned_labels, bvol_info)
     print(f"Number of roi extracted {len(patch_dict.keys())}")
     vec_mat, selected_images = extract_cnn_features(patch_dict, gpu_id)
@@ -192,8 +196,7 @@ def roi_pool_vol(cropped_vol, filtered_tables, padvol=14):
                 # print(f"rejected {bb}, {z_l}, {z_u}")
 
         bb2d_centdim = [
-            (x_s, y_s, x_f - x_s, y_f - y_s)
-            for (x_s, y_s, x_f, y_f, z_s, z_f, _), _ in good_bb
+            (x_s, y_s, x_f - x_s, y_f - y_s) for (x_s, y_s, x_f, y_f, z_s, z_f, _), _ in good_bb
         ]
 
         preds = [c for (_, _, _, _, _, _, c), _ in good_bb]
@@ -209,10 +212,7 @@ def roi_pool_vol(cropped_vol, filtered_tables, padvol=14):
         }
         padx, pady = padvol, padvol
         expanded_bboxes = np.abs(
-            [
-                (0, bb[1] - padx, bb[0] - pady, bb[3] + padx, bb[2] + pady)
-                for bb, _ in good_bb
-            ]
+            [(0, bb[1] - padx, bb[0] - pady, bb[3] + padx, bb[2] + pady) for bb, _ in good_bb]
         )
 
         if len(expanded_bboxes) > 0:
@@ -291,9 +291,7 @@ def roi_pool_2d(
 ):
     rois = torch.FloatTensor(bbs)
 
-    x_np = np.arange(
-        batch_size * n_channels * input_size[0] * input_size[1], dtype=np.float32
-    )
+    x_np = np.arange(batch_size * n_channels * input_size[0] * input_size[1], dtype=np.float32)
 
     x_np = x_np.reshape((batch_size, n_channels, *input_size))
     np.random.shuffle(x_np)
@@ -304,4 +302,3 @@ def roi_pool_2d(
     y = roi_pooling_2d(x, rois, output_size, spatial_scale=spatial_scale)
 
     return y
-

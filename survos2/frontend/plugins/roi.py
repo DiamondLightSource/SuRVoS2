@@ -47,8 +47,9 @@ from survos2.frontend.components.base import HWidgets, Slider
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.base import ComboBox
-#from survos2.frontend.plugins.features import *
-#from survos2.frontend.plugins.superregions import *
+
+# from survos2.frontend.plugins.features import *
+# from survos2.frontend.plugins.superregions import *
 from survos2.frontend.utils import FileWidget
 from survos2.server.state import cfg
 from survos2.model.model import DataModel
@@ -92,10 +93,7 @@ class LoadDataDialog(QDialog):
         container.setLayout(hbox)
         container.setObjectName("loaderContainer")
         container.setStyleSheet(
-            "QWidget#loaderContainer {"
-            "  background-color: #4e4e4e; "
-            "  border-radius: 10px;"
-            "}"
+            "QWidget#loaderContainer {" "  background-color: #4e4e4e; " "  border-radius: 10px;" "}"
         )
         lvbox = QVBoxLayout()
         rvbox = QVBoxLayout()
@@ -125,7 +123,7 @@ class LoadDataDialog(QDialog):
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
         rvbox.addWidget(self.buttonBox)
-        #self.winput.path_updated.connect(self.load_data)
+        # self.winput.path_updated.connect(self.load_data)
         self.slider.sliderReleased.connect(self.update_image)
         self.slider.valueChanged.connect(self.update_slider_z_label)
 
@@ -142,9 +140,7 @@ class LoadDataDialog(QDialog):
         reset_button = QPushButton("Reset ROI")
         roi_fields = QGroupBox("Select Region of Interest:")
         roi_layout = QGridLayout()
-        roi_layout.addWidget(
-            QLabel("Drag a box in the image window or type manually"), 0, 0, 1, 3
-        )
+        roi_layout.addWidget(QLabel("Drag a box in the image window or type manually"), 0, 0, 1, 3)
         roi_layout.addWidget(QLabel("Axis"), 1, 0)
         roi_layout.addWidget(QLabel("Start Value:"), 1, 1)
         roi_layout.addWidget(QLabel("End Value:"), 1, 2)
@@ -317,9 +313,7 @@ class LoadDataDialog(QDialog):
         z_end = int(self.zend_linedt.text())
         size_tuple += (z_start, z_end)
         # Clip the values
-        x_start, x_end, y_start, y_end, z_start, z_end = self.clip_roi_box_vals(
-            size_tuple
-        )
+        x_start, x_end, y_start, y_end, z_start, z_end = self.clip_roi_box_vals(size_tuple)
         self.xstart_linedt.setText(str(x_start))
         self.xend_linedt.setText(str(x_end))
         self.ystart_linedt.setText(str(y_start))
@@ -452,7 +446,7 @@ class LoadDataDialog(QDialog):
         self.canvas.ax.set_facecolor((1, 1, 1))
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], "gray")
         self.canvas.ax.grid(False)
-        #self.canvas.redraw()
+        # self.canvas.redraw()
 
     def update_est_data_size(self, z_size, y_size, x_size):
         """Updates the estimated datasize label according to the dimensions and the downsampling factor.
@@ -463,10 +457,9 @@ class LoadDataDialog(QDialog):
             x_size (int): Length of x dimension.
         """
         data_size_tup = tuple(map(int, (z_size, y_size, x_size)))
-        est_data_size = (product(data_size_tup) * 4) / 10 ** 6
+        est_data_size = (product(data_size_tup) * 4) / 10**6
         est_data_size /= self.downsample_spinner.value() ** 3
         self.data_size_label.setText(f"{est_data_size:.2f}")
-
 
 
 @register_plugin
@@ -481,7 +474,7 @@ class ROIPlugin(Plugin):
         self.vbox = VBox(self, spacing=10)
         hbox_layout3 = QtWidgets.QHBoxLayout()
         self.roi_layout = QtWidgets.QVBoxLayout()
-        
+
         self._add_feature_source()
         self.annotations_source = LevelComboBox(full=True)
         self.annotations_source.fill()
@@ -493,10 +486,10 @@ class ROIPlugin(Plugin):
         button_selectroi.clicked.connect(self._launch_data_loader)
         self._add_boxes_source()
 
-        #self.vbox.addLayout(self.roi_layout)
+        # self.vbox.addLayout(self.roi_layout)
         self.vbox.addLayout(hbox_layout3)
         self.existing_roi = {}
-        #self.roi_layout = VBox(margin=0, spacing=5)
+        # self.roi_layout = VBox(margin=0, spacing=5)
         self.vbox.addLayout(self.roi_layout)
 
     def _add_boxes_source(self):
@@ -505,14 +498,14 @@ class ROIPlugin(Plugin):
         self.boxes_source.setMaximumWidth(250)
         button_add_boxes_as_roi = QPushButton("Add Boxes as ROI", self)
         button_add_boxes_as_roi.clicked.connect(self.add_rois)
-        widget = HWidgets("Select Boxes:", self.boxes_source,  button_add_boxes_as_roi, stretch=1)
+        widget = HWidgets("Select Boxes:", self.boxes_source, button_add_boxes_as_roi, stretch=1)
         self.vbox.addWidget(widget)
 
     def _add_feature_source(self, label="Feature:"):
         self.feature_source = FeatureComboBox()
         self.feature_source.fill()
         self.feature_source.setMaximumWidth(250)
-        widget = HWidgets(label, self.feature_source,  stretch=1)
+        widget = HWidgets(label, self.feature_source, stretch=1)
         self.vbox.addWidget(widget)
 
     def _select_feature(self, feature_id):
@@ -539,27 +532,27 @@ class ROIPlugin(Plugin):
         result = dialog.exec_()
         self.roi_limits = None
         if result == QDialog.Accepted:
-            y_st, y_end, x_st, x_end,  z_st, z_end = dialog.get_roi_limits()
+            y_st, y_end, x_st, x_end, z_st, z_end = dialog.get_roi_limits()
             roi = [z_st, z_end, x_st, x_end, y_st, y_end]
-            original_workspace = DataModel.g.current_workspace 
+            original_workspace = DataModel.g.current_workspace
             roi_name = (
-                    DataModel.g.current_workspace
-                    + "_roi_"
-                    + str(z_st)
-                    + "_"
-                    + str(z_end)
-                    + "_"
-                    + str(x_st)
-                    + "_"
-                    + str(x_end)
-                    + "_"
-                    + str(y_st)
-                    + "_"
-                    + str(y_end)
+                DataModel.g.current_workspace
+                + "_roi_"
+                + str(z_st)
+                + "_"
+                + str(z_end)
+                + "_"
+                + str(x_st)
+                + "_"
+                + str(x_end)
+                + "_"
+                + str(y_st)
+                + "_"
+                + str(y_end)
             )
-            
+
             cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "make_roi_ws", "roi": roi, "feature_id":feature_id}
+                {"source": "panel_gui", "data": "make_roi_ws", "roi": roi, "feature_id": feature_id}
             )
             self.add_roi(roi_name, original_workspace, roi)
 
@@ -568,64 +561,70 @@ class ROIPlugin(Plugin):
         Args:
             rois (list): List of ROIs.
         """
-        # Load objects 
+        # Load objects
         objects_id = str(self.boxes_source.value().rsplit("/", 1)[-1])
-        #str(self.boxes_source.value())
-        
+        # str(self.boxes_source.value())
+
         logger.debug(f"Get objects {objects_id}")
         objects_src = DataModel.g.dataset_uri(objects_id, group="objects")
-        params = dict(workpace=True,src=objects_src, entity_type="boxes")
-        
+        params = dict(workpace=True, src=objects_src, entity_type="boxes")
+
         result = Launcher.g.run("objects", "get_entities", **params)
-        
+
         if result:
             entities_arr = decode_numpy(result)
-        
-        rois = entities_arr[:,4:]
+
+        rois = entities_arr[:, 4:]
         print(rois)
 
         # Iterate through ROIs and add them to the ROI list
-        original_workspace = DataModel.g.current_workspace 
+        original_workspace = DataModel.g.current_workspace
 
         for roi in rois:
             roi_list = list(roi)
-            roi_list = [int(el) for el in roi_list]    
+            roi_list = [int(el) for el in roi_list]
             # reorder to z_st, z_end, x_st, x_end, y_st, y_end
-            roi_list = [roi_list[0], roi_list[3], roi_list[1], roi_list[4], roi_list[2], roi_list[5]]
+            roi_list = [
+                roi_list[0],
+                roi_list[3],
+                roi_list[1],
+                roi_list[4],
+                roi_list[2],
+                roi_list[5],
+            ]
 
             roi_name = (
-                    DataModel.g.current_workspace
-                    + "_roi_"
-                    + str(roi[0])
-                    + "_"
-                    + str(roi[3])
-                    + "_"
-                    + str(roi[1])
-                    + "_"
-                    + str(roi[4])
-                    + "_"
-                    + str(roi[2])
-                    + "_"
-                    + str(roi[5])
+                DataModel.g.current_workspace
+                + "_roi_"
+                + str(roi[0])
+                + "_"
+                + str(roi[3])
+                + "_"
+                + str(roi[1])
+                + "_"
+                + str(roi[4])
+                + "_"
+                + str(roi[2])
+                + "_"
+                + str(roi[5])
             )
             cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "make_roi_ws", "roi": roi_list}
-            )   
+                {"source": "panel_gui", "data": "make_roi_ws", "roi": roi_list}
+            )
             self.add_roi(roi_name, original_workspace, roi_list)
-
 
     def setup(self):
         self.existing_roi = {}
-        #self.roi_layout = QtWidgets.QVBoxLayout()
-        #self.vbox.addLayout(self.roi_layout)
-        
-        for i in reversed(range(self.roi_layout.count())): 
+        # self.roi_layout = QtWidgets.QVBoxLayout()
+        # self.vbox.addLayout(self.roi_layout)
+
+        for i in reversed(range(self.roi_layout.count())):
             self.roi_layout.itemAt(i).widget().setParent(None)
         result = Launcher.g.run("roi", "existing")
         logger.debug(f"roi result {result}")
         if result:
-            for k,v in result.items():
-                self._add_roi_widget(k,v)
+            for k, v in result.items():
+                self._add_roi_widget(k, v)
 
     def _add_roi_widget(self, rid, rname, expand=False):
         widget = ROICard(rid, rname)
@@ -652,16 +651,20 @@ class ROIPlugin(Plugin):
             original_level = str(self.annotations_source.value().rsplit("/", 1)[-1])
         else:
             original_level = None
-        params = dict(workspace=original_workspace, roi_fname=roi_fname, roi=roi, original_workspace=original_workspace, original_level=original_level)
+        params = dict(
+            workspace=original_workspace,
+            roi_fname=roi_fname,
+            roi=roi,
+            original_workspace=original_workspace,
+            original_level=original_level,
+        )
         result = Launcher.g.run("roi", "create", **params)
         if result:
             rid = result["id"]
             rname = result["name"]
             self._add_roi_widget(rid, rname, True)
-        
-        cfg.ppw.clientEvent.emit(
-                {"source": "panel_gui", "data": "refresh", "value": None}
-        )
+
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
 
     def clear(self):
         for region in list(self.existing_roi.keys()):
@@ -672,7 +675,7 @@ class ROIPlugin(Plugin):
         """GUI handler for adding a new ROI.
         Grabs the coordinates of the ROI from the GUI and calls the add_roi method.
         """
-        original_workspace = DataModel.g.current_workspace 
+        original_workspace = DataModel.g.current_workspace
         roi_start = self.roi_start.value()
         roi_end = self.roi_end.value()
         roi = [
@@ -685,30 +688,25 @@ class ROIPlugin(Plugin):
         ]
 
         roi_name = (
-                DataModel.g.current_workspace
-                + "_roi_"
-                + str(roi[0])
-                + "_"
-                + str(roi[3])
-                + "_"
-                + str(roi[1])
-                + "_"
-                + str(roi[4])
-                + "_"
-                + str(roi[2])
-                + "_"
-                + str(roi[5])
+            DataModel.g.current_workspace
+            + "_roi_"
+            + str(roi[0])
+            + "_"
+            + str(roi[3])
+            + "_"
+            + str(roi[1])
+            + "_"
+            + str(roi[4])
+            + "_"
+            + str(roi[2])
+            + "_"
+            + str(roi[5])
         )
-        
-        cfg.ppw.clientEvent.emit(
-           {"source": "panel_gui", "data": "make_roi_ws", "roi": roi}
-        )
+
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "make_roi_ws", "roi": roi})
         self.add_roi(roi_name, original_workspace, roi)
 
-        cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "faster_refresh", "value": None}
-        )
-
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "faster_refresh", "value": None})
 
 
 class ROICard(Card):
@@ -725,28 +723,30 @@ class ROICard(Card):
         self.add_row(HWidgets(None, self.annotation_source, self.annotation_target, self.pull_btn))
 
     def card_deleted(self):
-        """Removes an ROI from the server-side ROI list.
-        """
+        """Removes an ROI from the server-side ROI list."""
         logger.debug(f"Deleted ROI {self.rname}")
-        params = dict(roi_fname=self.rname,workspace=True)
+        params = dict(roi_fname=self.rname, workspace=True)
         result = Launcher.g.run("roi", "remove", **params)
         if result["done"]:
             self.setParent(None)
 
     def card_title_edited(self, newtitle):
         logger.debug(f"Edited ROI title {newtitle}")
-        
+
     def pull_anno(self):
         """Gui handler for the pull_anno command that grabs the annotation from the ROI's workspace
         and copies it into the current workspace.
         """
         anno_id = self.annotation_source.value().rsplit("/", 1)[-1]
         target_id = self.annotation_target.value().rsplit("/", 1)[-1]
-        logger.debug(f"Pulling annotation into current workspace from workspace: {self.rname}, level: {anno_id}")
-        all_params = dict(modal=True, roi_fname=self.rname, workspace=True, anno_id=anno_id, target_anno_id=target_id)
+        logger.debug(
+            f"Pulling annotation into current workspace from workspace: {self.rname}, level: {anno_id}"
+        )
+        all_params = dict(
+            modal=True,
+            roi_fname=self.rname,
+            workspace=True,
+            anno_id=anno_id,
+            target_anno_id=target_id,
+        )
         result = Launcher.g.run("roi", "pull_anno", **all_params)
-
-
-
-
-

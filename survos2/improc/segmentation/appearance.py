@@ -13,9 +13,7 @@ from . import _qpbo as qpbo
 def train(X_train, y_train, project=False, rnd=42, **kwargs):
     if project is not False:
         if project == "rproj":
-            proj = SparseRandomProjection(
-                n_components=X_train.shape[1], random_state=rnd
-            )
+            proj = SparseRandomProjection(n_components=X_train.shape[1], random_state=rnd)
         elif project == "std":
             proj = StandardScaler()
         elif project == "pca":

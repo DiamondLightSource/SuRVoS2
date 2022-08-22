@@ -140,7 +140,6 @@ def load_metadata(source: "Dataset URI to load in HDF5, MRC or SuRVoS format"):
         logger.info("Dataset `{}` has no metadata.".format(source))
 
 
-
 @begin.subcommand
 def process(
     pfile: "Process file with the plugin+command instructions",

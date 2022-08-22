@@ -54,12 +54,10 @@ def init_ws(workspace_params):
                 f"Internal HDF5 dataset: '{dataset_name}' does not exist!"
             ) from e
     if len(img_volume.shape) == 2:
-        img_volume = np.reshape(img_volume, (1,img_volume.shape[0], img_volume.shape[1]))
+        img_volume = np.reshape(img_volume, (1, img_volume.shape[0], img_volume.shape[1]))
     logger.info(f"Loaded vol of size {img_volume.shape}")
     if "roi_limits" in workspace_params:
-        x_start, x_end, y_start, y_end, z_start, z_end = map(
-            int, workspace_params["roi_limits"]
-        )
+        x_start, x_end, y_start, y_end, z_start, z_end = map(int, workspace_params["roi_limits"])
         logger.info(
             f"Cropping data to predefined ROI z:{z_start}-{z_end},"
             f"y:{y_start}-{y_end}, x:{x_start}-{x_end}"
@@ -114,9 +112,7 @@ def init_ws(workspace_params):
 
     DataModel.g.current_workspace = ws_name
 
-    survos.run_command(
-        "features", "create", uri=None, workspace=ws_name, feature_type="raw"
-    )
+    survos.run_command("features", "create", uri=None, workspace=ws_name, feature_type="raw")
 
     src = DataModel.g.dataset_uri("__data__", None)
     dst = DataModel.g.dataset_uri("001_raw", group="features")
@@ -156,9 +152,7 @@ def roi_ws(img_volume, ws_name):
 
     DataModel.g.current_workspace = ws_name
 
-    survos.run_command(
-        "features", "create", uri=None, workspace=ws_name, feature_type="raw"
-    )
+    survos.run_command("features", "create", uri=None, workspace=ws_name, feature_type="raw")
     src = DataModel.g.dataset_uri("__data__", None)
     dst = DataModel.g.dataset_uri("001_raw", group="features")
     with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
@@ -196,5 +190,3 @@ def start_client():
     from survos2.frontend.frontend import frontend
 
     frontend()
-
-

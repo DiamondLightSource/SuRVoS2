@@ -25,7 +25,7 @@ def paint_strokes(
     parent_label_idx=None,
     viewer_order=(0, 1, 2),
 ):
-    """ 
+    """
     Gather all information required from viewer and build and execute the annotation command
     """
     level = msg["level_id"]
@@ -33,7 +33,7 @@ def paint_strokes(
     anno_layer_shape = [anno_layer_shape[i] for i in viewer_order]
 
     if len(viewer_order) == 2:
-        viewer_order=(0, 1, 2)
+        viewer_order = (0, 1, 2)
 
     if len(drag_pts) == 0:
         return
@@ -55,13 +55,13 @@ def paint_strokes(
         if len(drag_pts[0]) == 2:
             px, py = drag_pts[0]
             z = cfg.current_slice
-            #print(f"Using z {z}")
+            # print(f"Using z {z}")
         else:
-            #logger.info(f"drag_pts[0] {drag_pts}")
+            # logger.info(f"drag_pts[0] {drag_pts}")
             pt_data = drag_pts[0]
             pt_data = [pt_data[i] for i in viewer_order]
             z, px, py = pt_data
-            #logger.debug(f"z px py {z} {px} {py}")
+            # logger.debug(f"z px py {z} {px} {py}")
 
         if len(drag_pts[0]) == 2:
             # depending on the slice mode we need to handle either 2 or 3 coordinates
@@ -72,7 +72,7 @@ def paint_strokes(
                     line_y.extend(yy)
                     py, px = y, x
                     anno_shape = (anno_layer.data.shape[0], anno_layer.data.shape[1])
-                    
+
         else:  # cfg.retrieval_mode == 'volume':
             for zz, x, y in drag_pts[1:]:
                 pt_data = [zz, x, y]
@@ -90,13 +90,11 @@ def paint_strokes(
         line_x = np.array(line_x)
         line_y = np.array(line_y)
 
-
-        
         if len(line_y) > 0:
             all_regions = set()
             # Check if we are painting using supervoxels, if not, annotate voxels
             if cfg.current_supervoxels == None:
-                #cfg.local_sv = False
+                # cfg.local_sv = False
                 if not cfg.three_dim:
                     line_y, line_x = dilate_annotations(
                         line_x,
@@ -118,11 +116,11 @@ def paint_strokes(
                     parent_label_idx=parent_label_idx,
                     full=False,
                     viewer_order=viewer_order,
-                    three_dim = cfg.three_dim,
-                    brush_size = int(cfg.brush_size),
-                    centre_point = (int(z), int(px), int(py))
+                    three_dim=cfg.three_dim,
+                    brush_size=int(cfg.brush_size),
+                    centre_point=(int(z), int(px), int(py)),
                 )
-    
+
                 result = Launcher.g.run("annotations", "annotate_voxels", **params)
 
             # we are painting with supervoxels, so check if we have a current supervoxel cache
@@ -147,10 +145,10 @@ def paint_strokes(
                     ]
                 )
                 bb = bb.tolist()
-                #logger.debug(f"BB: {bb}")
+                # logger.debug(f"BB: {bb}")
 
-                if cfg.supervoxels_cached == False:                    
-                    if cfg.retrieval_mode == 'volume' or cfg.retrieval_mode == "volume_http":
+                if cfg.supervoxels_cached == False:
+                    if cfg.retrieval_mode == "volume" or cfg.retrieval_mode == "volume_http":
                         regions_dataset = DataModel.g.dataset_uri(
                             cfg.current_regions_name, group="superregions"
                         )
@@ -175,8 +173,8 @@ def paint_strokes(
                         result = Launcher.g.run("superregions", "get_slice", **params)
                         if result:
                             sv_arr = decode_numpy(result)
-                        
-                    #logger.debug(f"Loaded superregion array of shape {sv_arr.shape}")
+
+                    # logger.debug(f"Loaded superregion array of shape {sv_arr.shape}")
 
                     cfg.supervoxels_cache = sv_arr
                     cfg.supervoxels_cached = True
@@ -184,20 +182,15 @@ def paint_strokes(
                 else:
                     sv_arr = cfg.supervoxels_cache
 
-                if cfg.retrieval_mode != 'slice':
+                if cfg.retrieval_mode != "slice":
                     viewer_order_str = "".join(map(str, viewer_order))
                     if viewer_order_str != "012" and len(viewer_order_str) == 3:
                         sv_arr = np.transpose(sv_arr, viewer_order)
-                        #logger.debug(f"After viewer_order transform {sv_arr.shape}")
+                        # logger.debug(f"After viewer_order transform {sv_arr.shape}")
 
                 for x, y in zip(line_x, line_y):
-                    if cfg.retrieval_mode=='slice':
-                        if (
-                            x >= 0
-                            and x < sv_arr.shape[0]
-                            and y >= 0
-                            and y < sv_arr.shape[1]
-                        ):
+                    if cfg.retrieval_mode == "slice":
+                        if x >= 0 and x < sv_arr.shape[0] and y >= 0 and y < sv_arr.shape[1]:
                             sv = sv_arr[x, y]
                             all_regions |= set([sv])
                     else:
@@ -215,7 +208,6 @@ def paint_strokes(
                 # Commit annotation to server
                 params = dict(workspace=True, level=level, label=sel_label)
 
-
                 if cfg.remote_annotation:
                     params.update(
                         region=cfg.current_regions_dataset,
@@ -228,27 +220,27 @@ def paint_strokes(
                         viewer_order=viewer_order,
                     )
                     result = Launcher.g.run("annotations", "annotate_regions", **params)
-                else: 
+                else:
                     cfg.local_sv = True
                     _annotate_regions_local(
-                                    cfg.anno_data.copy(),
-                                    sv_arr,
-                                    list(map(int, all_regions)),
-                                    label=sel_label,
-                                    parent_level=parent_level,
-                                    parent_label_idx=parent_label_idx,
-                                    bb=bb,
-                                    viewer_order=viewer_order)
-                    
+                        cfg.anno_data.copy(),
+                        sv_arr,
+                        list(map(int, all_regions)),
+                        label=sel_label,
+                        parent_level=parent_level,
+                        parent_label_idx=parent_label_idx,
+                        bb=bb,
+                        viewer_order=viewer_order,
+                    )
+
     except Exception as e:
         logger.debug(f"paint_strokes Exception: {e}")
 
 
-
 def _annotate_regions_local(
-    level : np.ndarray,
+    level: np.ndarray,
     region: np.ndarray,
-    r : list,
+    r: list,
     label: int,
     parent_level: str,
     parent_label_idx: int,
@@ -267,8 +259,8 @@ def _annotate_regions_local(
         parent_arr = None
         parent_mask = None
 
-    #logger.debug(f"BB in annotate_regions {bb}")
-    
+    # logger.debug(f"BB in annotate_regions {bb}")
+
     if label >= 16 or label < 0 or type(label) != int:
         raise ValueError("Label has to be in bounds [0, 15]")
     if r is None or len(r) == 0:
@@ -276,21 +268,21 @@ def _annotate_regions_local(
 
     mbit = 2 ** (np.dtype(level.dtype).itemsize * 8 // _MaskSize) - 1
     rmax = np.max(r)
-    #modified = dataset.get_attr("modified")
+    # modified = dataset.get_attr("modified")
     cfg.modified = [0]
     ds = level[:]
     reg = region[:]
-    #print(f"reg shape {reg.shape} ds shape {ds.shape}")
+    # print(f"reg shape {reg.shape} ds shape {ds.shape}")
 
     viewer_order_str = "".join(map(str, viewer_order))
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
-        #print(f"Viewer order {viewer_order} Performing viewer_order transform {ds.shape}")
+        # print(f"Viewer order {viewer_order} Performing viewer_order transform {ds.shape}")
         ds_t = np.transpose(ds, viewer_order)
-        
+
     else:
-        #print(f"Viewer order {viewer_order} No viewer_order transform {ds.shape}")
+        # print(f"Viewer order {viewer_order} No viewer_order transform {ds.shape}")
         ds_t = ds
-        
+
     mask = np.zeros_like(reg)
 
     # print(f"BB: {bb}")
@@ -310,31 +302,27 @@ def _annotate_regions_local(
 
     if parent_mask is not None:
         parent_mask_t = np.transpose(parent_mask, viewer_order)
-        #print(f"Using parent mask of shape: {parent_mask.shape}")
+        # print(f"Using parent mask of shape: {parent_mask.shape}")
         mask = mask * parent_mask_t
 
-
-    mask = (mask > 0) * 1.0        
+    mask = (mask > 0) * 1.0
     mask = mask > 0
-    #if not np.any(mask):
+    # if not np.any(mask):
     #    modified[i] = (modified[i] << 1) & mbit
 
     ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
     ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
-    
-    #print(f"Returning annotated region ds {ds.shape}")
+
+    # print(f"Returning annotated region ds {ds.shape}")
 
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
         new_order = get_order(viewer_order)
-        #logger.info(
+        # logger.info(
         #    f"new order {new_order} Dataset before second transpose: {ds_t.shape}"
-        #)
+        # )
         ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
-        #logger.info(f"Dataset after second transpose: {ds_o.shape}")
+        # logger.info(f"Dataset after second transpose: {ds_o.shape}")
     else:
         ds_o = ds_t
 
-    
     cfg.modified = [1]
-
-

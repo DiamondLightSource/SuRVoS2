@@ -19,6 +19,7 @@ from survos2.config import Config
 from napari.qt.progress import progress
 from survos2.config import Config
 
+
 class ButtonPanelWidget(QtWidgets.QWidget):
     clientEvent = Signal(object)
 
@@ -31,52 +32,48 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         button_refresh = QPushButton("Refresh", self)
         button_refresh.clicked.connect(self.button_refresh_clicked)
-    
+
         button_load_workspace = QPushButton("Load", self)
         button_load_workspace.clicked.connect(self.button_load_workspace_clicked)
-    
+
         button_clear_client = QPushButton("Clear client")
         button_clear_client.clicked.connect(self.button_clear_client_clicked)
 
         button_transfer = QPushButton("Transfer Layer to Server")
         button_transfer.clicked.connect(self.button_transfer_clicked)
 
-        #self.button_slicemode = QPushButton("Slice mode", self)
-        #self.button_slicemode.clicked.connect(self.button_slicemode_clicked)
+        # self.button_slicemode = QPushButton("Slice mode", self)
+        # self.button_slicemode.clicked.connect(self.button_slicemode_clicked)
 
         workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list = ComboBox()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
-        workspaces_widget = HWidgets(
-            "Switch Workspaces:", self.workspaces_list)
+        workspaces_widget = HWidgets("Switch Workspaces:", self.workspaces_list)
         self.workspaces_list.setEditable(True)
         self.workspaces_list.activated[str].connect(self.workspaces_selected)
 
         self.hbox_layout0 = QtWidgets.QHBoxLayout()
         hbox_layout_ws = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
-        
+
         self.hbox_layout0.addWidget(self.slider)
         self.slider.hide()
 
         hbox_layout_ws.addWidget(workspaces_widget)
         hbox_layout_ws.addWidget(button_load_workspace)
-        
+
         hbox_layout1.addWidget(button_transfer)
-        #hbox_layout1.addWidget(self.button_slicemode)
+        # hbox_layout1.addWidget(self.button_slicemode)
         hbox_layout1.addWidget(button_refresh)
         hbox_layout1.addWidget(button_clear_client)
-        
+
         vbox = VBox(self, margin=(1, 1, 1, 1), spacing=2)
 
         self.tabwidget = QTabWidget()
         vbox.addWidget(self.tabwidget)
 
-        self.tabs = [
-            (QWidget(), t)
-            for t in ['Workspace', 'Histogram']
-        ]
+        self.tabs = [(QWidget(), t) for t in ["Workspace", "Histogram"]]
 
         # create tabs for button/info panel
         tabs = []
@@ -87,8 +84,8 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             tabs.append(t)
 
         self.plotbox = VBox(self, spacing=1)
-        self.display_histogram_plot(np.array([0,1]))
-        
+        self.display_histogram_plot(np.array([0, 1]))
+
         # add tabs to button/info panel
         tabs[0][0].layout.addLayout(self.hbox_layout0)
         tabs[0][0].layout.addLayout(hbox_layout1)
@@ -96,22 +93,19 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         tabs[1][0].layout.addLayout(self.plotbox)
 
-    
-
     def refresh_workspaces(self):
         workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list.clear()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
         self.slider.setMinimumWidth(cfg.base_dataset_shape[0])
-        
 
     def workspaces_selected(self):
         selected_workspace = self.workspaces_list.value()
         self.workspaces_list.blockSignals(True)
         self.workspaces_list.select(selected_workspace)
         self.workspaces_list.blockSignals(False)
-        
+
         cfg.ppw.clientEvent.emit(
             {
                 "source": "panel_gui",
@@ -141,46 +135,32 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             roi_end[2],
         ]
         self.refresh_workspaces()
-        cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "make_roi_ws", "roi": roi}
-        )
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "make_roi_ws", "roi": roi})
 
     def button_load_workspace_clicked(self):
         self.refresh_workspaces()
-        cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "empty_viewer", "value": None}
-        )
-        cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "refresh", "value": None}
-        )
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
 
     def button_refresh_clicked(self):
         self.refresh_workspaces()
-        cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "empty_viewer", "value": None}
-        )
-        cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "faster_refresh", "value": None}
-        )
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "faster_refresh", "value": None})
 
     def button_clear_client_clicked(self):
         self.refresh_workspaces()
-        cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "empty_viewer", "value": None}
-        )
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
 
     def button_pause_save_clicked(self):
         if cfg.pause_save:
             self.button_pause_save.setText("Pause Saving to Server")
         else:
             self.button_pause_save.setText("Resume saving to Server")
-            
+
         cfg.pause_save = not cfg.pause_save
-        
+
     def button_transfer_clicked(self):
-        cfg.ppw.clientEvent.emit(
-            {"source": "panel_gui", "data": "transfer_layer", "value": None}
-        )
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "transfer_layer", "value": None})
 
     def button_slicemode_clicked(self):
         if self.slice_mode:
@@ -224,16 +204,15 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.plot.setMaximumHeight(max_height)
         self.plot.axes.margins(0)
         self.plot.axes.axis("off")
-        
+
         self.plotbox.addWidget(self.plot)
         self.setMinimumHeight(max_height)
-        y, x, _ = self.plot.axes.hist(array, bins=256, color = "gray", lw=0,  ec="skyblue")
+        y, x, _ = self.plot.axes.hist(array, bins=256, color="gray", lw=0, ec="skyblue")
         self.plot.fig.set_facecolor((0.15, 0.15, 0.18))
-        #self.plot.fig.set_alpha(0.5)
-        #self.plot.axes.set_title(title)
-        self.plot.axes.vlines(x=np.min(x), ymin=0, ymax=np.max(y), colors='w')
-        self.plot.axes.vlines(x=np.max(x), ymin=0, ymax=np.max(y), colors='w')
-
+        # self.plot.fig.set_alpha(0.5)
+        # self.plot.axes.set_title(title)
+        self.plot.axes.vlines(x=np.min(x), ymin=0, ymax=np.max(y), colors="w")
+        self.plot.axes.vlines(x=np.max(x), ymin=0, ymax=np.max(y), colors="w")
 
         self.plotbox.addWidget(
             HWidgets(
@@ -242,8 +221,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
                 stretch=[0, 0],
             )
         )
-
-
 
 
 class PluginPanelWidget(QtWidgets.QWidget):
@@ -286,7 +263,7 @@ class PluginPanelWidget(QtWidgets.QWidget):
                 self.pluginContainer.show_plugin(name, tab)
 
         for l in cfg.viewer.layers:
-                cfg.viewer.layers.remove(l)
+            cfg.viewer.layers.remove(l)
         cfg.emptying_viewer = False
 
     def setup2(self):
@@ -297,7 +274,7 @@ class PluginPanelWidget(QtWidgets.QWidget):
             self.pluginContainer.show_plugin2(name, tab)
 
     def setup_features(self):
-        plugin = get_plugin('features')
+        plugin = get_plugin("features")
         name = plugin["name"]
         tab = plugin["tab"]
         self.pluginContainer.show_plugin2(name, tab)
@@ -328,7 +305,3 @@ class QtPlotWidget(QtWidgets.QWidget):
             color="w",
             parent=self.canvas.scene,
         )
-
-
-
-

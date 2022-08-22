@@ -11,6 +11,7 @@ from torch import optim
 from torch.optim import lr_scheduler
 from survos2.entity.utils import load_model
 
+
 def prepare_unet3d(existing_model_fname=None, num_epochs=2, initial_lr=0.001, device=0):
 
     device = torch.device(device)
@@ -102,10 +103,7 @@ def display_unet_pred(model3d, dataloaders, max_samples_display=10, device=0):
             )
             # show_images([1.0 - out_arr_proc[0,0,i * 8,:,:]  for i in range(1,4)])
 
-        show_images(
-            [1.0 - out_arr_proc[0, 1, i * 8, :, :] for i in range(1, 4)], figsize=(3, 3)
-        )
+        show_images([1.0 - out_arr_proc[0, 1, i * 8, :, :] for i in range(1, 4)], figsize=(3, 3))
         count += 1
         if count > max_samples_display:
             return
-

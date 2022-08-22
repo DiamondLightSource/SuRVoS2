@@ -66,9 +66,7 @@ def measure_components(image):
     return bbs_arr
 
 
-def filter_proposal_mask(
-    mask, thresh=0.5, num_erosions=3, num_dilations=3, num_medians=1
-):
+def filter_proposal_mask(mask, thresh=0.5, num_erosions=3, num_dilations=3, num_medians=1):
     """
     Apply morphology and medians to input mask image, which is thresholded
 
@@ -85,14 +83,10 @@ def filter_proposal_mask(
     struct2 = ndimage.generate_binary_structure(3, 2)
 
     for i in range(num_erosions):
-        holdout = ndimage.binary_erosion(holdout, structure=struct2).astype(
-            holdout.dtype
-        )
+        holdout = ndimage.binary_erosion(holdout, structure=struct2).astype(holdout.dtype)
 
     for i in range(num_dilations):
-        holdout = ndimage.binary_dilation(holdout, structure=struct2).astype(
-            holdout.dtype
-        )
+        holdout = ndimage.binary_dilation(holdout, structure=struct2).astype(holdout.dtype)
 
     for i in range(num_medians):
         holdout = ndimage.median_filter(holdout, 4).astype(holdout.dtype)
@@ -102,8 +96,7 @@ def filter_proposal_mask(
 
 def measure_regions(labeled_images, properties=["label", "area", "centroid", "bbox"]):
     tables = [
-        skimage.measure.regionprops_table(image, properties=properties)
-        for image in labeled_images
+        skimage.measure.regionprops_table(image, properties=properties) for image in labeled_images
     ]
 
     tables = [pd.DataFrame(table) for table in tables]
@@ -171,22 +164,18 @@ def filter_small_components_numba(images, min_component_size=0):
     labeled_images = [measure.label(image) for image in images]
     tables = measure_regions(labeled_images)
 
-    selected = [
-        tables[i][tables[i]["area"] > min_component_size] for i in range(len(tables))
-    ]
+    selected = [tables[i][tables[i]["area"] > min_component_size] for i in range(len(tables))]
 
     filtered_images = []
     tables_arr = np.array(tables)
-    
+
     selected_idxs = []
     for img_idx in range(len(images)):
         table_idxs = list(selected[img_idx].index.values)
         selected_idxs.append(table_idxs)
 
     selected_idxs = np.array(selected_idxs)
-    total_mask = copy_and_composite_components(
-        images, labeled_images, tables_arr, selected_idxs
-    )
+    total_mask = copy_and_composite_components(images, labeled_images, tables_arr, selected_idxs)
 
     return total_mask, tables, labeled_images
 
@@ -206,9 +195,7 @@ def filter_small_components(images, min_component_size=0):
     labeled_images = [measure.label(image) for image in images]
     tables = measure_regions(labeled_images)
 
-    selected = [
-        tables[i][tables[i]["area"] > min_component_size] for i in range(len(tables))
-    ]
+    selected = [tables[i][tables[i]["area"] > min_component_size] for i in range(len(tables))]
 
     filtered_images = []
 
@@ -230,9 +217,7 @@ def filter_small_components(images, min_component_size=0):
                 tables[img_idx]["bb_f_y"][iloc],
             ]
 
-            mask = (
-                labeled_images[img_idx] == tables[img_idx]["class_code"][iloc]
-            ) * 1.0
+            mask = (labeled_images[img_idx] == tables[img_idx]["class_code"][iloc]) * 1.0
             total_mask[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] = (
                 total_mask[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]]
                 + mask[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]]
@@ -253,10 +238,7 @@ def measure_big_blobs(images: List[np.ndarray]):
 def get_entity_at_loc(entities_df, selected_idx):
     return entities_df[
         np.logical_and(
-            np.logical_and(
-                entities_df.z == selected_idx[0], entities_df.x == selected_idx[1]
-            ),
+            np.logical_and(entities_df.z == selected_idx[0], entities_df.x == selected_idx[1]),
             entities_df.y == selected_idx[2],
         )
     ]
-

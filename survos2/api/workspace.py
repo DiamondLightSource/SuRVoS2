@@ -23,14 +23,12 @@ def make_roi_ws(feature_id: DataURI, roi: IntList, current_workspace_name: Strin
         src_dataset = DM.sources[0][:]
 
     print(roi)
-    #rc_dataset = src_dataset[roi[0] : roi[3], roi[1] : roi[4], roi[2] : roi[5]]
-
+    # rc_dataset = src_dataset[roi[0] : roi[3], roi[1] : roi[4], roi[2] : roi[5]]
 
     src_dataset = src_dataset[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]]
 
-
     print(src_dataset.shape)
-    
+
     # make new ws from roi crop of raw data
     roi_name = (
         DataModel.g.current_workspace
@@ -49,8 +47,8 @@ def make_roi_ws(feature_id: DataURI, roi: IntList, current_workspace_name: Strin
     )
 
     roi_ws(src_dataset, roi_name)
-    #src_ws = get(current_workspace_name)
-    #target_ws = get(roi_name)
+    # src_ws = get(current_workspace_name)
+    # target_ws = get(roi_name)
     # src_ws.replicate_workspace(target_ws.path)
 
     return roi_name
@@ -61,16 +59,19 @@ def set_workspace(workspace: String):
     logger.debug(f"Setting workspace to {workspace}")
     DataModel.g.current_workspace = workspace
 
+
 @hug.get()
 def set_workspace_shape(shape: IntList):
     logger.debug(f"Setting workspace shape to {shape}")
     DataModel.g.current_workspace_shape = shape
     return DataModel.g.current_workspace_shape
 
+
 @hug.get()
 def create(workspace: String):
     workspace, session = parse_workspace(workspace)
     return Workspace.create(workspace)
+
 
 @hug.get()
 def delete(workspace: String):
@@ -244,9 +245,7 @@ def auto_create_dataset(
 
 
 @hug.local()
-def rename_dataset(
-    workspace: String, feature_id: String, group: String, new_name: String
-):
+def rename_dataset(workspace: String, feature_id: String, group: String, new_name: String):
     ds = get_dataset(workspace, feature_id, group=group)
     ds.set_attr("name", new_name)
 
@@ -260,4 +259,3 @@ def parse_workspace(workspace: String):
         return workspace, session
     else:
         return workspace, "default"
-

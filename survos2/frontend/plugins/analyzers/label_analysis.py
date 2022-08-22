@@ -4,9 +4,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from napari.qt.progress import progress
-from survos2.entity.cluster.cluster_plotting import (cluster_scatter,
-                                                     image_grid2,
-                                                     plot_clustered_img)
+from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
 from survos2.frontend.components.base import *
 from survos2.frontend.control import Launcher
 
@@ -17,9 +15,8 @@ from survos2.frontend.plugins.analyzers.base import AnalyzerCardBase, MplCanvas
 from survos2.frontend.plugins.analyzers.constants import feature_names
 
 
-
 class LabelSplitter(AnalyzerCardBase):
-    def __init__(self,analyzer_id, analyzer_name, analyzer_type, parent=None):
+    def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
         super().__init__(
             analyzer_name=analyzer_name,
             analyzer_id=analyzer_id,
@@ -30,9 +27,10 @@ class LabelSplitter(AnalyzerCardBase):
             editable=True,
             parent=parent,
         )
+
     def setup(self):
         self.add_source_selector()
-        self._add_feature_source() 
+        self._add_feature_source()
         self.background_label = LineEdit(default=0, parse=int)
         widget = HWidgets("Background label:", self.background_label, stretch=1)
         self.add_row(widget)
@@ -41,13 +39,12 @@ class LabelSplitter(AnalyzerCardBase):
         self.add_rules_btn.clicked.connect(self._add_rule)
         self.refresh_rules_btn = PushButton("Refresh rules")
         self.refresh_rules_btn.clicked.connect(self._setup_ops)
-        self.feature_name_combo_box = SimpleComboBox(
-        full=True, values=feature_names
-        )
-        self.feature_name_combo_box.fill()      
-        self.add_row(HWidgets(self.add_rules_btn,  self.refresh_rules_btn))
+        self.feature_name_combo_box = SimpleComboBox(full=True, values=feature_names)
+        self.feature_name_combo_box.fill()
+        self.add_row(HWidgets(self.add_rules_btn, self.refresh_rules_btn))
         self.add_row(HWidgets("Explore feature name: ", self.feature_name_combo_box))
         self._add_labelsplitter_view_btns()
+
     def calculate(self):
         if len(self.plots) > 0:
             for plot in self.plots:
@@ -93,33 +90,33 @@ class LabelSplitter(AnalyzerCardBase):
 
         all_params["split_ops"] = split_ops
 
-
         logger.debug(f"Running analyzer with params {all_params}")
         result_features, features_array, bvols = Launcher.g.run(
             "analyzer", "label_splitter", **all_params
         )
         features_ndarray = np.array(features_array)
         print(f"Shape of features_array: {features_ndarray.shape}")
-        
+
         if features_array:
-            logger.debug(f"Segmentation stats result table: {len(features_array)}")                
+            logger.debug(f"Segmentation stats result table: {len(features_array)}")
             feature_arrays = []
             feature_titles = []
-            
-            for j,s in enumerate(split_feature_indexes):
+
+            for j, s in enumerate(split_feature_indexes):
                 feature_title = feature_names[int(s)]
-                feature_plot_array = features_ndarray[:, int(s)] 
+                feature_plot_array = features_ndarray[:, int(s)]
                 feature_arrays.append(feature_plot_array)
                 feature_titles.append(feature_title)
                 print(f"Titles of feature names: {feature_titles}")
                 print(f"Split feature thresholds: {split_feature_thresholds}")
-            self.display_splitter_plot(feature_arrays, titles=feature_titles, vert_line_at=split_feature_thresholds)
+            self.display_splitter_plot(
+                feature_arrays, titles=feature_titles, vert_line_at=split_feature_thresholds
+            )
             self.display_splitter_results(result_features)
 
 
-
 class LabelAnalyzer(AnalyzerCardBase):
-    def __init__(self,analyzer_id, analyzer_name, analyzer_type, parent=None):
+    def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
         super().__init__(
             analyzer_name=analyzer_name,
             analyzer_id=analyzer_id,
@@ -130,6 +127,7 @@ class LabelAnalyzer(AnalyzerCardBase):
             editable=True,
             parent=parent,
         )
+
     def setup(self):
         self.add_source_selector()
         self._add_feature_source()
@@ -137,10 +135,8 @@ class LabelAnalyzer(AnalyzerCardBase):
         self.background_label = LineEdit(default=0, parse=int)
         widget = HWidgets("Background label:", self.background_label, stretch=1)
         self.add_row(widget)
-        self.feature_name_combo_box = SimpleComboBox(
-        full=True, values=feature_names
-        )
-        self.feature_name_combo_box.fill()      
+        self.feature_name_combo_box = SimpleComboBox(full=True, values=feature_names)
+        self.feature_name_combo_box.fill()
         self.add_row(HWidgets("Explore feature name: ", self.feature_name_combo_box))
         self._add_labelsplitter_view_btns()
 
@@ -167,32 +163,33 @@ class LabelAnalyzer(AnalyzerCardBase):
         split_feature_thresholds = []
         all_params["split_ops"] = split_ops
 
-
         logger.debug(f"Running analyzer with params {all_params}")
         result_features, features_array, bvols = Launcher.g.run(
             "analyzer", "label_splitter", **all_params
         )
         features_ndarray = np.array(features_array)
         print(f"Shape of features_array: {features_ndarray.shape}")
-        
+
         if features_array:
-            logger.debug(f"Segmentation stats result table: {len(features_array)}")                
+            logger.debug(f"Segmentation stats result table: {len(features_array)}")
             feature_arrays = []
             feature_titles = []
-            
-            for j,s in enumerate(split_feature_indexes):
+
+            for j, s in enumerate(split_feature_indexes):
                 feature_title = feature_names[int(s)]
-                feature_plot_array = features_ndarray[:, int(s)] 
+                feature_plot_array = features_ndarray[:, int(s)]
                 feature_arrays.append(feature_plot_array)
                 feature_titles.append(feature_title)
                 print(f"Titles of feature names: {feature_titles}")
                 print(f"Split feature thresholds: {split_feature_thresholds}")
-            self.display_splitter_plot(feature_arrays, titles=feature_titles, vert_line_at=split_feature_thresholds)
+            self.display_splitter_plot(
+                feature_arrays, titles=feature_titles, vert_line_at=split_feature_thresholds
+            )
             self.display_splitter_results(result_features)
 
 
 class RemoveMaskedObjects(AnalyzerCardBase):
-    def __init__(self,analyzer_id, analyzer_name, analyzer_type, parent=None):
+    def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
         super().__init__(
             analyzer_name=analyzer_name,
             analyzer_id=analyzer_id,
@@ -203,13 +200,12 @@ class RemoveMaskedObjects(AnalyzerCardBase):
             editable=True,
             parent=parent,
         )
+
     def setup(self):
         self._add_feature_source()
         self._add_objects_source()
         self.invert_checkbox = CheckBox(checked=True)
-        self.add_row(
-            HWidgets("Invert:", self.invert_checkbox, stretch=0)
-        )
+        self.add_row(HWidgets("Invert:", self.invert_checkbox, stretch=0))
         self.load_as_objects_btn = PushButton("Load as Objects")
         self.additional_buttons.append(self.load_as_objects_btn)
         self.load_as_objects_btn.clicked.connect(self.load_as_objects)
@@ -221,15 +217,14 @@ class RemoveMaskedObjects(AnalyzerCardBase):
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["object_id"] = str(self.objects_source.value())
         all_params["invert"] = self.invert_checkbox.value()
-        
+
         result = Launcher.g.run("analyzer", "remove_masked_objects", **all_params)
         logger.debug(f"remove_masked_objects result table {len(result)}")
         self.display_component_results(result)
 
 
-
 class FindConnectedComponents(AnalyzerCardBase):
-    def __init__(self,analyzer_id, analyzer_name, analyzer_type, parent=None):
+    def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
         super().__init__(
             analyzer_name=analyzer_name,
             analyzer_id=analyzer_id,
@@ -240,23 +235,25 @@ class FindConnectedComponents(AnalyzerCardBase):
             editable=True,
             parent=parent,
         )
+
     def setup(self):
         self.add_source_selector()
 
         self.label_index = LineEdit(default=0, parse=int)
-        widget = HWidgets("Label Index:", self.label_index,  stretch=1)
+        widget = HWidgets("Label Index:", self.label_index, stretch=1)
         self.add_row(widget)
 
         self.area_min = LineEdit(default=0, parse=int)
         self.area_max = LineEdit(default=1e14, parse=int)
         widget = HWidgets("Area min:", self.area_min, "Area max: ", self.area_max)
         self.add_row(widget)
-        
+
         self.load_as_objects_btn = PushButton("Load as Objects")
         self.additional_buttons.append(self.load_as_objects_btn)
         self.load_as_objects_btn.clicked.connect(self.load_as_objects)
         self._add_view_btn()
-    def calculate(self):        
+
+    def calculate(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")
         src = DataModel.g.dataset_uri(self.pipelines_source.value(), group="pipelines")
         all_params = dict(src=src, dst=dst, modal=False)
@@ -269,11 +266,8 @@ class FindConnectedComponents(AnalyzerCardBase):
         all_params["area_min"] = self.area_min.value()
         all_params["area_max"] = self.area_max.value()
         logger.debug(f"Running analyzer with params {all_params}")
-        result = Launcher.g.run(
-            "analyzer", "find_connected_components", **all_params
-        )
+        result = Launcher.g.run("analyzer", "find_connected_components", **all_params)
         print(result)
         if result:
             logger.debug(f"Segmentation stats result table {len(result)}")
             self.display_component_results(result)
-

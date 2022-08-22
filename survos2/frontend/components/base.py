@@ -220,9 +220,7 @@ class HWidgets(QtWidgets.QWidget):
         super().__init__(kwargs.pop("parent", None))
         self.setObjectName("hwidgets")
         margin = kwargs.pop("margin", 5)
-        self.setStyleSheet(
-            "margin-left: {}px; margin-right: {}px;".format(margin, margin)
-        )
+        self.setStyleSheet("margin-left: {}px; margin-right: {}px;".format(margin, margin))
 
         stretch = kwargs.pop("stretch", [])
         if type(stretch) not in [list, tuple]:
@@ -526,7 +524,6 @@ class ParentButton(QtWidgets.QPushButton):
         return self.color
 
 
-
 class CardWithId(QCSWidget):
     def __init__(
         self,
@@ -590,7 +587,7 @@ class CardWithId(QCSWidget):
         self.vbox.addWidget(widget)
         self.total_height += max_height + self.spacing
         self.setMinimumHeight(self.total_height)
-        
+
     def add_to_widget_list(self, widget):
         self.widget_list.append(widget)
 
@@ -701,7 +698,7 @@ class Card(QCSWidget):
         self.vbox.addWidget(widget)
         self.total_height += max_height + self.spacing
         self.setMinimumHeight(self.total_height)
-        
+
     def add_to_widget_list(self, widget):
         self.widget_list.append(widget)
 
@@ -761,9 +758,7 @@ class Spacing(QCSWidget):
 
 
 class CheckBox(QCSWidget):
-    def __init__(
-        self, text=None, checked=False, align=QtCore.Qt.AlignRight, parent=None
-    ):
+    def __init__(self, text=None, checked=False, align=QtCore.Qt.AlignRight, parent=None):
         super().__init__(parent=parent)
         self.chk = QtWidgets.QCheckBox()
         self.chk.setFixedWidth(20)
@@ -820,7 +815,7 @@ class LineEdit3D(QCSWidget):
             self.hbox.addWidget(label)
             self.hbox.addWidget(le)
             self.line_edits.append(le)
-            #self.setStyleSheet("background-color: #233434")
+            # self.setStyleSheet("background-color: #233434")
 
     def value(self):
         return tuple(le.value() for le in self.line_edits)
@@ -1093,9 +1088,7 @@ class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
         self._actions[idx].setChecked(flag)
 
     def names(self):
-        return list(
-            item[1] for i, item in enumerate(self.items()) if self.itemChecked(i)
-        )
+        return list(item[1] for i, item in enumerate(self.items()) if self.itemChecked(i))
 
     def keys(self):
         return self.values(keys=True)
@@ -1270,7 +1263,6 @@ class Label(QtWidgets.QLabel):
         return self.text()
 
 
-
 class SimpleComboBox(QtWidgets.QComboBox):
     def __init__(self, full=False, parent=None, values=["one", "two"]):
         self.full = full
@@ -1324,13 +1316,10 @@ class SimpleComboBox(QtWidgets.QComboBox):
 
 
 class DataTableWidgetItem(QtWidgets.QTableWidgetItem):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # To store some data that isn't displayed in the table 
+        # To store some data that isn't displayed in the table
         self.hidden_field = None
 
     def get_hidden_field(self):
         return self.hidden_field
-
-

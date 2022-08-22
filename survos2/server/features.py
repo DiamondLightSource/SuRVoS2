@@ -10,9 +10,7 @@ from survos2.improc.segmentation.mappings import rmeans, normalize
 def prepare_prediction_features(filtered_layers):
     # reshaping for survos
 
-    logger.debug(
-        f"Preparing {len(filtered_layers)} features of shape {filtered_layers[0].shape}"
-    )
+    logger.debug(f"Preparing {len(filtered_layers)} features of shape {filtered_layers[0].shape}")
 
     dataset_feats_reshaped = [
         f.reshape(

@@ -46,4 +46,3 @@ class DataModel(object):
 
     def dataset_name(self, dataset_uri):
         return dataset_uri.split(":")[-1]
-

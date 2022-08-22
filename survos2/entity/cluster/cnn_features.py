@@ -30,18 +30,12 @@ class CNNFeatures:
         self.model = self.model.to(self.device)
         self.model.eval()
         self.scaler = transforms.Scale((224, 224))
-        self.normalize = transforms.Normalize(
-            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-        )
+        self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         self.to_tensor = transforms.ToTensor()
         self.vec_len = 512
 
     def extract_feature(self, img, tensor=False):
-        image = (
-            self.normalize(self.to_tensor(self.scaler(img)))
-            .unsqueeze(0)
-            .to(self.device)
-        )
+        image = self.normalize(self.to_tensor(self.scaler(img))).unsqueeze(0).to(self.device)
 
         embedding = torch.zeros(1, self.layer_output_size, 1, 1)
 
@@ -97,9 +91,7 @@ def grab_features(img_3channel, num_fv=None):
         if j % 500 == 0:
             print("\nGenerated: {} features".format(j))
 
-        vec = deepfeat.extract_feature(
-            PIL.Image.fromarray(img_as_ubyte(img_3channel[j]))
-        )
+        vec = deepfeat.extract_feature(PIL.Image.fromarray(img_as_ubyte(img_3channel[j])))
 
         vec_mat[j, :] = vec
 
@@ -181,4 +173,3 @@ def prepare_3channel(selected_images, patch_size=(28, 28)):
             print(e)
 
     return selected_3channel
-

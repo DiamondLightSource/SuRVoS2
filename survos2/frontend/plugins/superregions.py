@@ -13,6 +13,7 @@ from survos2.server.state import cfg
 from survos2.improc.utils import DatasetManager
 from napari.qt.progress import progress
 
+
 class RegionComboBox(LazyComboBox):
     def __init__(self, full=False, header=(None, "None"), parent=None):
         self.full = full
@@ -99,9 +100,7 @@ class RegionsPlugin(Plugin):
                     widget.update_params(params)
                     self.existing_supervoxels[svid] = widget
                 else:
-                    logger.debug(
-                        "+ Skipping loading supervoxel: {}, {}".format(svid, svname)
-                    )
+                    logger.debug("+ Skipping loading supervoxel: {}, {}".format(svid, svname))
 
 
 class SupervoxelCard(Card):
@@ -133,13 +132,21 @@ class SupervoxelCard(Card):
         self._add_feature_source()
         self.add_row(HWidgets("Shape:", self.svshape, "Spacing:", self.svspacing))
         self.add_row(HWidgets("Compactness:", self.svcompactness, stretch=1))
-        self.add_row(HWidgets("Int64:", self.int64_checkbox, "Find parameters:", self.zero_parameter_checkbox, "Max Iter:", self.max_num_iter ))
+        self.add_row(
+            HWidgets(
+                "Int64:",
+                self.int64_checkbox,
+                "Find parameters:",
+                self.zero_parameter_checkbox,
+                "Max Iter:",
+                self.max_num_iter,
+            )
+        )
         self.add_row(HWidgets(None, self.compute_btn, self.view_btn))
-        
 
         self.compute_btn.clicked.connect(self.compute_supervoxels)
         self.view_btn.clicked.connect(self.view_regions)
-    
+
     def _add_feature_source(self):
         self.feature_source = FeatureComboBox()
         self.feature_source.fill()
@@ -184,7 +191,7 @@ class SupervoxelCard(Card):
         with progress(total=4) as pbar:
             pbar.set_description("Refreshing")
             pbar.update(1)
-                
+
             # src = [
             #    DataModel.g.dataset_uri("features/" + s) for s in [self.svsource.value()]
             # ]
@@ -214,18 +221,18 @@ class SupervoxelCard(Card):
                 out_dtype = "uint32"
 
             params = dict(
-            src=src,
-            dst=dst,
-            compactness=round(self.svcompactness.value() / 100, 3),
-            n_segments=n_segments,
-            spacing=self.svspacing.value(),
-            modal=False,
-            out_dtype=out_dtype,
-            max_num_iter=self.max_num_iter.value(),
-            zero_parameter=self.zero_parameter_checkbox.value(),
-            mask_id=str(self.feature_source.value())
+                src=src,
+                dst=dst,
+                compactness=round(self.svcompactness.value() / 100, 3),
+                n_segments=n_segments,
+                spacing=self.svspacing.value(),
+                modal=False,
+                out_dtype=out_dtype,
+                max_num_iter=self.max_num_iter.value(),
+                zero_parameter=self.zero_parameter_checkbox.value(),
+                mask_id=str(self.feature_source.value()),
             )
-            
+
             logger.debug(f"Compute supervoxels with params {params}")
 
             pbar.update(1)
@@ -244,5 +251,3 @@ class SupervoxelCard(Card):
         if "source" in params:
             for source in params["source"]:
                 self.svsource.select(source)
-
-

@@ -138,9 +138,7 @@ class ExportPlugin(Plugin):
             logger.info(f"Feature ID: {fid}")
             fname_filter, ext = self.get_data_filetype(self.feat_ftype_combo)
             filename = result.group(2).replace(" ", "") + ext
-            path, _ = QFileDialog.getSaveFileName(
-                self, "Save Feature", filename, fname_filter
-            )
+            path, _ = QFileDialog.getSaveFileName(self, "Save Feature", filename, fname_filter)
             if path is not None and len(path) > 0:
                 feat_data = self.get_arr_data(fid, "features")
                 self.save_data(feat_data, path, ext)
@@ -154,9 +152,7 @@ class ExportPlugin(Plugin):
             logger.info(f"Label ID: {lid}")
             fname_filter, ext = self.get_data_filetype(self.anno_ftype_combo)
             filename = lid + "Annotations" + ext
-            path, _ = QFileDialog.getSaveFileName(
-                self, "Save Annotation", filename, fname_filter
-            )
+            path, _ = QFileDialog.getSaveFileName(self, "Save Annotation", filename, fname_filter)
             if path is not None and len(path) > 0:
                 anno_data = self.get_arr_data(lid, "annotations")
                 anno_data = anno_data & 15
@@ -167,13 +163,7 @@ class ExportPlugin(Plugin):
     def save_pipe(self):
         result = re.search(r"(\d+) (\S+) (\S+)", self.pipe_source.currentText())
         if result:
-            pid = (
-                result.group(1)
-                + "_"
-                + result.group(2).lower()
-                + "_"
-                + result.group(3).lower()
-            )
+            pid = result.group(1) + "_" + result.group(2).lower() + "_" + result.group(3).lower()
             logger.info(f"Pipeline ID: {pid}")
             fname_filter, ext = self.get_data_filetype(self.pipe_ftype_combo)
             filename = pid + "Output" + ext

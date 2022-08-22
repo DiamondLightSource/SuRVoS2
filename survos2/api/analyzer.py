@@ -67,8 +67,10 @@ from survos2.entity.sampler import (
     generate_random_points_in_volume,
 )
 
+
 def pass_through(x):
     return x
+
 
 __analyzer_fill__ = 0
 __analyzer_dtype__ = "uint32"
@@ -124,7 +126,7 @@ FEATURE_OPTIONS = [
     "Position (Z)",
     "Segmented Surface Area",
     "Segmented Volume",
-    "Segmented Sphericty"
+    "Segmented Sphericty",
 ]
 
 FEATURE_TYPES = [
@@ -149,13 +151,26 @@ FEATURE_TYPES = [
     "z_pos",
     "seg_surface_area",
     "seg_volume",
-    "seg_sphericity"
+    "seg_sphericity",
 ]
 
 
 def window_to_bb(w):
 
-    return 0, 0, (w[0].start + w[0].stop)//2, (w[1].start+w[1].stop)//2, (w[2].start+w[2].stop) // 2, w[0].start, w[0].stop, w[1].start, w[1].stop, w[2].start, w[2].stop
+    return (
+        0,
+        0,
+        (w[0].start + w[0].stop) // 2,
+        (w[1].start + w[1].stop) // 2,
+        (w[2].start + w[2].stop) // 2,
+        w[0].start,
+        w[0].stop,
+        w[1].start,
+        w[1].stop,
+        w[2].start,
+        w[2].stop,
+    )
+
 
 def windows_to_bvols(windows):
     bbs = []
@@ -163,8 +178,9 @@ def windows_to_bvols(windows):
         bbs.append(window_to_bb(w))
     return bbs
 
+
 def sample_windows(img_volume, win):
-    z_st, z_end,  y_st, y_end, x_st, x_end = win
+    z_st, z_end, y_st, y_end, x_st, x_end = win
     z_st = int(z_st)
     z_end = int(z_end)
     y_st = int(y_st)
@@ -173,6 +189,7 @@ def sample_windows(img_volume, win):
     x_end = int(x_end)
     img = img_volume[z_st:z_end, y_st:y_end, x_st:x_end]
     return img
+
 
 def detect_blobs(
     padded_proposal,
@@ -205,11 +222,9 @@ def detect_blobs(
     return bbs_tables, selected_entities
 
 
-
-
 @hug.get()
 def label_analyzer(
-    src: DataURI, 
+    src: DataURI,
     dst: DataURI,
     workspace: String,
     mode: String,
@@ -217,15 +232,27 @@ def label_analyzer(
     analyzers_id: DataURI,
     annotations_id: DataURI,
     feature_id: DataURI,
-    split_ops : dict,
-    background_label : Int
+    split_ops: dict,
+    background_label: Int,
 ) -> "SEGMENTATION":
 
-    return label_splitter(src, dst, workspace, mode, pipelines_id, analyzers_id, annotations_id, feature_id, split_ops, background_label)
+    return label_splitter(
+        src,
+        dst,
+        workspace,
+        mode,
+        pipelines_id,
+        analyzers_id,
+        annotations_id,
+        feature_id,
+        split_ops,
+        background_label,
+    )
+
 
 @hug.get()
 def label_splitter(
-    src: DataURI, 
+    src: DataURI,
     dst: DataURI,
     workspace: String,
     mode: String,
@@ -233,21 +260,20 @@ def label_splitter(
     analyzers_id: DataURI,
     annotations_id: DataURI,
     feature_id: DataURI,
-    split_ops : dict,
-    background_label : Int
+    split_ops: dict,
+    background_label: Int,
 ) -> "SEGMENTATION":
 
-    
-    if mode == '1':
+    if mode == "1":
         src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id), group="pipelines")
         logger.debug(f"Analyzer calc on pipeline src {src}")
-    elif mode == '2':
+    elif mode == "2":
         src = DataModel.g.dataset_uri(ntpath.basename(analyzers_id), group="analyzer")
         logger.debug(f"Analyzer calc on analyzer src {src}")
-    elif mode == '3':
+    elif mode == "3":
         src = DataModel.g.dataset_uri(ntpath.basename(annotations_id), group="annotations")
         logger.debug(f"Analyzer calc on annotation src {src}")
-    
+
     with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
         seg = DM.sources[0][:]
         logger.debug(f"src_dataset shape {seg[:].shape}")
@@ -280,7 +306,7 @@ def label_splitter(
     logger.debug(f"Number of unique labels: {np.unique(new_labels)}")
 
     objs = new_labels
-    #objects = new_labels
+    # objects = new_labels
     num_objects = total_labels
     logger.debug(f"Number of objects {num_objects}")
     objlabels = np.arange(1, num_objects + 1)
@@ -290,40 +316,40 @@ def label_splitter(
     depth = []
     height = []
     width = []
-    
-    #seg_crops = []
+
+    # seg_crops = []
     feature_surface_area = []
     feature_volume = []
     feature_sphericity = []
     for w in obj_windows:
         feature.append(
-            (w[0].stop - w[0].start)
-            * (w[1].stop - w[1].start)
-            * (w[2].stop - w[2].start)
+            (w[0].stop - w[0].start) * (w[1].stop - w[1].start) * (w[2].stop - w[2].start)
         )
         depth.append(w[0].stop - w[0].start)
         height.append(w[1].stop - w[1].start)
         width.append(w[2].stop - w[2].start)
 
-        if (depth[-1] > 2) & (height[-1] > 2) & (width[-1] > 2):    
-            #seg_crops.append(seg[w[0].start:w[0].stop,w[1].start:w[1].stop,w[2].start:w[2].stop])
-            #plt.figure()
-            #plt.imshow(seg_crops[-1][(w[0].stop-w[0].start) // 2,:])  
-            try:  
-                _, surface_area, volume, sphericity = get_surface(seg[w[0].start:w[0].stop,w[1].start:w[1].stop,w[2].start:w[2].stop])
+        if (depth[-1] > 2) & (height[-1] > 2) & (width[-1] > 2):
+            # seg_crops.append(seg[w[0].start:w[0].stop,w[1].start:w[1].stop,w[2].start:w[2].stop])
+            # plt.figure()
+            # plt.imshow(seg_crops[-1][(w[0].stop-w[0].start) // 2,:])
+            try:
+                _, surface_area, volume, sphericity = get_surface(
+                    seg[w[0].start : w[0].stop, w[1].start : w[1].stop, w[2].start : w[2].stop]
+                )
                 feature_surface_area.append(surface_area)
-                feature_volume.append(volume) 
+                feature_volume.append(volume)
                 feature_sphericity.append(sphericity)
             except:
-                d, h, w = depth[-1],height[-1],width[-1]
-                feature_surface_area.append((d*h) + 4 * (h*w) + (d*w))
-                feature_volume.append(d*h*w) 
+                d, h, w = depth[-1], height[-1], width[-1]
+                feature_surface_area.append((d * h) + 4 * (h * w) + (d * w))
+                feature_volume.append(d * h * w)
                 sphericity_of_cube = 0.523599  # rounded to 6 fig
                 feature_sphericity.append(sphericity_of_cube)
         else:
-            d, h, w = depth[-1],height[-1],width[-1]
-            feature_surface_area.append((d*h) + 4 * (h*w) + (d*w))
-            feature_volume.append(d*h*w) 
+            d, h, w = depth[-1], height[-1], width[-1]
+            feature_surface_area.append((d * h) + 4 * (h * w) + (d * w))
+            feature_volume.append(d * h * w)
             sphericity_of_cube = 0.523599  # rounded to 6 fig
             feature_sphericity.append(sphericity_of_cube)
 
@@ -365,9 +391,7 @@ def label_splitter(
     feature_std = ndimage.measurements.standard_deviation(
         feature_dataset_arr, objs, index=objlabels
     )
-    feature_var = ndimage.measurements.variance(
-        feature_dataset_arr, objs, index=objlabels
-    )
+    feature_var = ndimage.measurements.variance(feature_dataset_arr, objs, index=objlabels)
 
     feature_pos = measure.center_of_mass(objs, labels=objs, index=objlabels)
     feature_pos = np.asarray(feature_pos, dtype=np.float32)
@@ -391,9 +415,9 @@ def label_splitter(
             "ori_depth": feature_ori_depth,
             "ori_height": feature_ori_height,
             "ori_width": feature_ori_width,
-            "seg_surface_area" : feature_surface_area,
-            "seg_volume" : feature_volume,
-            "seg_sphericity" : feature_sphericity
+            "seg_surface_area": feature_surface_area,
+            "seg_volume": feature_volume,
+            "seg_sphericity": feature_sphericity,
         }
     )
 
@@ -420,7 +444,7 @@ def label_splitter(
                 np.float32(np.float32(features_df.iloc[i]["ori_width"])),
                 np.float32(np.float32(features_df.iloc[i]["seg_surface_area"])),
                 np.float32(np.float32(features_df.iloc[i]["seg_volume"])),
-                np.float32(np.float32(features_df.iloc[i]["seg_sphericity"]))
+                np.float32(np.float32(features_df.iloc[i]["seg_sphericity"])),
             ]
             for i in range(sel_start, sel_end)
         ]
@@ -430,22 +454,45 @@ def label_splitter(
     rules = []
     calculate = False
     for k in split_ops.keys():
-        if k != 'context':
+        if k != "context":
             split_op_card = split_ops[k]
             split_feature_index = int(split_op_card["split_feature_index"])
             split_op = int(split_op_card["split_op"])
             split_threshold = float(split_op_card["split_threshold"])
-            
+
             if int(split_op) > 0:
                 calculate = True
                 s = int(split_op) - 1  # split_op starts at 1
-                feature_names = ["z", "y", "x", "Sum", "Mean", "Std", "Var", "bb_vol", "bb_vol_log10", "bb_vol_depth", "bb_vol_depth","bb_vol_height", "bb_vol_width", "ori_vol", "ori_vol_log10", "ori_vol_depth", "ori_vol_depth","ori_vol_height", "ori_vol_width", "seg_surface_area", "seg_volume", "seg_sphericity"]
-                feature_index = int(
-                    split_feature_index
-                )  # feature_names.index(split_feature_index)
+                feature_names = [
+                    "z",
+                    "y",
+                    "x",
+                    "Sum",
+                    "Mean",
+                    "Std",
+                    "Var",
+                    "bb_vol",
+                    "bb_vol_log10",
+                    "bb_vol_depth",
+                    "bb_vol_depth",
+                    "bb_vol_height",
+                    "bb_vol_width",
+                    "ori_vol",
+                    "ori_vol_log10",
+                    "ori_vol_depth",
+                    "ori_vol_depth",
+                    "ori_vol_height",
+                    "ori_vol_width",
+                    "seg_surface_area",
+                    "seg_volume",
+                    "seg_sphericity",
+                ]
+                feature_index = int(split_feature_index)  # feature_names.index(split_feature_index)
                 rules.append((int(feature_index), s, split_threshold))
-                logger.debug(f"Adding split rule: {split_feature_index} {split_op} {split_threshold}")
-            
+                logger.debug(
+                    f"Adding split rule: {split_feature_index} {split_op} {split_threshold}"
+                )
+
     if calculate:
         masked_out, result_features = apply_rules(
             features_array, -1, rules, np.array(objlabels), num_objects
@@ -460,17 +507,15 @@ def label_splitter(
         new_labels[new_labels == bg_label] = 0
         new_labels = (new_labels > 0) * 1.0
     else:
-        result_features = features_array    
+        result_features = features_array
     map_blocks(pass_through, new_labels, out=dst, normalize=False)
-
 
     bvols = windows_to_bvols(obj_windows)
 
-    return result_features, features_array,bvols 
+    return result_features, features_array, bvols
 
-def apply_rules(
-    features: np.ndarray, label: int, rules: tuple, out: np.ndarray, num_objects: int
-):
+
+def apply_rules(features: np.ndarray, label: int, rules: tuple, out: np.ndarray, num_objects: int):
     logger.debug("Applying rules")
     mask = np.ones(num_objects, dtype=np.bool)
 
@@ -486,40 +531,37 @@ def apply_rules(
     return out, result_features
 
 
-
 @hug.get()
 def find_connected_components(
-    src: DataURI, 
-    dst: DataURI, 
-    workspace: String, 
-    label_index: Int, 
-    area_min : Int, 
+    src: DataURI,
+    dst: DataURI,
+    workspace: String,
+    label_index: Int,
+    area_min: Int,
     area_max: Int,
     mode: String,
     pipelines_id: DataURI,
     analyzers_id: DataURI,
     annotations_id: DataURI,
-
 ) -> "SEGMENTATION":
     logger.debug(f"Finding connected components on segmentation: {pipelines_id}")
-    
-    
-    if mode == '1':
+
+    if mode == "1":
         src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id), group="pipelines")
         logger.debug(f"Analyzer calc on pipeline src {src}")
-    elif mode == '2':
+    elif mode == "2":
         src = DataModel.g.dataset_uri(ntpath.basename(analyzers_id), group="analyzer")
         logger.debug(f"Analyzer calc on analyzer src {src}")
-    elif mode == '3':
+    elif mode == "3":
         src = DataModel.g.dataset_uri(ntpath.basename(annotations_id), group="annotations")
         logger.debug(f"Analyzer calc on annotation src {src}")
-    
+
     with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
         seg = DM.sources[0][:]
         logger.debug(f"src_dataset shape {seg[:].shape}")
 
     src_dataset_arr = seg.astype(np.uint32) & 15
-    
+
     # print(f"{DataModel.g.current_workspace}")
     # src = DataModel.g.dataset_uri(pipelines_id, group="pipelines")
     # print(src)
@@ -547,53 +589,53 @@ def find_connected_components(
             )
 
     map_blocks(pass_through, single_label_level, out=dst, normalize=False)
-    
 
     return result_list
 
+
 @hug.get()
 def segmentation_stats(
-    src: DataURI, 
+    src: DataURI,
     dst: DataURI,
     modeA: String,
     modeB: String,
-    workspace: String, 
+    workspace: String,
     pipelines_id_A: DataURI,
     analyzers_id_A: DataURI,
     annotations_id_A: DataURI,
     pipelines_id_B: DataURI,
     analyzers_id_B: DataURI,
     annotations_id_B: DataURI,
-    label_index_A: Int, 
-    label_index_B: Int, 
+    label_index_A: Int,
+    label_index_B: Int,
 ) -> "IMAGE":
 
-    if modeA == '1':
+    if modeA == "1":
         src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id_A), group="pipelines")
         logger.debug(f"Analyzer calc on pipeline src {src}")
-    elif modeA == '2':
+    elif modeA == "2":
         src = DataModel.g.dataset_uri(ntpath.basename(analyzers_id_A), group="analyzer")
         logger.debug(f"Analyzer calc on analyzer src {src}")
-    elif modeA == '3':
+    elif modeA == "3":
         src = DataModel.g.dataset_uri(ntpath.basename(annotations_id_A), group="annotations")
         logger.debug(f"Analyzer calc on annotation src {src}")
-    
+
     with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
         seg = DM.sources[0][:]
         logger.debug(f"src_dataset shape {seg[:].shape}")
 
     src_dataset_arr_A = seg.astype(np.uint32) & 15
-    
-    if modeB == '1':
+
+    if modeB == "1":
         src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id_B), group="pipelines")
         logger.debug(f"Analyzer calc on pipeline src {src}")
-    elif modeB == '2':
+    elif modeB == "2":
         src = DataModel.g.dataset_uri(ntpath.basename(analyzers_id_B), group="analyzer")
         logger.debug(f"Analyzer calc on analyzer src {src}")
-    elif modeB == '3':
+    elif modeB == "3":
         src = DataModel.g.dataset_uri(ntpath.basename(annotations_id_B), group="annotations")
         logger.debug(f"Analyzer calc on annotation src {src}")
-    
+
     with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
         segB = DM.sources[0][:]
         logger.debug(f"src_dataset shape {segB[:].shape}")
@@ -602,41 +644,40 @@ def segmentation_stats(
 
     single_label_level_A = (src_dataset_arr_A == label_index_A) * 1.0
     single_label_level_B = (src_dataset_arr_B == label_index_B) * 1.0
-    
+
     print(f"Count: {np.sum(single_label_level_A * single_label_level_B)}")
 
-    #from survos2.entity.trainer import score_dice
-    #print(f"Dice loss {score_dice(single_label_level_A, single_label_level_B)}")
+    # from survos2.entity.trainer import score_dice
+    # print(f"Dice loss {score_dice(single_label_level_A, single_label_level_B)}")
 
     from torchmetrics import JaccardIndex, Dice
-    dice = Dice(average='micro')
+
+    dice = Dice(average="micro")
     jaccard = JaccardIndex(num_classes=2)
-        
+
     A_t = torch.IntTensor(single_label_level_A)
     B_t = torch.IntTensor(single_label_level_B)
-    
+
     print(f"Jaccard (IOU): {jaccard(A_t, B_t)}")
     print(f"Dice (torchmetrics): {dice(A_t, B_t)}")
 
-    
     dice_score = dice(A_t, B_t)
     iou_score = jaccard(A_t, B_t)
-    
+
     result_list = [float(dice_score.numpy()), float(iou_score.numpy())]
 
     return result_list
 
 
-
 @hug.get()
 def binary_image_stats(
-    src: DataURI, 
+    src: DataURI,
     dst: DataURI,
-    workspace: String, 
-    feature_id: DataURI, 
+    workspace: String,
+    feature_id: DataURI,
     threshold: Float = 0.5,
     area_min: Int = 0,
-    area_max: Int = 1e12
+    area_max: Int = 1e12,
 ) -> "IMAGE":
     logger.debug(f"Calculating stats on feature: {feature_id}")
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
@@ -680,11 +721,11 @@ def plot_to_image(arr, title="Histogram", vert_line_at=None):
 
 @hug.get()
 def spatial_clustering(
-    src: DataURI, 
+    src: DataURI,
     feature_id: DataURI,
     object_id: DataURI,
-    workspace : String,
-    params : dict,
+    workspace: String,
+    params: dict,
 ) -> "OBJECTS":
     src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
     logger.debug(f"Getting objects {src}")
@@ -705,7 +746,6 @@ def spatial_clustering(
     from survos2.entity.anno.crowd import aggregate
 
     refined_entity_df = aggregate(entities_df, src_dataset_arr.shape, params=params)
-
 
     result_list = []
     for i in range(len(refined_entity_df)):
@@ -746,10 +786,11 @@ def remove_masked_entities(bg_mask, entities):
 
 @hug.get()
 def remove_masked_objects(
-    src: DataURI, dst: DataURI,
+    src: DataURI,
+    dst: DataURI,
     feature_id: DataURI,
     object_id: DataURI,
-    invert : Boolean,
+    invert: Boolean,
 ) -> "OBJECTS":
     src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
     logger.debug(f"Getting objects {src}")
@@ -807,16 +848,16 @@ def remove_masked_objects(
 
 @hug.get()
 def patch_stats(
-    src: DataURI, 
+    src: DataURI,
     dst: DataURI,
     workspace: String,
     object_id: DataURI,
     feature_id: DataURI,
     stat_name: String,
-    box_size: Int 
+    box_size: Int,
 ) -> "OBJECTS":
     logger.debug(f"Calculating stats on cubical patches: {object_id}")
-    
+
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
     logger.debug(f"Getting features {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -862,7 +903,7 @@ def patch_stats(
     elif stat_name == "4":
         stat_op = np.sum
         title = "Sum"
-    
+
     point_features = [
         stat_op(
             ds_feature[
@@ -917,22 +958,23 @@ def plot_clustered_img(
         xtext, ytext = np.median(proj[colors == i, :], axis=0)
         txt = ax.text(xtext, ytext, str(i), fontsize=18)
         txt.set_path_effects(
-            [PathEffects.Stroke(linewidth=5, foreground="y"), PathEffects.Normal()])
-    
+            [PathEffects.Stroke(linewidth=5, foreground="y"), PathEffects.Normal()]
+        )
+
+
 @hug.get()
 def object_analyzer(
-    workspace: String, 
-    object_id: DataURI, 
-    feature_id: DataURI, 
-    feature_extraction_method : String,
+    workspace: String,
+    object_id: DataURI,
+    feature_id: DataURI,
+    feature_extraction_method: String,
     embedding_method: String,
     dst: DataURI,
     bvol_dim: IntOrVector,
     axis: Int,
-    embedding_params : dict,
-    min_cluster_size : Int,
-    flipxy : SmartBoolean,
-    
+    embedding_params: dict,
+    min_cluster_size: Int,
+    flipxy: SmartBoolean,
 ) -> "OBJECTS":
     logger.debug(f"Calculating clustering on patches located at entities: {object_id}")
     from survos2.entity.cluster.cluster_plotting import cluster_scatter
@@ -961,9 +1003,15 @@ def object_analyzer(
 
     slice_idx = bvol_dim[0]
     print(f"Slicing bvol at index: {slice_idx} on axis {axis} for bvol of dim {bvol_dim}")
-    
+
     feature_mat, selected_images = prepare_patches_for_clustering(
-        ds_feature, entities, bvol_dim=bvol_dim, axis=axis, slice_idx=slice_idx, method=feature_extraction_method, flipxy=False
+        ds_feature,
+        entities,
+        bvol_dim=bvol_dim,
+        axis=axis,
+        slice_idx=slice_idx,
+        method=feature_extraction_method,
+        flipxy=False,
     )
     num_clusters = 5
 
@@ -977,15 +1025,17 @@ def object_analyzer(
     patch_clusterer.fit()
     patch_clusterer.predict()
 
-    embedding_params["n_components"]= 2
-    if embedding_method=='TSNE':
-        patch_clusterer.embed_TSNE(perplexity=embedding_params["perplexity"], n_iter=embedding_params["n_iter"])
+    embedding_params["n_components"] = 2
+    if embedding_method == "TSNE":
+        patch_clusterer.embed_TSNE(
+            perplexity=embedding_params["perplexity"], n_iter=embedding_params["n_iter"]
+        )
     else:
         # params={'n_neighbors':10,
         #         'min_dist':0.3,
         #         'n_components':2,
-        #         'metric':'correlation', 
-        #         'densmap':True,  
+        #         'metric':'correlation',
+        #         'densmap':True,
         #         'dens_lambda':3.0
         # }
         embedding_params.pop("context")
@@ -1002,15 +1052,15 @@ def object_analyzer(
 
     # Plot to image
     fig = Figure()
-    
+
     ax = fig.gca()
     ax.axis("off")
     fig.tight_layout(pad=0)
-    #ax.margins(0)
+    # ax.margins(0)
     # ax.set_xticks([], [])
     # ax.set_yticks([], [])
 
-    clustered = (labels >= 0)
+    clustered = labels >= 0
     standard_embedding = patch_clusterer.embedding
     standard_embedding = np.array(standard_embedding)
     # ax.scatter(standard_embedding[~clustered, 0],
@@ -1040,28 +1090,33 @@ def object_analyzer(
     # canvas = FigureCanvasAgg(figs[0])
     # canvas.draw()
     # plot_image = np.asarray(canvas.buffer_rgba())
-    return None, labels, entities, encode_numpy(selected_images_arr), encode_numpy(standard_embedding)
-
-
+    return (
+        None,
+        labels,
+        entities,
+        encode_numpy(selected_images_arr),
+        encode_numpy(standard_embedding),
+    )
 
 
 @hug.get()
 def binary_classifier(
     workspace: String,
-    feature_id: DataURI, 
+    feature_id: DataURI,
     proposal_id: DataURI,
-    mask_id : DataURI, 
+    mask_id: DataURI,
     object_id: DataURI,
     background_id: DataURI,
     dst: DataURI,
     bvol_dim: IntOrVector,
-    score_thresh : Float,
-    area_min : Int,
-    area_max : Int,
-    model_fullname : String):
+    score_thresh: Float,
+    area_min: Int,
+    area_max: Int,
+    model_fullname: String,
+):
     """
     Takes proposal seg and a set of gt entities
-    
+
     """
     # load the proposal seg
     # load the gt entities
@@ -1088,7 +1143,7 @@ def binary_classifier(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         proposal_segmentation = DM.sources[0][:]
         logger.debug(f"Feature shape {proposal_segmentation.shape}")
-    
+
     # get feature for background mask
     src = DataModel.g.dataset_uri(ntpath.basename(mask_id), group="features")
     logger.debug(f"Getting features {src}")
@@ -1104,9 +1159,8 @@ def binary_classifier(
     entities_fullname = ds_objects.get_metadata("fullname")
     tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
     entities_arr = np.array(entities_df)
-    entities_arr[:,3] = np.array([[1] * len(entities_arr)])
+    entities_arr[:, 3] = np.array([[1] * len(entities_arr)])
     entities = np.array(make_entity_df(entities_arr, flipxy=False))
-
 
     # get background entities
     src = DataModel.g.dataset_uri(ntpath.basename(background_id), group="objects")
@@ -1116,9 +1170,8 @@ def binary_classifier(
     entities_fullname = ds_objects.get_metadata("fullname")
     tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
     entities_arr = np.array(entities_df)
-    entities_arr[:,3] = np.array([[0] * len(entities_arr)])
+    entities_arr[:, 3] = np.array([[0] * len(entities_arr)])
     bg_entities = np.array(make_entity_df(entities_arr, flipxy=False))
-
 
     padding = np.array(bvol_dim) // 2
     feature = pad_vol(feature, padding)
@@ -1135,13 +1188,14 @@ def binary_classifier(
         },
     }
 
-    aug_pts = np.concatenate((entities,bg_entities))
+    aug_pts = np.concatenate((entities, bg_entities))
     augmented_entities = aug_pts
-    #augmented_entities = make_augmented_entities(aug_pts)
+    # augmented_entities = make_augmented_entities(aug_pts)
     logger.debug(f"Produced augmented entities of shape {augmented_entities.shape}")
 
     combined_clustered_pts, classwise_entities = organize_entities(
-        proposal_segmentation, augmented_entities, entity_meta, plot_all=False)
+        proposal_segmentation, augmented_entities, entity_meta, plot_all=False
+    )
     wparams = {}
     wparams["entities_offset"] = (0, 0, 0)
 
@@ -1152,69 +1206,76 @@ def binary_classifier(
         bg_mask,
         wparams,
         combined_clustered_pts,
-    )   
-    
-    # gt_entities, random_bg_entities =  generate_augmented_entities(wf, 
+    )
+
+    # gt_entities, random_bg_entities =  generate_augmented_entities(wf,
     #                                                                 generate_random_bg_entities=True,
     #                                                                 num_before_masking=num_before_masking,
     #                                                                 stratified_selection=True,
     #                                                                 class_proportion = {0:1, 1: 1, 2: 1.0, 5:1})
-    
-    #print(entities.shape, random_bg_entities.shape)    
-    
-    if model_fullname != 'None':
+
+    # print(entities.shape, random_bg_entities.shape)
+
+    if model_fullname != "None":
         logger.debug(f"Loading model for fpn features: {model_fullname}")
     else:
         model_fullname = None
 
-    instdet = ObjectVsBgCNNClassifier(wf, 
-                           augmented_entities,
-                           proposal_segmentation, 
-                           feature, 
-                           bg_mask,
-                           padding=bvol_dim,
-                           area_min=area_min,
-                           area_max=area_max,
-                           plot_debug=True)
+    instdet = ObjectVsBgCNNClassifier(
+        wf,
+        augmented_entities,
+        proposal_segmentation,
+        feature,
+        bg_mask,
+        padding=bvol_dim,
+        area_min=area_min,
+        area_max=area_max,
+        plot_debug=True,
+    )
 
-    classifier_type='cnn'
-    if classifier_type=='classical':
+    classifier_type = "cnn"
+    if classifier_type == "classical":
         instdet.reset_bg_mask()
         instdet.make_component_tables()
         instdet.prepare_detector_data()
         instdet.train_validate_model(model_file=model_fullname)
-        instdet.predict(instdet.class1_dets, score_thresh=score_thresh, model_file=model_fullname, offset=False)
-        instdet.analyze_result(instdet.class1_gold_entities, instdet.class1_dets, instdet.detections)
+        instdet.predict(
+            instdet.class1_dets, score_thresh=score_thresh, model_file=model_fullname, offset=False
+        )
+        instdet.analyze_result(
+            instdet.class1_gold_entities, instdet.class1_dets, instdet.detections
+        )
         logger.debug("\nProduced foreground detections: \n")
         logger.debug(instdet.class1_dets)
-        result_entities = offset_points(result_entities, np.array((-16,-16,-16)))
-    elif classifier_type=='cnn':
+        result_entities = offset_points(result_entities, np.array((-16, -16, -16)))
+    elif classifier_type == "cnn":
         instdet.reset_bg_mask()
         instdet.make_component_tables()
         instdet.prepare_detector_data()
         instdet.train_validate_model(model_file=model_fullname, workspace=workspace)
-        instdet.predict(instdet.class1_dets, score_thresh=score_thresh, model_file=model_fullname, offset=False)
-        result_entities = offset_points(instdet.class1_dets, -2 * np.array(padding))    
-        #instdet.analyze_result(instdet.class1_gold_entities, instdet.class1_dets, instdet.detections)
-        #logger.debug("\nProduced foreground detections: \n")
-        #logger.debug(instdet.class1_dets)
-        
-    # offset the points back to remove the effect of padding
-    
-    #result_entities = np.array(make_entity_df(result_entities, flipxy=False))
-    return result_entities
+        instdet.predict(
+            instdet.class1_dets, score_thresh=score_thresh, model_file=model_fullname, offset=False
+        )
+        result_entities = offset_points(instdet.class1_dets, -2 * np.array(padding))
+        # instdet.analyze_result(instdet.class1_gold_entities, instdet.class1_dets, instdet.detections)
+        # logger.debug("\nProduced foreground detections: \n")
+        # logger.debug(instdet.class1_dets)
 
+    # offset the points back to remove the effect of padding
+
+    # result_entities = np.array(make_entity_df(result_entities, flipxy=False))
+    return result_entities
 
 
 @hug.get()
 def point_generator(
-    bg_mask_id : DataURI,
-    num_before_masking : Int,
+    bg_mask_id: DataURI,
+    num_before_masking: Int,
 ):
     mask_name = ntpath.basename(bg_mask_id)
-    
-    if mask_name == 'None':
-        src = DataModel.g.dataset_uri('001_raw', group="features")
+
+    if mask_name == "None":
+        src = DataModel.g.dataset_uri("001_raw", group="features")
         logger.debug(f"Getting features {src}")
         with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
             bg_mask = np.zeros_like(DM.sources[0][:])
@@ -1223,7 +1284,7 @@ def point_generator(
     else:
         # get feature for background mask
         src = DataModel.g.dataset_uri(ntpath.basename(bg_mask_id), group="features")
-    
+
         logger.debug(f"Getting features {src}")
         with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
             bg_mask = DM.sources[0][:]
@@ -1233,11 +1294,10 @@ def point_generator(
         bg_mask, num_before_masking, border=(0, 0, 0)
     ).astype(np.uint32)
 
-    if mask_name != 'None':
+    if mask_name != "None":
         from survos2.entity.utils import remove_masked_entities
-        print(
-            f"Before masking random entities generated of shape {random_entities.shape}"
-        )
+
+        print(f"Before masking random entities generated of shape {random_entities.shape}")
         result_entities = remove_masked_entities(bg_mask, random_entities)
         print(f"After masking: {random_entities.shape}")
     else:
@@ -1247,8 +1307,6 @@ def point_generator(
 
     return result_entities
 
-
-    
 
 # def analyze_detector_predictions(
 #     gt_entities,
@@ -1262,7 +1320,6 @@ def point_generator(
 #     targs = centroid_to_bvol(gt_entities, bvol_dim=bvol_dim)
 #     eval_result = eval_matches(preds, targs, debug_verbose=debug_verbose)
 #     return detected_entities
-
 
 
 @hug.get()
@@ -1280,20 +1337,14 @@ def create(workspace: String, order: Int = 0):
     return dataset_repr(ds)
 
 
-
 @lru_cache(maxsize=2)
 @hug.get()
 @hug.local()
 def existing(workspace: String, full: SmartBoolean = False, order: Int = 0):
     filter = __analyzer_names__[order]
-    datasets = ws.existing_datasets(
-        workspace, group=__analyzer_group__
-    )  # , filter=filter)
+    datasets = ws.existing_datasets(workspace, group=__analyzer_group__)  # , filter=filter)
     if full:
-        return {
-            "{}/{}".format(__analyzer_group__, k): dataset_repr(v)
-            for k, v in datasets.items()
-        }
+        return {"{}/{}".format(__analyzer_group__, k): dataset_repr(v) for k, v in datasets.items()}
     return {k: dataset_repr(v) for k, v in datasets.items()}
 
 
@@ -1321,6 +1372,3 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
-
-
-

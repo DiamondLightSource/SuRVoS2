@@ -78,9 +78,7 @@ def obtain_classifier(clf_p):
 
     elif clf_p["clf"] == "SVM":
         mode = "svm"
-        clf = SVC(
-            C=clf_p["C"], gamma=clf_p["gamma"], kernel=clf_p["kernel"], probability=True
-        )
+        clf = SVC(C=clf_p["C"], gamma=clf_p["gamma"], kernel=clf_p["kernel"], probability=True)
 
     elif clf_p["clf"] == "sgd":
         mode = "sgd"
@@ -126,9 +124,7 @@ def train(X_train, y_train, predict_params, project=None, rnd=42, **kwargs):
 
     clf, mode = obtain_classifier(predict_params)
 
-    logger.debug(
-        f"Obtained classifier {clf}, fitting on {X_train.shape}, {y_train.shape}"
-    )
+    logger.debug(f"Obtained classifier {clf}, fitting on {X_train.shape}, {y_train.shape}")
     clf.fit(X_train, y_train)
 
     return clf, proj
@@ -235,9 +231,7 @@ def sr_predict(
     prob_map = srprediction.prob_map
 
     if refine:
-        prob_map = mrf_refinement(
-            srprediction.P, supervoxel_image, feats.features_stack, lam=lam
-        )
+        prob_map = mrf_refinement(srprediction.P, supervoxel_image, feats.features_stack, lam=lam)
         logger.debug(f"Calculated MRF Refinement")
 
     return prob_map, srprediction.conf_map
@@ -250,15 +244,11 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
     try:
         supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32)
         supervoxel_features = rmeans(features_stack.astype(np.float32), supervoxel_vol)
-        supervoxel_rag = create_rag(
-            np.array(supervoxel_vol).astype(np.uint32), connectivity=26
-        )
+        supervoxel_rag = create_rag(np.array(supervoxel_vol).astype(np.uint32), connectivity=26)
 
         unary = (-np.ma.log(P["probs"])).filled()
         pred = P["class"]
-        labels = np.asarray(
-            list(set(np.unique(P["class"][supervoxel_vol])) - set([-1])), np.int32
-        )
+        labels = np.asarray(list(set(np.unique(P["class"][supervoxel_vol])) - set([-1])), np.int32)
 
         unary = unary.astype(np.float32)
         mapping = np.zeros(pred.max() + 1, np.int32)
@@ -271,9 +261,7 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
         logger.error(f"MRF refinement setup exception: {err}")
 
     try:
-        y_ref = refine(
-            supervoxel_features, np.nan_to_num(unary), supervoxel_rag, lam, gamma=gamma
-        )
+        y_ref = refine(supervoxel_features, np.nan_to_num(unary), supervoxel_rag, lam, gamma=gamma)
         logger.debug(f"Pred max {pred.max()}")
 
     except Exception as err:
@@ -285,9 +273,7 @@ def mrf_refinement(P, supervoxel_vol, features_stack, lam=0.5, gamma=False):
         else:
             labels_out = invrmap(y_ref, supervoxel_vol) + 1
 
-        logger.debug(
-            f"Calculated mrf refinement with lamda {lam} of shape: {labels_out.shape}"
-        )
+        logger.debug(f"Calculated mrf refinement with lamda {lam} of shape: {labels_out.shape}")
         labels_out = np.nan_to_num(labels_out)
 
         return labels_out

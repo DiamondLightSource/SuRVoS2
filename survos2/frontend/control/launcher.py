@@ -30,7 +30,6 @@ def _run_command(plugin, command, client, uri=None, out=None, **kwargs):
         return result
 
 
-
 @Singleton
 class Launcher(QtCore.QObject):
     def __init__(self):
@@ -49,15 +48,21 @@ class Launcher(QtCore.QObject):
 
     def set_current_workspace_shape(self, workspace_shape, **kwargs):
         print(f"Setting workspace shape to {workspace_shape}")
-        DataModel.g.current_workspace_shape = workspace_shape        
+        DataModel.g.current_workspace_shape = workspace_shape
 
     def post_array(self, arr, group, name="ndarray", **kwargs):
-        response = requests.post('http://' + self.remote_ip_port +'/' +  group + '/upload', files={'file': arr}, 
-        data={'shape' : str(tuple(arr.shape)), 'name' : name})
-        
+        response = requests.post(
+            "http://" + self.remote_ip_port + "/" + group + "/upload",
+            files={"file": arr},
+            data={"shape": str(tuple(arr.shape)), "name": name},
+        )
+
     def post_file(self, fullname, group, **kwargs):
-        with open(fullname, 'rb') as file_handle:
-            response = requests.post('http://' + self.remote_ip_port +'/' +  group + '/upload', files={'file': file_handle})
+        with open(fullname, "rb") as file_handle:
+            response = requests.post(
+                "http://" + self.remote_ip_port + "/" + group + "/upload",
+                files={"file": file_handle},
+            )
 
     def run(self, plugin, command, modal=False, **kwargs):
         if self.client:
@@ -65,9 +70,7 @@ class Launcher(QtCore.QObject):
                 return False
 
             workspace = kwargs.pop("workspace", None)
-            logger.debug(
-                f"Running command {command} with plugin {plugin} in workspace {workspace}"
-            )
+            logger.debug(f"Running command {command} with plugin {plugin} in workspace {workspace}")
 
             self.modal = modal
             self.title = "{}::{}".format(plugin.capitalize(), command.capitalize())
@@ -159,9 +162,7 @@ class Launcher(QtCore.QObject):
 
     def process_error(self, error):
         if not isinstance(error, str):
-            error = format_yaml(
-                error, explicit_start=False, explicit_end=False, flow=False
-            )
+            error = format_yaml(error, explicit_start=False, explicit_end=False, flow=False)
         # try:
         #     traceback.print_last()
         # except Exception as e:

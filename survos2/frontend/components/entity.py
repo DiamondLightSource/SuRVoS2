@@ -12,6 +12,7 @@ from survos2.entity.sampler import crop_pts_bb
 
 import warnings
 from survos2.frontend.components import Table
+
 warnings.filterwarnings("ignore")
 MAX_SIZE = 10000
 
@@ -212,8 +213,8 @@ class TableWidget(QtWidgets.QGraphicsObject):
         self.w.doubleClicked.connect(self.double_clicked)
         self.w.selected_row = 0
         self.w.selected_item = None
-        #stylesheet = "QHeaderView::section{Background-color:rgb(30,60,80)}"
-        #self.w.setStyleSheet(stylesheet)
+        # stylesheet = "QHeaderView::section{Background-color:rgb(30,60,80)}"
+        # self.w.setStyleSheet(stylesheet)
 
     def set_data(self, data):
         self.w.setData(data)
@@ -222,12 +223,12 @@ class TableWidget(QtWidgets.QGraphicsObject):
 
     def double_clicked(self):
         row_idx = self.w.selected_row
-        
+
         print(self.w.selected_item.data(0))
 
         print(self.row_data)
 
-        _,z,x,y = self.row_data
+        _, z, x, y = self.row_data
         z = int(float(z))
         x = int(float(x))
         y = int(float(y))
@@ -236,9 +237,7 @@ class TableWidget(QtWidgets.QGraphicsObject):
         #     self.tabledata["x"][row_idx],
         #     self.tabledata["y"][row_idx],
         # )
-        cfg.ppw.clientEvent.emit(
-            {"source": "table", "data": "show_roi", "selected_roi": (z, x, y)}
-        )
+        cfg.ppw.clientEvent.emit({"source": "table", "data": "show_roi", "selected_roi": (z, x, y)})
 
         for index in self.w.selectedIndexes():
             logger.debug(f"Retrieved item from table: {self.w.model().data(index)}")
@@ -250,5 +249,3 @@ class TableWidget(QtWidgets.QGraphicsObject):
         self.row_data = []
         for i in range(4):
             self.row_data.append(self.w.item(row, i).text())
-        
-

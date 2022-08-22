@@ -54,6 +54,7 @@ def dataset_loader(uri):
             return loader
     return None
 
+
 def dataset_from_uri(uri, mode="a", shape=None, dtype="float32", fill=0):
     """
     Loads datasets from uris.
@@ -260,7 +261,9 @@ def mrc_from_uri(uri, mode="a", shape=None, dtype="float32", fill=0):
 
 MRC_REGEXP = r"^(mrc://)?(?P<fpath>.+(.rec|.mrc))$"
 HDF5_REGEXP = r"^((hdf5|h5)://)?(?P<wspath>.+(.h5|.hdf5))(:(?P<dspath>[^:]+))?$"
-SURVOS_REGEXP = r"^(survos://)?(((?P<session>[^:@]+)@)?(?P<workspace>[^:@]+):)?(?P<dataset>[^:@.]+)$"
+SURVOS_REGEXP = (
+    r"^(survos://)?(((?P<session>[^:@]+)@)?(?P<workspace>[^:@]+):)?(?P<dataset>[^:@.]+)$"
+)
 
 __dataset_loaders__ = dict(
     mrc=(MRC_REGEXP, mrc_from_uri),
@@ -290,9 +293,7 @@ class HDF5DatasetWrapper(DatasetWrapper):
         raise KeyError("Dataset has no `{}` metadata.".format(key))
 
     def set_attr(self, key, value):
-        logger.debug(
-            f"HDF5DatasetWrapper set_attr {key} {value} of type {type(value)} "
-        )
+        logger.debug(f"HDF5DatasetWrapper set_attr {key} {value} of type {type(value)} ")
         if type(value) == str:
             value = np.asarray(value, dtype=self.strdtype)
 

@@ -51,7 +51,6 @@ def load_boxes_via_file(boxes_arr, flipxy=True):
     os.remove(tmp_fullpath)
 
 
-
 def load_entities_via_file(entities_arr, flipxy=True):
     entities_df = make_entity_df(entities_arr, flipxy=flipxy)
     tmp_fullpath = os.path.abspath(
@@ -110,9 +109,8 @@ def make_entity_mask(vol, dets, flipxy=True, bvol_dim=(32, 32, 32)):
     offset_det_bvol = centroid_to_bvol(offset_dets, bvol_dim=bvol_dim, flipxy=flipxy)
     padded_vol = pad_vol(vol, bvol_dim)
     det_mask = viz_bvols(padded_vol, offset_det_bvol)
-    
-    return det_mask, offset_dets, padded_vol
 
+    return det_mask, offset_dets, padded_vol
 
 
 def calc_bounding_vol(m):
@@ -180,7 +178,6 @@ def make_entity_df(pts, flipxy=True):
         {"x": "int32", "y": "int32", "z": "int32", "class_code": "int32"}
     )
     return entities_df
-
 
 
 def make_entity_df2(pts):
@@ -340,5 +337,3 @@ def make_bounding_vols(entities, patch_size=(14, 14, 14)):
     bbs = np.array(bbs)
 
     return bbs
-
-

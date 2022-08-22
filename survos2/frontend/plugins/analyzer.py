@@ -1,4 +1,3 @@
-
 import numpy as np
 from loguru import logger
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -7,19 +6,30 @@ from matplotlib.figure import Figure
 from napari.qt.progress import progress
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
-from survos2.entity.cluster.cluster_plotting import (cluster_scatter,
-                                                     image_grid2,
-                                                     plot_clustered_img)
+from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
 from survos2.entity.cluster.clusterer import select_clusters
 from survos2.frontend.components.base import *
 from survos2.frontend.components.entity import TableWidget
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.analyzers.base import MplCanvas, AnalyzerCardBase
-from survos2.frontend.plugins.analyzers.image_stats import ImageStats, BinaryImageStats, SegmentationStats
-from survos2.frontend.plugins.analyzers.patch_clusterer import ObjectAnalyzer, PatchStats, BinaryClassifier
+from survos2.frontend.plugins.analyzers.image_stats import (
+    ImageStats,
+    BinaryImageStats,
+    SegmentationStats,
+)
+from survos2.frontend.plugins.analyzers.patch_clusterer import (
+    ObjectAnalyzer,
+    PatchStats,
+    BinaryClassifier,
+)
 from survos2.frontend.plugins.analyzers.geometry import PointGenerator
-from survos2.frontend.plugins.analyzers.label_analysis import LabelAnalyzer, LabelSplitter, RemoveMaskedObjects, FindConnectedComponents
+from survos2.frontend.plugins.analyzers.label_analysis import (
+    LabelAnalyzer,
+    LabelSplitter,
+    RemoveMaskedObjects,
+    FindConnectedComponents,
+)
 from survos2.frontend.plugins.analyzers.spatial_clustering import SpatialClustering
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.base import *
@@ -35,9 +45,6 @@ from survos2.server.state import cfg
 from survos2.utils import decode_numpy
 
 
-
-
-
 def _fill_analyzers(combo, full=False, filter=True, ignore=None):
     params = dict(workspace=True, full=full, filter=filter)
     result = Launcher.g.run("analyzer", "existing", **params)
@@ -46,7 +53,6 @@ def _fill_analyzers(combo, full=False, filter=True, ignore=None):
         for fid in result:
             if fid != ignore:
                 combo.addItem(fid, result[fid]["name"])
-
 
 
 @register_plugin
@@ -85,9 +91,9 @@ class AnalyzerPlugin(Plugin):
             logger.debug(f"Analyzer {result}")
             for i, category in enumerate(all_categories):
                 self.analyzers_combo.addItem(category)
-                self.analyzers_combo.model().item(
-                    i + len(self.analyzer_params) + 1
-                ).setEnabled(False)
+                self.analyzers_combo.model().item(i + len(self.analyzer_params) + 1).setEnabled(
+                    False
+                )
 
                 for f in [p for p in result if p["category"] == category]:
                     self.analyzer_params[f["name"]] = f["params"]
@@ -111,42 +117,38 @@ class AnalyzerPlugin(Plugin):
                 analyzer_id = result["id"]
                 analyzer_name = result["name"]
                 analyzer_type = result["kind"]
-                self._add_analyzer_widget(
-                    analyzer_id, analyzer_name, analyzer_type, True
-                )
+                self._add_analyzer_widget(analyzer_id, analyzer_name, analyzer_type, True)
 
-    def _add_analyzer_widget(
-        self, analyzer_id, analyzer_name, analyzer_type, expand=False
-    ):
-        
-        if analyzer_type=="label_splitter":
+    def _add_analyzer_widget(self, analyzer_id, analyzer_name, analyzer_type, expand=False):
+
+        if analyzer_type == "label_splitter":
             widget = LabelSplitter(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="label_analyzer":
+        elif analyzer_type == "label_analyzer":
             widget = LabelAnalyzer(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="remove_masked_objects":
+        elif analyzer_type == "remove_masked_objects":
             widget = RemoveMaskedObjects(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="image_stats":
+        elif analyzer_type == "image_stats":
             widget = ImageStats(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="binary_image_stats":
+        elif analyzer_type == "binary_image_stats":
             widget = BinaryImageStats(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="binary_classifier":
+        elif analyzer_type == "binary_classifier":
             widget = BinaryClassifier(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="find_connected_components":
+        elif analyzer_type == "find_connected_components":
             widget = FindConnectedComponents(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="spatial_clustering":
+        elif analyzer_type == "spatial_clustering":
             widget = SpatialClustering(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="point_generator":
+        elif analyzer_type == "point_generator":
             widget = PointGenerator(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="segmentation_stats":
+        elif analyzer_type == "segmentation_stats":
             widget = SegmentationStats(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="patch_stats":
+        elif analyzer_type == "patch_stats":
             widget = PatchStats(analyzer_id, analyzer_name, analyzer_type)
-        elif analyzer_type=="object_analyzer":
+        elif analyzer_type == "object_analyzer":
             widget = ObjectAnalyzer(analyzer_id, analyzer_name, analyzer_type)
         else:
             print("No matching analyzer type.")
             return None
-        
+
         widget.showContent(expand)
         self.analyzers_layout.addWidget(widget)
         self.existing_analyzer[analyzer_id] = widget
@@ -160,9 +162,7 @@ class AnalyzerPlugin(Plugin):
     def setup(self):
         self._populate_analyzers()
 
-        params = dict(
-            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace
-        )
+        params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
 
         result = Launcher.g.run("analyzer", "existing", **params)
 
@@ -183,9 +183,7 @@ class AnalyzerPlugin(Plugin):
                 logger.debug(f"Adding analyzer of type {analyzer_type}")
 
                 if params.pop("kind", analyzer) != "unknown":
-                    widget = self._add_analyzer_widget(
-                        analyzer_id, analyzer_name, analyzer_type
-                    )
+                    widget = self._add_analyzer_widget(analyzer_id, analyzer_name, analyzer_type)
                     widget.update_params(params)
                     self.existing_analyzer[analyzer_id] = widget
                 else:
@@ -194,14 +192,16 @@ class AnalyzerPlugin(Plugin):
                             analyzer_id, analyzer_name, analyzer_type
                         )
                     )
-        
+
+
 # class ObjectDetectionStats():
 #     def __init__(self, card):
 #         card._add_features_source()
 #         card._add_object_detection_stats_source()
 
+
 class AnalyzerFunctionTest(AnalyzerCardBase):
-    def __init__(self,analyzer_id, analyzer_name, analyzer_type, parent=None):
+    def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
         super().__init__(
             analyzer_name=analyzer_name,
             analyzer_id=analyzer_id,
@@ -212,14 +212,9 @@ class AnalyzerFunctionTest(AnalyzerCardBase):
             editable=True,
             parent=parent,
         )
+
     def setup(self):
         pass
+
     def calculate(self):
         pass
-
-
-
-
-
-
-

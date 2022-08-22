@@ -197,9 +197,7 @@ class Workspace(object):
 
     def add_data(self, data_fname):
         if self.has_data():
-            raise WorkspaceException(
-                "Workspace has already been initialized with data."
-            )
+            raise WorkspaceException("Workspace has already been initialized with data.")
 
         # path = self.genpath(self.__dsname__)
 

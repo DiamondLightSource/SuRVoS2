@@ -16,7 +16,6 @@ from torch.optim import lr_scheduler
 from survos2.entity.utils import load_model
 
 
-
 class Head_TwoStage_Cls(nn.Module):
     def __init__(
         self,
@@ -33,9 +32,7 @@ class Head_TwoStage_Cls(nn.Module):
         self.relu = "relu"  # 'leaky_relu'
         self.norm = "batch_norm"  #'instance_norm'
         print(f"n_input_channels:{n_input_channels} ")
-        print(
-            f"n_output_channels: {n_output_channels} with number of classes: {n_classes}"
-        )
+        print(f"n_output_channels: {n_output_channels} with number of classes: {n_classes}")
 
         self.conv_1 = self._conv_block(n_input_channels, 16)
         self.conv_2 = self._conv_block(16, 32)
@@ -51,9 +48,7 @@ class Head_TwoStage_Cls(nn.Module):
     # ks=3, pad=1
     def _conv_block(self, in_c, out_c, stride=1, padding=0):
         conv_layer = nn.Sequential(
-            nn.Conv3d(
-                in_c, out_c, kernel_size=(3, 3, 3), stride=stride, padding=padding
-            ),
+            nn.Conv3d(in_c, out_c, kernel_size=(3, 3, 3), stride=stride, padding=padding),
             nn.LeakyReLU(),
             nn.MaxPool3d((2, 2, 2)),
         )
@@ -85,24 +80,18 @@ def train_head(head_cls, dataloaders, num_epochs=10, batch_size=1, device=0):
     criterion = nn.CrossEntropyLoss()
     learning_rate = 1e-3
     weight_decay = 1e-4
-    optimizer = optim.SGD(
-        head_cls.parameters(), lr=learning_rate, weight_decay=weight_decay
-    )
+    optimizer = optim.SGD(head_cls.parameters(), lr=learning_rate, weight_decay=weight_decay)
     n = 0
 
     for epoch in range(num_epochs):
         print(f"Epoch: {epoch}")
         for img, label in dataloaders["train"]:
             input_feat_vol = img[0]
-            input_feat_vol = (
-                input_feat_vol.unsqueeze(0).float().to(device)
-            )  # .unsqueeze(0)
+            input_feat_vol = input_feat_vol.unsqueeze(0).float().to(device)  # .unsqueeze(0)
             print(input_feat_vol.shape)
             class_logits_raw, class_logits = head_cls(input_feat_vol)
 
-            loss = criterion(
-                class_logits, torch.Tensor([label["labels"]]).long().to(device)
-            )
+            loss = criterion(class_logits, torch.Tensor([label["labels"]]).long().to(device))
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -138,21 +127,20 @@ def make_classifications(model, loader, device):
     return predictions, correct / total, logits
 
 
-
 def setup_fpn_for_extraction(wf, checkpoint_file, gpu_id=0):
     gpu_id = 0
     batch_size = 1
 
     model3d, optimizer, lr_scheduler = prepare_fpn3d(gpu_id=gpu_id)
-    
+
     if "torch_models_fullpath" in wf.params:
         full_path = os.path.join(wf.params["torch_models_fullpath"], checkpoint_file)
     else:
         full_path = checkpoint_file
-        
+
     checkpoint = checkpoint = torch.load(full_path)
     model3d.load_state_dict(checkpoint["model_state"], strict=False)
-    #optimizer.load_state_dict(checkpoint["model_optimizer"])
+    # optimizer.load_state_dict(checkpoint["model_optimizer"])
     model3d = model3d.eval()
 
     return model3d
@@ -160,16 +148,13 @@ def setup_fpn_for_extraction(wf, checkpoint_file, gpu_id=0):
 
 def setup_training(model_fullpath):
     print(f"Loading model: {model_fullpath}")
-    detmod, optimizer, scheduler = prepare_fpn3d(
-        existing_model_fname=model_fullpath, gpu_id=0
-    )
+    detmod, optimizer, scheduler = prepare_fpn3d(existing_model_fname=model_fullpath, gpu_id=0)
     trainable_parameters = []
 
     for name, p in detmod.named_parameters():
         if "Fpn" not in name:
             trainable_parameters.append(p)
 
-    
     optimizer = torch.optim.AdamW(
         params=trainable_parameters,
         lr=0.005,
@@ -180,16 +165,13 @@ def setup_training(model_fullpath):
 def setup_training3(existing_model_file, torch_models_fullpath):
     model_fullpath = os.path.join(torch_models_fullpath, existing_model_file)
     print(f"Loading model: {model_fullpath}")
-    detmod, optimizer, scheduler = prepare_fpn3d(
-        existing_model_fname=model_fullpath, gpu_id=0
-    )
+    detmod, optimizer, scheduler = prepare_fpn3d(existing_model_fname=model_fullpath, gpu_id=0)
     trainable_parameters = []
 
     for name, p in detmod.named_parameters():
         if "Fpn" not in name:
             trainable_parameters.append(p)
 
-    
     optimizer = torch.optim.AdamW(
         params=trainable_parameters,
         lr=0.005,
@@ -198,22 +180,17 @@ def setup_training3(existing_model_file, torch_models_fullpath):
 
 
 def setup_training2(existing_model_file, wf):
-    model_fullpath = os.path.join(
-        wf.params["torch_models_fullpath"], existing_model_file
-    )
+    model_fullpath = os.path.join(wf.params["torch_models_fullpath"], existing_model_file)
     print(f" {model_fullpath}")
-    detmod, optimizer, scheduler = prepare_fpn3d(
-        existing_model_fname=model_fullpath, gpu_id=0
-    )
+    detmod, optimizer, scheduler = prepare_fpn3d(existing_model_fname=model_fullpath, gpu_id=0)
     trainable_parameters = []
 
     # for name, p in detmod.named_parameters():
     #     if "Fpn" not in name:
     #         trainable_parameters.append(p)
 
-    
     optimizer = torch.optim.AdamW(
-        #params=trainable_parameters,
+        # params=trainable_parameters,
         lr=0.005,
     )
     return detmod, optimizer
@@ -224,7 +201,7 @@ def prepare_fpn_features(wf, checkpoint_file, dataloaders, gpu_id=0):
     full_path = os.path.join(wf.params["torch_models_fullpath"], checkpoint_file)
     checkpoint = checkpoint = torch.load(full_path)
     model3d.load_state_dict(checkpoint["model_state"], strict=False)
-    #optimizer.load_state_dict(checkpoint["model_optimizer"])
+    # optimizer.load_state_dict(checkpoint["model_optimizer"])
     model3d.eval()
     feats = process_fpn3d_pred(model3d, dataloaders["train"], device=gpu_id)
     vec_mat = np.stack(feats)
@@ -234,8 +211,9 @@ def prepare_fpn_features(wf, checkpoint_file, dataloaders, gpu_id=0):
 
 def process_fpn3d_pred(model3d, dataloader, device=0, nb=True):
     from survos2.frontend.nb_utils import show_images
+
     progress_bar = tqdm
-        
+
     f4 = []
     f3 = []
     f2 = []
@@ -244,13 +222,13 @@ def process_fpn3d_pred(model3d, dataloader, device=0, nb=True):
         input_all, labels = batch
         input_sample = input_all[0]
         print(input_sample.shape)
-        #print(input_sample)
+        # print(input_sample)
 
         input_sample_t = torch.FloatTensor(input_sample)
         with torch.no_grad():
             var_input = input_sample_t.float().to(device).unsqueeze(0).unsqueeze(0)
             out = model3d.forward_pyr(var_input)
-            
+
             print(out[2].shape)
             print(out[3].shape)
             print(out[4].shape)
@@ -258,7 +236,7 @@ def process_fpn3d_pred(model3d, dataloader, device=0, nb=True):
             f3.append(out[3].detach().cpu().numpy())
             f4.append(out[4].detach().cpu().numpy())
 
-    #return f2,f3, f4
+    # return f2,f3, f4
     f2_fts = [f[0, 0, :].reshape((8 * 8 * 32)) for f in f2]
     f3_fts = [f[0, 0, :].reshape((4 * 4 * 16)) for f in f3]
     f4_fts = [f[0, 0, :].reshape((2 * 2 * 8)) for f in f4]
@@ -269,9 +247,10 @@ def process_fpn3d_pred(model3d, dataloader, device=0, nb=True):
 
 def process_fpn3d_pred_(model3d, dataloader, device=0, nb=True):
     from survos2.frontend.nb_utils import show_images
-    #pyr_feats = []
+
+    # pyr_feats = []
     progress_bar = tqdm
-        
+
     f4 = []
     f3 = []
     f2 = []
@@ -302,24 +281,23 @@ def process_fpn3d_pred_(model3d, dataloader, device=0, nb=True):
 
 def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
     cf = CNNConfigs("mymodel")
-    #metrics = defaultdict(float)
-    #epoch_samples = 0
+    # metrics = defaultdict(float)
+    # epoch_samples = 0
 
-        
     device = torch.device(gpu_id)
     print(f"Device {device}")
     print(f"Dim: {cf.dim} {cf.num_seg_classes}")
     from survos2.entity.models.detNet2 import detNet
+
     detmod = detNet(cf).to(device)
 
     if existing_model_fname is not None:
         print(existing_model_fname)
         detmod = load_model(detmod, str(existing_model_fname))
 
-    #if torch.cuda.device_count() > 1:
+    # if torch.cuda.device_count() > 1:
     #    print("Using", torch.cuda.device_count(), "GPUs")
     #    detmod = nn.DataParallel(detmod)
-
 
     detmod = detmod.train()
 
@@ -336,9 +314,8 @@ def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
         amsgrad=False,
     )
     scheduler = lr_scheduler.StepLR(optimizer, step_size=40, gamma=0.51)
-    #scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=0.01, max_lr=0.1)
+    # scheduler = lr_scheduler.CyclicLR(optimizer, base_lr=0.01, max_lr=0.1)
     return detmod, optimizer, scheduler
-
 
 
 def display_fpn3d_pred(model3d, dataloaders, device=0):
@@ -365,9 +342,4 @@ def display_fpn3d_pred(model3d, dataloaders, device=0):
                 figsize=(3, 3),
             )
 
-        show_images(
-            [1.0 - out_arr_proc[0, 1, i * 8, :, :] for i in range(1, 4)], figsize=(3, 3)
-        )
-
-
-
+        show_images([1.0 - out_arr_proc[0, 1, i * 8, :, :] for i in range(1, 4)], figsize=(3, 3))

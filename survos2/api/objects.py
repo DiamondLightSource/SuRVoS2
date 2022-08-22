@@ -1,6 +1,6 @@
 import logging
 import os.path as op
-from ast import literal_eval 
+from ast import literal_eval
 import os
 import dask.array as da
 import hug
@@ -60,7 +60,7 @@ def load_bvols(bvols_arr, flipxy=True):
 
     ds.set_attr("kind", objects_type)
     ds.set_attr("fullname", tmp_fullpath)
-    
+
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
@@ -77,7 +77,6 @@ def load_bvols(bvols_arr, flipxy=True):
     logger.info(f"Saving {tmp_fullpath} to {csv_saved_fullname}")
     ds.set_attr("fullname", csv_saved_fullname)
     os.remove(tmp_fullpath)
-
 
 
 def load_entities(entities_arr, flipxy=True):
@@ -105,7 +104,7 @@ def load_entities(entities_arr, flipxy=True):
 
     ds.set_attr("kind", objects_type)
     ds.set_attr("fullname", tmp_fullpath)
-    
+
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
@@ -123,15 +122,15 @@ def load_entities(entities_arr, flipxy=True):
     ds.set_attr("fullname", csv_saved_fullname)
     os.remove(tmp_fullpath)
 
+
 @hug.post()
 def upload(body, request, response):
-    encoded_buffer = body['file']
-    array_shape = body['shape']
+    encoded_buffer = body["file"]
+    array_shape = body["shape"]
     entities_arr = np.frombuffer(encoded_buffer, dtype="float32")
     entities_arr.shape = literal_eval(array_shape)
     logger.debug(f"Uploaded array of entities of shape {entities_arr.shape}")
     load_entities(entities_arr)
-
 
 
 @hug.get()
@@ -139,7 +138,7 @@ def get_entities(src: DataURI):
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
         logger.debug(f"Using dataset {ds_objects}")
-        
+
         objects_fullname = ds_objects.get_metadata("fullname")
         objects_scale = ds_objects.get_metadata("scale")
         objects_offset = ds_objects.get_metadata("offset")
@@ -154,25 +153,29 @@ def get_entities(src: DataURI):
         offset=objects_offset,
         crop_start=objects_crop_start,
         crop_end=objects_crop_end,
-        flipxy=False
+        flipxy=False,
     )
     return encode_numpy(np.array(entities_df))
+
 
 @hug.get()
 def get_entities_metadata(src: DataURI):
     ds = dataset_from_uri(src, mode="r")[:]
-    
+
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
         logger.debug(f"Using dataset {ds_objects}")
 
-    entities_metadata = {'fullname' : ds_objects.get_metadata("fullname"),
-                         'scale' : ds_objects.get_metadata("scale"),
-                         'offset' : ds_objects.get_metadata("offset"),
-                         'crop_start' : ds_objects.get_metadata("crop_start"),
-                         'crop_end' : ds_objects.get_metadata("crop_end")}
+    entities_metadata = {
+        "fullname": ds_objects.get_metadata("fullname"),
+        "scale": ds_objects.get_metadata("scale"),
+        "offset": ds_objects.get_metadata("offset"),
+        "crop_start": ds_objects.get_metadata("crop_start"),
+        "crop_end": ds_objects.get_metadata("crop_end"),
+    }
 
     return entities_metadata
+
 
 @hug.get()
 def points(
@@ -264,12 +267,16 @@ def patches(
         logger.info(f"Saving {fullname} to {csv_saved_fullname}")
         dst_dataset.set_attr("fullname", csv_saved_fullname)
 
+
 @hug.get()
-def update_metadata(dst: DataURI,fullname: String,
+def update_metadata(
+    dst: DataURI,
+    fullname: String,
     scale: float,
     offset: FloatOrVector,
     crop_start: FloatOrVector,
-    crop_end: FloatOrVector):
+    crop_end: FloatOrVector,
+):
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         dst_dataset = DM.sources[0]
         dst_dataset.set_attr("scale", scale)
@@ -280,8 +287,6 @@ def update_metadata(dst: DataURI,fullname: String,
         csv_saved_fullname = dst_dataset.save_file(fullname)
         logger.info(f"Saving {fullname} to {csv_saved_fullname}")
         dst_dataset.set_attr("fullname", csv_saved_fullname)
-
-
 
 
 @hug.get()
@@ -313,8 +318,7 @@ def existing(
 
     if full:
         datasets = {
-            "{}/{}".format(__objects_group__, k): dataset_repr(v)
-            for k, v in datasets.items()
+            "{}/{}".format(__objects_group__, k): dataset_repr(v) for k, v in datasets.items()
         }
     else:
         datasets = {k: dataset_repr(v) for k, v in datasets.items()}
@@ -340,7 +344,18 @@ def available():
     h = hug.API(__name__)
     all_features = []
     for name, method in h.http.routes[""].items():
-        if name[1:] in ["available", "create", "existing", "remove", "rename", "group", "upload", "get_entities", "get_entities_metadata", "update_metadata"]:
+        if name[1:] in [
+            "available",
+            "create",
+            "existing",
+            "remove",
+            "rename",
+            "group",
+            "upload",
+            "get_entities",
+            "get_entities_metadata",
+            "update_metadata",
+        ]:
             continue
         logger.debug(f"Object types available {name}")
         name = name[1:]
@@ -350,5 +365,3 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
-
-

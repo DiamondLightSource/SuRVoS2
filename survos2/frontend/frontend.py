@@ -41,7 +41,7 @@ from survos2.frontend.transfer_fn import (
     _transfer_features,
     _transfer_labels,
     _transfer_features_http,
-    _transfer_points
+    _transfer_points,
 )
 import warnings
 
@@ -55,9 +55,7 @@ _MaskPrev = 240  # 1111 0000
 
 def get_level_from_server(msg, retrieval_mode="volume"):
     if retrieval_mode == "slice":  # get a slice over http
-        src_annotations_dataset = DataModel.g.dataset_uri(
-            msg["level_id"], group="annotations"
-        )
+        src_annotations_dataset = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
         params = dict(
             workpace=True,
             src=src_annotations_dataset,
@@ -68,9 +66,7 @@ def get_level_from_server(msg, retrieval_mode="volume"):
         if result:
             src_arr = decode_numpy(result)
     elif retrieval_mode == "volume_http":  # get a slice over http
-        src_annotations_dataset = DataModel.g.dataset_uri(
-            msg["level_id"], group="annotations"
-        )
+        src_annotations_dataset = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
         params = dict(workpace=True, src=src_annotations_dataset)
         result = Launcher.g.run("annotations", "get_volume", **params)
         if result:
@@ -93,7 +89,7 @@ def frontend(viewer):
     cfg.label_ids = [
         0,
     ]
-    cfg.retrieval_mode =  Config["volume_mode"] # "volume"  # volume_http | volume | slice
+    cfg.retrieval_mode = Config["volume_mode"]  # "volume"  # volume_http | volume | slice
     cfg.current_slice = 0
     cfg.current_orientation = 0
 
@@ -115,7 +111,7 @@ def frontend(viewer):
     cfg.local_sv = True
     cfg.pause_save = False
     cfg.remote_annotation = True
-    cfg.object_offset = (0, 0, 0) 
+    cfg.object_offset = (0, 0, 0)
     cfg.num_undo = 0
 
     label_dict = {
@@ -134,10 +130,10 @@ def frontend(viewer):
     dw.bpw = ButtonPanelWidget()  # Additional controls
     dw.ppw.setMinimumSize(QSize(600, 600))
     dw.bpw.setMinimumSize(QSize(600, 200))
-    if DataModel.g.current_workspace != '':
+    if DataModel.g.current_workspace != "":
         ws = Workspace(DataModel.g.current_workspace)
         dw.ws = ws
-    
+
     dw.datamodel = DataModel.g
     dw.Launcher = Launcher
     viewer.theme = "dark"
@@ -156,16 +152,16 @@ def frontend(viewer):
 
         if len(anno_layer) > 0:
             if not cfg.remote_annotation:
-                if cfg.retrieval_mode != 'slice':
+                if cfg.retrieval_mode != "slice":
                     cfg.ppw.clientEvent.emit(
-                                {
-                                    "source": "save_annotation",
-                                    "data": "save_annotation",
-                                    "value": None,
-                                }
-                            )
+                        {
+                            "source": "save_annotation",
+                            "data": "save_annotation",
+                            "value": None,
+                        }
+                    )
             cfg.local_sv = False
-        
+
             anno_layer = anno_layer[0]
             cfg.label_ids = list(np.unique(anno_layer))
             anno_layer.mode = "paint"
@@ -184,10 +180,9 @@ def frontend(viewer):
 
             viewer.layers.selection.active = anno_layer
 
-
     def update_annotations(msg):
         logger.debug(f"update_annotation {msg}")
-        
+
         if cfg.local_sv:
             update_annotation_layer_in_viewer(msg["level_id"], cfg.anno_data)
         else:
@@ -196,7 +191,6 @@ def frontend(viewer):
                 src_annotations_dataset = DM.sources[0][:]
                 src_arr = get_array_from_dataset(src_annotations_dataset)
             update_annotation_layer_in_viewer(msg["level_id"], src_arr)
-
 
     def update_annotation_layer_in_viewer(layer_name, src_arr):
         existing_layer = [v for v in viewer.layers if v.name == layer_name]
@@ -214,23 +208,24 @@ def frontend(viewer):
                     if len(anno_layer) == 0:
                         src_arr, src_annotations_dataset = get_level_from_server(
                             msg, retrieval_mode=cfg.retrieval_mode
-                        )    
+                        )
                         cfg.anno_data = src_arr
 
                     print("Refresh from server paused, updating annotation from cfg.anno_data")
-                    if 'prev_arr' in cfg: 
+                    if "prev_arr" in cfg:
                         src_arr = cfg.prev_arr
                     else:
                         src_arr = cfg.anno_data
-                        
-                    if cfg.retrieval_mode != 'slice':
+
+                    if cfg.retrieval_mode != "slice":
                         print("Saving annotation")
-                        cfg.ppw.clientEvent.emit({
-                                    "source": "save_annotation",
-                                    "data": "save_annotation",
-                                    "value": None,
-                                }
-                            )
+                        cfg.ppw.clientEvent.emit(
+                            {
+                                "source": "save_annotation",
+                                "data": "save_annotation",
+                                "value": None,
+                            }
+                        )
                 else:
                     src_arr, src_annotations_dataset = get_level_from_server(
                         msg, retrieval_mode=cfg.retrieval_mode
@@ -239,22 +234,20 @@ def frontend(viewer):
                 result = Launcher.g.run(
                     "annotations", "get_levels", workspace=DataModel.g.current_workspace
                 )
-  
+
                 if result:
-                    return _refresh_annotations_in_viewer(
-                        result, msg, src_arr
-                    )
+                    return _refresh_annotations_in_viewer(result, msg, src_arr)
 
             except Exception as e:
                 print(f"Exception {e}")
 
     def _refresh_annotations_in_viewer(result, msg, src_arr):
-        #logger.debug(f"Refresh annotations in viewer {src_arr.shape}")
+        # logger.debug(f"Refresh annotations in viewer {src_arr.shape}")
         cmapping, label_ids = get_color_mapping(result, msg["level_id"])
-        #logger.debug(f"Label ids {label_ids}")
+        # logger.debug(f"Label ids {label_ids}")
         cfg.label_ids = label_ids
         existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
-        
+
         # some defaults
         sel_label = 1
         brush_size = 10
@@ -264,13 +257,11 @@ def frontend(viewer):
             label_layer = existing_layer[0]
             existing_layer[0].color = cmapping
         elif cfg.current_annotation_name:
-            #print(f"Adding labels {src_arr.shape} {cmapping }")
-            label_layer = viewer.add_labels(
-            src_arr & 15, name=msg["level_id"], color=cmapping
-            )
+            # print(f"Adding labels {src_arr.shape} {cmapping }")
+            label_layer = viewer.add_labels(src_arr & 15, name=msg["level_id"], color=cmapping)
             label_layer.mode = cfg.current_mode
             label_layer.brush_size = brush_size
-        
+
         if cfg.label_value is not None:
             label_layer.selected_label = int(cfg.label_value["idx"]) - 1
 
@@ -291,40 +282,40 @@ def frontend(viewer):
                         "level_id": level,
                     }
                 )
-               
+
                 cfg.num_undo += 1
 
     def setup_paint_undo_local(label_layer):
         @label_layer.bind_key("Control-Z", overwrite=True)
         def undo(v):
-            #logger.info("Undoing local annotation")
+            # logger.info("Undoing local annotation")
             if cfg.num_undo == 0:
                 print(cfg.anno_data)
-                #cfg.anno_data = cfg.anno_data >> _MaskSize
+                # cfg.anno_data = cfg.anno_data >> _MaskSize
                 cfg.anno_data = cfg.prev_arr.copy()
                 cfg.num_undo += 1
                 existing_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
                 if existing_layer:
                     existing_layer[0].data = cfg.anno_data.astype(np.int32) & 15
                 label_layer.undo()
-                if cfg.retrieval_mode != 'slice':
+                if cfg.retrieval_mode != "slice":
                     logger.debug("Saving annotation")
-                    cfg.ppw.clientEvent.emit({
-                                "source": "save_annotation",
-                                "data": "save_annotation",
-                                "value": None,
-                    })
-
+                    cfg.ppw.clientEvent.emit(
+                        {
+                            "source": "save_annotation",
+                            "data": "save_annotation",
+                            "value": None,
+                        }
+                    )
 
     def setup_painting_layer(label_layer, msg, parent_level, parent_label_idx):
-        if not hasattr(label_layer, 'already_init'):
+        if not hasattr(label_layer, "already_init"):
+
             @label_layer.mouse_drag_callbacks.append
             def painting_layer(layer, event):
                 cfg.prev_arr = label_layer.data.copy()
                 drag_pts = []
-                coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(
-                    np.int32
-                )
+                coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(np.int32)
                 try:
                     if cfg.retrieval_mode == "slice":
                         drag_pt = [coords[0], coords[1]]
@@ -337,30 +328,35 @@ def frontend(viewer):
                         layer.mode = "paint"
                     if layer.mode == "paint" or layer.mode == "erase":
                         while event.type == "mouse_move":
-                            
-                            coords = np.round(
-                                layer.world_to_data(viewer.cursor.position)
-                            ).astype(np.int32)
+
+                            coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(
+                                np.int32
+                            )
 
                             if cfg.retrieval_mode == "slice":
                                 drag_pt = [coords[0], coords[1]]
-                            elif cfg.retrieval_mode == "volume" or cfg.retrieval_mode == "volume_http":
+                            elif (
+                                cfg.retrieval_mode == "volume"
+                                or cfg.retrieval_mode == "volume_http"
+                            ):
                                 drag_pt = [coords[0], coords[1], coords[2]]
                             drag_pts.append(drag_pt)
                             yield
 
                         if len(drag_pts) >= 0:
-                            #top_layer = viewer.layers[-1]
-                            #layer_name = top_layer.name  # get last added layer name
-                            anno_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
+                            # top_layer = viewer.layers[-1]
+                            # layer_name = top_layer.name  # get last added layer name
+                            anno_layer = [
+                                v for v in viewer.layers if v.name == cfg.current_annotation_name
+                            ]
                             if len(anno_layer) > 0:
                                 anno_layer = anno_layer[0]
-                                #anno_layer = next(l for l in viewer.layers if l.name == cfg.current_annotation_name)
-                    
+                                # anno_layer = next(l for l in viewer.layers if l.name == cfg.current_annotation_name)
+
                                 def update_anno(msg):
                                     if cfg.local_sv:
-                                        
-                                        src_arr = cfg.anno_data 
+
+                                        src_arr = cfg.anno_data
                                     else:
                                         src_arr, _ = get_level_from_server(
                                             msg, retrieval_mode=cfg.retrieval_mode
@@ -379,10 +375,10 @@ def frontend(viewer):
                                 )
                                 paint_strokes_worker.returned.connect(update)
                                 paint_strokes_worker.start()
-                                
-                                cfg.num_undo = 0                              
+
+                                cfg.num_undo = 0
                         else:
-                            
+
                             cfg.ppw.clientEvent.emit(
                                 {
                                     "source": "annotations",
@@ -392,21 +388,18 @@ def frontend(viewer):
                             )
                 except ValueError as e:
                     print(e)
+
         label_layer.already_init = 1
 
     def paint_annotations(msg):
         if not cfg.emptying_viewer:
-            #logger.debug(f"paint_annotation {msg['level_id']}") 
+            # logger.debug(f"paint_annotation {msg['level_id']}")
             try:
                 label_layer = refresh_annotations_in_viewer(msg)
-                #print(f"paint_annotations label_layer {label_layer}")
-                sel_label = (
-                    int(cfg.label_value["idx"]) if cfg.label_value is not None else 1
-                )
+                # print(f"paint_annotations label_layer {label_layer}")
+                sel_label = int(cfg.label_value["idx"]) if cfg.label_value is not None else 1
                 if msg["level_id"] is not None:
-                    params = dict(
-                        workspace=True, level=msg["level_id"], label_idx=sel_label
-                    )
+                    params = dict(workspace=True, level=msg["level_id"], label_idx=sel_label)
                     result = Launcher.g.run("annotations", "get_label_parent", **params)
                     parent_level = result[0]
                     parent_label_idx = result[1]
@@ -417,7 +410,6 @@ def frontend(viewer):
 
             except Exception as e:
                 print(f"Exception: {e}")
-    
 
     def set_session(msg):
         logger.debug(f"Set session to {msg['session']}")
@@ -434,6 +426,7 @@ def frontend(viewer):
 
     def view_patches(msg):
         from survos2.entity.patches import load_patch_vols
+
         logger.debug(f"view_patches {msg['patches_fullname']}")
         img_vols, label_vols = load_patch_vols(msg["patches_fullname"])
         viewer.add_image(img_vols, name="Patch Image")
@@ -441,21 +434,20 @@ def frontend(viewer):
 
     def save_annotation(msg):
         logger.info(f"Save annotation {msg}")
-        annotation_layer = [
-            v for v in viewer.layers if v.name == cfg.current_annotation_name
-        ]
+        annotation_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
         if len(annotation_layer) == 1:
             logger.info(
                 f"Updating annotation {cfg.current_annotation_name} with label image {annotation_layer}"
             )
-            
-            result = Launcher.g.post_array(annotation_layer[0].data, 
-                group='annotations', 
-                workspace=DataModel.g.current_workspace, 
-                name=cfg.current_annotation_name)
+
+            result = Launcher.g.post_array(
+                annotation_layer[0].data,
+                group="annotations",
+                workspace=DataModel.g.current_workspace,
+                name=cfg.current_annotation_name,
+            )
         else:
             logger.info("save_annotation couldn't find annotation in viewer")
-
 
     def transfer_layer(msg):
         with progress(total=1) as pbar:
@@ -465,32 +457,27 @@ def frontend(viewer):
             if isinstance(selected_layer, Labels):
                 _transfer_labels(selected_layer)
                 pbar.update(1)
-                processEvents({"data": "refresh_plugin", "plugin_name" : "annotations"})
+                processEvents({"data": "refresh_plugin", "plugin_name": "annotations"})
             elif isinstance(selected_layer, Points):
                 _transfer_points(selected_layer)
                 pbar.update(1)
-                processEvents({"data": "refresh_plugin", "plugin_name" : "objects"})
+                processEvents({"data": "refresh_plugin", "plugin_name": "objects"})
             elif isinstance(selected_layer, Image):
                 _transfer_features_http(selected_layer)
                 pbar.update(1)
-                processEvents({"data": "refresh_plugin", "plugin_name" : "features"})
+                processEvents({"data": "refresh_plugin", "plugin_name": "features"})
             else:
                 logger.debug("Unsupported layer type.")
-            
 
     def jump_to_slice(msg):
         cfg.supervoxels_cached = False
         cfg.retrieval_mode = "slice"
         cfg.current_slice = int(msg["frame"])
-        
-        existing_feature_layer = [
-            v for v in viewer.layers if v.name == cfg.current_feature_name
-        ]
+
+        existing_feature_layer = [v for v in viewer.layers if v.name == cfg.current_feature_name]
 
         if existing_feature_layer:
-            features_src = DataModel.g.dataset_uri(
-                cfg.current_feature_name, group="features"
-            )
+            features_src = DataModel.g.dataset_uri(cfg.current_feature_name, group="features")
             params = dict(
                 workpace=True,
                 src=features_src,
@@ -502,13 +489,9 @@ def frontend(viewer):
                 src_arr = decode_numpy_slice(result)
                 existing_feature_layer[0].data = src_arr.copy()
 
-        existing_regions_layer = [
-            v for v in viewer.layers if v.name == cfg.current_regions_name
-        ]
+        existing_regions_layer = [v for v in viewer.layers if v.name == cfg.current_regions_name]
         if existing_regions_layer:
-            regions_src = DataModel.g.dataset_uri(
-                cfg.current_regions_name, group="superregions"
-            )
+            regions_src = DataModel.g.dataset_uri(cfg.current_regions_name, group="superregions")
             params = dict(
                 workpace=True,
                 src=regions_src,
@@ -522,21 +505,15 @@ def frontend(viewer):
                 existing_regions_layer[0].data = src_arr.copy()
                 existing_regions_layer[0].opacity = 0.3
 
-        existing_level_layer = [
-            v for v in viewer.layers if v.name == cfg.current_annotation_name
-        ]
+        existing_level_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
         if existing_level_layer and cfg.current_annotation_name is not None:
             paint_annotations({"level_id": cfg.current_annotation_name})
 
-        existing_pipeline_layer = [
-            v for v in viewer.layers if v.name == cfg.current_pipeline_name
-        ]
+        existing_pipeline_layer = [v for v in viewer.layers if v.name == cfg.current_pipeline_name]
 
         if existing_pipeline_layer:
             print(f"loading pipeline {cfg.current_pipeline_name}")
-            pipeline_src = DataModel.g.dataset_uri(
-                cfg.current_pipeline_name, group="pipelines"
-            )
+            pipeline_src = DataModel.g.dataset_uri(cfg.current_pipeline_name, group="pipelines")
             params = dict(
                 workpace=True,
                 src=pipeline_src,
@@ -547,16 +524,14 @@ def frontend(viewer):
             if result:
                 src_arr = decode_numpy(result).astype(np.int32)
                 existing_pipeline_layer[0].data = src_arr.copy()
-    
+
         existing_analyzers_layer = [
             v for v in viewer.layers if v.name == cfg.current_analyzers_name
         ]
 
         if existing_analyzers_layer:
             print(f"Jumping to analyzer slice {cfg.current_analyzers_name}")
-            analyzers_src = DataModel.g.dataset_uri(
-                cfg.current_analyzers_name, group="analyzer"
-            )
+            analyzers_src = DataModel.g.dataset_uri(cfg.current_analyzers_name, group="analyzer")
             params = dict(
                 workpace=True,
                 src=analyzers_src,
@@ -599,9 +574,7 @@ def frontend(viewer):
     def show_roi(msg):
         logger.info(f"Showing ROI {msg['selected_roi']}")
         z, y, x = msg["selected_roi"]
-        existing_feature_layer = [
-            v for v in viewer.layers if v.name == cfg.current_feature_name
-        ]
+        existing_feature_layer = [v for v in viewer.layers if v.name == cfg.current_feature_name]
         viewer.camera.center = (int(float(z)), int(float(x)), int(float(y)))
         viewer.dims.set_current_step(0, z)
         viewer.camera.zoom = 4
@@ -612,13 +585,13 @@ def frontend(viewer):
         if msg["data"] == "jump_to_slice":
             jump_to_slice(msg)
         elif msg["data"] == "slice_mode":
-            #logger.debug(f"Slice mode changing from: {cfg.retrieval_mode}")
+            # logger.debug(f"Slice mode changing from: {cfg.retrieval_mode}")
             if cfg.retrieval_mode != "slice":
                 cfg.local_sv = True
                 _switch_to_slice_mode_and_jump()
             else:
                 try:
-                    #logger.debug(f"In slice mode changing to volume mode {viewer.layers}")
+                    # logger.debug(f"In slice mode changing to volume mode {viewer.layers}")
                     cfg.retrieval_mode = "volume"
                     cfg.local_sv = True
                     for _ in range(len(viewer.layers)):
@@ -638,7 +611,7 @@ def frontend(viewer):
         elif msg["data"] == "view_feature":
             view_feature(viewer, msg)
         elif msg["data"] == "view_pipeline":
-            if msg["source"] == 'analyzer':
+            if msg["source"] == "analyzer":
                 view_pipeline(viewer, msg, analyzers=True)
             else:
                 view_pipeline(viewer, msg)
@@ -702,21 +675,20 @@ def frontend(viewer):
         viewer_order = viewer.window.qt_viewer.viewer.dims.order
         for l in viewer.layers:
             viewer.layers.remove(l)
-        
+
         if len(viewer_order) == 3:
             cfg.order = [int(d) for d in viewer_order]
-            #logger.debug(f"Setting order to {cfg.order}")
+            # logger.debug(f"Setting order to {cfg.order}")
         else:
             cfg.order = [0, 1, 2]
-            #logger.debug(f"Viewer order {viewer_order} Resetting order to {cfg.order}")
+            # logger.debug(f"Viewer order {viewer_order} Resetting order to {cfg.order}")
         cfg.slice_max = cfg.base_dataset_shape[cfg.order[0]]
-        #logger.debug(f"Setting slice max to {cfg.slice_max}")
+        # logger.debug(f"Setting slice max to {cfg.slice_max}")
         view_feature(viewer, {"feature_id": cfg.current_feature_name})
         try:
             jump_to_slice({"frame": 0})
         except AttributeError as e:
             print(e)
-
 
     # setup message based event handling mechanism and return it to the dockwidget
     dw.ppw.clientEvent.connect(lambda x: processEvents(x))
@@ -728,7 +700,3 @@ def frontend(viewer):
     dw.cfg = cfg
 
     return dw
-
-
-
-

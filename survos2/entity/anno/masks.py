@@ -65,7 +65,7 @@ def generate_anno(
     classwise_entities,
     cfg,
     padding=(50, 50, 50),
-    eccentricity=(1.0,1.0,1.0),
+    eccentricity=(1.0, 1.0, 1.0),
     remove_padding=False,
     core_mask_radius=(14, 14, 14),
     shell=False,
@@ -95,9 +95,7 @@ def generate_anno(
 
     # for each class, set params and make masks
     for k, v in classwise_entities.items():
-        p = Patch(
-            {"Main": padded_vol}, {}, {"Points": classwise_entities[k]["entities"]}, {}
-        )
+        p = Patch({"Main": padded_vol}, {}, {"Points": classwise_entities[k]["entities"]}, {})
         cfg["pipeline"]["mask_params"]["mask_radius"] = v["size"]
         cfg["pipeline"]["mask_params"]["eccentricity"] = eccentricity
         from survos2.entity.pipeline_ops import make_masks
@@ -127,6 +125,7 @@ def generate_anno(
         classwise_entities[k]["shell_mask"] = shell_mask
 
     return classwise_entities, padded_vol
+
 
 @lru_cache(maxsize=64)
 def ellipsoidal_mask(
@@ -173,11 +172,7 @@ def ellipsoidal_mask(
         print("At center: {}".format(center))
 
     dist_from_center = np.sqrt(
-        (
-            ((X - center[1]) ** 2) / b
-            + ((Y - center[2]) ** 2) / c
-            + ((Z - center[0]) ** 2) / a
-        )
+        (((X - center[1]) ** 2) / b + ((Y - center[2]) ** 2) / c + ((Z - center[0]) ** 2) / a)
     )
 
     mask = dist_from_center <= float(radius)
@@ -215,7 +210,6 @@ def create_rect_mask(
     mask = (mask * 1.0).astype(np.float32)
 
     return mask
-
 
 
 def bw_to_points(bwimg, sample_prop):
@@ -273,7 +267,7 @@ def generate_sphere_masks_fast(
     classwise_pts: np.ndarray,
     patch_size=(64, 64, 64),
     radius: int = 24,
-    ecc=(1.0, 1.0,1.0),
+    ecc=(1.0, 1.0, 1.0),
 ):
     """Copies a small sphere mask to locations centered on classwise_pts
 

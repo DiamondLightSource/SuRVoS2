@@ -92,9 +92,7 @@ class ViewIconButton(IconButton):
 
 
 class ToolIconButton(QtWidgets.QToolButton):
-    def __init__(
-        self, icon, text="", size=None, checkable=False, parent=None, **kwargs
-    ):
+    def __init__(self, icon, text="", size=None, checkable=False, parent=None, **kwargs):
         super().__init__(parent)
         self.setStyleSheet(
             """

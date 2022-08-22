@@ -7,16 +7,13 @@ from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 
 
 class Watershed(PipelineCardBase):
-    def __init__(self,fid, ftype, fname, fparams, parent=None):
-        super().__init__(
-            fid=fid,
-            ftype=ftype,
-            fname=fname,
-            fparams=fparams
-        )
+    def __init__(self, fid, ftype, fname, fparams, parent=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+
     def setup(self):
         self._add_annotations_source()
         self._add_feature_source()
+
     def compute_pipeline(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         all_params = dict(src=src, dst=self.dst, modal=True)

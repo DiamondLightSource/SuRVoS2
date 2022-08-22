@@ -17,25 +17,27 @@ from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.frontend.plugins.base import ComboBox, DataTableWidgetItem
 
 from survos2.model import DataModel
-from survos2.frontend.components.base import LineEdit, ComboBox, HWidgets, PushButton, Spacing, Label
+from survos2.frontend.components.base import (
+    LineEdit,
+    ComboBox,
+    HWidgets,
+    PushButton,
+    Spacing,
+    Label,
+)
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 
 from survos2.model import DataModel
 from survos2.server.state import cfg
 
 
-
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 
 
 class TrainMultiaxisCNN(PipelineCardBase):
-    def __init__(self,fid, ftype, fname, fparams, parent=None):
-        super().__init__(
-            fid=fid,
-            ftype=ftype,
-            fname=fname,
-            fparams=fparams
-        )
+    def __init__(self, fid, ftype, fname, fparams, parent=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+
     def setup(self):
         self._add_multi_ax_cnn_training_ws_widget()
         self._add_multi_ax_cnn_annotations_features_from_ws(DataModel.g.current_workspace)
@@ -43,6 +45,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self._add_multi_ax_cnn_data_table()
         self._add_multi_ax_2d_training_params()
         self.adv_train_fields.hide()
+
     def compute_pipeline(self):
         # Retrieve params from table
         num_rows = self.table.rowCount()
@@ -54,26 +57,31 @@ class TrainMultiaxisCNN(PipelineCardBase):
             data_list = []
             label_list = []
             for i in range(num_rows):
-                workspace_list.append((self.table.item(i, 0).get_hidden_field(),
-                self.table.item(i, 0).text()))
-                data_list.append((self.table.item(i, 1).get_hidden_field(),
-                self.table.item(i, 1).text()))
-                label_list.append((self.table.item(i, 2).get_hidden_field(),
-                self.table.item(i, 2).text()))
-        # Can the src parameter be removed?        
+                workspace_list.append(
+                    (self.table.item(i, 0).get_hidden_field(), self.table.item(i, 0).text())
+                )
+                data_list.append(
+                    (self.table.item(i, 1).get_hidden_field(), self.table.item(i, 1).text())
+                )
+                label_list.append(
+                    (self.table.item(i, 2).get_hidden_field(), self.table.item(i, 2).text())
+                )
+        # Can the src parameter be removed?
         src = DataModel.g.dataset_uri("001_raw", group="features")
         all_params = dict(src=src, dst=self.dst, modal=True)
         all_params["workspace"] = workspace_list
         all_params["feature_id"] = data_list
         all_params["anno_id"] = label_list
-        all_params["multi_ax_train_params"] = dict(model_type=self.volseg_model_type.key(),
-                                               encoder_type=self.volseg_encoder_type.key(),
-                                               cyc_frozen=self.cycles_frozen.value(),
-                                               cyc_unfrozen=self.cycles_unfrozen.value(),
-                                               patience=self.train_patience_linedt.value(),
-                                               loss_criterion=self.loss_type_combo.key(),
-                                               bce_dice_alpha=self.bce_dice_alpha_linedt.value(),
-                                               bce_dice_beta=self.bce_dice_beta_linedt.value())
+        all_params["multi_ax_train_params"] = dict(
+            model_type=self.volseg_model_type.key(),
+            encoder_type=self.volseg_encoder_type.key(),
+            cyc_frozen=self.cycles_frozen.value(),
+            cyc_unfrozen=self.cycles_unfrozen.value(),
+            patience=self.train_patience_linedt.value(),
+            loss_criterion=self.loss_type_combo.key(),
+            bce_dice_alpha=self.bce_dice_alpha_linedt.value(),
+            bce_dice_beta=self.bce_dice_beta_linedt.value(),
+        )
         return all_params
 
     def _add_multi_ax_cnn_data_table(self):
@@ -134,35 +142,35 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.add_row(data_label)
         self.workspaces_list = self._get_workspaces_list()
         self.workspaces_list.currentTextChanged.connect(self.on_ws_combobox_changed)
-        ws_widget = HWidgets("Workspace:", self.workspaces_list,  stretch=1)
+        ws_widget = HWidgets("Workspace:", self.workspaces_list, stretch=1)
         self.add_row(ws_widget)
 
     def _add_multi_ax_cnn_annotations_source(self):
         self.annotations_source = ComboBox()
         self.annotations_source.setMaximumWidth(250)
-        anno_widget = HWidgets("Annotation (Labels):", self.annotations_source,  stretch=1)
+        anno_widget = HWidgets("Annotation (Labels):", self.annotations_source, stretch=1)
         self.add_row(anno_widget)
 
     def _add_multi_ax_cnn_feature_source(self):
         self.feature_source = ComboBox()
         self.feature_source.setMaximumWidth(250)
-        feature_widget = HWidgets("Feature (Data):", self.feature_source,  stretch=1)
+        feature_widget = HWidgets("Feature (Data):", self.feature_source, stretch=1)
         self.add_row(feature_widget)
 
     def _update_annotations_from_ws(self, workspace):
         self.annotations_source.clear()
-        params = {"workspace" : workspace}
+        params = {"workspace": workspace}
         anno_result = Launcher.g.run("annotations", "get_levels", **params)
         logger.debug(f"anno_result: {anno_result}")
         if anno_result:
             for r in anno_result:
                 if r["kind"] == "level":
                     self.annotations_source.addItem(r["id"], r["name"])
-    
+
     def _update_features_from_ws(self, workspace):
         self.feature_source.clear()
         workspace = "default@" + workspace
-        params = {"workspace" : workspace}
+        params = {"workspace": workspace}
         logger.debug(f"Filling features from session: {params}")
         result = Launcher.g.run("features", "existing", **params)
         if result:
@@ -176,7 +184,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self._update_annotations_from_ws(workspace)
         train_data_btn = PushButton("Add to list", accent=True)
         train_data_btn.clicked.connect(self._add_item_to_data_table)
-        widget = HWidgets(None, train_data_btn,  stretch=0)
+        widget = HWidgets(None, train_data_btn, stretch=0)
         self.add_row(widget)
 
     def _get_workspaces_list(self):
@@ -196,7 +204,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.model_type = ComboBox()
         self.model_type.addItem(key="unet3d")
         self.model_type.addItem(key="fpn3d")
-        widget = HWidgets("Model type:", self.model_type,  stretch=0)
+        widget = HWidgets("Model type:", self.model_type, stretch=0)
         self.add_row(widget)
 
     def _add_volseg_model_type(self):
@@ -219,22 +227,30 @@ class TrainMultiaxisCNN(PipelineCardBase):
         train_advanced_button = QRadioButton("Advanced")
         self.setup_adv_train_fields()
         self.adv_train_fields.hide()
-        refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
+        refresh_label = Label(
+            'Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".'
+        )
         self.multi_ax_train_refresh_btn = PushButton("Refresh Data", accent=True)
         self.multi_ax_train_refresh_btn.clicked.connect(self.refresh_multi_ax_data)
         self.multi_ax_pred_refresh_btn = None
-        self.add_row(HWidgets("No. Cycles Frozen:", self.cycles_frozen,
-                              "No. Cycles Unfrozen", self.cycles_unfrozen,
-                              stretch=1))
+        self.add_row(
+            HWidgets(
+                "No. Cycles Frozen:",
+                self.cycles_frozen,
+                "No. Cycles Unfrozen",
+                self.cycles_unfrozen,
+                stretch=1,
+            )
+        )
         self.add_row(HWidgets(train_advanced_button, Spacing(35), stretch=1))
         self.add_row(self.adv_train_fields, max_height=250)
         self.add_row(HWidgets(refresh_label, stretch=1))
         self.add_row(HWidgets(self.multi_ax_train_refresh_btn, stretch=1))
         train_advanced_button.toggled.connect(self.toggle_advanced_train)
-        
+
     def setup_adv_train_fields(self):
         """Sets up the QGroupBox that displays the advanced option for 2d deep
-         learning training."""
+        learning training."""
         self.adv_train_fields = QtWidgets.QGroupBox("Advanced Training Settings:")
         adv_train_layout = QtWidgets.QGridLayout()
         cuda_device = str(self.multi_ax_train_settings["cuda_device"])
@@ -246,7 +262,9 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.volseg_encoder_type = ComboBox()
         self.volseg_encoder_type.addItem(key="resnet34", value="ResNet34 (Pre-trained)")
         self.volseg_encoder_type.addItem(key="resnet50", value="ResNet50 (Pre-trained)")
-        self.volseg_encoder_type.addItem(key="resnext50_32x4d", value="ResNeXt50 (32x4d Pre-trained)")
+        self.volseg_encoder_type.addItem(
+            key="resnext50_32x4d", value="ResNeXt50 (32x4d Pre-trained)"
+        )
         self.loss_type_combo = ComboBox()
         self.loss_type_combo.addItem(key="DiceLoss", value="Dice Loss")
         self.loss_type_combo.addItem(key="CrossEntropyLoss", value="Cross Entropy Loss")
@@ -275,7 +293,6 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.bce_dice_alpha_linedt.hide()
         self.bce_dice_beta_label.hide()
         self.bce_dice_beta_linedt.hide()
-    
 
     def toggle_advanced_train(self):
         """Controls displaying/hiding the advanced train fields on radio button toggle."""
@@ -284,7 +301,6 @@ class TrainMultiaxisCNN(PipelineCardBase):
             self.adv_train_fields.show()
         else:
             self.adv_train_fields.hide()
-    
 
     def on_loss_function_combo_changed(self, value):
         if value == "Binary Cross Entropy and Dice Loss":
@@ -294,15 +310,10 @@ class TrainMultiaxisCNN(PipelineCardBase):
             self.bce_dice_beta_linedt.show()
 
 
-
 class PredictMultiaxisCNN(PipelineCardBase):
-    def __init__(self,fid, ftype, fname, fparams, parent=None):
-        super().__init__(
-            fid=fid,
-            ftype=ftype,
-            fname=fname,
-            fparams=fparams
-        )
+    def __init__(self, fid, ftype, fname, fparams, parent=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+
     def setup(self):
         self.annotations_source = LevelComboBox()
         self.annotations_source.hide()
@@ -322,6 +333,7 @@ class PredictMultiaxisCNN(PipelineCardBase):
         all_params["no_of_planes"] = self.radio_group.checkedId()
         all_params["cuda_device"] = int(self.pred_cuda_dev_linedt.value())
         return all_params
+
     def _add_multi_ax_2d_prediction_params(self):
         self.multi_ax_pred_settings = cfg["volume_segmantics"]["predict_settings"]
         self.model_file_line_edit = LineEdit(default="Filepath", parse=str)
@@ -339,7 +351,9 @@ class PredictMultiaxisCNN(PipelineCardBase):
         advanced_button = QRadioButton("Advanced")
         self.setup_adv_pred_fields()
         self.adv_pred_fields.hide()
-        refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
+        refresh_label = Label(
+            'Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".'
+        )
         self.multi_ax_pred_refresh_btn = PushButton("Refresh Data", accent=True)
         self.multi_ax_pred_refresh_btn.clicked.connect(self.refresh_multi_ax_data)
         self.multi_ax_train_refresh_btn = None
@@ -353,9 +367,10 @@ class PredictMultiaxisCNN(PipelineCardBase):
         advanced_button.toggled.connect(self.toggle_advanced_pred)
         advanced_button.setChecked(True)
         advanced_button.setChecked(False)
+
     def setup_adv_pred_fields(self):
         """Sets up the QGroupBox that displays the advanced option for 2d deep
-         learning prediction."""
+        learning prediction."""
         self.adv_pred_fields = QtWidgets.QGroupBox("Advanced Prediction Settings:")
         adv_pred_layout = QtWidgets.QGridLayout()
         adv_pred_layout.addWidget(QLabel("CUDA Device:"), 0, 0)
@@ -363,6 +378,7 @@ class PredictMultiaxisCNN(PipelineCardBase):
         self.pred_cuda_dev_linedt = LineEdit(cuda_device)
         adv_pred_layout.addWidget(self.pred_cuda_dev_linedt, 0, 1)
         self.adv_pred_fields.setLayout(adv_pred_layout)
+
     def toggle_advanced_pred(self):
         """Controls displaying/hiding the advanced predict fields on radio button toggle."""
         rbutton = self.sender()

@@ -17,9 +17,8 @@ def _fill_features(combo, full=False, filter=True, ignore=None):
 
     result = Launcher.g.run("features", "existing", **params)
 
-    if ignore==None:
-        ignore=[]
-
+    if ignore == None:
+        ignore = []
 
     if result:
         for fid in result:
@@ -50,9 +49,7 @@ class SourceComboBox(LazyComboBox):
 
 class MultiSourceComboBox(LazyMultiComboBox):
     def __init__(self, parent=None):
-        super().__init__(
-            header=("__data__", "Raw Data"), text="Select Source", parent=parent
-        )
+        super().__init__(header=("__data__", "Raw Data"), text="Select Source", parent=parent)
         _FeatureNotifier.listen(self.update)
 
     def fill(self):
@@ -199,5 +196,3 @@ class Label(QtWidgets.QLabel):
 
     def value(self):
         return self.text()
-
-

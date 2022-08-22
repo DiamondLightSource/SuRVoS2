@@ -36,9 +36,7 @@ class Patch:
 
 def run_workflow(workflow_file):
     print(workflow_file)
-    fullpath = os.path.join(
-        os.path.abspath(os.getcwd()), os.path.abspath(workflow_file)
-    )
+    fullpath = os.path.join(os.path.abspath(os.getcwd()), os.path.abspath(workflow_file))
     if not os.path.isabs(workflow_file):
         workflow_file = fullpath
 
@@ -67,12 +65,10 @@ def run_workflow(workflow_file):
             all_params.update(params)
             logger.info(f"Executing workflow {all_params}")
 
-            print(
-                f"+ Running {k}, with {plugin}, {command} on {src}\n to dst {dst} {all_params}\n"
-            )
+            print(f"+ Running {k}, with {plugin}, {command} on {src}\n to dst {dst} {all_params}\n")
 
-            
             import survos
+
             # Launcher.g.run(plugin, command, **all_params)
             survos.run_command(plugin, command, uri=None, src=src, dst=dst)
 
@@ -80,4 +76,3 @@ def run_workflow(workflow_file):
         print("Need input workflow YAML file")
 
     return all_params, params
-

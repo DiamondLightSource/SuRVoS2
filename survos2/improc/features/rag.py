@@ -1,5 +1,3 @@
-
-
 import numpy as np
 import networkx as nx
 
@@ -12,17 +10,17 @@ from sklearn.metrics.pairwise import distance_metrics, kernel_metrics
 from ._dist import bhattacharya, intersection
 
 
-def edge_weight(x, y, mode='rbf', gamma=0.5):
+def edge_weight(x, y, mode="rbf", gamma=0.5):
     dists = distance_metrics()
     kernels = kernel_metrics()
-    kernels['bhattacharya'] = bhattacharya
-    kernels['intersection'] = intersection
+    kernels["bhattacharya"] = bhattacharya
+    kernels["intersection"] = intersection
     if mode in dists:
         diff = dists[mode](x, y)
     elif mode in kernels:
         diff = kernels[mode](x, y, gamma=gamma)
     else:
-        raise Exception('Mode not recognised')
+        raise Exception("Mode not recognised")
 
     return np.float64(diff)
 
@@ -51,9 +49,9 @@ def min_weight(graph, src, dst, n):
     """
 
     # cover the cases where n only has edge to either `src` or `dst`
-    default = {'weight': np.inf}
-    w1 = graph[n].get(src, default)['weight']
-    w2 = graph[n].get(dst, default)['weight']
+    default = {"weight": np.inf}
+    w1 = graph[n].get(src, default)["weight"]
+    w2 = graph[n].get(dst, default)["weight"]
     return min(w1, w2)
 
 
@@ -73,8 +71,9 @@ class WRAG(nx.Graph):
             self.max_id = 0
         self.dist_weights = None
 
-    def merge_nodes(self, src, dst, weight_func=min_weight, in_place=True,
-                    extra_arguments=[], extra_keywords={}):
+    def merge_nodes(
+        self, src, dst, weight_func=min_weight, in_place=True, extra_arguments=[], extra_keywords={}
+    ):
         """Merge node `src` and `dst`.
         The new combined node is adjacent to all the neighbors of `src`
         and `dst`. `weight_func` is called to decide the weight of edges
@@ -118,12 +117,10 @@ class WRAG(nx.Graph):
             self.add_node(new)
 
         for neighbor in neighbors:
-            w = weight_func(self, src, new, neighbor, *extra_arguments,
-                            **extra_keywords)
+            w = weight_func(self, src, new, neighbor, *extra_arguments, **extra_keywords)
             self.add_edge(neighbor, new, weight=w)
 
-        self.node[new]['labels'] = (self.node[src]['labels'] +
-                                    self.node[dst]['labels'])
+        self.node[new]["labels"] = self.node[src]["labels"] + self.node[dst]["labels"]
         self.remove_node(src)
 
         if not in_place:
@@ -166,14 +163,15 @@ class WRAG(nx.Graph):
         .. seealso:: :func:`networkx.Graph.add_node`."""
         super(RAG, self).add_node(n)
 
-    def set_edge_weights(self, X, mode='rbf', gamma=0.5):
+    def set_edge_weights(self, X, mode="rbf", gamma=0.5):
         for p, q, d in self.edges_iter(data=True):
-            d['weight'] = edge_weight(X[p], X[q], mode=mode, gamma=gamma)
+            d["weight"] = edge_weight(X[p], X[q], mode=mode, gamma=gamma)
         self.dist_weights = is_distance(mode)
 
 
-def rag_from_neighbors(nodes, neighbors, min_boundary=None,
-                       norm_counts='unit', margin=0, return_rag=True):
+def rag_from_neighbors(
+    nodes, neighbors, min_boundary=None, norm_counts="unit", margin=0, return_rag=True
+):
     """Creates a Region Adjacency Graph between superpixels.
 
     Parameters
@@ -210,7 +208,7 @@ def rag_from_neighbors(nodes, neighbors, min_boundary=None,
     n_nodes = np.int64(nodes.max() + 1)
 
     nodes = np.tile(nodes, neighbors.shape[1])
-    neighbors = neighbors.flatten('f')
+    neighbors = neighbors.flatten("f")
     neighbors[neighbors > -1] = nodes[neighbors[neighbors > -1]]
 
     idx = (neighbors != -1) & (neighbors != nodes)
@@ -230,12 +228,12 @@ def rag_from_neighbors(nodes, neighbors, min_boundary=None,
     neighbors = neighbors.astype(np.int32)
 
     if min_boundary is not None:
-        idx = (counts >= min_boundary)
+        idx = counts >= min_boundary
         neighbors = neighbors[idx]
         counts = counts[idx]
-        if norm_counts == 'unit':
+        if norm_counts == "unit":
             counts /= float(counts.max())
-        elif norm_counts == 'margin':
+        elif norm_counts == "margin":
             counts = np.minimum(counts, margin) / float(margin)
     else:
         counts = np.ones(neighbors.shape[0])
@@ -244,15 +242,21 @@ def rag_from_neighbors(nodes, neighbors, min_boundary=None,
     if return_rag:
         graph = WRAG()
         graph.add_nodes_from(np.arange(n_nodes))
-        graph.add_weighted_edges_from(np.c_[neighbors, counts], weight='boundary')
+        graph.add_weighted_edges_from(np.c_[neighbors, counts], weight="boundary")
         return graph
 
     return neighbors
 
 
-def create_rag(splabels, connectivity=1, min_boundary=None,
-               norm_counts='unit', margin=0, return_rag=True,
-               return_counts=True):
+def create_rag(
+    splabels,
+    connectivity=1,
+    min_boundary=None,
+    norm_counts="unit",
+    margin=0,
+    return_rag=True,
+    return_counts=True,
+):
     """Creates a Region Adjacency Graph between superpixels.
 
     Parameters
@@ -288,17 +292,18 @@ def create_rag(splabels, connectivity=1, min_boundary=None,
     """
     n_labels = splabels.max() + 1
 
-    if (splabels.ndim == 2 and connectivity not in (4, 8)) or \
-       (splabels.ndim == 3 and connectivity not in (6, 18, 26)):
-        raise Exception('Only {1, 2} values are supported for `connectivity`')
+    if (splabels.ndim == 2 and connectivity not in (4, 8)) or (
+        splabels.ndim == 3 and connectivity not in (6, 18, 26)
+    ):
+        raise Exception("Only {1, 2} values are supported for `connectivity`")
 
     if splabels.ndim == 2:
         nodes, neighbors = _create_rag_2d(splabels, connectivity)
     else:
         nodes, neighbors = _create_rag_3d(splabels, connectivity)
 
-    nodes = np.tile(nodes, connectivity//2)
-    neighbors = neighbors.flatten('f')
+    nodes = np.tile(nodes, connectivity // 2)
+    neighbors = neighbors.flatten("f")
 
     idx = (neighbors != -1) & (neighbors != nodes)
     nodes = nodes[idx]
@@ -307,7 +312,7 @@ def create_rag(splabels, connectivity=1, min_boundary=None,
     idx = nodes > neighbors
     nodes[idx], neighbors[idx] = neighbors[idx], nodes[idx]
 
-    n_nodes = np.int64(splabels.max()+1)
+    n_nodes = np.int64(splabels.max() + 1)
     crossing_hash = nodes + neighbors.astype(np.int64) * n_nodes
     if min_boundary is not None or return_counts:
         unique_hash, counts = np.unique(crossing_hash, return_counts=True)
@@ -318,14 +323,14 @@ def create_rag(splabels, connectivity=1, min_boundary=None,
     neighbors = neighbors.astype(np.int32)
 
     if min_boundary is not None:
-        idx = (counts >= min_boundary)
+        idx = counts >= min_boundary
         neighbors = neighbors[idx]
         counts = counts[idx]
 
     if return_counts:
-        if norm_counts == 'unit':
+        if norm_counts == "unit":
             counts /= float(counts.max())
-        elif norm_counts == 'margin':
+        elif norm_counts == "margin":
             counts = np.minimum(counts, margin) / float(margin)
 
     # Create Region Adjacency Graph
@@ -333,7 +338,7 @@ def create_rag(splabels, connectivity=1, min_boundary=None,
         graph = WRAG()
         graph.add_nodes_from(np.arange(n_labels))
         if return_counts:
-            graph.add_weighted_edges_from(np.c_[neighbors, counts], weight='boundary')
+            graph.add_weighted_edges_from(np.c_[neighbors, counts], weight="boundary")
         else:
             graph.add_edges_from(neighbors)
         return graph
@@ -343,9 +348,9 @@ def create_rag(splabels, connectivity=1, min_boundary=None,
         return neighbors
 
 
-
-def draw_rag(rag, splabels, img, border_color=(1,1,0),
-             node_color=(0,0,1), edge_color=(0,1,0)):
+def draw_rag(
+    rag, splabels, img, border_color=(1, 1, 0), node_color=(0, 0, 1), edge_color=(0, 1, 0)
+):
     """Draws Region Adjacency Graph's nodes and edges in an image.
 
     Parameters
@@ -371,23 +376,22 @@ def draw_rag(rag, splabels, img, border_color=(1,1,0),
 
     """
 
-    assert splabels.ndim == 2, 'Only 2D (+color) images are accepted'
+    assert splabels.ndim == 2, "Only 2D (+color) images are accepted"
 
     if img.ndim == 2:
         img = color.gray2rgb(img)
 
-    regions = measure.regionprops(splabels+1)
+    regions = measure.regionprops(splabels + 1)
 
     for n, region in enumerate(regions):
-        rag.node[n]['centroid'] = region['centroid']
+        rag.node[n]["centroid"] = region["centroid"]
 
     if border_color is not None:
-        img = mark_boundaries(img, splabels, color=border_color,
-                              outline_color=None)
+        img = mark_boundaries(img, splabels, color=border_color, outline_color=None)
 
     for n1, n2, data in rag.edges_iter(data=True):
-        r1, c1 = map(int, rag.node[n1]['centroid'])
-        r2, c2 = map(int, rag.node[n2]['centroid'])
+        r1, c1 = map(int, rag.node[n1]["centroid"])
+        r2, c2 = map(int, rag.node[n2]["centroid"])
 
         circle = draw.circle(r1, c1, 2)
         img[circle] = node_color

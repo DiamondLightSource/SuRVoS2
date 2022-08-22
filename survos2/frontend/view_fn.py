@@ -88,15 +88,12 @@ def view_feature(viewer, msg, new_name=None):
                 viewer.add_image(src_arr, name=msg["feature_id"])
 
             cfg.bpw.display_histogram_plot(src_arr.ravel())
-                
 
 
 def view_regions(viewer, msg):
     logger.debug(f"view_feature {msg['region_id']}")
     region_name = msg["region_id"]
-    existing_regions_layer = [
-        v for v in viewer.layers if v.name == cfg.current_regions_name
-    ]
+    existing_regions_layer = [v for v in viewer.layers if v.name == cfg.current_regions_name]
     region_opacity = 0.3
     if len(existing_regions_layer) > 0:
         region_opacity = existing_regions_layer[0].opacity
@@ -172,18 +169,18 @@ def view_pipeline(viewer, msg, analyzers=False):
             cmapping, _ = get_color_mapping(result, level_id=msg["level_id"])
 
         existing_pipeline_layer = [v for v in viewer.layers if v.name == msg["pipeline_id"]]
-        
+
         if analyzers:
-            source = 'analyzer'
+            source = "analyzer"
             remove_layer(viewer, cfg.current_analyzers_name)
             cfg.current_analyzers_name = msg["pipeline_id"]
-            
+
         else:
             remove_layer(viewer, cfg.current_pipeline_name)
             cfg.current_pipeline_name = msg["pipeline_id"]
 
         pipeline_src = DataModel.g.dataset_uri(msg["pipeline_id"], group=source)
-            
+
         if cfg.retrieval_mode == "slice":
             params = dict(
                 workpace=True,
@@ -216,7 +213,7 @@ def view_pipeline(viewer, msg, analyzers=False):
                         color=cmapping,
                     )
         elif cfg.retrieval_mode == "volume":
-            
+
             with DatasetManager(pipeline_src, out=None, dtype="uint32", fillvalue=0) as DM:
                 src_dataset = DM.sources[0][:]
                 src_arr = get_array_from_dataset(src_dataset)
@@ -242,7 +239,7 @@ def view_pipeline(viewer, msg, analyzers=False):
 def view_objects(viewer, msg):
     logger.debug(f"view_objects {msg['objects_id']}")
     objects_src = DataModel.g.dataset_uri(msg["objects_id"], group="objects")
-    
+
     params = dict(
         workpace=True,
         src=objects_src,
@@ -250,12 +247,12 @@ def view_objects(viewer, msg):
     result = Launcher.g.run("objects", "get_entities", **params)
     if result:
         entities_arr = decode_numpy(result)
-      
-    #with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+
+    # with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
     #    ds_objects = DM.sources[0]
 
     logger.debug(f"Got entities_arr of shape {entities_arr.shape}")
-    
+
     # objects_fullname = entities_metadata["fullname"]
     # objects_scale = entities_metadata["scale"]
     # objects_offset = entities_metadata["offset"]
@@ -297,12 +294,11 @@ def view_objects(viewer, msg):
     )
 
 
-
 def view_entities(viewer, msg):
     logger.debug(f"view_entities {msg['objects_id']}")
-    
-    entities_arr = decode_numpy(msg['entities'])
-      
+
+    entities_arr = decode_numpy(msg["entities"])
+
     logger.debug(f"Got entities_arr of shape {entities_arr.shape}")
 
     entities_df = make_entity_df(entities_arr)
@@ -338,5 +334,3 @@ def view_entities(viewer, msg):
     entity_layer = viewer.add_points(
         centers, size=[10] * len(centers), opacity=0.5, face_color=face_color_list
     )
-
-

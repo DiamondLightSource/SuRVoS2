@@ -13,14 +13,15 @@ import seaborn as sns
 from napari.qt.progress import progress
 
 
-
-
 def _transfer_features_http(selected_layer):
     print(selected_layer.data.shape)
-    result = Launcher.g.post_array(selected_layer.data, 
-    group='features', 
-    workspace=DataModel.g.current_workspace, 
-    name="feature")
+    result = Launcher.g.post_array(
+        selected_layer.data,
+        group="features",
+        workspace=DataModel.g.current_workspace,
+        name="feature",
+    )
+
 
 def _transfer_points(selected_layer):
     logger.debug("Transferring Points layer to Objects.")
@@ -29,10 +30,10 @@ def _transfer_points(selected_layer):
         (selected_layer.data, np.zeros((len(selected_layer.data), 1))),
         axis=1,
     ).astype(np.float32)
-    result = Launcher.g.post_array(entities_arr, 
-    group='objects', 
-    workspace=DataModel.g.current_workspace, 
-    name="objects")
+    result = Launcher.g.post_array(
+        entities_arr, group="objects", workspace=DataModel.g.current_workspace, name="objects"
+    )
+
 
 def _transfer_features(selected_layer):
     logger.debug("Transferring Image layer to Features.")
@@ -47,9 +48,10 @@ def _transfer_features(selected_layer):
         DM.out[:] = selected_layer.data
     return result
 
+
 def _transfer_labels(selected_layer):
     logger.debug("Transferring Labels layer to Annotations.")
-    
+
     # add level
     result = Launcher.g.run("annotations", "add_level", workspace=True)
     new_level_id = result["id"]
@@ -68,7 +70,7 @@ def _transfer_labels(selected_layer):
     params = dict(level=new_level_id, workspace=DataModel.g.current_workspace)
     # get added level and set label parameters to values from label layer being transferred in
     levels_result = Launcher.g.run("annotations", "get_single_level", **params)
-    
+
     for v in levels_result["labels"].keys():
         label_rgba = np.array(selected_layer.get_color(int(v) - 1))
         label_rgba = (255 * label_rgba).astype(np.uint8)
@@ -79,19 +81,18 @@ def _transfer_labels(selected_layer):
             color=label_hex,
         )
         params = dict(level=result["id"], workspace=True)
-        label_result = Launcher.g.run(
-            "annotations", "update_label", **params, **label
-        )
+        label_result = Launcher.g.run("annotations", "update_label", **params, **label)
 
     if levels_result:
         fid = result["id"]
         ftype = result["kind"]
         fname = result["name"]
         logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
-        
-        print(f"anno_layer: {selected_layer.data.shape}")
-        result = Launcher.g.post_array(selected_layer.data.astype(np.uint32), 
-        group='annotations', 
-        workspace=DataModel.g.current_workspace, 
-        name=result["id"])
 
+        print(f"anno_layer: {selected_layer.data.shape}")
+        result = Launcher.g.post_array(
+            selected_layer.data.astype(np.uint32),
+            group="annotations",
+            workspace=DataModel.g.current_workspace,
+            name=result["id"],
+        )

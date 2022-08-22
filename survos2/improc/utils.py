@@ -93,14 +93,14 @@ def optimal_chunksize(source, max_size, item_size=4, delta=0.1, axis_weight=None
     """
     if hasattr(source, "shape") and hasattr(source, "dtype"):
         item_size = np.dtype(source.dtype).itemsize
-        #logger.debug(f"Calculating optimal chunksize using itemsize {item_size}")
+        # logger.debug(f"Calculating optimal chunksize using itemsize {item_size}")
 
         shape = np.asarray(source.shape, np.int16)
     else:
-        #logger.debug(f"Calculating optimal chunksize using no itemsize")
+        # logger.debug(f"Calculating optimal chunksize using no itemsize")
         shape = np.asarray(source, np.int16)
 
-    sizeMB = max_size * (2 ** 20)
+    sizeMB = max_size * (2**20)
     if axis_weight is None:
         axis_weight = shape / float(np.min(shape))
 
@@ -114,7 +114,7 @@ def optimal_chunksize(source, max_size, item_size=4, delta=0.1, axis_weight=None
     for nchunks in product(*max_chunk_iter):
         chunks = np.ceil(shape / nchunks).astype(int)
         chunk_size = np.prod(chunks) * item_size
-        chunk_size_err = (sizeMB - chunk_size) / (2 ** 20)
+        chunk_size_err = (sizeMB - chunk_size) / (2**20)
         chunk_axis_err = np.abs(chunks / float(chunks.min()) - axis_weight).sum()
         chunk_err = chunk_size_err + chunk_axis_err
         if chunk_size < sizeMB and chunk_err < best_chunk_err:
@@ -220,9 +220,7 @@ def _chunk_datasets(datasets, chunk=CHUNK, chunk_size=CHUNK_SIZE, stack=False):
             #    chunk_size = chunk_size / float(len(datasets))
             chunk_size = optimal_chunksize(datasets[0], chunk_size)
         elif len(chunk_size) != datasets[0].ndim:
-            raise ValueError(
-                "Chunk size has different dimension than " "source volume."
-            )
+            raise ValueError("Chunk size has different dimension than " "source volume.")
         for i in range(len(datasets)):
             if isinstance(datasets[i], da.Array):
                 newds.append(datasets[i])
@@ -336,9 +334,7 @@ def _apply(
     logger.info(f"Applying {func} to datasets of shape {datasets} with stack: {stack}")
 
     if chunk == True:
-        kwargs.setdefault(
-            "dtype", out.dtype if type(out) == "np.ndarray" else datasets[0].dtype
-        )
+        kwargs.setdefault("dtype", out.dtype if type(out) == "np.ndarray" else datasets[0].dtype)
         kwargs.setdefault("drop_axis", 0 if stack else None)
         logger.debug(f"Chunking dataset[0]: {datasets[0].shape}")
 
@@ -498,12 +494,8 @@ def map_blocks(
         t0 = time.time()
 
     with DatasetManager(*args, out=out, dtype=out_dtype, fillvalue=out_fillvalue) as DM:
-        datasets = _chunk_datasets(
-            DM.sources, chunk=chunk, chunk_size=chunk_size, stack=stack
-        )
-        datasets = _preprocess_datasets(
-            datasets, chunk=chunk, scale=scale, stretch=stretch
-        )
+        datasets = _chunk_datasets(DM.sources, chunk=chunk, chunk_size=chunk_size, stack=stack)
+        datasets = _preprocess_datasets(datasets, chunk=chunk, scale=scale, stretch=stretch)
         result = _apply(
             func,
             datasets,
@@ -551,9 +543,7 @@ class DatasetManager(object):
             logger.info(f"DatasetManager setting out to {out}")
             shape = self._sources[0].shape
             dtype = dtype or self._sources[0].dtype
-            out = dataset_from_uri(
-                out, mode="w", shape=shape, dtype=dtype, fill=fillvalue
-            )
+            out = dataset_from_uri(out, mode="w", shape=shape, dtype=dtype, fill=fillvalue)
             self._out = out
 
     def __enter__(self):

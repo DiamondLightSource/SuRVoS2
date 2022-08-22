@@ -28,11 +28,7 @@ def remove_masked_pts(bg_mask, entities):
     pts_vol = np.zeros_like(bg_mask)
 
     for pt in entities:
-        if (
-            pt[0] < bg_mask.shape[0]
-            and pt[1] < bg_mask.shape[1]
-            and pt[2] < bg_mask.shape[2]
-        ):
+        if pt[0] < bg_mask.shape[0] and pt[1] < bg_mask.shape[1] and pt[2] < bg_mask.shape[2]:
             pts_vol[pt[0], pt[1], pt[2]] = 1
         else:
             print(pt)
@@ -94,8 +90,7 @@ def coords_in_view(coords, image_shape):
 def hex_string_to_rgba(hex_string):
     hex_value = hex_string.lstrip("#")
     rgba_array = (
-        np.append(np.array([int(hex_value[i : i + 2], 16) for i in (0, 2, 4)]), 255.0)
-        / 255.0
+        np.append(np.array([int(hex_value[i : i + 2], 16) for i in (0, 2, 4)]), 255.0) / 255.0
     )
     return rgba_array
 
@@ -111,9 +106,9 @@ def get_color_mapping(result, level_id="001_level"):
                     labels.append(ii)
                     remapped_label = int(k) - 1
                     cmapping[remapped_label] = hex_string_to_rgba(v["color"])
-                    cmapping[
-                        remapped_label + (remapped_label * 16)
-                    ] = hex_string_to_rgba(v["color"])
+                    cmapping[remapped_label + (remapped_label * 16)] = hex_string_to_rgba(
+                        v["color"]
+                    )
                 return cmapping, labels
 
 
@@ -259,9 +254,7 @@ class FileWidget(QWidget):
 
     path_updated = pyqtSignal(str)
 
-    def __init__(
-        self, extensions="*.h5", home=None, folder=False, save=True, parent=None
-    ):
+    def __init__(self, extensions="*.h5", home=None, folder=False, save=True, parent=None):
         super(FileWidget, self).__init__(parent)
         hbox = QHBoxLayout()
         hbox.setContentsMargins(0, 0, 0, 0)

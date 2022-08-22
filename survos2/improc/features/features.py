@@ -1,10 +1,8 @@
-
-
 import numpy as np
 from skimage import color
 from scipy import ndimage
 
-#from _features import _position_3d, _position_2d
+# from _features import _position_3d, _position_2d
 
 
 class DensePositionExtractor(object):
@@ -56,7 +54,7 @@ class DenseColorExtractor(object):
 class DenseTextureExtractor(object):
     """Extracts local texture features from images"""
 
-    def __init__(self, multichannel=False, order=2, sigmas=[1., 2.], **kwargs):
+    def __init__(self, multichannel=False, order=2, sigmas=[1.0, 2.0], **kwargs):
         self.multichannel = multichannel
         self.order = order
         self.sigmas = sigmas
@@ -69,37 +67,39 @@ class DenseTextureExtractor(object):
             g.shape = g.shape + (1,)
             for d in dg:
                 d.shape = d.shape + (1,)
-            f += [g,] + dg
+            f += [
+                g,
+            ] + dg
         f = np.concatenate(f, axis=-1)
         f.shape = (-1, f.shape[-1])
         return f
 
 
 class DensePatchExtractor2D(object):
-
-    def __init__(self, patch_size=(21,21), flatten=True):
+    def __init__(self, patch_size=(21, 21), flatten=True):
         self.patch_size = patch_size
         self.flatten = flatten
 
     def transform(self, img):
-        ypad, xpad = self.patch_size[0]//2, self.patch_size[1]//2
-        padded = np.pad(img, ((ypad, ypad), (xpad, xpad)), mode='reflect')
+        ypad, xpad = self.patch_size[0] // 2, self.patch_size[1] // 2
+        padded = np.pad(img, ((ypad, ypad), (xpad, xpad)), mode="reflect")
         Y, X = padded.shape
         y, x = self.patch_size
-        shape = ((Y-y+1), (X-x+1), y, x) # number of patches, patch_shape
+        shape = ((Y - y + 1), (X - x + 1), y, x)  # number of patches, patch_shape
         # The right strides can be thought by:
         # 1) Thinking of `img` as a chunk of memory in C order
         # 2) Asking how many items through that chunk of memory are needed when indices
         #    i,j,k,l are incremented by one
-        strides = padded.itemsize*np.array([X, 1, X, 1])
+        strides = padded.itemsize * np.array([X, 1, X, 1])
         if self.flatten:
-            return np.lib.stride_tricks.as_strided(padded, shape=shape, strides=strides).reshape(-1, self.patch_size[0] * self.patch_size[1])
+            return np.lib.stride_tricks.as_strided(padded, shape=shape, strides=strides).reshape(
+                -1, self.patch_size[0] * self.patch_size[1]
+            )
         else:
             return np.lib.stride_tricks.as_strided(padded, shape=shape, strides=strides)
 
 
 class DensePatchExtractor3D(object):
-
     def __init__(self, patch_size=21, flatten=False, pad=True):
         self.patch_size = patch_size
         self.flatten = flatten
@@ -107,15 +107,16 @@ class DensePatchExtractor3D(object):
 
     def transform(self, img):
         if self.pad:
-            padded = np.pad(img, self.patch_size//2, mode='reflect')
+            padded = np.pad(img, self.patch_size // 2, mode="reflect")
         else:
             padded = img.copy()
         Z, Y, X = padded.shape
         z, y, x = self.patch_size, self.patch_size, self.patch_size
-        shape = ((Z-z+1), (Y-y+1), (X-x+1), z, y, x) # number of patches, patch_shape
-        strides = padded.itemsize*np.array([Y*X, X, 1, Y*X, X, 1])
+        shape = ((Z - z + 1), (Y - y + 1), (X - x + 1), z, y, x)  # number of patches, patch_shape
+        strides = padded.itemsize * np.array([Y * X, X, 1, Y * X, X, 1])
         if self.flatten:
-            return np.lib.stride_tricks.as_strided(padded, shape=shape, strides=strides).reshape(-1, self.patch_size[0] * self.patch_size[1])
+            return np.lib.stride_tricks.as_strided(padded, shape=shape, strides=strides).reshape(
+                -1, self.patch_size[0] * self.patch_size[1]
+            )
         else:
             return np.lib.stride_tricks.as_strided(padded, shape=shape, strides=strides)
-
