@@ -240,7 +240,7 @@ class FeatureCard(CardWithId):
         self.params = fparams
         self.widgets = dict()
         
-
+ 
         if self.feature_type == "wavelet":
             self._add_source()
             self.wavelet_type = ComboBox()
@@ -275,6 +275,7 @@ class FeatureCard(CardWithId):
                 "Threshold:", self.wavelet_threshold, stretch=0, 
             )
             self.add_row(widget)
+            self._add_params(fparams)
             self._add_btns()
         elif self.feature_type=="feature_composite":
             self._add_feature_source()
@@ -285,20 +286,25 @@ class FeatureCard(CardWithId):
             self.op_type.addItem(key="+")
             widget = HWidgets("Operation:", self.op_type, stretch=0)
             self.add_row(widget)
+            self._add_params(fparams)
             self._add_btns()
         elif self.feature_type=="raw":
             self._add_view_and_load_btns()
 
         else:
             self._add_source()
+            self._add_params(fparams)
             self._add_btns()
 
-        for pname, params in fparams.items():
+
+
+        
+        
+    def _add_params(self,fparams):
+       for pname, params in fparams.items():
             if pname not in ["src", "dst", "threshold"]:
                 self._add_param(pname, **params)
 
-        
-        
 
 
     def _add_source(self):
@@ -493,7 +499,7 @@ class FeatureCard(CardWithId):
     def compute_feature(self):
         with progress(total=3) as pbar:
             pbar.set_description("Calculating feature")
-            # self.pbar.setValue(25)
+            
             pbar.update(1)
 
             if self.feature_type != "feature_composite":
@@ -504,9 +510,6 @@ class FeatureCard(CardWithId):
 
             dst = DataModel.g.dataset_uri(self.feature_id, group="features")
             
-
-            logger.info(f"Setting dst: {self.feature_id}")
-            logger.info(f"widgets.items() {self.widgets.items()}")
             pbar.update(1)
 
             all_params = dict(src=src, dst=dst, modal=True)
@@ -524,7 +527,6 @@ class FeatureCard(CardWithId):
 
             all_params.update({k: v.value() for k, v in self.widgets.items()})
 
-            logger.info(f"Computing features: {self.feature_type} {all_params}")
                         
             Launcher.g.run("features", self.feature_type, **all_params)
             pbar.update(1)
