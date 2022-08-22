@@ -311,7 +311,7 @@ class FeatureCard(CardWithId):
         chk_clamp = CheckBox("Clamp")
         self.cmb_source = SourceComboBox([self.feature_id,'001 Raw'])
         self.cmb_source.fill()
-        widget = HWidgets(self.cmb_source,  stretch=1)
+        widget = HWidgets("Source:", self.cmb_source, stretch=1)
         self.add_row(widget)
 
     def _add_feature_source(self):
