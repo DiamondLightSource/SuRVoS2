@@ -8,7 +8,9 @@ from qtpy.QtWidgets import QRadioButton, QPushButton
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from survos2.frontend.components.base import *
+
+from survos2.frontend.components.base import QCSWidget, HBox, LazyComboBox, LazyMultiComboBox
+
 from survos2.frontend.control import Launcher
 
 
@@ -17,7 +19,7 @@ def _fill_features(combo, full=False, filter=True, ignore=None):
 
     result = Launcher.g.run("features", "existing", **params)
 
-    if ignore == None:
+    if ignore is None:
         ignore = []
 
     if result:
@@ -26,7 +28,7 @@ def _fill_features(combo, full=False, filter=True, ignore=None):
                 combo.addItem(fid, result[fid]["name"])
 
     else:
-        result = dict()
+        result = {}
         params.setdefault("id", 7)
         params.setdefault("name", "feat0")
         params.setdefault("kind", "unknown")
@@ -196,3 +198,4 @@ class Label(QtWidgets.QLabel):
 
     def value(self):
         return self.text()
+

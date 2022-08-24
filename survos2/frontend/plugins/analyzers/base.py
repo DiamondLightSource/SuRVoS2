@@ -1,21 +1,15 @@
 import numpy as np
 from loguru import logger
-from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from napari.qt.progress import progress
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
-from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
-from survos2.entity.cluster.clusterer import select_clusters
-from survos2.frontend.components.base import *
-from survos2.frontend.components.entity import TableWidget
-from survos2.frontend.components.icon_buttons import IconButton
-from survos2.frontend.control import Launcher
 
+from survos2.frontend.components.entity import TableWidget
+from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotations import LevelComboBox
-from survos2.frontend.plugins.base import *
-from survos2.frontend.plugins.export import SuperRegionSegmentComboBox
+from survos2.frontend.components.base import VBox, LazyComboBox, HWidgets, PushButton, SimpleComboBox, Card, LineEdit
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.pipelines import PipelinesComboBox
@@ -854,3 +848,4 @@ class RuleCard(Card):
         logger.debug(f"Deleted Rule {self.title}")
         self.parent.op_cards.remove(self)
         self.setParent(None)
+

@@ -1,6 +1,6 @@
 from survos2.model import Workspace
 from survos2.io import dataset_from_uri
-from survos2.api.regions import get_slice
+
 import os
 import pytest
 import h5py
@@ -92,4 +92,5 @@ class Tests(object):
 
 if __name__ == "__main__":
     pytest.main()
+
 

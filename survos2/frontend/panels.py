@@ -1,21 +1,19 @@
+import os
 import numpy as np
 from loguru import logger
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
-from qtpy.QtWidgets import QPushButton
+from qtpy.QtWidgets import QPushButton, QTabWidget, QVBoxLayout, QWidget
 from vispy import scene
 
-from survos2.frontend.components.base import *
 from survos2.frontend.components.base import HWidgets, Slider
-from survos2.frontend.plugins.annotations import *
-from survos2.frontend.plugins.base import *
-from survos2.frontend.plugins.base import ComboBox
-from survos2.frontend.plugins.features import *
-from survos2.frontend.plugins.superregions import *
-from survos2.frontend.utils import FileWidget
+
+from survos2.frontend.plugins.base import list_plugins, get_plugin, PluginContainer, register_plugin
+from survos2.frontend.components.base import VBox, Label, HWidgets, PushButton, SWidget, clear_layout, QCSWidget, ComboBox
+from survos2.frontend.plugins.features import MplCanvas
+
 from survos2.server.state import cfg
 from survos2.model.model import DataModel
-from survos2.config import Config
 from napari.qt.progress import progress
 from survos2.config import Config
 
@@ -305,3 +303,4 @@ class QtPlotWidget(QtWidgets.QWidget):
             color="w",
             parent=self.canvas.scene,
         )
+

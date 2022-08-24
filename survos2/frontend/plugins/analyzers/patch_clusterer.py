@@ -8,13 +8,14 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
 from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
 from survos2.entity.cluster.clusterer import select_clusters
-from survos2.frontend.components.base import *
+from survos2.frontend.components.base import VBox, SimpleComboBox, HWidgets, PushButton, CheckBox, LineEdit3D, LineEdit
+
 from survos2.frontend.components.entity import TableWidget
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
 
 from survos2.frontend.plugins.annotations import LevelComboBox
-from survos2.frontend.plugins.base import *
+
 from survos2.frontend.plugins.export import SuperRegionSegmentComboBox
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.objects import ObjectComboBox
@@ -137,7 +138,7 @@ class PatchStats(AnalyzerCardBase):
         all_params["box_size"] = self.box_dimension.value()
         logger.debug(f"Running analyzer with params {all_params}")
         result = Launcher.g.run("analyzer", "patch_stats", **all_params)
-        print(result)
+
         (point_features, img) = result
         if result:
             logger.debug(f"Object stats result table {len(point_features)}")
@@ -281,7 +282,7 @@ class ObjectAnalyzer(AnalyzerCardBase):
         entities_arr[:, 3] = labels
         self.entities_arr = entities_arr
         selected_images_arr = decode_numpy(selected_images_arr)
-        print(selected_images_arr.shape)
+
 
         if standard_embedding:
             sc = MplCanvas(self, width=8, height=8, dpi=100)
@@ -302,8 +303,7 @@ class ObjectAnalyzer(AnalyzerCardBase):
             )
             self.object_analyzer_plots.append(sc)
 
-            print("Added clustering plot")
-            print(labels)
+
 
             if self.plot_clusters.value():
                 labels = np.array(labels)
@@ -314,7 +314,7 @@ class ObjectAnalyzer(AnalyzerCardBase):
                     else:
                         n_cols = 6
                     n_rows = min(5, (len(selected_images) // n_cols) + 1)
-                    print(f"Making MplGridCanvas with {n_rows} rows and {n_cols} columns.")
+                    logger.debug(f"Making MplGridCanvas with {n_rows} rows and {n_cols} columns.")
                     sc2 = MplGridCanvas(
                         self, width=8, height=8, num_rows=n_rows, num_cols=n_cols, dpi=100
                     )
@@ -396,3 +396,4 @@ class MplGridCanvas(FigureCanvasQTAgg):
     def set_suptitle(self, suptitle):
         self.suptitle = suptitle
         self.fig.suptitle(suptitle)
+

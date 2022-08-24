@@ -8,10 +8,11 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
 from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
 from survos2.entity.cluster.clusterer import select_clusters
-from survos2.frontend.components.base import *
+from survos2.frontend.components.base import VBox, SimpleComboBox, HWidgets, PushButton, LineEdit
+
 from survos2.frontend.control import Launcher
 
-from survos2.frontend.plugins.base import *
+
 
 from survos2.model import DataModel
 from survos2.server.state import cfg
@@ -115,3 +116,4 @@ class SpatialClustering(AnalyzerCardBase):
         elif idx == 0:
             self.HDBSCAN_Panel.setParent(None)
             self.clustering_method_container.layout().addWidget(self.DBSCAN_Panel)
+

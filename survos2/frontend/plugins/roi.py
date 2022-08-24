@@ -4,6 +4,7 @@ import mrcfile
 from skimage import io
 import numpy as np
 from loguru import logger
+from qtpy import QtWidgets
 from qtpy.QtWidgets import QFileDialog, QGridLayout, QGroupBox, QLabel
 from numpy import clip, product
 from PyQt5.QtCore import Qt, QTimer, pyqtSlot, QObject, pyqtSignal, QThread
@@ -31,8 +32,6 @@ from PyQt5.QtWidgets import (
 from survos2.api.objects import get_entities
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.base import (
-    ComboBox,
-    LazyComboBox,
     Plugin,
     VBox,
     register_plugin,
@@ -42,14 +41,9 @@ from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
 
-from survos2.frontend.components.base import *
-from survos2.frontend.components.base import HWidgets, Slider
+from survos2.frontend.components.base import HWidgets, Slider, PushButton, Card
 from survos2.frontend.plugins.annotations import LevelComboBox
-from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
-from survos2.frontend.plugins.base import ComboBox
 
-# from survos2.frontend.plugins.features import *
-# from survos2.frontend.plugins.superregions import *
 from survos2.frontend.utils import FileWidget
 from survos2.server.state import cfg
 from survos2.model.model import DataModel
@@ -259,9 +253,7 @@ class LoadDataDialog(QDialog):
         Returns:
             int: Value of text in LineEdt or 0
         """
-        if linedt.text():
-            return int(linedt.text())
-        return 0
+        return int(linedt.text()) if linedt.text() else 0
 
     def load_data(self):
         if isinstance(self.data, h5.Group):
@@ -292,15 +284,7 @@ class LoadDataDialog(QDialog):
             bool: True if the ROI dimension parameters are different from the data shape.
         """
         x_start, x_end, y_start, y_end, z_start, z_end = roi_limits
-        if not x_start == y_start == z_start == 0:
-            return True
-        if (
-            (x_end != self.data_shape[2])
-            or (y_end != self.data_shape[1])
-            or (z_end != self.data_shape[0])
-        ):
-            return True
-        return False
+        return x_end != self.data_shape[2] or y_end != self.data_shape[1] or z_end != self.data_shape[0] if x_start == y_start == z_start == 0 else True
 
     def on_roi_box_update(self, size_tuple):
         """Updates ROI dimension parameters with data from ROI box drawn by dragging mouse on preview window.
@@ -515,10 +499,8 @@ class ROIPlugin(Plugin):
             src=features_src,
         )
 
-        result = Launcher.g.run("features", "get_volume", **params)
-        if result:
-            feature_arr = decode_numpy(result)
-            return feature_arr
+        if result := Launcher.g.run("features", "get_volume", **params):
+            return decode_numpy(result)
 
     def _launch_data_loader(self):
         """Load the dialog box widget for ROI selection."""
@@ -750,3 +732,4 @@ class ROICard(Card):
             target_anno_id=target_id,
         )
         result = Launcher.g.run("roi", "pull_anno", **all_params)
+

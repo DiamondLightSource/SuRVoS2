@@ -5,11 +5,12 @@ from loguru import logger
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
 
-from survos2.frontend.components.base import *
+from survos2.frontend.components.base import VBox, ComboBox, PluginNotifier
+
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
-from survos2.frontend.plugins.base import *
+
 from survos2.frontend.plugins.base import (
     ComboBox,
     LazyComboBox,
@@ -35,6 +36,9 @@ from survos2.frontend.plugins.pipeline.rasterize import RasterizePoints
 from survos2.frontend.plugins.pipeline.watershed import Watershed
 from survos2.frontend.plugins.pipeline.multiaxis_cnn import TrainMultiaxisCNN, PredictMultiaxisCNN
 from survos2.frontend.plugins.pipeline.cnn3d import Train3DCNN, Predict3DCNN
+
+from survos2.frontend.plugins.base import register_plugin, Plugin
+
 from napari.qt.progress import progress
 
 _PipelineNotifier = PluginNotifier()
@@ -218,3 +222,4 @@ class PipelineFunctionTest(PipelineCardBase):
 
     def compute_pipeline(self):
         pass
+

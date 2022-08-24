@@ -3,8 +3,8 @@ import numpy as np
 from numpy.lib.function_base import flip
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
-
-from survos2.frontend.components.base import *
+from loguru import logger
+from survos2.frontend.components.base import VBox, LazyComboBox, HWidgets, PushButton, CheckBox, Card, ComboBox, LineEdit3D, LineEdit
 from survos2.frontend.components.entity import (
     SmallVolWidget,
     TableWidget,
@@ -13,7 +13,7 @@ from survos2.frontend.components.entity import (
 )
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
-from survos2.frontend.plugins.base import *
+
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.frontend.utils import FileWidget
 from survos2.improc.utils import DatasetManager
@@ -77,7 +77,7 @@ class ObjectsPlugin(Plugin):
         params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("objects", "available", **params)
 
-        print(result)
+
         logger.debug(f"objects available: {result}")
         if result:
             all_categories = sorted(set(p["category"] for p in result))
@@ -91,28 +91,16 @@ class ObjectsPlugin(Plugin):
 
     def add_objects(self, idx):
         logger.debug(f"Add objects with idx {idx}")
-        if idx == 0 or idx == -1:
+        if idx in [0, -1]:
             return
-
-        # self.objects_combo.setCurrentIndex(0)
-        print(idx)
         order = idx - 2
-
         if order == 1:
-            params = dict(
-                order=order,
-                workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
-                fullname="survos2/entity/blank_boxes.csv",
-            )
-        else:
-            params = dict(
-                order=order,
-                workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
-                fullname="survos2/entity/blank_entities.csv",
-            )
-        result = Launcher.g.run("objects", "create", **params)
+            params = dict(order=order, workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}", fullname="survos2/entity/blank_boxes.csv")
 
-        if result:
+        else:
+            params = dict(order=order, workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}", fullname="survos2/entity/blank_entities.csv")
+
+        if result := Launcher.g.run("objects", "create", **params):
             objectsid = result["id"]
             objectsname = result["name"]
             objectsfullname = result["fullname"]
@@ -142,19 +130,14 @@ class ObjectsPlugin(Plugin):
 
     def setup(self):
         self._populate_objects()
-        params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
+        params = dict(workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}")
+
         result = Launcher.g.run("objects", "existing", **params)
-
         logger.debug(f"objects result {result}")
-
         if result:
-            # Remove objects that no longer exist in the server
-            print(self.existing_objects.keys())
             for objects in list(self.existing_objects.keys()):
                 if objects not in result:
                     self.existing_objects.pop(objects).setParent(None)
-
-            # Populate with new entity if any
             for entity in sorted(result):
                 if entity in self.existing_objects:
                     continue
@@ -163,19 +146,14 @@ class ObjectsPlugin(Plugin):
                 objectsname = enitity_params.pop("name", entity)
                 objectsfullname = enitity_params.pop("fullname", entity)
                 objectstype = enitity_params.pop("kind", entity)
-                print(f"type: {objectstype}")
+                logger.debug(f"type: {objectstype}")
                 if objectstype != "unknown":
-                    widget = self._add_objects_widget(
-                        objectsid, objectsname, objectsfullname, objectstype
-                    )
+                    widget = self._add_objects_widget(objectsid, objectsname, objectsfullname, objectstype)
+
                     widget.update_params(params)
                     self.existing_objects[objectsid] = widget
                 else:
-                    logger.debug(
-                        "+ Skipping loading entity: {}, {}, {}".format(
-                            objectsid, objectsname, objectstype
-                        )
-                    )
+                    logger.debug(f"+ Skipping loading entity: {objectsid}, {objectsname}, {objectstype}")
 
 
 class ObjectsCard(Card):
@@ -277,7 +255,7 @@ class ObjectsCard(Card):
 
     def load_data(self, path):
         self.objectsfullname = path
-        print(f"Setting objectsfullname: {self.objectsfullname}")
+        logger.debug(f"Setting objectsfullname: {self.objectsfullname}")
 
     def card_deleted(self):
         params = dict(objects_id=self.objectsid, workspace=True)
@@ -301,6 +279,7 @@ class ObjectsCard(Card):
         return result["done"]
 
     def view_objects(self):
+        self.get_objects()
         logger.debug(f"Transferring objects {self.objectsid} to viewer")
         cfg.ppw.clientEvent.emit(
             {
@@ -330,7 +309,7 @@ class ObjectsCard(Card):
         cfg.object_crop_end = self.widgets["crop_end"].value()
 
         dst = DataModel.g.dataset_uri(self.objectsid, group="objects")
-        print(f"objectsfullname: {self.objectsfullname}")
+        logger.debug(f"objectsfullname: {self.objectsfullname}")
         params = dict(
             dst=dst,
             fullname=self.objectsfullname,
@@ -373,17 +352,16 @@ class ObjectsCard(Card):
         cfg.tabledata = tabledata
         self.table_control.set_data(tabledata)
 
-        print(f"Loaded tabledata {tabledata}")
+        logger.debug(f"Loaded tabledata {tabledata}")
         self.table_control.set_data(tabledata)
         self.collapse()
         self.expand()
 
     def make_boxes_from_points(self):
-        logger.debug(f"Making boxes from points")
+        logger.debug("Making boxes from points")
         entity_arr = np.array(self.entities_df)
         box_dim = self.widgets["box_dim"].value()
         boxes = []
-
         for z, x, y, c in entity_arr:
             z_st = z - box_dim[0] // 2
             z_end = z + box_dim[0] // 2
@@ -391,43 +369,30 @@ class ObjectsCard(Card):
             x_end = x + box_dim[1] // 2
             y_st = y - box_dim[2] // 2
             y_end = y + box_dim[2] // 2
-            print(f"{z_st},{z_end},{x_st},{x_end},{y_st},{y_end}")
+            logger.debug(f"{z_st},{z_end},{x_st},{x_end},{y_st},{y_end}")
             boxes.append([c, z, x, y, z_st, x_st, y_st, z_end, x_end, y_end])
         from survos2.entity.entities import load_boxes_via_file
-
         load_boxes_via_file(np.array(boxes), flipxy=False)
-        cfg.ppw.clientEvent.emit(
-            {"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "objects"}
-        )
+        cfg.ppw.clientEvent.emit({"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "objects"})
 
     def make_bvol_mask(self):
-        logger.debug(f"Making bvol mask")
+        logger.debug("Making bvol mask")
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
             src_array = DM.sources[0][:]
         entity_arr = np.array(self.entities_df)
         from survos2.entity.sampler import viz_bb
-
-        print(entity_arr)
         gold_mask = viz_bb(src_array, entity_arr, flipxy=True)
-
-        # create new raw feature
         params = dict(feature_type="raw", workspace=True)
-        result = Launcher.g.run("features", "create", **params)
-
-        if result:
+        if result := Launcher.g.run("features", "create", **params):
             fid = result["id"]
             ftype = result["kind"]
             fname = result["name"]
             logger.debug(f"Created new object in workspace {fid}, {ftype}, {fname}")
-
             dst = DataModel.g.dataset_uri(fid, group="features")
             with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
                 DM.out[:] = gold_mask
-
-            cfg.ppw.clientEvent.emit(
-                {"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "features"}
-            )
+            cfg.ppw.clientEvent.emit({"source": "objects_plugin", "data": "refresh_plugin", "plugin_name": "features"})
 
     def make_entity_mask(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
@@ -467,7 +432,6 @@ class ObjectsCard(Card):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
             src_array = DM.sources[0][:]
-
         objects_scale = 1.0
         entity_meta = {
             "0": {
@@ -483,11 +447,12 @@ class ObjectsCard(Card):
             src_array, entity_arr, entity_meta, plot_all=False
         )
 
-        wparams = {}
-        wparams["entities_offset"] = (0, 0, 0)
-        wparams["entity_meta"] = entity_meta
-        wparams["workflow_name"] = "Make_Patches"
-        wparams["proj"] = DataModel.g.current_workspace
+        wparams = {"entities_offset": (0, 0, 0), 
+                    "entity_meta": entity_meta, 
+                    "workflow_name": 
+                    "Make_Patches", 
+                    "proj": DataModel.g.current_workspace}
+
         wf = PatchWorkflow(
             [src_array],
             combined_clustered_pts,
@@ -522,3 +487,4 @@ class ObjectsCard(Card):
         cfg.ppw.clientEvent.emit(
             {"source": "panel_gui", "data": "view_patches", "patches_fullname": train_v_density}
         )
+

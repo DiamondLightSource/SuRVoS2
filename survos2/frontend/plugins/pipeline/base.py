@@ -5,17 +5,13 @@ from loguru import logger
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
 
-from survos2.frontend.components.base import *
+
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
-from survos2.frontend.plugins.base import *
-from survos2.frontend.plugins.base import (
-    ComboBox,
-    LazyComboBox,
-    LazyMultiComboBox,
-    DataTableWidgetItem,
-)
+
+from survos2.frontend.components.base import VBox, ComboBox, LazyComboBox, HWidgets, PushButton, CheckBox, LineEdit3D, LineEdit
+
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
 from survos2.frontend.plugins.superregions import RegionComboBox
@@ -78,9 +74,9 @@ class PipelineCardBase(Card):
             try:
                 pbar.update(1)
                 result = Launcher.g.run("pipelines", self.pipeline_type, **all_params)
-                print(result)
+                logger.debug(result)
             except Exception as err:
-                print(err)
+                logger.debug(err)
             if result is not None:
                 pbar.update(2)
 
@@ -101,7 +97,7 @@ class PipelineCardBase(Card):
 
     def load_data(self, path):
         self.model_fullname = path
-        print(f"Setting model fullname: {self.model_fullname}")
+        logger.debug(f"Setting model fullname: {self.model_fullname}")
 
     def _add_refine_choice(self):
         self.refine_checkbox = CheckBox(checked=True)
@@ -186,7 +182,7 @@ class PipelineCardBase(Card):
         self.add_row(widget)
 
     def _add_constrain_source(self):
-        print(self.annotations_source.value())
+        logger.debug(self.annotations_source.value())
         self.constrain_mask_source = AnnotationComboBox(header=(None, "None"), full=True)
         self.constrain_mask_source.fill()
         self.constrain_mask_source.setMaximumWidth(250)
@@ -309,11 +305,11 @@ class PipelineCardBase(Card):
             self.feature_source2.select(params["feature_B"])
 
         if "level_over" in params:
-            print("level over found")
+            logger.debug("level over found")
             self.annotations_source.select(os.path.join("annotations/", params["level_over"]))
 
         if "level_base" in params:
-            print("level_base found")
+            logger.debug("level_base found")
             self.annotations_source2.select(os.path.join("annotations/", params["level_base"]))
 
         if "region_id" in params:
@@ -325,12 +321,12 @@ class PipelineCardBase(Card):
                 import ast
 
                 constrain_mask_dict = ast.literal_eval(params["constrain_mask"])
-                print(constrain_mask_dict)
+                logger.debug(constrain_mask_dict)
 
                 constrain_mask_source = (
                     constrain_mask_dict["level"] + ":" + str(constrain_mask_dict["idx"])
                 )
-                print(f"Constrain mask source {constrain_mask_source}")
+                logger.debug(f"Constrain mask source {constrain_mask_source}")
                 self.constrain_mask_source.select(constrain_mask_source)
         if "multi_ax_train_params" in params:
             if params["anno_id"]:
@@ -428,11 +424,11 @@ class PipelineCardBase(Card):
         index = self.annotations_source.findText(search_str, QtCore.Qt.MatchFixedString)
         if index >= 0:
             self.annotations_source.setCurrentText(search_str)
-            print(f"Setting index to {index}")
+            logger.debug(f"Setting index to {index}")
         else:
             num_annotations = self.annotations_source.count()
             self.annotations_source.setCurrentIndex(num_annotations - 1)
-        print(f"Annotations source selected: {self.annotations_source.value()}")
+        logger.debug(f"Annotations source selected: {self.annotations_source.value()}")
 
     def load_as_float(self):
         logger.debug(f"Loading prediction {self.pipeline_id} as float image.")
@@ -528,3 +524,4 @@ class PipelineCardBase(Card):
                     "plugin_name": "annotations",
                 }
             )
+

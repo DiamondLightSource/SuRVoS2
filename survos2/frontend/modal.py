@@ -1,6 +1,6 @@
 from qtpy import QtWidgets
 from qtpy import QtCore, QtWidgets
-from survos2.frontend.components.base import *
+from survos2.frontend.components.base import VBox, Label, HWidgets, PushButton, SWidget, clear_layout, QCSWidget
 from survos2.model.singleton import Singleton
 
 
@@ -152,3 +152,4 @@ class ModalManager(QtWidgets.QDialog, SWidget):
             self.accept()
             if self.prev_modal:
                 self.show(self.prev_modal)
+

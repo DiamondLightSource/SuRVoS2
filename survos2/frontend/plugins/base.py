@@ -23,7 +23,8 @@ from qtpy import QtWidgets, QtCore, QtGui
 from vispy import scene
 from vispy.color import Colormap
 
-from survos2.frontend.components.base import *
+from survos2.frontend.components.base import VBox, QCSWidget, ScrollPane, Header
+
 from survos2.frontend.components.base import QCSWidget
 
 from collections import OrderedDict
@@ -158,3 +159,4 @@ class PluginContainer(QCSWidget):
             self.selected = self.plugins[name]
             if hasattr(self.selected["widget"], "setup"):
                 self.selected["widget"].setup()
+

@@ -5,10 +5,10 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from napari.qt.progress import progress
 from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
-from survos2.frontend.components.base import *
-from survos2.frontend.control import Launcher
 
-from survos2.frontend.plugins.base import *
+from survos2.frontend.control import Launcher
+from survos2.frontend.components.base import HWidgets, Slider, PushButton, Card, SimpleComboBox, LineEdit, CheckBox
+
 from survos2.model import DataModel
 
 from survos2.frontend.plugins.analyzers.base import AnalyzerCardBase, MplCanvas
@@ -102,7 +102,7 @@ class LabelSplitter(AnalyzerCardBase):
             feature_arrays = []
             feature_titles = []
 
-            for j, s in enumerate(split_feature_indexes):
+            for s in split_feature_indexes:
                 feature_title = feature_names[int(s)]
                 feature_plot_array = features_ndarray[:, int(s)]
                 feature_arrays.append(feature_plot_array)
@@ -271,3 +271,4 @@ class FindConnectedComponents(AnalyzerCardBase):
         if result:
             logger.debug(f"Segmentation stats result table {len(result)}")
             self.display_component_results(result)
+

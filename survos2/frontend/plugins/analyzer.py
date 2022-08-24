@@ -8,7 +8,7 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
 from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
 from survos2.entity.cluster.clusterer import select_clusters
-from survos2.frontend.components.base import *
+from survos2.frontend.components.base import VBox, ComboBox
 from survos2.frontend.components.entity import TableWidget
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
@@ -32,7 +32,6 @@ from survos2.frontend.plugins.analyzers.label_analysis import (
 )
 from survos2.frontend.plugins.analyzers.spatial_clustering import SpatialClustering
 from survos2.frontend.plugins.annotations import LevelComboBox
-from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.export import SuperRegionSegmentComboBox
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.objects import ObjectComboBox
@@ -146,7 +145,7 @@ class AnalyzerPlugin(Plugin):
         elif analyzer_type == "object_analyzer":
             widget = ObjectAnalyzer(analyzer_id, analyzer_name, analyzer_type)
         else:
-            print("No matching analyzer type.")
+            logger.debug("No matching analyzer type.")
             return None
 
         widget.showContent(expand)
@@ -218,3 +217,4 @@ class AnalyzerFunctionTest(AnalyzerCardBase):
 
     def calculate(self):
         pass
+

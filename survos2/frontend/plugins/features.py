@@ -5,8 +5,16 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton, QFileDialog
 from qtpy.QtCore import QSize, Signal
 
-from survos2.frontend.components.base import *
-from survos2.frontend.plugins.base import *
+from survos2.frontend.components.base import VBox, Plugin, HWidgets, PushButton, LineEdit, LineEdit3D, RealSlider, CardWithId, CheckBox, ComboBox
+
+
+from survos2.frontend.plugins.base import (
+    ColorButton,
+    ParentButton,
+    Plugin,
+    register_plugin,
+)
+fr
 from survos2.model import DataModel
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.plugins_components import SourceComboBox
@@ -97,7 +105,7 @@ class FeaturesPlugin(Plugin):
 
     def load_workflow(self, path):
         self.workflow_fullname = path
-        print(f"Setting workflow fullname: {self.workflow_fullname}")
+        logger.debug(f"Setting workflow fullname: {self.workflow_fullname}")
 
     def button_runworkflow_clicked(self):
         cfg.ppw.clientEvent.emit(
@@ -163,7 +171,7 @@ class FeaturesPlugin(Plugin):
             workflow = {}
             for i, (k, v) in enumerate(self.existing_features.items()):
                 for x, y in v.widgets.items():
-                    print(x, y.value())
+   
                     workflow["f" + str(i)] = {}
                     workflow["f" + str(i)]["action"] = "features." + str(v.feature_type)
                     workflow["f" + str(i)]["src"] = "001_raw"
@@ -226,7 +234,7 @@ class FeatureCard(CardWithId):
         super().__init__(fname, fid, removable=True, editable=True, collapsible=True, parent=parent)
 
         self.params = fparams
-        self.widgets = dict()
+        self.widgets = {}
 
         if self.feature_type == "wavelet":
             self._add_source()
@@ -349,7 +357,7 @@ class FeatureCard(CardWithId):
 
     def update_params(self, params):
         src = params.pop("source", None)
-        print(params)
+
         if src is not None:
             if self.feature_type != "feature_composite" and self.feature_type != "raw":
                 self.cmb_source.select(src)
@@ -503,3 +511,4 @@ class FeatureCard(CardWithId):
             _FeatureNotifier.notify()
 
         return result["done"]
+

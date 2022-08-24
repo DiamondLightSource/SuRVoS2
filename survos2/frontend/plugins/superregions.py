@@ -1,11 +1,12 @@
 import numpy as np
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
+from loguru import logger
+from survos2.frontend.components.base import VBox, LazyComboBox,LineEdit3D, Label, HWidgets, PushButton, SWidget, clear_layout, QCSWidget, CheckBox, ComboBox, CardWithId, LineEdit, Card
 
-from survos2.frontend.components.base import *
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
-from survos2.frontend.plugins.base import *
+from survos2.frontend.plugins.base import register_plugin, Plugin
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.model import DataModel
@@ -54,9 +55,7 @@ class RegionsPlugin(Plugin):
 
     def add_supervoxel(self):
         params = dict(order=1, workspace=True, big=False)
-        result = Launcher.g.run("superregions", "create", **params)
-
-        if result:
+        if result := Launcher.g.run("superregions", "create", **params):
             svid = result["id"]
             svname = result["name"]
             self._add_supervoxel_widget(svid, svname, True)
@@ -74,33 +73,26 @@ class RegionsPlugin(Plugin):
         self.existing_supervoxels = {}
 
     def setup(self):
-        params = dict(
-            order=1,
-            workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
-        )
+        params = dict(order=1, workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}")
 
         result = Launcher.g.run("superregions", "existing", **params)
         logger.debug(f"Region result {result}")
         if result:
-            # Remove regions that no longer exist in the server
             for region in list(self.existing_supervoxels.keys()):
                 if region not in result:
                     self.existing_supervoxels.pop(region).setParent(None)
-            # Populate with new region if any
             for supervoxel in sorted(result):
-
                 if supervoxel in self.existing_supervoxels:
                     continue
                 params = result[supervoxel]
                 svid = params.pop("id", supervoxel)
                 svname = params.pop("name", supervoxel)
-
                 if params.pop("kind", "unknown") != "unknown":
                     widget = self._add_supervoxel_widget(svid, svname)
                     widget.update_params(params)
                     self.existing_supervoxels[svid] = widget
                 else:
-                    logger.debug("+ Skipping loading supervoxel: {}, {}".format(svid, svname))
+                    logger.debug(f"+ Skipping loading supervoxel: {svid}, {svname}")
 
 
 class SupervoxelCard(Card):
@@ -187,7 +179,6 @@ class SupervoxelCard(Card):
             pbar.update(1)
 
     def compute_supervoxels(self):
-
         with progress(total=4) as pbar:
             pbar.set_description("Refreshing")
             pbar.update(1)
@@ -215,11 +206,7 @@ class SupervoxelCard(Card):
             pbar.update(1)
             n_segments = int(np.prod(src_dataset_shape) / self.svshape.value() ** 3)
 
-            if self.int64_checkbox.value():
-                out_dtype = "uint64"
-            else:
-                out_dtype = "uint32"
-
+            out_dtype = "uint64" if self.int64_checkbox.value() else "uint32"
             params = dict(
                 src=src,
                 dst=dst,
@@ -251,3 +238,4 @@ class SupervoxelCard(Card):
         if "source" in params:
             for source in params["source"]:
                 self.svsource.select(source)
+

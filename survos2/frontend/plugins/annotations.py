@@ -5,8 +5,8 @@ from matplotlib.colors import ListedColormap
 from scipy.ndimage import binary_dilation
 from skimage.draw import line
 from skimage.morphology import disk
-
-from survos2.frontend.components.base import *
+from qtpy import QtWidgets, QtCore
+from survos2.frontend.components.base import VBox, HWidgets, PushButton,  QCSWidget, CheckBox, CardWithId, LineEdit
 from survos2.frontend.components.base import (
     FAIcon,
     HBox,
@@ -15,19 +15,20 @@ from survos2.frontend.components.base import (
     PluginNotifier,
     Slider,
 )
-from survos2.frontend.components.icon_buttons import DelIconButton, IconButton
-from survos2.frontend.control.launcher import Launcher
-from survos2.frontend.plugins.annotation_tool import (
-    AnnotationComboBox,
-    _AnnotationNotifier,
-)
-from survos2.frontend.plugins.base import *
 from survos2.frontend.plugins.base import (
     ColorButton,
     ParentButton,
     Plugin,
     register_plugin,
 )
+from survos2.frontend.components.icon_buttons import DelIconButton, IconButton
+from survos2.frontend.control.launcher import Launcher
+from survos2.frontend.plugins.annotation_tool import (
+    AnnotationComboBox,
+    _AnnotationNotifier,
+)
+
+
 from survos2.frontend.plugins.superregions import RegionComboBox
 from survos2.model import DataModel
 from survos2.server.state import cfg
@@ -73,7 +74,7 @@ def dilate_annotations(yy, xx, img_shape, line_width):
         yy += ymin
         xx += xmin
     except Exception as err:
-        print(f"Exception: {err}")
+        logger.debug(f"Exception: {err}")
     return yy, xx
 
 
@@ -188,7 +189,7 @@ class AnnotationPlugin(Plugin):
         cfg.current_supervoxels = self.region.value()
         cfg.label_value = self.label.value()
         cfg.brush_size = self.width.value()
-        print(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
+        logger.debug(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
         # cfg.three_dim = cfg.three_dim_checkbox.value()
 
         if cfg.label_value is not None:
@@ -323,7 +324,7 @@ class AnnotationLabel(QCSWidget):
 
     def __init__(self, label, level_dataset, parent=None, brush_slider=None):
         super().__init__(parent=parent)
-        print(f"Adding label: {label}")
+        logger.debug(f"Adding label: {label}")
         self.level_dataset = level_dataset
         self.label_idx = int(label["idx"])
         self.label_color = label["color"]
@@ -438,7 +439,7 @@ class AnnotationLabel(QCSWidget):
                 )
                 result = Launcher.g.run("annotations", "set_label_parent", **params)
         except Exception as e:
-            print(e)
+            logger.debug(e)
 
         cfg.ppw.clientEvent.emit(
             {
@@ -473,3 +474,4 @@ class AnnotationLabel(QCSWidget):
         if result:
             _AnnotationNotifier.notify()
             self.removed.emit(self.label_idx)
+
