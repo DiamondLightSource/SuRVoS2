@@ -709,12 +709,12 @@ def train_3d_cnn(
     num_samples: Int,
     num_epochs: Int,
     num_augs: Int,
-    padding: IntOrVector = 32,
-    grid_dim: IntOrVector = 4,
     patch_size: IntOrVector = 64,
     patch_overlap: IntOrVector = 16,
     fcn_type: String = "unet3d",
+    bce_to_dice_weight : Float = 0.7,
     threshold: Float = 0.5,
+
 ):
     logger.debug(f"Train_3d fcn using anno {anno_id} and feature {feature_id}")
 
@@ -732,7 +732,7 @@ def train_3d_cnn(
     }
 
     # point sampling either by generating random points or loading in a list of points
-
+    padding = patch_size
     padded_vol = pad_vol(src_array, padding)
 
     entity_arr = generate_random_points_in_volume(padded_vol, num_samples, padding)
@@ -796,7 +796,7 @@ def train_3d_cnn(
     model_type = fcn_type
 
     model_file = train_oneclass_detseg(
-        train_v_density, None, wf_params, num_epochs=num_epochs, model_type=model_type
+        train_v_density, None, wf_params, num_epochs=num_epochs, model_type=model_type, bce_weight=bce_to_dice_weight
     )
 
     src = DataModel.g.dataset_uri(feature_id, group="features")
@@ -1022,3 +1022,4 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+
