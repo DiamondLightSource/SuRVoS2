@@ -607,9 +607,8 @@ def find_connected_components(
 
     single_label_level = (src_dataset_arr == label_index) * 1.0
 
-    
     bbs_tables, selected_entities = detect_blobs(single_label_level)
-    
+
     result_list = []
     for i in range(len(bbs_tables[0])):
         if (bbs_tables[0].iloc[i]["area"] > area_min) & (bbs_tables[0].iloc[i]["area"] < area_max):
@@ -643,12 +642,12 @@ def segmentation_stats(
     label_index_A: Int,
     label_index_B: Int,
 ) -> "IMAGE":
-    """Calculate segmentation statistics to compare two label images. 
+    """Calculate segmentation statistics to compare two label images.
     Dice and IOU are returned.
 
     Args:
         src (DataURI): Source image URI.
-        dst (DataURI): Destination image URI.      
+        dst (DataURI): Destination image URI.
         modeA (String): Pipeline, Analyzer or Annotation.
         modeB (String): Pipeline, Analyzer or Annotation.
         workspace (String): Workspace to get images from.
@@ -664,7 +663,7 @@ def segmentation_stats(
     Returns:
         list of float: Dice and IOU.
     """
-    
+
     if modeA == "1":
         src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id_A), group="pipelines")
         logger.debug(f"Analyzer calc on pipeline src {src}")
@@ -779,7 +778,7 @@ def spatial_clustering(
     workspace: String,
     params: dict,
 ) -> "OBJECTS":
-    """Cluster points using HDBSCAN or DBSCAN. 
+    """Cluster points using HDBSCAN or DBSCAN.
 
     Args:
         src (DataURI): Source Pipelines URI (the current image.)
@@ -1075,7 +1074,7 @@ def object_analyzer(
         embedding_method (String): TSNE or UMAP.
         dst (DataURI): Destination URI (not used).
         bvol_dim (IntOrVector): Dimension of bounding volume to use.
-        axis (Int): Which axis to sample 2D patches along.  
+        axis (Int): Which axis to sample 2D patches along.
         embedding_params (dict): Parameters for embedding method.
         min_cluster_size (Int): HDBScan is used to cluster the embedded points. This is the minimum number of points in a cluster.
         flipxy (SmartBoolean): Flip the XY coordinates of the input points.
@@ -1450,4 +1449,3 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
-

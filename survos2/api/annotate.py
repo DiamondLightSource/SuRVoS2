@@ -7,7 +7,6 @@ _MaskSize = 4  # 4 bits per history label
 _MaskCopy = 15  # 0000 1111
 _MaskPrev = 240  # 1111 0000
 
-    
 
 def get_order(viewer_order):
     """Calculate the new order of the axes. Follows napari viewer order.
@@ -79,7 +78,7 @@ def annotate_voxels(
 
     box_half_dim = int(brush_size // 2)
 
-    #print(f"Slice idx {slice_idx}")
+    # print(f"Slice idx {slice_idx}")
     if three_dim:
         if parent_mask is not None:
             parent_mask_t = np.transpose(parent_mask, viewer_order)
@@ -124,7 +123,7 @@ def annotate_voxels(
             mask = mask > 0
             ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
 
-        #print(ds_t[bbsz:bbfz, bbsy:bbfy, bbsx:bbfx].shape, ellipse_mask.shape)
+        # print(ds_t[bbsz:bbfz, bbsy:bbfy, bbsx:bbfx].shape, ellipse_mask.shape)
 
     else:
         data_slice = ds_t[slice_idx, :]
@@ -132,7 +131,7 @@ def annotate_voxels(
 
         if parent_mask is not None:
             parent_mask_t = np.transpose(parent_mask, viewer_order)
-            #print(f"Using parent mask of shape: {parent_mask.shape}")
+            # print(f"Using parent mask of shape: {parent_mask.shape}")
             mask = parent_mask_t
             mask = mask > 0
             mask = mask[slice_idx, :]
@@ -142,12 +141,12 @@ def annotate_voxels(
 
     if len(viewer_order) == 3:
         new_order = get_order(viewer_order)
-        #logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
+        # logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
         ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
     else:
         ds_o = ds_t
     # ds = np.transpose(ds, np.roll(viewer_order,1)).reshape(original_shape)
-    #logger.info(f"Dataset after second transpose: {ds_o.shape}")
+    # logger.info(f"Dataset after second transpose: {ds_o.shape}")
     dataset[:] = ds_o
 
 
@@ -200,7 +199,7 @@ def annotate_regions(
     # print(f"BB: {bb}")
     try:
         if not bb or bb[0] == -1:
-            #print("No bb")
+            # print("No bb")
             bb = [0, 0, 0, ds_t.shape[0], ds_t.shape[1], ds_t.shape[2]]
         # else:
         # print(f"Masking using bb: {bb}")
@@ -225,13 +224,13 @@ def annotate_regions(
 
     ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
     ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
-    #logger.debug(f"Returning annotated region ds {ds.shape}")
+    # logger.debug(f"Returning annotated region ds {ds.shape}")
 
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
         new_order = get_order(viewer_order)
-        #logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
+        # logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
         ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
-        #logger.info(f"Dataset after second transpose: {ds_o.shape}")
+        # logger.info(f"Dataset after second transpose: {ds_o.shape}")
     else:
         ds_o = ds_t
     return ds_o
@@ -246,7 +245,7 @@ def undo_annotation(dataset):
         dataset (Dataset): Dataset object
     """
     modified = dataset.get_attr("modified")
-    
+
     logger.debug("Undoing annotation")
 
     if len(modified) == 1:
@@ -305,5 +304,3 @@ def erase_label(dataset, label=0):
                 data_chunk[rmask] &= hmask
         if modified:
             dataset[chunk_slices] = data_chunk
-
-
