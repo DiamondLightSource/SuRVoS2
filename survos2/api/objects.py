@@ -40,8 +40,8 @@ def load_bvols(bvols_arr, flipxy=True):
     tmp_fullpath = os.path.abspath(
         os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
     )
-    print(entities_df)
-    print(f"Creating temp file: {tmp_fullpath}")
+    logger.debug(entities_df)
+    logger.debug(f"Creating temp file: {tmp_fullpath}")
     entities_df.to_csv(tmp_fullpath, line_terminator="")
 
     object_scale = 1.0
@@ -65,7 +65,7 @@ def load_bvols(bvols_arr, flipxy=True):
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
-        logger.info(f"Got __data__ volume of size {img_volume.shape}")
+        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
 
     ds[:] = np.zeros_like(img_volume)
     ds.set_attr("scale", object_scale)
@@ -74,7 +74,7 @@ def load_bvols(bvols_arr, flipxy=True):
     ds.set_attr("crop_end", list(object_crop_end))
 
     csv_saved_fullname = ds.save_file(tmp_fullpath)
-    logger.info(f"Saving {tmp_fullpath} to {csv_saved_fullname}")
+    logger.debug(f"Saving {tmp_fullpath} to {csv_saved_fullname}")
     ds.set_attr("fullname", csv_saved_fullname)
     os.remove(tmp_fullpath)
 
@@ -84,8 +84,8 @@ def load_entities(entities_arr, flipxy=True):
     tmp_fullpath = os.path.abspath(
         os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
     )
-    print(entities_df)
-    print(f"Creating temp file: {tmp_fullpath}")
+    logger.debug(entities_df)
+    logger.debug(f"Creating temp file: {tmp_fullpath}")
     entities_df.to_csv(tmp_fullpath, line_terminator="")
 
     object_scale = 1.0
@@ -109,7 +109,7 @@ def load_entities(entities_arr, flipxy=True):
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
-        logger.info(f"Got __data__ volume of size {img_volume.shape}")
+        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
 
     ds[:] = np.zeros_like(img_volume)
     ds.set_attr("scale", object_scale)
@@ -118,7 +118,7 @@ def load_entities(entities_arr, flipxy=True):
     ds.set_attr("crop_end", list(object_crop_end))
 
     csv_saved_fullname = ds.save_file(tmp_fullpath)
-    logger.info(f"Saving {tmp_fullpath} to {csv_saved_fullname}")
+    logger.debug(f"Saving {tmp_fullpath} to {csv_saved_fullname}")
     ds.set_attr("fullname", csv_saved_fullname)
     os.remove(tmp_fullpath)
 
@@ -145,7 +145,7 @@ def get_entities(src: DataURI):
         objects_crop_start = ds_objects.get_metadata("crop_start")
         objects_crop_end = ds_objects.get_metadata("crop_end")
 
-    logger.info(f"Setting up entities {objects_fullname}")
+    logger.debug(f"Setting up entities {objects_fullname}")
     tabledata, entities_df = setup_entity_table(
         objects_fullname,
         entities_df=None,
@@ -190,9 +190,9 @@ def points(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
-        logger.info(f"Got __data__ volume of size {img_volume.shape}")
+        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
     # store in dst
-    logger.info(f"Storing in dataset {dst}")
+    logger.debug(f"Storing in dataset {dst}")
 
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         DM.out[:] = np.zeros_like(img_volume)
@@ -203,7 +203,7 @@ def points(
         dst_dataset.set_attr("crop_end", crop_end)
 
         csv_saved_fullname = dst_dataset.save_file(fullname)
-        logger.info(f"Saving {fullname} to {csv_saved_fullname}")
+        logger.debug(f"Saving {fullname} to {csv_saved_fullname}")
         dst_dataset.set_attr("fullname", csv_saved_fullname)
 
 
@@ -220,10 +220,10 @@ def boxes(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
-        logger.info(f"Got __data__ volume of size {img_volume.shape}")
+        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
 
     # store in dst
-    logger.info(f"Storing in dataset {dst}")
+    logger.debug(f"Storing in dataset {dst}")
 
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         DM.out[:] = np.zeros_like(img_volume)
@@ -234,7 +234,7 @@ def boxes(
         dst_dataset.set_attr("crop_end", crop_end)
 
         csv_saved_fullname = dst_dataset.save_file(fullname)
-        logger.info(f"Saving {fullname} to {csv_saved_fullname}")
+        logger.debug(f"Saving {fullname} to {csv_saved_fullname}")
         dst_dataset.set_attr("fullname", csv_saved_fullname)
 
 
@@ -251,9 +251,9 @@ def patches(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
-        logger.info(f"Got __data__ volume of size {img_volume.shape}")
+        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
     # store in dst
-    logger.info(f"Storing in dataset {dst}")
+    logger.debug(f"Storing in dataset {dst}")
 
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         DM.out[:] = np.zeros_like(img_volume)
@@ -264,7 +264,7 @@ def patches(
         dst_dataset.set_attr("crop_end", crop_end)
 
         csv_saved_fullname = dst_dataset.save_file(fullname)
-        logger.info(f"Saving {fullname} to {csv_saved_fullname}")
+        logger.debug(f"Saving {fullname} to {csv_saved_fullname}")
         dst_dataset.set_attr("fullname", csv_saved_fullname)
 
 
@@ -285,7 +285,7 @@ def update_metadata(
         dst_dataset.set_attr("crop_end", crop_end)
 
         csv_saved_fullname = dst_dataset.save_file(fullname)
-        logger.info(f"Saving {fullname} to {csv_saved_fullname}")
+        logger.debug(f"Saving {fullname} to {csv_saved_fullname}")
         dst_dataset.set_attr("fullname", csv_saved_fullname)
 
 
@@ -357,7 +357,6 @@ def available():
             "update_metadata",
         ]:
             continue
-        logger.debug(f"Object types available {name}")
         name = name[1:]
         func = method["GET"][None].interface.spec
         desc = get_function_api(func)
@@ -365,3 +364,4 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+

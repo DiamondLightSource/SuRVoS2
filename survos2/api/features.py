@@ -41,16 +41,14 @@ def rescale_denan(img):
 
 @hug.post()
 def upload(body, request, response):
-    print(f"Request: {request}")
-    print(f"Response: {response}")
+
     encoded_feature = body["file"]
     array_shape = body["shape"]
-    print(f"shape {array_shape}")
     feature = np.frombuffer(encoded_feature, dtype="float32")
     from ast import literal_eval
 
     feature.shape = literal_eval(array_shape)
-    print(f"Uploaded feature of shape {feature.shape}")
+    logger.debug(f"Uploaded feature of shape {feature.shape}")
 
     params = dict(feature_type="raw", workspace=DataModel.g.current_workspace)
     result = create(**params)
@@ -404,7 +402,7 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
 
     if isinstance(sigma, float) or isinstance(sigma, int):
         sigma = np.array([sigma] * 3)
-        print(f"Gaussian blur using sigma {sigma}")
+        
 
     if sigma[0] == 0:
         from skimage.filters import gaussian
@@ -598,3 +596,4 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+

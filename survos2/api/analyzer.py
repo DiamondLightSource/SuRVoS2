@@ -199,17 +199,17 @@ def detect_blobs(
 ):
     images = [padded_proposal]
     bbs_tables, bbs_arrs = component_bounding_boxes(images)
-    print(f"Detecting blobs on image of shape {padded_proposal.shape}")
+    logger.debug(f"Detecting blobs on image of shape {padded_proposal.shape}")
     zidx = padded_proposal.shape[0] // 2
 
     from survos2.frontend.nb_utils import summary_stats
 
-    print("Component stats: ")
-    print(f"{summary_stats(bbs_tables[0]['area'])}")
+    logger.debug("Component stats: ")
+    logger.debug(f"{summary_stats(bbs_tables[0]['area'])}")
 
     if plot_all:
         for idx in range(len(bbs_tables)):
-            print(idx)
+            logger.debug(idx)
             plt.figure(figsize=(5, 5))
             plt.imshow(images[idx][zidx, :], cmap="gray")
             plt.scatter(bbs_arrs[idx][:, 4], bbs_arrs[idx][:, 3])
@@ -217,7 +217,7 @@ def detect_blobs(
     selected_entities = bbs_tables[0][
         (bbs_tables[0]["area"] > area_min) & (bbs_tables[0]["area"] < area_max)
     ]
-    print(f"Number of selected entities {len(selected_entities)}")
+    logger.debug(f"Number of selected entities {len(selected_entities)}")
 
     return bbs_tables, selected_entities
 
@@ -562,20 +562,18 @@ def find_connected_components(
 
     src_dataset_arr = seg.astype(np.uint32) & 15
 
-    # print(f"{DataModel.g.current_workspace}")
+    # logger.debug(f"{DataModel.g.current_workspace}")
     # src = DataModel.g.dataset_uri(pipelines_id, group="pipelines")
-    # print(src)
+    # logger.debug(src)
     # with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
     #     src_dataset_arr = DM.sources[0][:]
     #     logger.debug(f"src_dataset shape {src_dataset_arr[:].shape}")
 
     single_label_level = (src_dataset_arr == label_index) * 1.0
 
-    print(single_label_level.shape)
+    
     bbs_tables, selected_entities = detect_blobs(single_label_level)
-    print(bbs_tables)
-    print(selected_entities)
-
+    
     result_list = []
     for i in range(len(bbs_tables[0])):
         if (bbs_tables[0].iloc[i]["area"] > area_min) & (bbs_tables[0].iloc[i]["area"] < area_max):
@@ -645,10 +643,10 @@ def segmentation_stats(
     single_label_level_A = (src_dataset_arr_A == label_index_A) * 1.0
     single_label_level_B = (src_dataset_arr_B == label_index_B) * 1.0
 
-    print(f"Count: {np.sum(single_label_level_A * single_label_level_B)}")
+    logger.debug(f"Count: {np.sum(single_label_level_A * single_label_level_B)}")
 
     # from survos2.entity.trainer import score_dice
-    # print(f"Dice loss {score_dice(single_label_level_A, single_label_level_B)}")
+    # logger.debug(f"Dice loss {score_dice(single_label_level_A, single_label_level_B)}")
 
     from torchmetrics import JaccardIndex, Dice
 
@@ -657,9 +655,6 @@ def segmentation_stats(
 
     A_t = torch.IntTensor(single_label_level_A)
     B_t = torch.IntTensor(single_label_level_B)
-
-    print(f"Jaccard (IOU): {jaccard(A_t, B_t)}")
-    print(f"Dice (torchmetrics): {dice(A_t, B_t)}")
 
     dice_score = dice(A_t, B_t)
     iou_score = jaccard(A_t, B_t)
@@ -733,7 +728,6 @@ def spatial_clustering(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
     scale = ds_objects.get_metadata("scale")
-    print(f"Scaling objects by: {scale}")
 
     entities_fullname = ds_objects.get_metadata("fullname")
     tabledata, entities_df = setup_entity_table(entities_fullname)
@@ -869,7 +863,6 @@ def patch_stats(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
     scale = ds_objects.get_metadata("scale")
-    print(f"Scaling objects by: {scale}")
 
     entities_fullname = ds_objects.get_metadata("fullname")
     tabledata, entities_df = setup_entity_table(entities_fullname)
@@ -887,7 +880,6 @@ def patch_stats(
         ]
     )
 
-    print(f"Calculating statistic {stat_name} with box size of {box_size}")
     if stat_name == "0":
         stat_op = np.mean
         title = "Mean"
@@ -1002,7 +994,7 @@ def object_analyzer(
     entities = np.array(make_entity_df(np.array(entities_df), flipxy=False))
 
     slice_idx = bvol_dim[0]
-    print(f"Slicing bvol at index: {slice_idx} on axis {axis} for bvol of dim {bvol_dim}")
+    logger.debug(f"Slicing bvol at index: {slice_idx} on axis {axis} for bvol of dim {bvol_dim}")
 
     feature_mat, selected_images = prepare_patches_for_clustering(
         ds_feature,
@@ -1015,7 +1007,7 @@ def object_analyzer(
     )
     num_clusters = 5
 
-    print(f"Using feature matrix of size {feature_mat.shape}")
+    logger.debug(f"Using feature matrix of size {feature_mat.shape}")
     selected_3channel = prepare_3channel(
         selected_images,
         patch_size=(selected_images[0].shape[0], selected_images[0].shape[1]),
@@ -1044,10 +1036,10 @@ def object_analyzer(
     patch_clusterer.density_cluster(min_cluster_size=min_cluster_size)
     labels = patch_clusterer.density_clusterer.labels_
 
-    print(f"Metrics (DB, Sil): {patch_clusterer.cluster_metrics()}")
+    logger.debug(f"Metrics (DB, Sil): {patch_clusterer.cluster_metrics()}")
     preds = patch_clusterer.get_predictions()
     selected_images_arr = np.array(selected_3channel)
-    print(f"Plotting {selected_images_arr.shape} patch images.")
+    logger.debug(f"Plotting {selected_images_arr.shape} patch images.")
     selected_images_arr = selected_images_arr[:, :, :, 1]
 
     # Plot to image
@@ -1214,7 +1206,7 @@ def binary_classifier(
     #                                                                 stratified_selection=True,
     #                                                                 class_proportion = {0:1, 1: 1, 2: 1.0, 5:1})
 
-    # print(entities.shape, random_bg_entities.shape)
+    # logger.debug(entities.shape, random_bg_entities.shape)
 
     if model_fullname != "None":
         logger.debug(f"Loading model for fpn features: {model_fullname}")
@@ -1297,9 +1289,9 @@ def point_generator(
     if mask_name != "None":
         from survos2.entity.utils import remove_masked_entities
 
-        print(f"Before masking random entities generated of shape {random_entities.shape}")
+        logger.debug(f"Before masking random entities generated of shape {random_entities.shape}")
         result_entities = remove_masked_entities(bg_mask, random_entities)
-        print(f"After masking: {random_entities.shape}")
+        logger.debug(f"After masking: {random_entities.shape}")
     else:
         result_entities = random_entities
     result_entities[:, 3] = np.array([6] * len(result_entities))
@@ -1314,7 +1306,7 @@ def point_generator(
 #     bvol_dim=(24, 24, 24),
 #     debug_verbose=True,
 # ):
-#     print(f"Evaluating detections of shape {detected_entities.shape}")
+#     logger.debug(f"Evaluating detections of shape {detected_entities.shape}")
 
 #     preds = centroid_to_bvol(detected_entities, bvol_dim=bvol_dim)
 #     targs = centroid_to_bvol(gt_entities, bvol_dim=bvol_dim)
@@ -1372,3 +1364,4 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
+

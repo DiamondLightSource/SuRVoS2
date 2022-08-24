@@ -285,7 +285,7 @@ def annotate_voxels(
         parent_arr = None
         parent_mask = None
 
-    logger.info(f"slice_idx {slice_idx} Viewer order: {viewer_order}")
+    #logger.debug(f"slice_idx {slice_idx} Viewer order: {viewer_order}")
     annotate_voxels(
         ds,
         slice_idx=slice_idx,
@@ -335,7 +335,7 @@ def annotate_regions(
         parent_arr = None
         parent_mask = None
 
-    logger.debug(f"BB in annotate_regions {bb}")
+    #logger.debug(f"BB in annotate_regions {bb}")
     anno = annotate_regions(
         ds,
         region,
@@ -362,3 +362,4 @@ def annotate_undo(workspace: String, level: String, full: SmartBoolean = False):
 
     ds = get_level(workspace, level, full)
     undo_annotation(ds)
+

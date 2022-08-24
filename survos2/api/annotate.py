@@ -56,7 +56,7 @@ def annotate_voxels(
 
     box_half_dim = int(brush_size // 2)
 
-    print(f"Slice idx {slice_idx}")
+    #print(f"Slice idx {slice_idx}")
     if three_dim:
         if parent_mask is not None:
             parent_mask_t = np.transpose(parent_mask, viewer_order)
@@ -70,7 +70,7 @@ def annotate_voxels(
             radius=box_half_dim,
             center=(ellipse_size // 2, ellipse_size // 2, ellipse_size // 2),
         ).astype(np.bool_)
-        print(ellipse_mask.shape)
+
         for i in range(len(yy)):
             bbsz, bbfz, bbsy, bbfy, bbsx, bbfx = (
                 slice_idx - box_half_dim,
@@ -102,7 +102,7 @@ def annotate_voxels(
             mask = mask > 0
             ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
 
-        print(ds_t[bbsz:bbfz, bbsy:bbfy, bbsx:bbfx].shape, ellipse_mask.shape)
+        #print(ds_t[bbsz:bbfz, bbsy:bbfy, bbsx:bbfx].shape, ellipse_mask.shape)
 
     else:
         data_slice = ds_t[slice_idx, :]
@@ -110,7 +110,7 @@ def annotate_voxels(
 
         if parent_mask is not None:
             parent_mask_t = np.transpose(parent_mask, viewer_order)
-            print(f"Using parent mask of shape: {parent_mask.shape}")
+            #print(f"Using parent mask of shape: {parent_mask.shape}")
             mask = parent_mask_t
             mask = mask > 0
             mask = mask[slice_idx, :]
@@ -120,12 +120,12 @@ def annotate_voxels(
 
     if len(viewer_order) == 3:
         new_order = get_order(viewer_order)
-        logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
+        #logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
         ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
     else:
         ds_o = ds_t
     # ds = np.transpose(ds, np.roll(viewer_order,1)).reshape(original_shape)
-    logger.info(f"Dataset after second transpose: {ds_o.shape}")
+    #logger.info(f"Dataset after second transpose: {ds_o.shape}")
     dataset[:] = ds_o
 
 
@@ -161,7 +161,7 @@ def annotate_regions(
     # print(f"BB: {bb}")
     try:
         if not bb or bb[0] == -1:
-            print("No bb")
+            #print("No bb")
             bb = [0, 0, 0, ds_t.shape[0], ds_t.shape[1], ds_t.shape[2]]
         # else:
         # print(f"Masking using bb: {bb}")
@@ -170,7 +170,7 @@ def annotate_regions(
                 reg_t[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] == r_idx
             )
     except Exception as e:
-        print(f"annotate_regions exception {e}")
+        logger.debug(f"annotate_regions exception {e}")
 
     mask = (mask > 0) * 1.0
 
@@ -186,13 +186,13 @@ def annotate_regions(
 
     ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
     ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
-    logger.debug(f"Returning annotated region ds {ds.shape}")
+    #logger.debug(f"Returning annotated region ds {ds.shape}")
 
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
         new_order = get_order(viewer_order)
-        logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
+        #logger.info(f"new order {new_order} Dataset before second transpose: {ds_t.shape}")
         ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
-        logger.info(f"Dataset after second transpose: {ds_o.shape}")
+        #logger.info(f"Dataset after second transpose: {ds_o.shape}")
     else:
         ds_o = ds_t
     return ds_o
@@ -202,8 +202,8 @@ def annotate_regions(
 
 def undo_annotation(dataset):
     modified = dataset.get_attr("modified")
-    print(modified)
-    print("Undoing annotation")
+    
+    logger.debug("Undoing annotation")
 
     if len(modified) == 1:
         data = dataset[:]
@@ -225,7 +225,7 @@ def undo_annotation(dataset):
             dataset[chunk_slices] = data
 
     dataset.set_attr("modified", modified)
-    print(f"Finished undo")
+
 
 
 def erase_label(dataset, label=0):
@@ -253,3 +253,4 @@ def erase_label(dataset, label=0):
                 data_chunk[rmask] &= hmask
         if modified:
             dataset[chunk_slices] = data_chunk
+

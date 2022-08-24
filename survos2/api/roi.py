@@ -65,7 +65,7 @@ def create(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
         ds_metadata = src_dataset.get_metadata()
-        print(ds_metadata)
+
         if not "roi_fnames" in ds_metadata:
             src_dataset.set_metadata("roi_fnames", roi_dict)
         else:
@@ -113,7 +113,7 @@ def create(
 
 @hug.get()
 def pull_anno(roi_fname: String, anno_id="001_level", target_anno_id="001_level"):
-    print(f"{roi_fname} {anno_id}")
+    logger.debug(f"{roi_fname} {anno_id}")
     ds = ws.get_dataset(roi_fname, anno_id, group="annotations")
     roi_parts = roi_fname.split("_")
     z_min = int(roi_parts[-6])
@@ -152,3 +152,4 @@ def remove(workspace: String, roi_fname: String):
                 selected = k
         del roi_fnames[selected]
         src_dataset.set_metadata("roi_fnames", roi_fnames)
+
