@@ -159,4 +159,3 @@ class PluginContainer(QCSWidget):
             self.selected = self.plugins[name]
             if hasattr(self.selected["widget"], "setup"):
                 self.selected["widget"].setup()
-

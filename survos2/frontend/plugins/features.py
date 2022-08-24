@@ -5,16 +5,28 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QRadioButton, QPushButton, QFileDialog
 from qtpy.QtCore import QSize, Signal
 
-from survos2.frontend.components.base import VBox, Plugin, HWidgets, PushButton, LineEdit, LineEdit3D, RealSlider, CardWithId, CheckBox, ComboBox
+from survos2.frontend.components.base import (
+    VBox,
+    HWidgets,
+    PushButton,
+    LineEdit,
+    LineEdit3D,
+    RealSlider,
+    CardWithId,
+    CheckBox,
+    ComboBox,
+    ColorButton,
+    ParentButton,
+    PluginNotifier,
+    LazyComboBox,
+)
 
 
 from survos2.frontend.plugins.base import (
-    ColorButton,
-    ParentButton,
     Plugin,
     register_plugin,
 )
-fr
+
 from survos2.model import DataModel
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.plugins_components import SourceComboBox
@@ -171,7 +183,7 @@ class FeaturesPlugin(Plugin):
             workflow = {}
             for i, (k, v) in enumerate(self.existing_features.items()):
                 for x, y in v.widgets.items():
-   
+
                     workflow["f" + str(i)] = {}
                     workflow["f" + str(i)]["action"] = "features." + str(v.feature_type)
                     workflow["f" + str(i)]["src"] = "001_raw"
@@ -511,4 +523,3 @@ class FeatureCard(CardWithId):
             _FeatureNotifier.notify()
 
         return result["done"]
-

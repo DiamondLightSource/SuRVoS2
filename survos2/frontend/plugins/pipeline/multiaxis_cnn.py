@@ -14,7 +14,7 @@ from qtpy.QtWidgets import QLabel, QRadioButton
 from survos2.frontend.control import Launcher
 
 from survos2.frontend.plugins.annotations import LevelComboBox
-from survos2.frontend.plugins.base import ComboBox, DataTableWidgetItem
+
 
 from survos2.model import DataModel
 from survos2.frontend.components.base import (
@@ -24,6 +24,8 @@ from survos2.frontend.components.base import (
     PushButton,
     Spacing,
     Label,
+    ComboBox,
+    DataTableWidgetItem,
 )
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 

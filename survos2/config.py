@@ -190,4 +190,3 @@ for k1, v in _Config.__data__.items():
                     raise ValueError(
                         "Error updating config {}.{} to {}.".format(k1, k2, os.environ[env_name])
                     )
-

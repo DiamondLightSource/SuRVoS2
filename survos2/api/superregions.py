@@ -138,7 +138,6 @@ def supervoxels_chunked(
         dst_dataset = DM.sources[0]
         supervoxel_image = dst_dataset[:]
 
-
     num_sv = len(np.unique(supervoxel_image))
     logger.debug(f"Number of supervoxels created: {num_sv}")
 
@@ -191,4 +190,3 @@ def remove(workspace: String, region_id: String):
 @hug.get()
 def rename(workspace: String, region_id: String, new_name: String):
     ws.rename_dataset(workspace, region_id, __region_group__, new_name)
-

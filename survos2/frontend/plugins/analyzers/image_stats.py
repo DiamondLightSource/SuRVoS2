@@ -1,6 +1,6 @@
 from survos2.frontend.plugins.analyzers.base import MplCanvas, AnalyzerCardBase
 from survos2.frontend.control import Launcher
-from survos2.frontend.plugins.base import PushButton, LineEdit, HWidgets
+from survos2.frontend.components.base import PushButton, LineEdit, HWidgets
 from survos2.frontend.plugins.plugins_components import Label
 from survos2.model import DataModel
 from survos2.utils import decode_numpy

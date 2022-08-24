@@ -152,4 +152,3 @@ def remove(workspace: String, roi_fname: String):
                 selected = k
         del roi_fnames[selected]
         src_dataset.set_metadata("roi_fnames", roi_fnames)
-

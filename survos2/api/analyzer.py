@@ -571,9 +571,8 @@ def find_connected_components(
 
     single_label_level = (src_dataset_arr == label_index) * 1.0
 
-    
     bbs_tables, selected_entities = detect_blobs(single_label_level)
-    
+
     result_list = []
     for i in range(len(bbs_tables[0])):
         if (bbs_tables[0].iloc[i]["area"] > area_min) & (bbs_tables[0].iloc[i]["area"] < area_max):
@@ -1364,4 +1363,3 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
-

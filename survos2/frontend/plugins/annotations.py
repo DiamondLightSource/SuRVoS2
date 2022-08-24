@@ -6,7 +6,15 @@ from scipy.ndimage import binary_dilation
 from skimage.draw import line
 from skimage.morphology import disk
 from qtpy import QtWidgets, QtCore
-from survos2.frontend.components.base import VBox, HWidgets, PushButton,  QCSWidget, CheckBox, CardWithId, LineEdit
+from survos2.frontend.components.base import (
+    VBox,
+    HWidgets,
+    PushButton,
+    QCSWidget,
+    CheckBox,
+    CardWithId,
+    LineEdit,
+)
 from survos2.frontend.components.base import (
     FAIcon,
     HBox,
@@ -14,10 +22,10 @@ from survos2.frontend.components.base import (
     LazyMultiComboBox,
     PluginNotifier,
     Slider,
-)
-from survos2.frontend.plugins.base import (
     ColorButton,
     ParentButton,
+)
+from survos2.frontend.plugins.base import (
     Plugin,
     register_plugin,
 )
@@ -474,4 +482,3 @@ class AnnotationLabel(QCSWidget):
         if result:
             _AnnotationNotifier.notify()
             self.removed.emit(self.label_idx)
-

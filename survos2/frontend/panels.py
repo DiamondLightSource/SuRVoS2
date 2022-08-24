@@ -9,7 +9,16 @@ from vispy import scene
 from survos2.frontend.components.base import HWidgets, Slider
 
 from survos2.frontend.plugins.base import list_plugins, get_plugin, PluginContainer, register_plugin
-from survos2.frontend.components.base import VBox, Label, HWidgets, PushButton, SWidget, clear_layout, QCSWidget, ComboBox
+from survos2.frontend.components.base import (
+    VBox,
+    Label,
+    HWidgets,
+    PushButton,
+    SWidget,
+    clear_layout,
+    QCSWidget,
+    ComboBox,
+)
 from survos2.frontend.plugins.features import MplCanvas
 
 from survos2.server.state import cfg
@@ -303,4 +312,3 @@ class QtPlotWidget(QtWidgets.QWidget):
             color="w",
             parent=self.canvas.scene,
         )
-

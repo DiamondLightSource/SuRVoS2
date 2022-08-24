@@ -9,7 +9,15 @@ from qtpy.QtWidgets import QPushButton, QRadioButton
 from survos2.frontend.components.entity import TableWidget
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotations import LevelComboBox
-from survos2.frontend.components.base import VBox, LazyComboBox, HWidgets, PushButton, SimpleComboBox, Card, LineEdit
+from survos2.frontend.components.base import (
+    VBox,
+    LazyComboBox,
+    HWidgets,
+    PushButton,
+    SimpleComboBox,
+    Card,
+    LineEdit,
+)
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.pipelines import PipelinesComboBox
@@ -848,4 +856,3 @@ class RuleCard(Card):
         logger.debug(f"Deleted Rule {self.title}")
         self.parent.op_cards.remove(self)
         self.setParent(None)
-

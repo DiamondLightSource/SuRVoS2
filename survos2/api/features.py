@@ -402,7 +402,6 @@ def gaussian_blur(src: DataURI, dst: DataURI, sigma: FloatOrVector = 1) -> "DENO
 
     if isinstance(sigma, float) or isinstance(sigma, int):
         sigma = np.array([sigma] * 3)
-        
 
     if sigma[0] == 0:
         from skimage.filters import gaussian
@@ -596,4 +595,3 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
-

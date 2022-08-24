@@ -284,7 +284,13 @@ class LoadDataDialog(QDialog):
             bool: True if the ROI dimension parameters are different from the data shape.
         """
         x_start, x_end, y_start, y_end, z_start, z_end = roi_limits
-        return x_end != self.data_shape[2] or y_end != self.data_shape[1] or z_end != self.data_shape[0] if x_start == y_start == z_start == 0 else True
+        return (
+            x_end != self.data_shape[2]
+            or y_end != self.data_shape[1]
+            or z_end != self.data_shape[0]
+            if x_start == y_start == z_start == 0
+            else True
+        )
 
     def on_roi_box_update(self, size_tuple):
         """Updates ROI dimension parameters with data from ROI box drawn by dragging mouse on preview window.
@@ -732,4 +738,3 @@ class ROICard(Card):
             target_anno_id=target_id,
         )
         result = Launcher.g.run("roi", "pull_anno", **all_params)
-

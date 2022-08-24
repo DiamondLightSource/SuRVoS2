@@ -2,7 +2,22 @@ import numpy as np
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
 from loguru import logger
-from survos2.frontend.components.base import VBox, LazyComboBox,LineEdit3D, Label, HWidgets, PushButton, SWidget, clear_layout, QCSWidget, CheckBox, ComboBox, CardWithId, LineEdit, Card
+from survos2.frontend.components.base import (
+    VBox,
+    LazyComboBox,
+    LineEdit3D,
+    Label,
+    HWidgets,
+    PushButton,
+    SWidget,
+    clear_layout,
+    QCSWidget,
+    CheckBox,
+    ComboBox,
+    CardWithId,
+    LineEdit,
+    Card,
+)
 
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
@@ -73,7 +88,9 @@ class RegionsPlugin(Plugin):
         self.existing_supervoxels = {}
 
     def setup(self):
-        params = dict(order=1, workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}")
+        params = dict(
+            order=1, workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}"
+        )
 
         result = Launcher.g.run("superregions", "existing", **params)
         logger.debug(f"Region result {result}")
@@ -238,4 +255,3 @@ class SupervoxelCard(Card):
         if "source" in params:
             for source in params["source"]:
                 self.svsource.select(source)
-

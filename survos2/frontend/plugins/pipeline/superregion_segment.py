@@ -5,8 +5,15 @@ from loguru import logger
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
 
-from survos2.frontend.components.base import VBox, ComboBox, HWidgets, PushButton, CheckBox, LineEdit3D, LineEdit
-
+from survos2.frontend.components.base import (
+    VBox,
+    ComboBox,
+    HWidgets,
+    PushButton,
+    CheckBox,
+    LineEdit3D,
+    LineEdit,
+)
 
 
 from survos2.model import DataModel
@@ -154,7 +161,15 @@ class EnsembleWidget(QtWidgets.QWidget):
         else:
             current_index = self.type_combo.currentIndex() - 1
         logger.debug(f"Ensemble type_combo index: {current_index}")
-        params = {"clf": "ensemble", "type": ttype[current_index], "n_estimators": self.ntrees.value(), "max_depth": self.depth.value(), "learning_rate": self.lrate.value(), "subsample": self.subsample.value(), "n_jobs": self.n_jobs.value()}
+        params = {
+            "clf": "ensemble",
+            "type": ttype[current_index],
+            "n_estimators": self.ntrees.value(),
+            "max_depth": self.depth.value(),
+            "learning_rate": self.lrate.value(),
+            "subsample": self.subsample.value(),
+            "n_jobs": self.n_jobs.value(),
+        }
 
         return params
 
@@ -211,4 +226,3 @@ class SuperregionSegment(PipelineCardBase):
         else:
             all_params["classifier_params"] = self.svm.get_params()
         return all_params
-

@@ -8,7 +8,15 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
 from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
 from survos2.entity.cluster.clusterer import select_clusters
-from survos2.frontend.components.base import VBox, SimpleComboBox, HWidgets, PushButton, CheckBox, LineEdit3D, LineEdit
+from survos2.frontend.components.base import (
+    VBox,
+    SimpleComboBox,
+    HWidgets,
+    PushButton,
+    CheckBox,
+    LineEdit3D,
+    LineEdit,
+)
 
 from survos2.frontend.components.entity import TableWidget
 from survos2.frontend.components.icon_buttons import IconButton
@@ -283,7 +291,6 @@ class ObjectAnalyzer(AnalyzerCardBase):
         self.entities_arr = entities_arr
         selected_images_arr = decode_numpy(selected_images_arr)
 
-
         if standard_embedding:
             sc = MplCanvas(self, width=8, height=8, dpi=100)
             # sc.axes.imshow(src_arr)
@@ -302,8 +309,6 @@ class ObjectAnalyzer(AnalyzerCardBase):
                 images=selected_images_arr[:, ::skip_px, ::skip_px],
             )
             self.object_analyzer_plots.append(sc)
-
-
 
             if self.plot_clusters.value():
                 labels = np.array(labels)
@@ -396,4 +401,3 @@ class MplGridCanvas(FigureCanvasQTAgg):
     def set_suptitle(self, suptitle):
         self.suptitle = suptitle
         self.fig.suptitle(suptitle)
-

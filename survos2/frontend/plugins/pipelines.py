@@ -5,18 +5,19 @@ from loguru import logger
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
 
-from survos2.frontend.components.base import VBox, ComboBox, PluginNotifier
+from survos2.frontend.components.base import (
+    VBox,
+    ComboBox,
+    PluginNotifier,
+    LazyComboBox,
+    LazyMultiComboBox,
+    DataTableWidgetItem,
+)
 
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 
-from survos2.frontend.plugins.base import (
-    ComboBox,
-    LazyComboBox,
-    LazyMultiComboBox,
-    DataTableWidgetItem,
-)
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.pipeline.rasterize import RasterizePoints
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
@@ -222,4 +223,3 @@ class PipelineFunctionTest(PipelineCardBase):
 
     def compute_pipeline(self):
         pass
-

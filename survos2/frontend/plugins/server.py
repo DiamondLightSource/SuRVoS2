@@ -55,28 +55,33 @@ from PyQt5.QtWidgets import (
 from survos2.frontend.main import init_ws
 from survos2.frontend.utils import ComboDialog, FileWidget, MplCanvas
 from survos2.model.workspace import WorkspaceException
-from survos2.frontend.plugins.base import ComboBox
 
 from survos2.config import Config
 
 
-from survos2.frontend.plugins.base import PushButton
 from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotations import LevelComboBox as AnnoComboBox
-from survos2.frontend.plugins.base import (
+
+
+from survos2.frontend.components.base import (
     ComboBox,
+    PushButton,
     LazyComboBox,
-    Plugin,
     VBox,
+)
+from survos2.frontend.plugins.base import (
+    Plugin,
     register_plugin,
 )
+
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
 from napari.qt.progress import progress
+
 
 CHROOT = Config["model.chroot"]
 

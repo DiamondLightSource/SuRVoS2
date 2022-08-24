@@ -7,8 +7,17 @@ _MaskSize = 4  # 4 bits per history label
 _MaskCopy = 15  # 0000 1111
 _MaskPrev = 240  # 1111 0000
 
+    
 
 def get_order(viewer_order):
+    """Calculate the new order of the axes. Follows napari viewer order.
+
+    Args:
+        viewer_order (_type_): Current order of the axes.
+
+    Returns:
+        _type_: New order of the axes.
+    """
     viewer_order_str = "".join(map(str, viewer_order))
     if viewer_order_str == "201":
         new_order = np.roll(viewer_order, 1)
@@ -35,8 +44,22 @@ def annotate_voxels(
     viewer_order=(0, 1, 2),
     three_dim=False,
     brush_size=10,
-    centre_point=(8, 8, 8),
 ):
+    """Annotate individual voxels in a dataset.
+
+    Args:
+        dataset (Dataset): Dataset object.
+        slice_idx (int, optional): Which slice to annotate. Defaults to 0.
+        yy (list, optional): List of y-coordinates to annotate. Defaults to None.
+        xx (list, optional): List of x-coordinates to annotate. Defaults to None.
+        label (int, optional): Label value to set. Defaults to 0.
+        parent_mask (np.ndarray, optional): Mask image. Defaults to None.
+        viewer_order (tuple, optional): Axes order. Defaults to (0, 1, 2).
+        three_dim (bool, optional): Three-d brush. Defaults to False.
+        brush_size (int, optional): Size of brush. Defaults to 10.
+    Raises:
+        ValueError: Label index must be less than 16 and greater than 0.
+    """
     mbit = 2 ** (np.dtype(dataset.dtype).itemsize * 8 // _MaskSize) - 1
     modified = dataset.get_attr("modified")
     modified = [0]
@@ -61,7 +84,6 @@ def annotate_voxels(
         if parent_mask is not None:
             parent_mask_t = np.transpose(parent_mask, viewer_order)
         mask = np.zeros_like(ds_t)
-        logger.info(f"Drawing voxels in 3d at {centre_point}")
         ellipse_size = brush_size
         ellipse_mask = ellipsoidal_mask(
             ellipse_size,
@@ -132,6 +154,23 @@ def annotate_voxels(
 def annotate_regions(
     dataset, region, r=None, label=0, parent_mask=None, bb=None, viewer_order=(0, 1, 2)
 ):
+    """Annotate superregions in a dataset.
+
+    Args:
+        dataset (Dataset): Dataset object
+        region (np.ndarray): Region image
+        r (int, optional): Region index. Defaults to None.
+        label (int, optional): Label value. Defaults to 0.
+        parent_mask (np.ndarray, optional): Mask image. Defaults to None.
+        bb (list, optional): Bounding box coordinates. Defaults to None.
+        viewer_order (tuple, optional): Viewer axes order. Defaults to (0, 1, 2).
+
+    Raises:
+        ValueError: If the labels are greater than 15 or less than 0.
+
+    Returns:
+        _type_: Modified label image.
+    """
     if label >= 16 or label < 0 or type(label) != int:
         raise ValueError("Label has to be in bounds [0, 15]")
     if r is None or len(r) == 0:
@@ -201,6 +240,11 @@ def annotate_regions(
 
 
 def undo_annotation(dataset):
+    """Undo the last annotation
+
+    Args:
+        dataset (Dataset): Dataset object
+    """
     modified = dataset.get_attr("modified")
     
     logger.debug("Undoing annotation")
@@ -227,8 +271,16 @@ def undo_annotation(dataset):
     dataset.set_attr("modified", modified)
 
 
-
 def erase_label(dataset, label=0):
+    """Erase label with particular value from the dataset.
+
+    Args:
+        dataset (Dataset): Dataset object
+        label (int, optional): Label value to erase. Defaults to 0.
+
+    Raises:
+        ValueError: Modified dataset.
+    """
 
     if label >= 16 or label < 0 or type(label) != int:
         raise ValueError("Label has to be in bounds [0, 15]")
@@ -253,4 +305,5 @@ def erase_label(dataset, label=0):
                 data_chunk[rmask] &= hmask
         if modified:
             dataset[chunk_slices] = data_chunk
+
 

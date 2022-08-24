@@ -1,3 +1,4 @@
+import os
 import ast
 import logging
 import numpy as np
@@ -10,7 +11,17 @@ from survos2.frontend.control import Launcher
 from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 
-from survos2.frontend.components.base import VBox, ComboBox, LazyComboBox, HWidgets, PushButton, CheckBox, LineEdit3D, LineEdit
+from survos2.frontend.components.base import (
+    VBox,
+    ComboBox,
+    LazyComboBox,
+    HWidgets,
+    PushButton,
+    CheckBox,
+    Card,
+    LineEdit3D,
+    LineEdit,
+)
 
 from survos2.frontend.plugins.objects import ObjectComboBox
 from survos2.frontend.plugins.plugins_components import MultiSourceComboBox, RealSlider
@@ -524,4 +535,3 @@ class PipelineCardBase(Card):
                     "plugin_name": "annotations",
                 }
             )
-

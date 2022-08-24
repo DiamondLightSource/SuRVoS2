@@ -712,9 +712,8 @@ def train_3d_cnn(
     patch_size: IntOrVector = 64,
     patch_overlap: IntOrVector = 16,
     fcn_type: String = "unet3d",
-    bce_to_dice_weight : Float = 0.7,
+    bce_to_dice_weight: Float = 0.7,
     threshold: Float = 0.5,
-
 ):
     logger.debug(f"Train_3d fcn using anno {anno_id} and feature {feature_id}")
 
@@ -796,7 +795,12 @@ def train_3d_cnn(
     model_type = fcn_type
 
     model_file = train_oneclass_detseg(
-        train_v_density, None, wf_params, num_epochs=num_epochs, model_type=model_type, bce_weight=bce_to_dice_weight
+        train_v_density,
+        None,
+        wf_params,
+        num_epochs=num_epochs,
+        model_type=model_type,
+        bce_weight=bce_to_dice_weight,
     )
 
     src = DataModel.g.dataset_uri(feature_id, group="features")
@@ -1022,4 +1026,3 @@ def available():
         desc = dict(name=name, params=desc["params"], category=category)
         all_features.append(desc)
     return all_features
-

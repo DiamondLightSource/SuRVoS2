@@ -7,7 +7,15 @@ from napari.qt.progress import progress
 from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
 
 from survos2.frontend.control import Launcher
-from survos2.frontend.components.base import HWidgets, Slider, PushButton, Card, SimpleComboBox, LineEdit, CheckBox
+from survos2.frontend.components.base import (
+    HWidgets,
+    Slider,
+    PushButton,
+    Card,
+    SimpleComboBox,
+    LineEdit,
+    CheckBox,
+)
 
 from survos2.model import DataModel
 
@@ -271,4 +279,3 @@ class FindConnectedComponents(AnalyzerCardBase):
         if result:
             logger.debug(f"Segmentation stats result table {len(result)}")
             self.display_component_results(result)
-

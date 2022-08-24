@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore")
 # fmt = "{time} - {name} - {level} - {message}"
 fmt = "<level>{level} - {message} </level><green> - {name}</green>:<cyan>{function}</cyan>:<cyan>{line}</cyan>"
 logger.remove()  # remove default logger
-#logger.add(sys.stderr, level="DEBUG", format=fmt, colorize=True)
+# logger.add(sys.stderr, level="DEBUG", format=fmt, colorize=True)
 logger.add(sys.stderr, level=Config["logging.overall_level"], format=fmt, colorize=True)
 
 
@@ -35,4 +35,3 @@ class Workspace(QWidget):
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
     return [Workspace]
-

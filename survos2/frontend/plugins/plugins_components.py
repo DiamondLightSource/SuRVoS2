@@ -9,7 +9,13 @@ from qtpy.QtWidgets import QRadioButton, QPushButton
 from qtpy import QtWidgets, QtCore, QtGui
 
 
-from survos2.frontend.components.base import QCSWidget, HBox, LazyComboBox, LazyMultiComboBox
+from survos2.frontend.components.base import (
+    QCSWidget,
+    HBox,
+    LazyComboBox,
+    LazyMultiComboBox,
+    PluginNotifier,
+)
 
 from survos2.frontend.control import Launcher
 
@@ -198,4 +204,3 @@ class Label(QtWidgets.QLabel):
 
     def value(self):
         return self.text()
-
