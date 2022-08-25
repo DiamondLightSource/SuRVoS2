@@ -89,8 +89,10 @@ class Launcher(QtCore.QObject):
 
             func = self._run_background if modal else self._run_command
             success = False
-
-            while not success:
+            result = ""
+            error = False
+            cnt = 0
+            while not success and cnt < 100:
                 try:
                     if kwargs.pop("timeit", False):
                         with Timer(self.title):
@@ -101,11 +103,14 @@ class Launcher(QtCore.QObject):
                 except (ConnectTimeout, ConnectionError):
 
                     self.connected = False
+                    cnt += 1
                     logger.info("ConnectionError - delayed")
                     # ModalManager.g.connection_lost()
+                    
 
                     if self.terminated:
                         return False
+                    
                 else:
                     success = True
 
@@ -117,9 +122,9 @@ class Launcher(QtCore.QObject):
             return result
 
     def _run_command(self, plugin, command, uri=None, out=None, **kwargs):
-        logger.debug(f"_run_command: {plugin} {command}")
-        response = self.client.get("{}/{}".format(plugin, command), **kwargs)
-        logger.debug("parsing_response")
+        #logger.debug(f"_run_command: {plugin} {command}")
+        response = self.client.get("{}/{}".format(plugin, command), timeout=5, **kwargs)
+        #logger.debug("parsing_response")
         result = parse_response(plugin, command, response, log=False)
         if out is not None:
             out.put(result)
@@ -127,6 +132,7 @@ class Launcher(QtCore.QObject):
             return result
 
     def _run_background(self, plugin, command, **kwargs):
+        print("Running command in background.")
         queue = multiprocessing.Queue()
         kwargs.update(out=queue)
 

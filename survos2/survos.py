@@ -93,7 +93,7 @@ def remote_client(uri):
     host, port = _parse_uri(uri)
     endpoint = "http://{}:{}/".format(host, port)
     logger.info(f"Contacting endpoint {endpoint}")
-    return HTTP(endpoint)
+    return HTTP(endpoint, timeout=5)
 
 
 def run_command(plugin, command, uri=None, **kwargs):
