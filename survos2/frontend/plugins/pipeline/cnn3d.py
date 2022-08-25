@@ -30,7 +30,7 @@ class Train3DCNN(PipelineCardBase):
         else:
             #     all_params["objects_id"] = str(self.objects_source.value())
             all_params["objects_id"] = "None"
-        all_params["fpn_train_params"] = {}
+        
         all_params["fcn_type"] = self.fcn_type.value()
 
         return all_params
