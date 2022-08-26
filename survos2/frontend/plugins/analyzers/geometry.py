@@ -1,3 +1,4 @@
+import logger
 from survos2.frontend.components.base import PushButton, LineEdit, HWidgets
 from survos2.model import DataModel
 from survos2.frontend.control import Launcher
