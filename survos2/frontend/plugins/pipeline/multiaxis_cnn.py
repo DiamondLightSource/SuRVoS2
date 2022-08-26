@@ -159,15 +159,6 @@ class TrainMultiaxisCNN(PipelineCardBase):
         feature_widget = HWidgets("Feature (Data):", self.feature_source, stretch=1)
         self.add_row(feature_widget)
 
-    def _update_annotations_from_ws(self, workspace):
-        self.annotations_source.clear()
-        params = {"workspace": workspace}
-        anno_result = Launcher.g.run("annotations", "get_levels", **params)
-        logger.debug(f"anno_result: {anno_result}")
-        if anno_result:
-            for r in anno_result:
-                if r["kind"] == "level":
-                    self.annotations_source.addItem(r["id"], r["name"])
 
     def _update_features_from_ws(self, workspace):
         self.feature_source.clear()
@@ -317,8 +308,9 @@ class PredictMultiaxisCNN(PipelineCardBase):
         super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
 
     def setup(self):
-        self.annotations_source = LevelComboBox()
-        self.annotations_source.hide()
+        #self.annotations_source = LevelComboBox()
+        #self.annotations_source.hide()
+        self._add_annotations_source()
         self._add_feature_source()
         self._add_multi_ax_2d_prediction_params()
 
@@ -388,3 +380,4 @@ class PredictMultiaxisCNN(PipelineCardBase):
             self.adv_pred_fields.show()
         else:
             self.adv_pred_fields.hide()
+

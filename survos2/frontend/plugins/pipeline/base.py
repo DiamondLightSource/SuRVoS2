@@ -3,7 +3,7 @@ import ast
 import logging
 import numpy as np
 from loguru import logger
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import QSize, Signal
 
 
@@ -422,6 +422,16 @@ class PipelineCardBase(Card):
             self, ("Select model"), workspace_path, ("Model files (*.pytorch)")
         )
         self.model_file_line_edit.setValue(self.model_path)
+    
+    def _update_annotations_from_ws(self, workspace):
+        self.annotations_source.clear()
+        params = {"workspace": workspace}
+        anno_result = Launcher.g.run("annotations", "get_levels", **params)
+        logger.debug(f"anno_result: {anno_result}")
+        if anno_result:
+            for r in anno_result:
+                if r["kind"] == "level":
+                    self.annotations_source.addItem(r["id"], r["name"])
 
     def refresh_multi_ax_data(self):
         sender = self.sender()
@@ -496,11 +506,16 @@ class PipelineCardBase(Card):
                 level=str(self.annotations_source.value().rsplit("/", 1)[-1]),
                 workspace=True,
             )
-            anno_result = Launcher.g.run("annotations", "get_levels", **params)[0]
+            print(self.annotations_source.value().rsplit("/", 1))
+            print(params)
+            anno_result = Launcher.g.run("annotations", "get_single_level", **params)
 
+            print(anno_result)
             params = dict(level=str(level_id), workspace=True)
-            level_result = Launcher.g.run("annotations", "get_levels", **params)[0]
-
+            level_result = Launcher.g.run("annotations", "get_single_level", **params)
+            print(level_result)
+            print(level_id)
+            print(params)
             try:
                 # set the new level color mapping to the mapping from the pipeline
                 for v in level_result["labels"].keys():
@@ -535,3 +550,4 @@ class PipelineCardBase(Card):
                     "plugin_name": "annotations",
                 }
             )
+
