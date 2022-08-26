@@ -103,9 +103,7 @@ def set_label_parent(
 def get_label_parent(workspace: String, level: String, label_idx: Int):
     ds = get_level(workspace, level)
     labels = ds.get_metadata("labels", {})
-    logger.debug(
-        f"get_label_parent with level {level}, label_idx {label_idx}, result labels: {labels}"
-    )
+    logger.debug(f"get_label_parent with level {level}, label_idx {label_idx}, result labels: {labels}")
     parent_level = -1
     parent_label_idx = -1
     parent_color = None

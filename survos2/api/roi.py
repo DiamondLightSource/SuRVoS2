@@ -43,9 +43,7 @@ __export_group__ = "roi"
 
 
 @hug.get()
-def create(
-    workspace: String, roi_fname: String, roi: list, original_workspace: String, original_level
-):
+def create(workspace: String, roi_fname: String, roi: list, original_workspace: String, original_level):
     DataModel.g.current_workspace = original_workspace
     logger.debug(f"Original workspace: {original_workspace}")
     logger.debug(original_level)

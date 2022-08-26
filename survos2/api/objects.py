@@ -37,9 +37,7 @@ __objects_names__ = ["points", "boxes", "patches"]
 
 def load_bvols(bvols_arr, flipxy=True):
     entities_df = make_entity_bvol(bvols_arr, flipxy=flipxy)
-    tmp_fullpath = os.path.abspath(
-        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
-    )
+    tmp_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv"))
     logger.debug(entities_df)
     logger.debug(f"Creating temp file: {tmp_fullpath}")
     entities_df.to_csv(tmp_fullpath, line_terminator="")
@@ -81,9 +79,7 @@ def load_bvols(bvols_arr, flipxy=True):
 
 def load_entities(entities_arr, flipxy=True):
     entities_df = make_entity_df(entities_arr, flipxy=flipxy)
-    tmp_fullpath = os.path.abspath(
-        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
-    )
+    tmp_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv"))
     logger.debug(entities_df)
     logger.debug(f"Creating temp file: {tmp_fullpath}")
     entities_df.to_csv(tmp_fullpath, line_terminator="")
@@ -317,9 +313,7 @@ def existing(
     datasets = ws.existing_datasets(workspace, group=__objects_group__)
 
     if full:
-        datasets = {
-            "{}/{}".format(__objects_group__, k): dataset_repr(v) for k, v in datasets.items()
-        }
+        datasets = {"{}/{}".format(__objects_group__, k): dataset_repr(v) for k, v in datasets.items()}
     else:
         datasets = {k: dataset_repr(v) for k, v in datasets.items()}
 

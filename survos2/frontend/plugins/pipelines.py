@@ -109,9 +109,7 @@ class PipelinesPlugin(Plugin):
 
             for i, category in enumerate(all_categories):
                 self.pipeline_combo.addItem(category)
-                self.pipeline_combo.model().item(i + len(self.pipeline_params) + 1).setEnabled(
-                    False
-                )
+                self.pipeline_combo.model().item(i + len(self.pipeline_params) + 1).setEnabled(False)
 
                 for f in [p for p in result if p["category"] == category]:
                     self.pipeline_params[f["name"]] = f["params"]
@@ -140,33 +138,21 @@ class PipelinesPlugin(Plugin):
 
     def _add_pipeline_widget(self, fid, ftype, fname, expand=False):
         if ftype == "superregion_segment":
-            widget = SuperregionSegment(
-                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
-            )
+            widget = SuperregionSegment(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "label_postprocess":
-            widget = LabelPostprocess(
-                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
-            )
+            widget = LabelPostprocess(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "per_object_cleaning":
-            widget = PerObjectCleaning(
-                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
-            )
+            widget = PerObjectCleaning(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "cleaning":
             widget = Cleaning(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "rasterize_points":
-            widget = RasterizePoints(
-                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
-            )
+            widget = RasterizePoints(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "watershed":
             widget = Watershed(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "train_multi_axis_cnn":
-            widget = TrainMultiaxisCNN(
-                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
-            )
+            widget = TrainMultiaxisCNN(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "predict_multi_axis_cnn":
-            widget = PredictMultiaxisCNN(
-                fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier
-            )
+            widget = PredictMultiaxisCNN(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "train_3d_cnn":
             widget = Train3DCNN(fid, ftype, fname, self.pipeline_params[ftype], _PipelineNotifier)
         elif ftype == "predict_3d_cnn":

@@ -46,9 +46,7 @@ def classical_head_train(features, labels, saved_cls=False, n_components=7):
     #         'metric':'euclidean'}
     # reduced_data = UMAP(**params).fit_transform(np.nan_to_num(features))
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        reduced_data, labels, test_size=0.9, random_state=41
-    )
+    X_train, X_test, y_train, y_test = train_test_split(reduced_data, labels, test_size=0.9, random_state=41)
     n_classes = len(np.unique(y_train))
     print(f"Number of classes: {n_classes}")
     n_estimators = 100
@@ -381,9 +379,7 @@ def classical_detect(
         plot_all=plot_all,
         flip_xy=flip_xy,
     )
-    print(
-        f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}"
-    )
+    print(f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}")
     proposal_entities[:, 3] = preds
     detected_entities = proposal_entities[detected]
 
@@ -397,9 +393,7 @@ def classical_detect(
     return offset_detected_entities, proba, fvd
 
 
-def prepare_classical_detector_fvols(
-    wf, class_proposal_fname, padding, area_min=10000, area_max=1000000
-):
+def prepare_classical_detector_fvols(wf, class_proposal_fname, padding, area_min=10000, area_max=1000000):
     proposal_segmentation_fullpath = os.path.join(wf.params["outdir"], class_proposal_fname)
     padded_vol = pad_vol(wf.vols[1], padding)
     padded_mask = pad_vol(wf.bg_mask, padding)
@@ -429,9 +423,7 @@ def classical_detector_predict(
         score_thresh=score_thresh,
         bvol_dim=bvol_dim,
     )
-    print(
-        f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}"
-    )
+    print(f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}")
     proposal_entities[:, 3] = preds
     return proposal_entities[detected]
 
@@ -486,9 +478,11 @@ def prepare_classical_detector_data2(
         additional_feature_vols=padded_additional_feature_vols,
     )
 
-    (dataloaders, gt_train_entities, gt_val_entities,) = prepare_patch_dataloaders_and_entities(
-        main_vol, gt_entities, padding=padding, flip_xy=flip_xy
-    )
+    (
+        dataloaders,
+        gt_train_entities,
+        gt_val_entities,
+    ) = prepare_patch_dataloaders_and_entities(main_vol, gt_entities, padding=padding, flip_xy=flip_xy)
 
     return gt_train_entities, gt_val_entities, fvol
 
@@ -644,9 +638,7 @@ def make_classical_detector_prediction2(
         plot_all=plot_all,
         flip_xy=flip_xy,
     )
-    print(
-        f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}"
-    )
+    print(f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}")
     proposal_entities[:, 3] = preds
     detected_entities = proposal_entities[detected]
 

@@ -180,9 +180,7 @@ def survos_from_uri(uri, mode="a", shape=None, dtype="float32", fill=0):
         if dataset == Workspace.__dsname__:
             if mode != "r":
                 raise ValueError(
-                    "Invalid URI. Dataset {} cannot be oppened in write mode.".format(
-                        Workspace.__dsname__
-                    )
+                    "Invalid URI. Dataset {} cannot be oppened in write mode.".format(Workspace.__dsname__)
                 )
             ds = ws.get_data(readonly=True)
         elif mode == "r":
@@ -261,9 +259,7 @@ def mrc_from_uri(uri, mode="a", shape=None, dtype="float32", fill=0):
 
 MRC_REGEXP = r"^(mrc://)?(?P<fpath>.+(.rec|.mrc))$"
 HDF5_REGEXP = r"^((hdf5|h5)://)?(?P<wspath>.+(.h5|.hdf5))(:(?P<dspath>[^:]+))?$"
-SURVOS_REGEXP = (
-    r"^(survos://)?(((?P<session>[^:@]+)@)?(?P<workspace>[^:@]+):)?(?P<dataset>[^:@.]+)$"
-)
+SURVOS_REGEXP = r"^(survos://)?(((?P<session>[^:@]+)@)?(?P<workspace>[^:@]+):)?(?P<dataset>[^:@.]+)$"
 
 __dataset_loaders__ = dict(
     mrc=(MRC_REGEXP, mrc_from_uri),

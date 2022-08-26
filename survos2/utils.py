@@ -141,9 +141,7 @@ class Timer(object):
     def __exit__(self, type, value, traceback):
         self.tend = time.time() - self.tstart
         if len(self.args):
-            logging.info(
-                "{0}: {1:.4f} seconds, Args: {2}".format(self.name, self.tend, tuple(self.args))
-            )
+            logging.info("{0}: {1:.4f} seconds, Args: {2}".format(self.name, self.tend, tuple(self.args)))
         else:
             logging.info("{0}: {1:.4f} seconds".format(self.name, self.tend))
 

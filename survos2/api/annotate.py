@@ -150,9 +150,7 @@ def annotate_voxels(
     dataset[:] = ds_o
 
 
-def annotate_regions(
-    dataset, region, r=None, label=0, parent_mask=None, bb=None, viewer_order=(0, 1, 2)
-):
+def annotate_regions(dataset, region, r=None, label=0, parent_mask=None, bb=None, viewer_order=(0, 1, 2)):
     """Annotate superregions in a dataset.
 
     Args:

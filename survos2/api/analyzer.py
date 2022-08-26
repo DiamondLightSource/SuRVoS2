@@ -214,9 +214,7 @@ def detect_blobs(
             plt.imshow(images[idx][zidx, :], cmap="gray")
             plt.scatter(bbs_arrs[idx][:, 4], bbs_arrs[idx][:, 3])
 
-    selected_entities = bbs_tables[0][
-        (bbs_tables[0]["area"] > area_min) & (bbs_tables[0]["area"] < area_max)
-    ]
+    selected_entities = bbs_tables[0][(bbs_tables[0]["area"] > area_min) & (bbs_tables[0]["area"] < area_max)]
     logger.debug(f"Number of selected entities {len(selected_entities)}")
 
     return bbs_tables, selected_entities
@@ -348,9 +346,7 @@ def label_splitter(
     feature_volume = []
     feature_sphericity = []
     for w in obj_windows:
-        feature.append(
-            (w[0].stop - w[0].start) * (w[1].stop - w[1].start) * (w[2].stop - w[2].start)
-        )
+        feature.append((w[0].stop - w[0].start) * (w[1].stop - w[1].start) * (w[2].stop - w[2].start))
         depth.append(w[0].stop - w[0].start)
         height.append(w[1].stop - w[1].start)
         width.append(w[2].stop - w[2].start)
@@ -414,9 +410,7 @@ def label_splitter(
 
     feature_sum = ndimage.measurements.sum(feature_dataset_arr, objs, index=objlabels)
     feature_mean = ndimage.measurements.mean(feature_dataset_arr, objs, index=objlabels)
-    feature_std = ndimage.measurements.standard_deviation(
-        feature_dataset_arr, objs, index=objlabels
-    )
+    feature_std = ndimage.measurements.standard_deviation(feature_dataset_arr, objs, index=objlabels)
     feature_var = ndimage.measurements.variance(feature_dataset_arr, objs, index=objlabels)
 
     feature_pos = measure.center_of_mass(objs, labels=objs, index=objlabels)
@@ -514,14 +508,10 @@ def label_splitter(
                 ]
                 feature_index = int(split_feature_index)  # feature_names.index(split_feature_index)
                 rules.append((int(feature_index), s, split_threshold))
-                logger.debug(
-                    f"Adding split rule: {split_feature_index} {split_op} {split_threshold}"
-                )
+                logger.debug(f"Adding split rule: {split_feature_index} {split_op} {split_threshold}")
 
     if calculate:
-        masked_out, result_features = apply_rules(
-            features_array, -1, rules, np.array(objlabels), num_objects
-        )
+        masked_out, result_features = apply_rules(features_array, -1, rules, np.array(objlabels), num_objects)
         logger.debug(f"Masking out: {masked_out}")
         bg_label = max(np.unique(new_labels))
         logger.debug(f"Masking out bg label {bg_label}")
@@ -901,9 +891,7 @@ def remove_masked_objects(
         mask = 1.0 - mask
 
     logger.debug(f"Initial number of objects: {len(entities_df)}")
-    refined_entity_df = make_entity_df(
-        remove_masked_entities((mask == 0) * 1.0, np.array(entities_df))
-    )
+    refined_entity_df = make_entity_df(remove_masked_entities((mask == 0) * 1.0, np.array(entities_df)))
 
     logger.debug(f"Removing entities using mask with shape {mask.shape}")
     result_list = []
@@ -1043,9 +1031,7 @@ def plot_clustered_img(
     for i in range(num_classes):
         xtext, ytext = np.median(proj[colors == i, :], axis=0)
         txt = ax.text(xtext, ytext, str(i), fontsize=18)
-        txt.set_path_effects(
-            [PathEffects.Stroke(linewidth=5, foreground="y"), PathEffects.Normal()]
-        )
+        txt.set_path_effects([PathEffects.Stroke(linewidth=5, foreground="y"), PathEffects.Normal()])
 
 
 @hug.get()
@@ -1317,9 +1303,7 @@ def binary_classifier(
         instdet.predict(
             instdet.class1_dets, score_thresh=score_thresh, model_file=model_fullname, offset=False
         )
-        instdet.analyze_result(
-            instdet.class1_gold_entities, instdet.class1_dets, instdet.detections
-        )
+        instdet.analyze_result(instdet.class1_gold_entities, instdet.class1_dets, instdet.detections)
         logger.debug("\nProduced foreground detections: \n")
         logger.debug(instdet.class1_dets)
         result_entities = offset_points(result_entities, np.array((-16, -16, -16)))
@@ -1367,9 +1351,9 @@ def point_generator(
             bg_mask = DM.sources[0][:]
             logger.debug(f"Feature shape {bg_mask.shape}")
 
-    random_entities = generate_random_points_in_volume(
-        bg_mask, num_before_masking, border=(0, 0, 0)
-    ).astype(np.uint32)
+    random_entities = generate_random_points_in_volume(bg_mask, num_before_masking, border=(0, 0, 0)).astype(
+        np.uint32
+    )
 
     if mask_name != "None":
         from survos2.entity.utils import remove_masked_entities

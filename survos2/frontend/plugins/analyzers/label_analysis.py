@@ -99,9 +99,7 @@ class LabelSplitter(AnalyzerCardBase):
         all_params["split_ops"] = split_ops
 
         logger.debug(f"Running analyzer with params {all_params}")
-        result_features, features_array, bvols = Launcher.g.run(
-            "analyzer", "label_splitter", **all_params
-        )
+        result_features, features_array, bvols = Launcher.g.run("analyzer", "label_splitter", **all_params)
         features_ndarray = np.array(features_array)
         print(f"Shape of features_array: {features_ndarray.shape}")
 
@@ -172,9 +170,7 @@ class LabelAnalyzer(AnalyzerCardBase):
         all_params["split_ops"] = split_ops
 
         logger.debug(f"Running analyzer with params {all_params}")
-        result_features, features_array, bvols = Launcher.g.run(
-            "analyzer", "label_splitter", **all_params
-        )
+        result_features, features_array, bvols = Launcher.g.run("analyzer", "label_splitter", **all_params)
         features_ndarray = np.array(features_array)
         print(f"Shape of features_array: {features_ndarray.shape}")
 

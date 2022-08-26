@@ -64,9 +64,7 @@ class WorkerThread(QThread):
                     "value": None,
                 }
             )
-            cfg.ppw.clientEvent.emit(
-                {"source": "save_annotation", "data": "refresh", "value": None}
-            )
+            cfg.ppw.clientEvent.emit({"source": "save_annotation", "data": "refresh", "value": None})
             QThread.sleep(10)
 
         timer = QTimer()
@@ -76,12 +74,7 @@ class WorkerThread(QThread):
 
 
 def coords_in_view(coords, image_shape):
-    if (
-        coords[0] >= 0
-        and coords[1] >= 0
-        and coords[0] < image_shape[0]
-        and coords[1] < image_shape[1]
-    ):
+    if coords[0] >= 0 and coords[1] >= 0 and coords[0] < image_shape[0] and coords[1] < image_shape[1]:
         return True
     else:
         return False
@@ -89,9 +82,7 @@ def coords_in_view(coords, image_shape):
 
 def hex_string_to_rgba(hex_string):
     hex_value = hex_string.lstrip("#")
-    rgba_array = (
-        np.append(np.array([int(hex_value[i : i + 2], 16) for i in (0, 2, 4)]), 255.0) / 255.0
-    )
+    rgba_array = np.append(np.array([int(hex_value[i : i + 2], 16) for i in (0, 2, 4)]), 255.0) / 255.0
     return rgba_array
 
 
@@ -106,9 +97,7 @@ def get_color_mapping(result, level_id="001_level"):
                     labels.append(ii)
                     remapped_label = int(k) - 1
                     cmapping[remapped_label] = hex_string_to_rgba(v["color"])
-                    cmapping[remapped_label + (remapped_label * 16)] = hex_string_to_rgba(
-                        v["color"]
-                    )
+                    cmapping[remapped_label + (remapped_label * 16)] = hex_string_to_rgba(v["color"])
                 return cmapping, labels
 
 
@@ -170,9 +159,7 @@ class ComboDialog(QDialog):
         layout.addWidget(self.combo)
 
         # OK and Cancel buttons
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self
-        )
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -289,9 +276,7 @@ class FileWidget(QWidget):
         if not folder:
             folder = settings.value(DEFAULT_DIR_KEY)
 
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Select input source", folder, filter=self.extensions
-        )
+        path, _ = QFileDialog.getOpenFileName(self, "Select input source", folder, filter=self.extensions)
         if path is not None and len(path) > 0:
             selected = True
             settings.setValue(DEFAULT_DATA_KEY, os.path.dirname(path))

@@ -508,9 +508,7 @@ def wavelet(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset_arr = DM.sources[0][:]
 
-    result = wavelet_fn(
-        src_dataset_arr, level=level, wavelet=str(wavelet), threshold=threshold, hard=hard
-    )
+    result = wavelet_fn(src_dataset_arr, level=level, wavelet=str(wavelet), threshold=threshold, hard=hard)
     # map_blocks(
     #     wavelet,
     #     src,
@@ -545,9 +543,7 @@ def create(workspace: String, feature_type: String):
 def existing(workspace: String, full: SmartBoolean = False, filter: SmartBoolean = True):
     datasets = ws.existing_datasets(workspace, group=__feature_group__)
     if full:
-        datasets = {
-            "{}/{}".format(__feature_group__, k): dataset_repr(v) for k, v in datasets.items()
-        }
+        datasets = {"{}/{}".format(__feature_group__, k): dataset_repr(v) for k, v in datasets.items()}
     else:
         datasets = {k: dataset_repr(v) for k, v in datasets.items()}
     if filter:

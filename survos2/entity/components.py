@@ -95,9 +95,7 @@ def filter_proposal_mask(mask, thresh=0.5, num_erosions=3, num_dilations=3, num_
 
 
 def measure_regions(labeled_images, properties=["label", "area", "centroid", "bbox"]):
-    tables = [
-        skimage.measure.regionprops_table(image, properties=properties) for image in labeled_images
-    ]
+    tables = [skimage.measure.regionprops_table(image, properties=properties) for image in labeled_images]
 
     tables = [pd.DataFrame(table) for table in tables]
 
@@ -201,9 +199,7 @@ def filter_small_components(images, min_component_size=0):
 
     for img_idx in range(len(images)):
         table_idx = list(selected[img_idx].index.values)
-        print(
-            f"For image {img_idx}, out of {len(tables[img_idx])}, keeping {len(table_idx)} components"
-        )
+        print(f"For image {img_idx}, out of {len(tables[img_idx])}, keeping {len(table_idx)} components")
 
         total_mask = np.zeros_like(images[img_idx])
 

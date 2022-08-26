@@ -344,11 +344,7 @@ class LoadDataDialog(QDialog):
         x_start, x_end, y_start, y_end, z_start, z_end = roi_limits
         if not x_start == y_start == z_start == 0:
             return True
-        if (
-            (x_end != self.data_shape[2])
-            or (y_end != self.data_shape[1])
-            or (z_end != self.data_shape[0])
-        ):
+        if (x_end != self.data_shape[2]) or (y_end != self.data_shape[1]) or (z_end != self.data_shape[0]):
             return True
         return False
 
@@ -592,9 +588,7 @@ class SSHWorker(QObject):
             session.send(cuda_command)
             session.send(command)
             # Loop for 15 seconds
-            self.button_message_signal.emit(
-                [f"Starting server on {self.ssh_host}. Please Wait!", "navy", 14]
-            )
+            self.button_message_signal.emit([f"Starting server on {self.ssh_host}. Please Wait!", "navy", 14])
             start = time.time()
             while time.time() - start < 15:
                 if session.recv_ready():
@@ -757,17 +751,13 @@ class ServerPlugin(Plugin):
         workspace_fields = QGroupBox("Create New Workspace:")
         wf_layout = QGridLayout()
         wf_layout.addWidget(QLabel("Data File Path:"), 1, 0, 1, 2)
-        current_data_path = Path(
-            self.workspace_config["datasets_dir"], self.workspace_config["vol_fname"]
-        )
+        current_data_path = Path(self.workspace_config["datasets_dir"], self.workspace_config["vol_fname"])
         self.data_filepth_linedt = QLineEdit(str(current_data_path))
         wf_layout.addWidget(self.data_filepth_linedt, 1, 1, 1, 2)
         wf_layout.addWidget(select_data_button, 1, 2)
         wf_layout.addWidget(QLabel("HDF5 Internal Data Path:"), 2, 0, 1, 1)
         ws_dataset_name = self.workspace_config["dataset_name"]
-        internal_h5_path = (
-            ws_dataset_name if str(ws_dataset_name).startswith("/") else "/" + ws_dataset_name
-        )
+        internal_h5_path = ws_dataset_name if str(ws_dataset_name).startswith("/") else "/" + ws_dataset_name
         self.h5_intpth_linedt = QLineEdit(internal_h5_path)
         wf_layout.addWidget(self.h5_intpth_linedt, 2, 1, 1, 1)
         wf_layout.addWidget(QLabel("Workspace Name:"), 3, 0)

@@ -50,9 +50,7 @@ def make_gaussian_kernel(kernel_size, sigma, dim=3):
 
     for size, std, mgrid in zip(kernel_size, sigma, meshgrids):
         mean = (size - 1) / 2
-        kernel *= (
-            1 / (std * math.sqrt(2 * math.pi)) * torch.exp(-(((mgrid - mean) / (2 * std)) ** 2))
-        )
+        kernel *= 1 / (std * math.sqrt(2 * math.pi)) * torch.exp(-(((mgrid - mean) / (2 * std)) ** 2))
 
     kernel = kernel / torch.sum(kernel)
     kernel = kernel.view(1, *kernel.size())
@@ -216,9 +214,7 @@ def total_variation(img: torch.Tensor) -> torch.Tensor:
         # reduce_axes = (-3, -2, -1)
         reduce_axes = list(range(1, 4))
     else:
-        raise ValueError(
-            "Expected input tensor to be of ndim 3 or 4, but got " + str(len(img_shape))
-        )
+        raise ValueError("Expected input tensor to be of ndim 3 or 4, but got " + str(len(img_shape)))
 
     return (
         pixel_dif1.abs().sum(dim=reduce_axes)

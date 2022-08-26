@@ -231,9 +231,7 @@ def frontend(viewer):
                         msg, retrieval_mode=cfg.retrieval_mode
                     )
 
-                result = Launcher.g.run(
-                    "annotations", "get_levels", workspace=DataModel.g.current_workspace
-                )
+                result = Launcher.g.run("annotations", "get_levels", workspace=DataModel.g.current_workspace)
 
                 if result:
                     return _refresh_annotations_in_viewer(result, msg, src_arr)
@@ -329,16 +327,11 @@ def frontend(viewer):
                     if layer.mode == "paint" or layer.mode == "erase":
                         while event.type == "mouse_move":
 
-                            coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(
-                                np.int32
-                            )
+                            coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(np.int32)
 
                             if cfg.retrieval_mode == "slice":
                                 drag_pt = [coords[0], coords[1]]
-                            elif (
-                                cfg.retrieval_mode == "volume"
-                                or cfg.retrieval_mode == "volume_http"
-                            ):
+                            elif cfg.retrieval_mode == "volume" or cfg.retrieval_mode == "volume_http":
                                 drag_pt = [coords[0], coords[1], coords[2]]
                             drag_pts.append(drag_pt)
                             yield
@@ -346,9 +339,7 @@ def frontend(viewer):
                         if len(drag_pts) >= 0:
                             # top_layer = viewer.layers[-1]
                             # layer_name = top_layer.name  # get last added layer name
-                            anno_layer = [
-                                v for v in viewer.layers if v.name == cfg.current_annotation_name
-                            ]
+                            anno_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
                             if len(anno_layer) > 0:
                                 anno_layer = anno_layer[0]
                                 # anno_layer = next(l for l in viewer.layers if l.name == cfg.current_annotation_name)
@@ -525,9 +516,7 @@ def frontend(viewer):
                 src_arr = decode_numpy(result).astype(np.int32)
                 existing_pipeline_layer[0].data = src_arr.copy()
 
-        existing_analyzers_layer = [
-            v for v in viewer.layers if v.name == cfg.current_analyzers_name
-        ]
+        existing_analyzers_layer = [v for v in viewer.layers if v.name == cfg.current_analyzers_name]
 
         if existing_analyzers_layer:
             print(f"Jumping to analyzer slice {cfg.current_analyzers_name}")

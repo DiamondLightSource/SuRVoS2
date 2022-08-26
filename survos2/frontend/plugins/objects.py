@@ -50,15 +50,9 @@ class ObjectComboBox(LazyComboBox):
         logger.debug(f"Result of objects existing: {result}")
         if result:
             for fid in result:
-                if (
-                    result[fid]["kind"] == "points"
-                    and result[fid]["kind"] in self.filter_objects_type
-                ):
+                if result[fid]["kind"] == "points" and result[fid]["kind"] in self.filter_objects_type:
                     self.addItem(fid, result[fid]["name"])
-                elif (
-                    result[fid]["kind"] == "boxes"
-                    and result[fid]["kind"] in self.filter_objects_type
-                ):
+                elif result[fid]["kind"] == "boxes" and result[fid]["kind"] in self.filter_objects_type:
                     self.addItem(fid, result[fid]["name"])
 
 
@@ -125,9 +119,7 @@ class ObjectsPlugin(Plugin):
             objectstype = result["kind"]
             self._add_objects_widget(objectsid, objectsname, objectsfullname, objectstype, True)
 
-    def _add_objects_widget(
-        self, objectsid, objectsname, objectsfullname, objectstype, expand=False
-    ):
+    def _add_objects_widget(self, objectsid, objectsname, objectsfullname, objectstype, expand=False):
         logger.debug(f"Add objects {objectsid} {objectsname} {objectsfullname} {objectstype}")
         widget = ObjectsCard(objectsid, objectsname, objectsfullname, objectstype)
         widget.showContent(expand)
@@ -166,16 +158,12 @@ class ObjectsPlugin(Plugin):
                 objectstype = enitity_params.pop("kind", entity)
                 logger.debug(f"type: {objectstype}")
                 if objectstype != "unknown":
-                    widget = self._add_objects_widget(
-                        objectsid, objectsname, objectsfullname, objectstype
-                    )
+                    widget = self._add_objects_widget(objectsid, objectsname, objectsfullname, objectstype)
 
                     widget.update_params(params)
                     self.existing_objects[objectsid] = widget
                 else:
-                    logger.debug(
-                        f"+ Skipping loading entity: {objectsid}, {objectsname}, {objectstype}"
-                    )
+                    logger.debug(f"+ Skipping loading entity: {objectsid}, {objectsname}, {objectstype}")
 
 
 class ObjectsCard(Card):
@@ -491,9 +479,7 @@ class ObjectsCard(Card):
             combined_clustered_pts,
         )
 
-        src = DataModel.g.dataset_uri(
-            self.annotations_source.value().rsplit("/", 1)[-1], group="annotations"
-        )
+        src = DataModel.g.dataset_uri(self.annotations_source.value().rsplit("/", 1)[-1], group="annotations")
         with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
             src_dataset = DM.sources[0]
             anno_level = src_dataset[:] & 15

@@ -20,9 +20,7 @@ def centroid_3d(arr):
     return sum_x / length, sum_y / length, sum_z / length
 
 
-def show_images_and_points(
-    images, points, cluster_classes, class_names=None, titles=None, figsize=(12, 4)
-):
+def show_images_and_points(images, points, cluster_classes, class_names=None, titles=None, figsize=(12, 4)):
     n_ims = len(images)
     if titles is None:
         titles = ["(%d)" % i for i in range(1, n_ims + 1)]
@@ -35,9 +33,7 @@ def show_images_and_points(
 
         a = fig.add_subplot(1, n_ims, n)
         plt.imshow(image, cmap="gray")
-        scat = a.scatter(
-            points[:, 1], points[:, 2], c=cluster_classes, cmap="jet_r", s=50, alpha=1.0
-        )
+        scat = a.scatter(points[:, 1], points[:, 2], c=cluster_classes, cmap="jet_r", s=50, alpha=1.0)
         a.legend(handles=scat.legend_elements()[0], labels=class_names)
 
         a.set_title(title)
@@ -154,9 +150,7 @@ def aggregation(
     #
 
     if method == "hdbscan":
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=1).fit(
-            X_rescaled
-        )
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=1).fit(X_rescaled)
         label_code = clusterer.labels_
         num_clusters_found = len(np.unique(label_code))
         threshold = pd.Series(clusterer.outlier_scores_).quantile(quantile_threshold)

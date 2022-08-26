@@ -39,9 +39,7 @@ class Head_TwoStage_Cls(nn.Module):
         self.conv_3 = self._conv_block(32, 64)
         self.conv_4 = self._conv_block(64, 128)
 
-        self.conv_final = conv(
-            n_features, n_output_channels, ks=2, stride=stride, pad=0, relu=None  # ks=3
-        )
+        self.conv_final = conv(n_features, n_output_channels, ks=2, stride=stride, pad=0, relu=None)  # ks=3
 
         self.linear_class = nn.Linear(750, self.n_classes)
 

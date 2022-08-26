@@ -125,14 +125,10 @@ class PatchStats(AnalyzerCardBase):
     def setup(self):
         self._add_feature_source()
         self._add_objects_source()
-        self.stat_name_combo_box = SimpleComboBox(
-            full=True, values=["Mean", "Std", "Var", "Median", "Sum"]
-        )
+        self.stat_name_combo_box = SimpleComboBox(full=True, values=["Mean", "Std", "Var", "Median", "Sum"])
         self.stat_name_combo_box.fill()
         self.box_dimension = LineEdit(default=16, parse=int)
-        widget = HWidgets(
-            "Statistic name:", self.stat_name_combo_box, "Box dimension: ", self.box_dimension
-        )
+        widget = HWidgets("Statistic name:", self.stat_name_combo_box, "Box dimension: ", self.box_dimension)
         self.add_row(widget)
 
     def calculate(self):
@@ -227,9 +223,7 @@ class ObjectAnalyzer(AnalyzerCardBase):
         )
         self.add_row(widget)
 
-        self.embedding_method_combo_box.currentIndexChanged.connect(
-            self._on_embedding_method_changed
-        )
+        self.embedding_method_combo_box.currentIndexChanged.connect(self._on_embedding_method_changed)
         self.embedding_method_container = QtWidgets.QWidget()
         embedding_method_vbox = VBox(self, spacing=4)
         embedding_method_vbox.setContentsMargins(0, 0, 0, 0)
@@ -320,9 +314,7 @@ class ObjectAnalyzer(AnalyzerCardBase):
                         n_cols = 6
                     n_rows = min(5, (len(selected_images) // n_cols) + 1)
                     logger.debug(f"Making MplGridCanvas with {n_rows} rows and {n_cols} columns.")
-                    sc2 = MplGridCanvas(
-                        self, width=8, height=8, num_rows=n_rows, num_cols=n_cols, dpi=100
-                    )
+                    sc2 = MplGridCanvas(self, width=8, height=8, num_rows=n_rows, num_cols=n_cols, dpi=100)
                     image_grid2(selected_images, n_cols, sc2.fig, sc2.axesarr, bigtitle=str(l))
                     self.object_analyzer_plots.append(sc2)
 
@@ -370,9 +362,7 @@ class UMAP_Panel(QtWidgets.QWidget):
         self.min_dist = LineEdit(default=0.3, parse=float)
         self.spread = LineEdit(default=1.0, parse=float)
 
-        widget = HWidgets(
-            "n_components:", self.n_components, "n_neighbors:", self.n_neighbors, stretch=1
-        )
+        widget = HWidgets("n_components:", self.n_components, "n_neighbors:", self.n_neighbors, stretch=1)
         vbox.addWidget(widget)
 
         self.metric_combo_box = SimpleComboBox(full=True, values=umap_metrics)
@@ -384,9 +374,7 @@ class UMAP_Panel(QtWidgets.QWidget):
 
 
 class MplGridCanvas(FigureCanvasQTAgg):
-    def __init__(
-        self, parent=None, width=5, height=4, num_rows=2, num_cols=2, dpi=100, suptitle="Feature"
-    ):
+    def __init__(self, parent=None, width=5, height=4, num_rows=2, num_cols=2, dpi=100, suptitle="Feature"):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axesarr = np.zeros((num_rows, num_cols), dtype=object)
 

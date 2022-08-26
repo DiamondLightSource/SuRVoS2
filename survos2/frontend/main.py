@@ -50,9 +50,7 @@ def init_ws(workspace_params):
         try:
             img_volume = original_data[dataset_name]
         except KeyError as e:
-            raise WorkspaceException(
-                f"Internal HDF5 dataset: '{dataset_name}' does not exist!"
-            ) from e
+            raise WorkspaceException(f"Internal HDF5 dataset: '{dataset_name}' does not exist!") from e
     if len(img_volume.shape) == 2:
         img_volume = np.reshape(img_volume, (1, img_volume.shape[0], img_volume.shape[1]))
     logger.info(f"Loaded vol of size {img_volume.shape}")
@@ -73,18 +71,14 @@ def init_ws(workspace_params):
             if workspace_params["entities_name"] is not None:
                 entities_name = workspace_params["entities_name"]
 
-            img_volume, entities_df = precrop(
-                img_volume, entities_df, precrop_coords, precrop_vol_size
-            )
+            img_volume, entities_df = precrop(img_volume, entities_df, precrop_coords, precrop_vol_size)
 
     if "downsample_by" in workspace_params:
         downby = int(workspace_params["downsample_by"])
         logger.info(f"Downsampling data by a factor of {downby}")
         img_volume = img_volume[::downby, ::downby, ::downby]
 
-    tmpvol_fullpath = os.path.abspath(
-        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".h5")
-    )
+    tmpvol_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".h5"))
     logger.info(tmpvol_fullpath)
 
     with h5py.File(tmpvol_fullpath, "w") as hf:

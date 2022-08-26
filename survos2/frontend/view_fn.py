@@ -161,9 +161,7 @@ def view_pipeline(viewer, msg, analyzers=False):
         logger.debug(f"view_pipeline {msg['pipeline_id']} using {msg['level_id']}")
         source = msg["source"]
 
-        result = Launcher.g.run(
-            "annotations", "get_levels", workspace=DataModel.g.current_workspace
-        )
+        result = Launcher.g.run("annotations", "get_levels", workspace=DataModel.g.current_workspace)
 
         if result:
             cmapping, _ = get_color_mapping(result, level_id=msg["level_id"])

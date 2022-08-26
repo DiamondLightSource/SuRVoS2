@@ -326,9 +326,7 @@ def _apply(
     if stack and len(datasets) > 1:
         dataset = da.stack(datasets, axis=0)
         dataset = da.rechunk(dataset, chunks=(dataset.shape[0],) + dataset.chunks[1:])
-        logger.debug(
-            f"Stack=True, Rechunked with chunks: {(dataset.shape[0],) + dataset.chunks[1:]}"
-        )
+        logger.debug(f"Stack=True, Rechunked with chunks: {(dataset.shape[0],) + dataset.chunks[1:]}")
         datasets = [dataset]
 
     logger.info(f"Applying {func} to datasets of shape {datasets} with stack: {stack}")

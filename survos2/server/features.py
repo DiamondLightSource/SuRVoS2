@@ -95,8 +95,7 @@ def generate_features(img_vol, feature_params, roi_crop, resample_amt):
 
     # map_blocks through Dask
     filtered_layers = [
-        proc_layer(map_blocks(filter_fn, img_vol, **params_dict))
-        for filter_fn, params_dict in feature_params
+        proc_layer(map_blocks(filter_fn, img_vol, **params_dict)) for filter_fn, params_dict in feature_params
     ]
 
     filtered_layers = np.array(filtered_layers).astype(np.float32)

@@ -62,12 +62,8 @@ class TrainMultiaxisCNN(PipelineCardBase):
                 workspace_list.append(
                     (self.table.item(i, 0).get_hidden_field(), self.table.item(i, 0).text())
                 )
-                data_list.append(
-                    (self.table.item(i, 1).get_hidden_field(), self.table.item(i, 1).text())
-                )
-                label_list.append(
-                    (self.table.item(i, 2).get_hidden_field(), self.table.item(i, 2).text())
-                )
+                data_list.append((self.table.item(i, 1).get_hidden_field(), self.table.item(i, 1).text()))
+                label_list.append((self.table.item(i, 2).get_hidden_field(), self.table.item(i, 2).text()))
         # Can the src parameter be removed?
         src = DataModel.g.dataset_uri("001_raw", group="features")
         all_params = dict(src=src, dst=self.dst, modal=True)
@@ -159,7 +155,6 @@ class TrainMultiaxisCNN(PipelineCardBase):
         feature_widget = HWidgets("Feature (Data):", self.feature_source, stretch=1)
         self.add_row(feature_widget)
 
-
     def _update_features_from_ws(self, workspace):
         self.feature_source.clear()
         workspace = "default@" + workspace
@@ -220,9 +215,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
         train_advanced_button = QRadioButton("Advanced")
         self.setup_adv_train_fields()
         self.adv_train_fields.hide()
-        refresh_label = Label(
-            'Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".'
-        )
+        refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
         self.multi_ax_train_refresh_btn = PushButton("Refresh Data", accent=True)
         self.multi_ax_train_refresh_btn.clicked.connect(self.refresh_multi_ax_data)
         self.multi_ax_pred_refresh_btn = None
@@ -255,9 +248,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.volseg_encoder_type = ComboBox()
         self.volseg_encoder_type.addItem(key="resnet34", value="ResNet34 (Pre-trained)")
         self.volseg_encoder_type.addItem(key="resnet50", value="ResNet50 (Pre-trained)")
-        self.volseg_encoder_type.addItem(
-            key="resnext50_32x4d", value="ResNeXt50 (32x4d Pre-trained)"
-        )
+        self.volseg_encoder_type.addItem(key="resnext50_32x4d", value="ResNeXt50 (32x4d Pre-trained)")
         self.loss_type_combo = ComboBox()
         self.loss_type_combo.addItem(key="DiceLoss", value="Dice Loss")
         self.loss_type_combo.addItem(key="CrossEntropyLoss", value="Cross Entropy Loss")
@@ -308,8 +299,8 @@ class PredictMultiaxisCNN(PipelineCardBase):
         super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
 
     def setup(self):
-        #self.annotations_source = LevelComboBox()
-        #self.annotations_source.hide()
+        # self.annotations_source = LevelComboBox()
+        # self.annotations_source.hide()
         self._add_annotations_source()
         self._add_feature_source()
         self._add_multi_ax_2d_prediction_params()
@@ -345,9 +336,7 @@ class PredictMultiaxisCNN(PipelineCardBase):
         advanced_button = QRadioButton("Advanced")
         self.setup_adv_pred_fields()
         self.adv_pred_fields.hide()
-        refresh_label = Label(
-            'Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".'
-        )
+        refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
         self.multi_ax_pred_refresh_btn = PushButton("Refresh Data", accent=True)
         self.multi_ax_pred_refresh_btn.clicked.connect(self.refresh_multi_ax_data)
         self.multi_ax_train_refresh_btn = None
@@ -380,4 +369,3 @@ class PredictMultiaxisCNN(PipelineCardBase):
             self.adv_pred_fields.show()
         else:
             self.adv_pred_fields.hide()
-

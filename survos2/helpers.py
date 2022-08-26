@@ -265,9 +265,7 @@ def plot_3d_data(
     zs = list(data[:, 2])
 
     # sns.reset_orig()  # default matplotlib
-    rgb_palette = sns.color_palette(
-        "Spectral", n_colors=len(np.unique(labels)) + 10
-    )  # a list of RGB tuples
+    rgb_palette = sns.color_palette("Spectral", n_colors=len(np.unique(labels)) + 10)  # a list of RGB tuples
 
     clrs = [rgb_palette[idx] for idx in labels]
 

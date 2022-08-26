@@ -285,9 +285,7 @@ class LoadDataDialog(QDialog):
         """
         x_start, x_end, y_start, y_end, z_start, z_end = roi_limits
         return (
-            x_end != self.data_shape[2]
-            or y_end != self.data_shape[1]
-            or z_end != self.data_shape[0]
+            x_end != self.data_shape[2] or y_end != self.data_shape[1] or z_end != self.data_shape[0]
             if x_start == y_start == z_start == 0
             else True
         )
@@ -596,9 +594,7 @@ class ROIPlugin(Plugin):
                 + "_"
                 + str(roi[5])
             )
-            cfg.ppw.clientEvent.emit(
-                {"source": "panel_gui", "data": "make_roi_ws", "roi": roi_list}
-            )
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "make_roi_ws", "roi": roi_list})
             self.add_roi(roi_name, original_workspace, roi_list)
 
     def setup(self):
@@ -699,9 +695,7 @@ class ROIPlugin(Plugin):
 
 class ROICard(Card):
     def __init__(self, rid, rname, parent=None):
-        super().__init__(
-            title=rname, collapsible=True, removable=True, editable=True, parent=parent
-        )
+        super().__init__(title=rname, collapsible=True, removable=True, editable=True, parent=parent)
         self.rname = rname
         self.rid = rid
         self.annotation_source = LevelComboBox(workspace=self.rname)

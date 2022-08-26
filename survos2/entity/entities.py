@@ -18,9 +18,7 @@ import tempfile
 
 def load_boxes_via_file(boxes_arr, flipxy=True):
     boxes_df = make_entity_boxes(boxes_arr, flipxy=flipxy)
-    tmp_fullpath = os.path.abspath(
-        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
-    )
+    tmp_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv"))
     boxes_df.to_csv(tmp_fullpath, line_terminator="")
     print(boxes_df)
     object_scale = 1.0
@@ -53,9 +51,7 @@ def load_boxes_via_file(boxes_arr, flipxy=True):
 
 def load_entities_via_file(entities_arr, flipxy=True):
     entities_df = make_entity_df(entities_arr, flipxy=flipxy)
-    tmp_fullpath = os.path.abspath(
-        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
-    )
+    tmp_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv"))
     entities_df.to_csv(tmp_fullpath, line_terminator="")
 
     object_scale = 1.0
@@ -166,28 +162,18 @@ def make_entity_df(pts, flipxy=True):
     """
 
     if flipxy:
-        entities_df = pd.DataFrame(
-            {"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]}
-        )
+        entities_df = pd.DataFrame({"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]})
     else:
-        entities_df = pd.DataFrame(
-            {"z": pts[:, 0], "x": pts[:, 1], "y": pts[:, 2], "class_code": pts[:, 3]}
-        )
+        entities_df = pd.DataFrame({"z": pts[:, 0], "x": pts[:, 1], "y": pts[:, 2], "class_code": pts[:, 3]})
 
-    entities_df = entities_df.astype(
-        {"x": "int32", "y": "int32", "z": "int32", "class_code": "int32"}
-    )
+    entities_df = entities_df.astype({"x": "int32", "y": "int32", "z": "int32", "class_code": "int32"})
     return entities_df
 
 
 def make_entity_df2(pts):
-    entities_df = pd.DataFrame(
-        {"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]}
-    )
+    entities_df = pd.DataFrame({"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]})
 
-    entities_df = entities_df.astype(
-        {"x": "float32", "y": "float32", "z": "int32", "class_code": "int32"}
-    )
+    entities_df = entities_df.astype({"x": "float32", "y": "float32", "z": "int32", "class_code": "int32"})
 
     return entities_df
 

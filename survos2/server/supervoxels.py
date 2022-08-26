@@ -139,9 +139,7 @@ def prepare_supervoxels(
 
     supervoxel_proc = scipy.ndimage.zoom(supervoxel_proc, resample_amt, order=1)
 
-    logger.debug(
-        f"Loading Supervoxel {os.path.basename(supervoxels[0])} with shape {supervoxel_proc.shape}"
-    )
+    logger.debug(f"Loading Supervoxel {os.path.basename(supervoxels[0])} with shape {supervoxel_proc.shape}")
 
     supervoxel_features = rmeans(filtered_stack, supervoxel_proc)
     supervoxel_rag = create_rag(np.array(supervoxel_proc).astype(np.uint32), connectivity=6)

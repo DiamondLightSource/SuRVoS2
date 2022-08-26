@@ -417,9 +417,7 @@ class Dataset(BaseDataset):
     def load(self, data):
         logger.debug(f"Loading dataset {data}")
         if tuple(data.shape) != tuple(self.shape):
-            raise Exception(
-                "Data shape does not match: {} expected {}".format(self.shape, data.shape)
-            )
+            raise Exception("Data shape does not match: {} expected {}".format(self.shape, data.shape))
         if isinstance(data, da.Array):
             data.store(self)
         else:
@@ -494,20 +492,15 @@ class Dataset(BaseDataset):
                 elif stop < 0:
                     stop = self.shape[i] + stop
                 if start < 0 or start >= self.shape[i]:
-                    raise Exception(
-                        "Only possitive and in-bounds slicing supported: `{}`".format(slices)
-                    )
+                    raise Exception("Only possitive and in-bounds slicing supported: `{}`".format(slices))
                 if stop < 0 or stop > self.shape[i] or stop < start:
-                    raise Exception(
-                        "Only possitive and in-bounds slicing supported: `{}`".format(slices)
-                    )
+                    raise Exception("Only possitive and in-bounds slicing supported: `{}`".format(slices))
                 if s.step is not None and s.step != 1:
                     raise Exception("Only slicing with step 1 supported")
                 final_slices.append(slice(start, stop))
             else:
                 raise Exception(
-                    "Invalid type `{}` in slicing, only integer or"
-                    " slices are supported".format(type(s))
+                    "Invalid type `{}` in slicing, only integer or" " slices are supported".format(type(s))
                 )
 
         if squeeze:

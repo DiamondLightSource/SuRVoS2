@@ -141,9 +141,7 @@ def rasterize_points(
     objects_crop_start = ds_objects.get_metadata("crop_start")
     objects_crop_end = ds_objects.get_metadata("crop_end")
 
-    logger.debug(
-        f"Getting objects from {src} and file {objects_fullname} with scale {objects_scale}"
-    )
+    logger.debug(f"Getting objects from {src} and file {objects_fullname} with scale {objects_scale}")
     from survos2.frontend.components.entity import make_entity_df, setup_entity_table
 
     tabledata, entities_df = setup_entity_table(
@@ -458,9 +456,7 @@ def train_multi_axis_cnn(
             labels = src_dataset.get_metadata("labels", {})
             anno_level = src_dataset[:] & 15
         anno_labels = np.unique(anno_level)
-        logger.debug(
-            f"Obtained annotation level with labels {anno_labels} and shape {anno_level.shape}"
-        )
+        logger.debug(f"Obtained annotation level with labels {anno_labels} and shape {anno_level.shape}")
         slicer = TrainingDataSlicer(feature, anno_level, settings)
         data_prefix, label_prefix = f"data{count}", f"seg{count}"
         slicer.output_data_slices(data_slice_path, data_prefix)
@@ -482,13 +478,9 @@ def train_multi_axis_cnn(
     if num_cyc_frozen > 0:
         trainer.train_model(model_out, num_cyc_frozen, settings.patience, create=True, frozen=True)
     if num_cyc_unfrozen > 0 and num_cyc_frozen > 0:
-        trainer.train_model(
-            model_out, num_cyc_unfrozen, settings.patience, create=False, frozen=False
-        )
+        trainer.train_model(model_out, num_cyc_unfrozen, settings.patience, create=False, frozen=False)
     elif num_cyc_unfrozen > 0 and num_cyc_frozen == 0:
-        trainer.train_model(
-            model_out, num_cyc_unfrozen, settings.patience, create=True, frozen=False
-        )
+        trainer.train_model(model_out, num_cyc_unfrozen, settings.patience, create=True, frozen=False)
     trainer.output_loss_fig(model_out)
     trainer.output_prediction_figure(model_out)
     # Clean up all the saved slices
@@ -549,9 +541,7 @@ def predict_multi_axis_cnn(
             logger.debug(f"Adding feature of shape {src_dataset.shape}")
             feature = src_dataset[:]
 
-        logger.info(
-            f"Predict_multi_axis_cnn with feature shape {feature.shape} using model {model_path}"
-        )
+        logger.info(f"Predict_multi_axis_cnn with feature shape {feature.shape} using model {model_path}")
     else:
         logging.error("No feature selected!")
         return
@@ -607,9 +597,7 @@ def create_new_labels_for_level(workspace, level_id, label_codes):
         for key in label_codes:
             label_result = add_label(workspace=workspace, level=level_id)
             if label_result:
-                update_result = update_label(
-                    workspace=workspace, level=level_id, **label_codes[key]
-                )
+                update_result = update_label(workspace=workspace, level=level_id, **label_codes[key])
                 logger.info(f"Label created: {update_result}")
         # Old style codes are in a list
     elif isinstance(label_codes, list):
@@ -919,9 +907,7 @@ def label_postprocess(
     if level_over != "None":
         # zero out everything but the selected level in the over image
         anno_over_level[anno_over_level != selected_label_for_over] = 0
-        anno_over_level[anno_over_level == selected_label_for_over] = (
-            selected_label_for_over + offset
-        )
+        anno_over_level[anno_over_level == selected_label_for_over] = selected_label_for_over + offset
         # mask out those voxels that are in the over image, in the base image
         result = result * (1.0 - (anno_over_level > 0) * 1.0)
         result += anno_over_level
@@ -1062,9 +1048,7 @@ def existing(workspace: String, full: SmartBoolean = False, filter: SmartBoolean
     datasets = ws.existing_datasets(workspace, group=__pipeline_group__)
 
     if full:
-        datasets = {
-            "{}/{}".format(__pipeline_group__, k): dataset_repr(v) for k, v in datasets.items()
-        }
+        datasets = {"{}/{}".format(__pipeline_group__, k): dataset_repr(v) for k, v in datasets.items()}
     else:
         datasets = {k: dataset_repr(v) for k, v in datasets.items()}
 

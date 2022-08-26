@@ -27,8 +27,7 @@ def compute_hessian(data, sigma):
     gradients = [np.gradient(gaussian_filtered, axis=i) for i in range(3)]
     axes = range(data.ndim)
     H_elems = [
-        np.gradient(gradients[2 - ax0], axis=2 - ax1)
-        for ax0, ax1 in combinations_with_replacement(axes, 2)
+        np.gradient(gradients[2 - ax0], axis=2 - ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)
     ]
     if not isinstance(sigma, numbers.Number):
         sigma = max(sigma)
@@ -57,11 +56,7 @@ def compute_hessian_determinant(data, sigma, bright=False):
     """
     Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = compute_hessian(data, sigma)
 
-    det = (
-        Hxx * (Hyy * Hzz - Hyz * Hyz)
-        - Hxy * (Hxy * Hzz - Hyz * Hxz)
-        + Hxz * (Hxy * Hyz - Hyy * Hxz)
-    )
+    det = Hxx * (Hyy * Hzz - Hyz * Hyz) - Hxy * (Hxy * Hzz - Hyz * Hxz) + Hxz * (Hxy * Hyz - Hyy * Hxz)
 
     if bright:
         return -det
@@ -285,9 +280,7 @@ def compute_structure_tensor_determinant(data, sigma=1):
     Sxx, Sxy, Sxz, Syy, Syz, Szz = compute_structure_tensor(data=data, sigma=sigma)
 
     determinant = (
-        Sxx * (Syy * Szz - Syz * Syz)
-        - Sxy * (Sxy * Szz - Syz * Sxz)
-        + Sxz * (Sxy * Syz - Syy * Sxz)
+        Sxx * (Syy * Szz - Syz * Syz) - Sxy * (Sxy * Szz - Syz * Sxz) + Sxz * (Sxy * Syz - Syy * Sxz)
     )
 
     return determinant

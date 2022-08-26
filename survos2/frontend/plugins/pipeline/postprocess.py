@@ -16,9 +16,7 @@ class LabelPostprocess(PipelineCardBase):
         # self.label_index = LineEdit(default=-1, parse=int)
 
     def compute_pipeline(self):
-        src = DataModel.g.dataset_uri(
-            self.annotations_source.value().rsplit("/", 1)[-1], group="annotations"
-        )
+        src = DataModel.g.dataset_uri(self.annotations_source.value().rsplit("/", 1)[-1], group="annotations")
         all_params = dict(src=src, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         print(self.annotations_source.value())

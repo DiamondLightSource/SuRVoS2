@@ -63,11 +63,7 @@ def select_clusters(
     other_cluster_num = list(range(num_classes))
     other_cluster_num = [e for e in other_cluster_num if e not in identified_cluster_num]
 
-    print(
-        "Objects {}\nBackground {}\nOther {}".format(
-            target_cluster_num, bg_cluster_num, other_cluster_num
-        )
-    )
+    print("Objects {}\nBackground {}\nOther {}".format(target_cluster_num, bg_cluster_num, other_cluster_num))
     bg_sel_idx = np.any([predictions == idx for idx in bg_cluster_num], axis=0)
     target_sel_idx = np.any([predictions == idx for idx in target_cluster_num], axis=0)
     other_sel_idx = np.any([predictions == idx for idx in other_cluster_num], axis=0)
@@ -333,9 +329,7 @@ class PatchCluster:
     def density_cluster(self, min_cluster_size=3):
         import hdbscan
 
-        self.density_clusterer = hdbscan.HDBSCAN(
-            min_cluster_size=min_cluster_size, gen_min_span_tree=True
-        )
+        self.density_clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, gen_min_span_tree=True)
         self.density_clusterer.fit(self.embedding)
 
     def clustering_evaluation(self, n_cluster_range=(2, 20)):
@@ -363,9 +357,7 @@ class PatchCluster:
     def cluster_metrics(self):
         cluster_metrics = {
             "davies_bouldin": metrics.davies_bouldin_score(self.reduced_data, self.predictions),
-            "silhouette": metrics.silhouette_score(
-                self.reduced_data, self.predictions, metric="euclidean"
-            ),
+            "silhouette": metrics.silhouette_score(self.reduced_data, self.predictions, metric="euclidean"),
         }
 
         return cluster_metrics

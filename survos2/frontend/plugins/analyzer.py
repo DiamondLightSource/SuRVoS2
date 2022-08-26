@@ -94,9 +94,7 @@ class AnalyzerPlugin(Plugin):
             logger.debug(f"Analyzer {result}")
             for i, category in enumerate(all_categories):
                 self.analyzers_combo.addItem(category)
-                self.analyzers_combo.model().item(i + len(self.analyzer_params) + 1).setEnabled(
-                    False
-                )
+                self.analyzers_combo.model().item(i + len(self.analyzer_params) + 1).setEnabled(False)
 
                 for f in [p for p in result if p["category"] == category]:
                     self.analyzer_params[f["name"]] = f["params"]

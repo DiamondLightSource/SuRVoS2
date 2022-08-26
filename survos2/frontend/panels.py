@@ -190,9 +190,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         )
 
     def _params_updated(self):
-        cfg.ppw.clientEvent.emit(
-            {"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()}
-        )
+        cfg.ppw.clientEvent.emit({"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()})
 
     def clear_layout(self, layout):
         while layout.count():

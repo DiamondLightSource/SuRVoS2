@@ -106,11 +106,10 @@ class Launcher(QtCore.QObject):
                     cnt += 1
                     logger.info("ConnectionError - delayed")
                     # ModalManager.g.connection_lost()
-                    
 
                     if self.terminated:
                         return False
-                    
+
                 else:
                     success = True
 
@@ -122,9 +121,9 @@ class Launcher(QtCore.QObject):
             return result
 
     def _run_command(self, plugin, command, uri=None, out=None, **kwargs):
-        #logger.debug(f"_run_command: {plugin} {command}")
+        # logger.debug(f"_run_command: {plugin} {command}")
         response = self.client.get("{}/{}".format(plugin, command), timeout=5, **kwargs)
-        #logger.debug("parsing_response")
+        # logger.debug("parsing_response")
         result = parse_response(plugin, command, response, log=False)
         if out is not None:
             out.put(result)
@@ -136,9 +135,7 @@ class Launcher(QtCore.QObject):
         queue = multiprocessing.Queue()
         kwargs.update(out=queue)
 
-        p = multiprocessing.Process(
-            target=_run_command, args=[plugin, command, self.client], kwargs=kwargs
-        )
+        p = multiprocessing.Process(target=_run_command, args=[plugin, command, self.client], kwargs=kwargs)
         p.daemon = True
         p.start()
         while p.is_alive():

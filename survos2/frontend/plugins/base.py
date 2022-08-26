@@ -107,9 +107,7 @@ class PluginContainer(QCSWidget):
         vbox.addWidget(self.tabwidget, 1)
 
         self.tabs = [
-            (QWidget(), t)
-            for t in config["api"]["plugins"]
-            if (t != "workspace") and (t != "render")
+            (QWidget(), t) for t in config["api"]["plugins"] if (t != "workspace") and (t != "render")
         ]
         # 'workspace' and 'render' are internal plugins with no gui
         for t in self.tabs:

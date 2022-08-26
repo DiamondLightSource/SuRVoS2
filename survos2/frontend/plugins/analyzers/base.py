@@ -357,9 +357,7 @@ class AnalyzerCardBase(Card):
                             color=label_hex,
                         )
                         params = dict(level=result["id"], workspace=True)
-                        label_result = Launcher.g.run(
-                            "annotations", "update_label", **params, **label
-                        )
+                        label_result = Launcher.g.run("annotations", "update_label", **params, **label)
             except Exception as err:
                 logger.debug(f"Exception {err}")
 
@@ -401,9 +399,7 @@ class AnalyzerCardBase(Card):
         if "anno_id" in params:
             if params["anno_id"] is not None:
                 if isinstance(params["anno_id"], list):
-                    self.annotations_source.select(
-                        os.path.join("annotations/", params["anno_id"][0])
-                    )
+                    self.annotations_source.select(os.path.join("annotations/", params["anno_id"][0]))
                 else:
                     self.annotations_source.select(os.path.join("annotations/", params["anno_id"]))
 
@@ -652,9 +648,7 @@ class AnalyzerCardBase(Card):
     #     print("Added clustering plot")
 
     def export_csv(self):
-        full_path = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output filename", ".", filter="*.csv"
-        )
+        full_path = QtWidgets.QFileDialog.getSaveFileName(self, "Select output filename", ".", filter="*.csv")
         if isinstance(full_path, tuple):
             full_path = full_path[0]
 
@@ -806,9 +800,7 @@ class AnalyzerCardBase(Card):
             self.object_analyzer_plots = []
 
     def _add_rule(self):
-        op_card = RuleCard(
-            title="Rule", editable=True, collapsible=False, removable=True, parent=self
-        )
+        op_card = RuleCard(title="Rule", editable=True, collapsible=False, removable=True, parent=self)
         self.op_cards.append(op_card)
         self.add_row(op_card)
         self.add_to_widget_list(op_card)

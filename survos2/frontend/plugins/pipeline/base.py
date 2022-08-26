@@ -293,9 +293,7 @@ class PipelineCardBase(Card):
         if "anno_id" in params:
             if params["anno_id"] is not None:
                 if isinstance(params["anno_id"], list):
-                    self.annotations_source.select(
-                        os.path.join("annotations/", params["anno_id"][0])
-                    )
+                    self.annotations_source.select(os.path.join("annotations/", params["anno_id"][0]))
                 else:
                     self.annotations_source.select(os.path.join("annotations/", params["anno_id"]))
 
@@ -334,9 +332,7 @@ class PipelineCardBase(Card):
                 constrain_mask_dict = ast.literal_eval(params["constrain_mask"])
                 logger.debug(constrain_mask_dict)
 
-                constrain_mask_source = (
-                    constrain_mask_dict["level"] + ":" + str(constrain_mask_dict["idx"])
-                )
+                constrain_mask_source = constrain_mask_dict["level"] + ":" + str(constrain_mask_dict["idx"])
                 logger.debug(f"Constrain mask source {constrain_mask_source}")
                 self.constrain_mask_source.select(constrain_mask_source)
         if "multi_ax_train_params" in params:
@@ -422,7 +418,7 @@ class PipelineCardBase(Card):
             self, ("Select model"), workspace_path, ("Model files (*.pytorch)")
         )
         self.model_file_line_edit.setValue(self.model_path)
-    
+
     def _update_annotations_from_ws(self, workspace):
         self.annotations_source.clear()
         params = {"workspace": workspace}
@@ -527,9 +523,7 @@ class PipelineCardBase(Card):
                             color=label_hex,
                         )
                         params = dict(level=result["id"], workspace=True)
-                        label_result = Launcher.g.run(
-                            "annotations", "update_label", **params, **label
-                        )
+                        label_result = Launcher.g.run("annotations", "update_label", **params, **label)
             except Exception as err:
                 logger.debug(f"Exception {err}")
 
@@ -550,4 +544,3 @@ class PipelineCardBase(Card):
                     "plugin_name": "annotations",
                 }
             )
-

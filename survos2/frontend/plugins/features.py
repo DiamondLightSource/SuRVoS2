@@ -194,9 +194,7 @@ class FeaturesPlugin(Plugin):
                         param_value = list(param_value)
                     workflow["f" + str(i)]["params"][x] = param_value
 
-            workflow_yaml = (
-                path  # os.path.join(os.path.dirname(__file__), "../../..", "workflow.yaml")
-            )
+            workflow_yaml = path  # os.path.join(os.path.dirname(__file__), "../../..", "workflow.yaml")
             with open(workflow_yaml, "w") as outfile:
                 yaml.dump(workflow, outfile, default_flow_style=False)
 
@@ -458,9 +456,7 @@ class FeatureCard(CardWithId):
                             color=label_hex,
                         )
                         params = dict(level=result["id"], workspace=True)
-                        label_result = Launcher.g.run(
-                            "annotations", "update_label", **params, **label
-                        )
+                        label_result = Launcher.g.run("annotations", "update_label", **params, **label)
             except Exception as err:
                 logger.debug(f"Exception {err}")
 

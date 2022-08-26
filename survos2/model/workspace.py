@@ -67,9 +67,7 @@ class Workspace(object):
             os.makedirs(DataModel.g.CHROOT, exist_ok=True)
 
         if not DataModel.g.CHROOT and os.path.realpath(path) != path:
-            raise WorkspaceException(
-                "'{}' is not a valid workspace path without CHROOT".format(path)
-            )
+            raise WorkspaceException("'{}' is not a valid workspace path without CHROOT".format(path))
         elif DataModel.g.CHROOT:
             path2 = check_relpath(DataModel.g.CHROOT, path, exception=False)
             if path2 is False:
@@ -222,9 +220,7 @@ class Workspace(object):
         dataset_name = dataset_name.replace("/", os.path.sep)
 
         if self.has_dataset(dataset_name, session=session):
-            raise WorkspaceException(
-                "Dataset '{}::{}' already exists.".format(session, dataset_name)
-            )
+            raise WorkspaceException("Dataset '{}::{}' already exists.".format(session, dataset_name))
 
         metadata = self.metadata()
         shape = shape or metadata["shape"]
@@ -244,9 +240,7 @@ class Workspace(object):
     def remove_dataset(self, dataset_name, session="default"):
         dataset_name = dataset_name.replace("/", os.path.sep)
         if not self.has_dataset(dataset_name, session=session):
-            raise WorkspaceException(
-                "Dataset '{}::{}' does not exist.".format(session, dataset_name)
-            )
+            raise WorkspaceException("Dataset '{}::{}' does not exist.".format(session, dataset_name))
         path = self.genpath(session, dataset_name)
         shutil.rmtree(path)
 
@@ -263,9 +257,7 @@ class Workspace(object):
         dataset_name = dataset_name.replace("/", os.path.sep)
 
         if not self.has_dataset(dataset_name, session=session):
-            raise WorkspaceException(
-                "Dataset '{}::{}' does not exist.".format(session, dataset_name)
-            )
+            raise WorkspaceException("Dataset '{}::{}' does not exist.".format(session, dataset_name))
 
         path = self.genpath(session, dataset_name)
         ds = Dataset(path, **kwargs)

@@ -344,8 +344,7 @@ class MetaArray(object):
 
     def view(self, typ):
         warnings.warn(
-            "MetaArray.view is deprecated and will be removed in 0.13. "
-            "Use MetaArray.asarray() instead.",
+            "MetaArray.view is deprecated and will be removed in 0.13. " "Use MetaArray.asarray() instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -507,9 +506,7 @@ class MetaArray(object):
             return (pos, self._getIndex(pos, ind), False)
         elif type(ind) is slice:
             # print "  Slice index"
-            if MetaArray.isNameType(ind.start) or MetaArray.isNameType(
-                ind.stop
-            ):  ## Not an actual slice!
+            if MetaArray.isNameType(ind.start) or MetaArray.isNameType(ind.stop):  ## Not an actual slice!
                 # print "    ..not a real slice"
                 axis = self._interpretAxis(ind.start)
                 # print "    axis is", axis
@@ -740,9 +737,7 @@ class MetaArray(object):
                     ver = 1
                 rFuncName = "_readData%s" % str(ver)
                 if not hasattr(MetaArray, rFuncName):
-                    raise Exception(
-                        "This MetaArray library does not support array version '%s'" % ver
-                    )
+                    raise Exception("This MetaArray library does not support array version '%s'" % ver)
                 rFunc = getattr(self, rFuncName)
                 rFunc(fd, meta, **kwargs)
                 self._isHDF = False
@@ -794,9 +789,7 @@ class MetaArray(object):
             if "values_len" in ax:
                 if ax["values_len"] == "dynamic":
                     if dynAxis is not None:
-                        raise Exception(
-                            "MetaArray has more than one dynamic axis! (this is not allowed)"
-                        )
+                        raise Exception("MetaArray has more than one dynamic axis! (this is not allowed)")
                     dynAxis = i
                 else:
                     ax["values"] = np.fromstring(fd.read(ax["values_len"]), dtype=ax["values_type"])
@@ -902,8 +895,7 @@ class MetaArray(object):
                 return
             except:
                 raise Exception(
-                    "The file '%s' is HDF5-formatted, but the HDF5 library (h5py) was not found."
-                    % fileName
+                    "The file '%s' is HDF5-formatted, but the HDF5 library (h5py) was not found." % fileName
                 )
 
         ## by default, readAllData=True for files < 500MB
@@ -1031,9 +1023,7 @@ class MetaArray(object):
         elif HAVE_HDF5 is True:
             return self.writeHDF5(fileName, **opts)
         else:
-            raise Exception(
-                "h5py is required for writing .ma hdf5 files, but it could not be imported."
-            )
+            raise Exception("h5py is required for writing .ma hdf5 files, but it could not be imported.")
 
     def writeMeta(self, fileName):
         """Used to re-write meta info to the given file.
@@ -1041,8 +1031,7 @@ class MetaArray(object):
         f = h5py.File(fileName, "r+")
         if f.attrs["MetaArray"] != MetaArray.version:
             raise Exception(
-                "The file %s was created with a different version of MetaArray. Will not modify."
-                % fileName
+                "The file %s was created with a different version of MetaArray. Will not modify." % fileName
             )
         del f["info"]
 
@@ -1347,18 +1336,10 @@ class TableWidget(QtGui.QTableWidget):
         self.itemChanged.connect(self.handleItemChanged)
 
         self.contextMenu = QtGui.QMenu()
-        self.contextMenu.addAction(translate("TableWidget", "Copy Selection")).triggered.connect(
-            self.copySel
-        )
-        self.contextMenu.addAction(translate("TableWidget", "Copy All")).triggered.connect(
-            self.copyAll
-        )
-        self.contextMenu.addAction(translate("TableWidget", "Save Selection")).triggered.connect(
-            self.saveSel
-        )
-        self.contextMenu.addAction(translate("TableWidget", "Save All")).triggered.connect(
-            self.saveAll
-        )
+        self.contextMenu.addAction(translate("TableWidget", "Copy Selection")).triggered.connect(self.copySel)
+        self.contextMenu.addAction(translate("TableWidget", "Copy All")).triggered.connect(self.copyAll)
+        self.contextMenu.addAction(translate("TableWidget", "Save Selection")).triggered.connect(self.saveSel)
+        self.contextMenu.addAction(translate("TableWidget", "Save All")).triggered.connect(self.saveAll)
 
     def clear(self):
         """Clear all contents from the table."""
