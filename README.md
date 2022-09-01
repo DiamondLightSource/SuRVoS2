@@ -35,4 +35,4 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/
 [PyPI]: https://pypi.org/
-[SuRVoS2 Tutorial]: docs/Survos_Training_Aug_2022.pdf
+[SuRVoS2 Tutorial]: docs/Survos_Training_Sept_2022.pdf
