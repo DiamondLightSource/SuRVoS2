@@ -101,7 +101,7 @@ class LabelSplitter(AnalyzerCardBase):
         logger.debug(f"Running analyzer with params {all_params}")
         result_features, features_array, bvols = Launcher.g.run("analyzer", "label_splitter", **all_params)
         features_ndarray = np.array(features_array)
-        print(f"Shape of features_array: {features_ndarray.shape}")
+        logger.debug(f"Shape of features_array: {features_ndarray.shape}")
 
         if features_array:
             logger.debug(f"Segmentation stats result table: {len(features_array)}")
@@ -113,8 +113,8 @@ class LabelSplitter(AnalyzerCardBase):
                 feature_plot_array = features_ndarray[:, int(s)]
                 feature_arrays.append(feature_plot_array)
                 feature_titles.append(feature_title)
-                print(f"Titles of feature names: {feature_titles}")
-                print(f"Split feature thresholds: {split_feature_thresholds}")
+                logger.debug(f"Titles of feature names: {feature_titles}")
+                logger.debug(f"Split feature thresholds: {split_feature_thresholds}")
             self.display_splitter_plot(
                 feature_arrays, titles=feature_titles, vert_line_at=split_feature_thresholds
             )
@@ -165,14 +165,13 @@ class LabelAnalyzer(AnalyzerCardBase):
         all_params["background_label"] = self.background_label.value()
 
         split_ops = {}
-        split_feature_indexes = []
+        split_feature_indexes = [int(self.feature_name_combo_box.value())]
         split_feature_thresholds = []
         all_params["split_ops"] = split_ops
 
         logger.debug(f"Running analyzer with params {all_params}")
-        result_features, features_array, bvols = Launcher.g.run("analyzer", "label_splitter", **all_params)
+        result_features, features_array, bvols = Launcher.g.run("analyzer", "label_analyzer", **all_params)
         features_ndarray = np.array(features_array)
-        print(f"Shape of features_array: {features_ndarray.shape}")
 
         if features_array:
             logger.debug(f"Segmentation stats result table: {len(features_array)}")
@@ -184,13 +183,12 @@ class LabelAnalyzer(AnalyzerCardBase):
                 feature_plot_array = features_ndarray[:, int(s)]
                 feature_arrays.append(feature_plot_array)
                 feature_titles.append(feature_title)
-                print(f"Titles of feature names: {feature_titles}")
-                print(f"Split feature thresholds: {split_feature_thresholds}")
-            self.display_splitter_plot(
-                feature_arrays, titles=feature_titles, vert_line_at=split_feature_thresholds
-            )
+                logger.debug(f"Titles of feature names: {feature_titles}")
+            
             self.display_splitter_results(result_features)
-
+            self.display_splitter_plot(
+                feature_arrays, titles=feature_titles, vert_line_at=None
+            )
 
 class RemoveMaskedObjects(AnalyzerCardBase):
     def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
@@ -271,7 +269,7 @@ class FindConnectedComponents(AnalyzerCardBase):
         all_params["area_max"] = self.area_max.value()
         logger.debug(f"Running analyzer with params {all_params}")
         result = Launcher.g.run("analyzer", "find_connected_components", **all_params)
-        print(result)
         if result:
             logger.debug(f"Segmentation stats result table {len(result)}")
             self.display_component_results(result)
+
