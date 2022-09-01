@@ -301,9 +301,9 @@ class PredictMultiaxisCNN(PipelineCardBase):
     def setup(self):
         # self.annotations_source = LevelComboBox()
         # self.annotations_source.hide()
-        self._add_annotations_source()
         self._add_feature_source()
         self._add_multi_ax_2d_prediction_params()
+        self._add_annotations_source()
 
     def compute_pipeline(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
