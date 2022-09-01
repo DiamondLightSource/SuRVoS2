@@ -558,7 +558,7 @@ def predict_multi_axis_cnn(
     if level_result:
         import torch
         from volume_segmantics.data import get_settings_data
-        from volume_segmantics.model import VolSeg2DPredictionManager, VolSeg2dPredictor
+        from volume_segmantics.model import VolSeg2DPredictionManager
         from volume_segmantics.utilities import Quality
 
         predict_settings_dict = cfg["volume_segmantics"]["predict_settings"]
