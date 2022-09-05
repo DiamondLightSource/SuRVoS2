@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from loguru import logger
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
