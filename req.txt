@@ -15,8 +15,8 @@ falcon
 h5py
 hdbscan
 hug
-imageio
-ipywidgets
+imageio==2.9.0
+ipywidgets==7.7.2
 jupyterlab
 kornia
 loguru
@@ -42,7 +42,7 @@ ptyprocess
 pydantic
 pygments
 pyopengl
-pyqtgraph
+pyqtgraph==0.11.1
 pysocks
 pytest
 python-snappy
@@ -51,6 +51,7 @@ pytz
 pywavelets
 pyyaml
 pyzmq
+PyQt5==5.14.2
 qtawesome
 qtconsole
 qtpy
@@ -81,4 +82,3 @@ wheel
 xgboost
 zict
 zstd
-
