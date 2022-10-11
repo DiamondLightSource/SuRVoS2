@@ -14,7 +14,7 @@ windows-build:
   before_script:
     - C:\ProgramData\Miniconda3\shell\condabin\conda-hook.ps1
   script:
-    - "conda create -y -p $WINDOWS_CONDA_PATH python=3.9"
+    - "conda create -y -p $WINDOWS_CONDA_PATH python=3.8"
     - "conda activate $WINDOWS_CONDA_PATH"
     - pip install --no-cache-dir -r req.txt
     - python .\survos2\improc\setup.py build_ext --inplace
