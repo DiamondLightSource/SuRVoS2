@@ -43,6 +43,7 @@ def annotate_voxels(
     viewer_order=(0, 1, 2),
     three_dim=False,
     brush_size=10,
+    centre_point=None,
 ):
     """Annotate individual voxels in a dataset.
 
