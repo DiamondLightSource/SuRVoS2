@@ -82,7 +82,7 @@ and activate it:
 
 Perform the survos2 pip installs using:
 (LINUX)
-  (CUDA 10.2)
+  (CUDA 10.2 or No GPU support)
 	$ pip install -r req.txt
   (CUDA 11.3)
 	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu113
@@ -90,6 +90,8 @@ Perform the survos2 pip installs using:
 	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
 
 (WINDOWS)
+  (No GPU support)
+    $ pip install -r req_windows.txt
   (CUDA 10.2)
     CUDA-10.2 PyTorch builds are no longer available for Windows, please use CUDA-11.3 or CUDA-11.6
   (CUDA 11.3)
