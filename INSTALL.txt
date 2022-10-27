@@ -42,10 +42,10 @@ Make sure that either conda or python-pip (python version 3.8 is needed) is inst
 If neither is available you can download and install them from here:
 
 For python-pip (please install python 3.8):
-    Download at: https://www.python.org/downloads/
+	Download at: https://www.python.org/downloads/
 
 For Conda:
-    Download at: https://docs.conda.io/en/latest/miniconda.html
+	Download at: https://docs.conda.io/en/latest/miniconda.html
 
 
 Create a new environment for survos2
@@ -60,9 +60,9 @@ If python-pip (python version 3.8) is used:
 	$ python3 -m venv /home/user/Documents/survos2_conda_env
 
 and activate it:
-    $ source survos2_conda_env/bin/activate
+	$ source survos2_conda_env/bin/activate
     or
-    $ source <system-location-that-is-accessible>/survos2_conda_env/bin/activate
+	$ source <system-location-that-is-accessible>/survos2_conda_env/bin/activate
 
 If conda is used:
 
