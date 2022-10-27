@@ -1,3 +1,24 @@
+Before the installation of SuRVoS, if GPU support is desired please check that either one of the
+following CUDA versions is installed:
+
+ * CUDA 10.2 (you can install it by following this link https://developer.nvidia.com/cuda-10.2-download-archive)
+ * CUDA 11.3 (you can install it by following this link https://developer.nvidia.com/cuda-11-3-1-download-archive)
+ * CUDA 11.6 (you can install it by following this https://developer.nvidia.com/cuda-11-6-2-download-archive)
+
+To verify that one of the CUDA versions above is installed and available for use run the following command:
+
+	$ nvcc --version
+
+Additionally, you may also include the cuDNN library in your CUDA installation for improved performance
+during the training and inference of neural networks.
+
+You can download cuDNN from here https://developer.nvidia.com/rdp/cudnn-download
+An installation guide on how to include it in your CUDA install can be found here
+https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html
+
+If once of the above CUDA versions is installed or if GPU support is not needed, please continue
+with the SuRVoS 2 installation guide below.
+
 Create a folder (on the Desktop for example) to download the survos2 installer.
 The actual survos2 application will be installed in the miniconda environment later.
 
@@ -32,10 +53,22 @@ and activate it:
 	(LMAP) $ conda activate /home/ypu66991/workspace-ceph/survos2/survos2_conda_env
 
 Perform the survos2 pip installs using:
-(LINUX)	
+(LINUX)
+  (CUDA 10.2)
 	$ pip install -r req.txt
+  (CUDA 11.3)
+	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu113
+  (CUDA 11.6)
+	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
+
 (WINDOWS)
-	$ pip install -r req_windows.txt -f https://download.pytorch.org/whl/cu113/torch_stable.html	
+  (CUDA 10.2)
+    CUDA-10.2 PyTorch builds are no longer available for Windows, please use CUDA-11.3 or CUDA-11.6
+  (CUDA 11.3)
+	$ pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu113
+  (CUDA 11.6)
+	$ pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
+
 7. Build survos2 cython + cuda stuff:
 
 	$ python ./survos2/improc/setup.py build_ext --inplace
