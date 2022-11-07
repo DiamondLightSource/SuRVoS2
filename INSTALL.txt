@@ -1,3 +1,24 @@
+Before the installation of SuRVoS, if GPU support is desired please check that either one of the
+following CUDA versions is installed:
+
+ * CUDA 11.6 (you can install it by following this link https://developer.nvidia.com/cuda-11-6-2-download-archive)
+ * CUDA 11.7 (you can install it by following this link https://developer.nvidia.com/cuda-11-7-1-download-archive)
+
+To verify that one of the CUDA versions above is installed and available for use run the following command:
+
+	$ nvcc --version
+
+Additionally, you may also include the cuDNN library in your CUDA installation for improved performance
+during the training and inference of neural networks.
+
+You can download cuDNN from here https://developer.nvidia.com/rdp/cudnn-download
+An installation guide on how to include it in your CUDA install can be found here
+https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html
+
+If once of the above CUDA versions is installed or if GPU support is not needed, please continue
+with the SuRVoS 2 installation guide below.
+
+
 Create a folder (on the Desktop for example) to download the survos2 installer.
 The actual survos2 application will be installed in the miniconda environment later.
 
@@ -15,30 +36,66 @@ Navigate into the Survos2 folder
 
 	$ cd SuRVoS2
 
-Setup the admin version of miniconda 
 
+Make sure that either conda or python-pip (python version 3.8 is needed) is installed
+If neither is available you can download and install them from here:
+
+For python-pip (please install python 3.8):
+	Download at: https://www.python.org/downloads/
+
+For Conda:
 	Download at: https://docs.conda.io/en/latest/miniconda.html
+
 
 Create a new environment for survos2
 
-	$ conda create --name survos2_env
+If python-pip (python version 3.8) is used:
 
-	(LMAP) Shared environmnent needed? What I used was
-	$ conda create -p /home/ypu66991/workspace-ceph/survos2/survos2_conda_env python=3.8
+	$ python3 -m venv survos2_env
+
+	Shared environmnent needed?
+	$ python3 -m venv <system-location-that-is-accessible>/survos2_conda_env
+	e.g.
+	$ python3 -m venv /home/user/Documents/survos2_conda_env
+
+and activate it:
+	$ source survos2_conda_env/bin/activate
+    or
+	$ source <system-location-that-is-accessible>/survos2_conda_env/bin/activate
+
+If conda is used:
+
+	$ conda create --name survos2_conda_env
+
+	Shared environmnent needed?
+	$ conda create --prefix <system-location-that-is-accessible>/survos2_conda_env python=3.8
+	e.g.
+	$ conda create --prefix /home/user/Documents/survos2_conda_env python=3.8
 
 and activate it:
 
-	$ conda activate survos2_env
-	(LMAP) $ conda activate /home/ypu66991/workspace-ceph/survos2/survos2_conda_env
+	$ conda activate survos2_conda_env
+	or
+	$ conda activate /home/user/Documents/survos2_conda_env
+
 
 Perform the survos2 pip installs using:
-(LINUX)	
+(LINUX)
+  (CUDA 11.6)
+	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
+  (CUDA 11.7 or No GPU support)
 	$ pip install -r req.txt
+
 (WINDOWS)
-	$ pip install -r req_windows.txt -f https://download.pytorch.org/whl/cu113/torch_stable.html	
+  (CUDA 11.6)
+	$ pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
+  (CUDA 11.7 or No GPU support)
+	$ pip install -r req_windows.txt
+
+
 7. Build survos2 cython + cuda stuff:
 
-	$ python ./survos2/improc/setup.py build_ext --inplace
+	$ python3 ./survos2/improc/setup.py build_ext --inplace
 
 8. Create a folder for the <survos2 workspace>
 (For a central install remember to make this somewhere that is readable to everyone)]
