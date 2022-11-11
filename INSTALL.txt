@@ -1,7 +1,8 @@
-Before the installation of SuRVoS, if GPU support is desired please check that the
-following CUDA version is installed:
+Before the installation of SuRVoS, if GPU support is desired please check that either one of the
+following CUDA versions is installed:
 
- * CUDA 11.3 (you can install it by following this link https://developer.nvidia.com/cuda-11-3-1-download-archive)
+ * CUDA 11.6 (you can install it by following this link https://developer.nvidia.com/cuda-11-6-2-download-archive)
+ * CUDA 11.7 (you can install it by following this link https://developer.nvidia.com/cuda-11-7-1-download-archive)
 
 To verify that one of the CUDA versions above is installed and available for use run the following command:
 
@@ -80,16 +81,16 @@ and activate it:
 
 Perform the survos2 pip installs using:
 (LINUX)
-  (No GPU support)
+  (CUDA 11.6)
+	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
+  (CUDA 11.7 or No GPU support)
 	$ pip install -r req.txt
-  (CUDA 11.3)
-	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu113
 
 (WINDOWS)
-  (No GPU support)
+  (CUDA 11.6)
+	$ pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
+  (CUDA 11.7 or No GPU support)
 	$ pip install -r req_windows.txt
-  (CUDA 11.3)
-	$ pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu113
 
 
 7. Build survos2 cython + cuda stuff:
