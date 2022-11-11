@@ -1,7 +1,5 @@
 name: Github CI/CD
-on:
-  push:
-    branches: [ main ]
+on: [push, pull_request]
 env:
       LINUX_CONDA_PATH: /test_env
 jobs:
@@ -9,15 +7,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
+    - uses: conda-incubator/setup-miniconda@v2
       with:
-        python-version: 3.8
+          python-version: 3.8
+          auto-activate-base: true
+    - shell: bash 
+      run: |
+        conda info
+        conda list
     - name: Install dependencies
       run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        #$CONDA/bin/conda env update --file environment.yml --name base
         pip install --no-cache-dir -r req.txt
+        python ./survos2/improc/setup.py build_ext --inplace
+        pip install -e .
+    - name: Test
+      shell: bash
+      run: |
+        conda install pytest
+        pytest .
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+          python-version: 3.8
+          auto-activate-base: true
+    - shell: pwsh
+      run: |
+        conda info
+        conda list
+    - name: Install dependencies
+      run: |
+        pip install --no-cache-dir -r req.txt
+        python ./survos2/improc/setup.py build_ext --inplace
+        pip install -e .
+    - name: Test
+      shell: pwsh
+      run: |
+        conda install pytest
+        pytest .
+
+
+
+
 
 
 
