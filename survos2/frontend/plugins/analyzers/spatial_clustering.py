@@ -35,7 +35,9 @@ class HDBSCAN_Panel(QtWidgets.QWidget):
         self.setLayout(vbox)
         self.min_cluster_size = LineEdit(default=2, parse=int)
         self.min_samples = LineEdit(default=1, parse=int)
-        widget = HWidgets("Min Cluster Size:", self.min_cluster_size, "Min Samples:", self.min_samples)
+        widget = HWidgets(
+            "Min Cluster Size:", self.min_cluster_size, "Min Samples:", self.min_samples
+        )
         vbox.addWidget(widget)
 
 
@@ -62,7 +64,9 @@ class SpatialClustering(AnalyzerCardBase):
         widget = HWidgets("Method:", self.clustering_method_combo_box)
         self.add_row(widget)
         self.clustering_method_combo_box.fill()
-        self.clustering_method_combo_box.currentIndexChanged.connect(self._on_clustering_method_changed)
+        self.clustering_method_combo_box.currentIndexChanged.connect(
+            self._on_clustering_method_changed
+        )
         self.clustering_method_container = QtWidgets.QWidget()
         clustering_method_vbox = VBox(self, spacing=4)
         clustering_method_vbox.setContentsMargins(0, 0, 0, 0)
@@ -96,6 +100,7 @@ class SpatialClustering(AnalyzerCardBase):
                 "min_cluster_size": self.HDBSCAN_Panel.min_cluster_size.value(),
                 "min_samples": self.HDBSCAN_Panel.min_samples.value(),
             }
+        all_params["json_transport"] = True
 
         result = Launcher.g.run("analyzer", "spatial_clustering", **all_params)
 

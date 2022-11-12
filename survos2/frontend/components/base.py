@@ -439,7 +439,9 @@ class ParentDialog(QDialog):
         self.source_level = source_level
         from survos2.frontend.plugins.annotation_tool import AnnotationComboBox
 
-        self.label_combobox = AnnotationComboBox(header=(None, "None"), exclude_from_fill=self.source_level)
+        self.label_combobox = AnnotationComboBox(
+            header=(None, "None"), exclude_from_fill=self.source_level
+        )
         self.layout.addWidget(self.label_combobox)
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)

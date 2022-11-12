@@ -1,16 +1,8 @@
-from survos2.entity.entities import make_entity_df
-from loguru import logger
 import numpy as np
+from loguru import logger
+from survos2.frontend.control.launcher import Launcher
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel, Workspace
-from survos2.frontend.control.launcher import Launcher
-from survos2.server.state import cfg
-from survos2.utils import decode_numpy
-from survos2.frontend.utils import get_array_from_dataset, get_color_mapping
-from survos2.frontend.components.entity import setup_entity_table
-from skimage.segmentation import find_boundaries
-import seaborn as sns
-from napari.qt.progress import progress
 
 
 def _transfer_features_http(selected_layer):

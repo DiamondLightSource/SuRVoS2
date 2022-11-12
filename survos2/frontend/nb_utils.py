@@ -2,20 +2,47 @@
 Utilities for notebooks, e.g. for popping up napari to view different types of data.    
 
 """
+
+import contextlib
 import os
 import json
 import sys
 import numpy as np
 import napari
-
+from pathlib import Path
 import matplotlib
 from matplotlib import pyplot as plt
 from survos2.frontend.utils import quick_norm
 import seaborn as sns
-
+import subprocess
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2 import survos
+
+
+def start_server(server_port):
+    command_dir = os.path.abspath(os.path.dirname(__file__))
+    command_dir = Path(command_dir).absolute().parent.resolve()
+    os.chdir(command_dir)
+    server_port = str(server_port)
+
+    server_process = subprocess.Popen(
+        [
+            "uvicorn",
+            "start_server:app",
+            "--port",
+            server_port,
+        ]
+    )
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        outs, errs = server_process.communicate(timeout=10)
+        print(f"OUTS: {outs, errs}")
+
+    return server_process
+
+
+def stop_server(server_process):
+    server_process.kill()
 
 
 def view_dataset(dataset_name, group, z=None):
@@ -24,6 +51,8 @@ def view_dataset(dataset_name, group, z=None):
     with DatasetManager(src, out=None, dtype="float32") as DM:
         src_dataset = DM.sources[0]
         src_arr = src_dataset[:]
+
+    print(f"Viewing dataset {dataset_name} of shape: {src_arr.shape}")
     if z:
         plt.figure()
         plt.imshow(src_arr[z, :])
@@ -50,7 +79,9 @@ def add_anno(anno_vol, new_name, workspace_name):
 
 
 def add_feature(feature_vol, new_name, workspace_name):
-    result = survos.run_command("features", "create", uri=None, workspace=workspace_name, feature_type="raw")
+    result = survos.run_command(
+        "features", "create", uri=None, workspace=workspace_name, feature_type="raw"
+    )
     new_feature_id = result[0]["id"]
     result = survos.run_command(
         "features",
@@ -374,7 +405,9 @@ def show_image_grid(images, titles=None, row_len=8, figsize=(12, 12), suptitle="
     plt.show()
 
 
-def grid_of_images_and_clicks(image_list, clicks, point, n_rows, n_cols, image_titles="", figsize=(20, 20)):
+def grid_of_images_and_clicks(
+    image_list, clicks, point, n_rows, n_cols, image_titles="", figsize=(20, 20)
+):
     images = [image_list[i] for i in range(n_rows * n_cols)]
     f, axarr = plt.subplots(n_rows, n_cols, figsize=figsize)
     for i in range(n_rows):
@@ -410,7 +443,9 @@ def grid_of_images2(
             axarr[i, j].imshow(images[i * n_cols + j], cmap="gray")
             axarr[i, j].grid(False)
             # axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10, color=color)
-            axarr[i, j].tick_params(labeltop=False, labelleft=False, labelbottom=False, labelright=False)
+            axarr[i, j].tick_params(
+                labeltop=False, labelleft=False, labelbottom=False, labelright=False
+            )
     f.suptitle(bigtitle, color=color)
 
 

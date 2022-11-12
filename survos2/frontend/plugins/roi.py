@@ -46,7 +46,8 @@ from survos2.frontend.plugins.annotations import LevelComboBox
 
 from survos2.frontend.utils import FileWidget
 from survos2.server.state import cfg
-from survos2.model.model import DataModel
+
+# from survos2.model.model import DataModel
 from survos2.frontend.utils import ComboDialog, FileWidget, MplCanvas
 from survos2.utils import decode_numpy
 from survos2.frontend.plugins.objects import ObjectComboBox
@@ -285,7 +286,9 @@ class LoadDataDialog(QDialog):
         """
         x_start, x_end, y_start, y_end, z_start, z_end = roi_limits
         return (
-            x_end != self.data_shape[2] or y_end != self.data_shape[1] or z_end != self.data_shape[0]
+            x_end != self.data_shape[2]
+            or y_end != self.data_shape[1]
+            or z_end != self.data_shape[0]
             if x_start == y_start == z_start == 0
             else True
         )
@@ -594,7 +597,9 @@ class ROIPlugin(Plugin):
                 + "_"
                 + str(roi[5])
             )
-            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "make_roi_ws", "roi": roi_list})
+            cfg.ppw.clientEvent.emit(
+                {"source": "panel_gui", "data": "make_roi_ws", "roi": roi_list}
+            )
             self.add_roi(roi_name, original_workspace, roi_list)
 
     def setup(self):
@@ -604,6 +609,8 @@ class ROIPlugin(Plugin):
 
         for i in reversed(range(self.roi_layout.count())):
             self.roi_layout.itemAt(i).widget().setParent(None)
+        params = dict(workspace=DataModel.g.current_workspace)
+        result = Launcher.g.run("workspace", "set_workspace", **params)
         result = Launcher.g.run("roi", "existing")
         logger.debug(f"roi result {result}")
         if result:
@@ -634,7 +641,7 @@ class ROIPlugin(Plugin):
         if self.annotations_source.value():
             original_level = str(self.annotations_source.value().rsplit("/", 1)[-1])
         else:
-            original_level = None
+            original_level = "None"
         params = dict(
             workspace=original_workspace,
             roi_fname=roi_fname,
@@ -647,7 +654,6 @@ class ROIPlugin(Plugin):
             rid = result["id"]
             rname = result["name"]
             self._add_roi_widget(rid, rname, True)
-
         cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
 
     def clear(self):
@@ -695,7 +701,9 @@ class ROIPlugin(Plugin):
 
 class ROICard(Card):
     def __init__(self, rid, rname, parent=None):
-        super().__init__(title=rname, collapsible=True, removable=True, editable=True, parent=parent)
+        super().__init__(
+            title=rname, collapsible=True, removable=True, editable=True, parent=parent
+        )
         self.rname = rname
         self.rid = rid
         self.annotation_source = LevelComboBox(workspace=self.rname)

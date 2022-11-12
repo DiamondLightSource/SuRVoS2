@@ -1,90 +1,47 @@
 import ntpath
-
-from skimage.util.dtype import img_as_ubyte
-from survos2.config import Config
+import warnings
 from functools import partial
+
 import numpy as np
 import seaborn as sns
 from loguru import logger
-
 from napari.layers import Image
 from napari.layers.image.image import Image
-from napari.layers.points.points import Points
 from napari.layers.labels.labels import Labels
+from napari.layers.points.points import Points
 from napari.qt.progress import progress
-
 from qtpy.QtCore import QSize
-
 from skimage.segmentation import find_boundaries
+from skimage.util.dtype import img_as_ubyte
 
+from survos2.config import Config
+from survos2.frontend.control.launcher import Launcher
+from survos2.frontend.paint_strokes import paint_strokes
 from survos2.frontend.panels import ButtonPanelWidget, PluginPanelWidget
+from survos2.frontend.transfer_fn import _transfer_features_http, _transfer_labels, _transfer_points
 from survos2.frontend.utils import get_array_from_dataset, get_color_mapping
+from survos2.frontend.view_fn import (
+    get_level_from_server,
+    remove_layer,
+    view_feature,
+    view_objects,
+    view_pipeline,
+    view_regions,
+)
+from survos2.frontend.workflow import run_workflow
 from survos2.helpers import AttrDict
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel, Workspace
-from survos2.frontend.control.launcher import Launcher
 from survos2.server.state import cfg
-from survos2.config import Config
-from survos2.utils import decode_numpy, decode_numpy_slice
-from survos2.frontend.paint_strokes import paint_strokes
-from survos2.frontend.workflow import run_workflow
-from survos2.frontend.view_fn import (
-    view_feature,
-    view_regions,
-    remove_layer,
-    view_objects,
-    view_entities,
-    view_pipeline,
-)
-
-from survos2.frontend.transfer_fn import (
-    _transfer_features,
-    _transfer_labels,
-    _transfer_features_http,
-    _transfer_points,
-)
-import warnings
+from survos2.utils import decode_numpy
 
 warnings.filterwarnings("ignore")
-
-
-_MaskSize = 4  # 4 bits per history label
-_MaskCopy = 15  # 0000 1111
-_MaskPrev = 240  # 1111 0000
-
-
-def get_level_from_server(msg, retrieval_mode="volume"):
-    if retrieval_mode == "slice":  # get a slice over http
-        src_annotations_dataset = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
-        params = dict(
-            workpace=True,
-            src=src_annotations_dataset,
-            slice_idx=cfg.current_slice,
-            order=cfg.order,
-        )
-        result = Launcher.g.run("annotations", "get_slice", **params)
-        if result:
-            src_arr = decode_numpy(result)
-    elif retrieval_mode == "volume_http":  # get a slice over http
-        src_annotations_dataset = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
-        params = dict(workpace=True, src=src_annotations_dataset)
-        result = Launcher.g.run("annotations", "get_volume", **params)
-        if result:
-            src_arr = decode_numpy(result)
-    elif retrieval_mode == "volume":  # get entire volume
-        src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
-        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-            src_annotations_dataset = DM.sources[0][:]
-            src_arr = get_array_from_dataset(src_annotations_dataset)
-
-    return src_arr, src_annotations_dataset
 
 
 def frontend(viewer):
     logger.info(f"Frontend loading workspace: {DataModel.g.current_workspace}")
     cfg.base_dataset_shape = (100, 100, 100)
     cfg.slice_max = 100
-
     cfg.current_mode = "paint"
     cfg.label_ids = [
         0,
@@ -98,7 +55,6 @@ def frontend(viewer):
     cfg.current_pipeline_name = None
     cfg.current_regions_name = None
     cfg.current_analyzers_name = None
-
     cfg.emptying_viewer = False
     cfg.three_dim = False
 
@@ -128,8 +84,8 @@ def frontend(viewer):
     dw = AttrDict()
     dw.ppw = PluginPanelWidget()  # Main SuRVoS panel
     dw.bpw = ButtonPanelWidget()  # Additional controls
-    dw.ppw.setMinimumSize(QSize(600, 600))
-    dw.bpw.setMinimumSize(QSize(600, 200))
+    dw.ppw.setMinimumSize(QSize(600, 500))
+    dw.bpw.setMinimumSize(QSize(600, 250))
     if DataModel.g.current_workspace != "":
         ws = Workspace(DataModel.g.current_workspace)
         dw.ws = ws
@@ -230,8 +186,9 @@ def frontend(viewer):
                     src_arr, src_annotations_dataset = get_level_from_server(
                         msg, retrieval_mode=cfg.retrieval_mode
                     )
-
-                result = Launcher.g.run("annotations", "get_levels", workspace=DataModel.g.current_workspace)
+                result = Launcher.g.run(
+                    "annotations", "get_levels", workspace=DataModel.g.current_workspace
+                )
 
                 if result:
                     return _refresh_annotations_in_viewer(result, msg, src_arr)
@@ -240,12 +197,9 @@ def frontend(viewer):
                 print(f"Exception {e}")
 
     def _refresh_annotations_in_viewer(result, msg, src_arr):
-        # logger.debug(f"Refresh annotations in viewer {src_arr.shape}")
         cmapping, label_ids = get_color_mapping(result, msg["level_id"])
-        # logger.debug(f"Label ids {label_ids}")
         cfg.label_ids = label_ids
         existing_layer = [v for v in viewer.layers if v.name == msg["level_id"]]
-
         # some defaults
         sel_label = 1
         brush_size = 10
@@ -288,7 +242,6 @@ def frontend(viewer):
         def undo(v):
             # logger.info("Undoing local annotation")
             if cfg.num_undo == 0:
-                print(cfg.anno_data)
                 # cfg.anno_data = cfg.anno_data >> _MaskSize
                 cfg.anno_data = cfg.prev_arr.copy()
                 cfg.num_undo += 1
@@ -327,22 +280,26 @@ def frontend(viewer):
                     if layer.mode == "paint" or layer.mode == "erase":
                         while event.type == "mouse_move":
 
-                            coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(np.int32)
+                            coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(
+                                np.int32
+                            )
 
                             if cfg.retrieval_mode == "slice":
                                 drag_pt = [coords[0], coords[1]]
-                            elif cfg.retrieval_mode == "volume" or cfg.retrieval_mode == "volume_http":
+                            elif (
+                                cfg.retrieval_mode == "volume"
+                                or cfg.retrieval_mode == "volume_http"
+                            ):
                                 drag_pt = [coords[0], coords[1], coords[2]]
                             drag_pts.append(drag_pt)
                             yield
 
                         if len(drag_pts) >= 0:
-                            # top_layer = viewer.layers[-1]
-                            # layer_name = top_layer.name  # get last added layer name
-                            anno_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
+                            anno_layer = [
+                                v for v in viewer.layers if v.name == cfg.current_annotation_name
+                            ]
                             if len(anno_layer) > 0:
                                 anno_layer = anno_layer[0]
-                                # anno_layer = next(l for l in viewer.layers if l.name == cfg.current_annotation_name)
 
                                 def update_anno(msg):
                                     if cfg.local_sv:
@@ -384,10 +341,8 @@ def frontend(viewer):
 
     def paint_annotations(msg):
         if not cfg.emptying_viewer:
-            # logger.debug(f"paint_annotation {msg['level_id']}")
             try:
                 label_layer = refresh_annotations_in_viewer(msg)
-                # print(f"paint_annotations label_layer {label_layer}")
                 sel_label = int(cfg.label_value["idx"]) if cfg.label_value is not None else 1
                 if msg["level_id"] is not None:
                     params = dict(workspace=True, level=msg["level_id"], label_idx=sel_label)
@@ -408,7 +363,6 @@ def frontend(viewer):
 
     def set_workspace(msg):
         logger.debug(f"Set workspace to {msg['workspace']}")
-        # set on client
         DataModel.g.current_workspace = msg["workspace"]
         # set on server
         params = dict(workspace=msg["workspace"])
@@ -441,6 +395,9 @@ def frontend(viewer):
             logger.info("save_annotation couldn't find annotation in viewer")
 
     def transfer_layer(msg):
+        params = dict(workspace=DataModel.g.current_workspace)
+        result = Launcher.g.run("workspace", "set_workspace", **params)
+
         with progress(total=1) as pbar:
             pbar.set_description("Transferring layer")
             logger.debug(f"transfer_layer {msg}")
@@ -460,78 +417,6 @@ def frontend(viewer):
             else:
                 logger.debug("Unsupported layer type.")
 
-    def jump_to_slice(msg):
-        cfg.supervoxels_cached = False
-        cfg.retrieval_mode = "slice"
-        cfg.current_slice = int(msg["frame"])
-
-        existing_feature_layer = [v for v in viewer.layers if v.name == cfg.current_feature_name]
-
-        if existing_feature_layer:
-            features_src = DataModel.g.dataset_uri(cfg.current_feature_name, group="features")
-            params = dict(
-                workpace=True,
-                src=features_src,
-                slice_idx=cfg.current_slice,
-                order=cfg.order,
-            )
-            result = Launcher.g.run("features", "get_slice", **params)
-            if result:
-                src_arr = decode_numpy_slice(result)
-                existing_feature_layer[0].data = src_arr.copy()
-
-        existing_regions_layer = [v for v in viewer.layers if v.name == cfg.current_regions_name]
-        if existing_regions_layer:
-            regions_src = DataModel.g.dataset_uri(cfg.current_regions_name, group="superregions")
-            params = dict(
-                workpace=True,
-                src=regions_src,
-                slice_idx=cfg.current_slice,
-                order=cfg.order,
-            )
-            result = Launcher.g.run("superregions", "get_slice", **params)
-            if result:
-                src_arr = decode_numpy(result)
-                src_arr = find_boundaries(src_arr) * 1.0
-                existing_regions_layer[0].data = src_arr.copy()
-                existing_regions_layer[0].opacity = 0.3
-
-        existing_level_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
-        if existing_level_layer and cfg.current_annotation_name is not None:
-            paint_annotations({"level_id": cfg.current_annotation_name})
-
-        existing_pipeline_layer = [v for v in viewer.layers if v.name == cfg.current_pipeline_name]
-
-        if existing_pipeline_layer:
-            print(f"loading pipeline {cfg.current_pipeline_name}")
-            pipeline_src = DataModel.g.dataset_uri(cfg.current_pipeline_name, group="pipelines")
-            params = dict(
-                workpace=True,
-                src=pipeline_src,
-                slice_idx=cfg.current_slice,
-                order=cfg.order,
-            )
-            result = Launcher.g.run("features", "get_slice", **params)
-            if result:
-                src_arr = decode_numpy(result).astype(np.int32)
-                existing_pipeline_layer[0].data = src_arr.copy()
-
-        existing_analyzers_layer = [v for v in viewer.layers if v.name == cfg.current_analyzers_name]
-
-        if existing_analyzers_layer:
-            print(f"Jumping to analyzer slice {cfg.current_analyzers_name}")
-            analyzers_src = DataModel.g.dataset_uri(cfg.current_analyzers_name, group="analyzer")
-            params = dict(
-                workpace=True,
-                src=analyzers_src,
-                slice_idx=cfg.current_slice,
-                order=cfg.order,
-            )
-            result = Launcher.g.run("features", "get_slice", **params)
-            if result:
-                src_arr = decode_numpy(result).astype(np.int32)
-                existing_analyzers_layer[0].data = src_arr.copy()
-
     def make_roi_ws(msg):
         logger.debug(f"Goto roi: {msg}")
         if "feature_id" in msg:
@@ -548,8 +433,6 @@ def frontend(viewer):
         result = Launcher.g.run("workspace", "make_roi_ws", **params)
         if result:
             logger.debug(f"Switching to make_roi_ws created workspace {result}")
-        #    DataModel.g.current_workspace = result
-        #    processEvents({"data": "refresh"})
 
     def get_crop(msg):
         logger.debug(f"Getting crop roi: {msg}")
@@ -564,31 +447,13 @@ def frontend(viewer):
         logger.info(f"Showing ROI {msg['selected_roi']}")
         z, y, x = msg["selected_roi"]
         existing_feature_layer = [v for v in viewer.layers if v.name == cfg.current_feature_name]
-        viewer.camera.center = (int(float(z)), int(float(x)), int(float(y)))
+        viewer.camera.center = (int(float(z)), int(float(y)), int(float(x)))
         viewer.dims.set_current_step(0, z)
         viewer.camera.zoom = 4
 
     def processEvents(msg):
         "Main event handling function uses the message to update the viewer"
-        logger.debug(msg)
-        if msg["data"] == "jump_to_slice":
-            jump_to_slice(msg)
-        elif msg["data"] == "slice_mode":
-            # logger.debug(f"Slice mode changing from: {cfg.retrieval_mode}")
-            if cfg.retrieval_mode != "slice":
-                cfg.local_sv = True
-                _switch_to_slice_mode_and_jump()
-            else:
-                try:
-                    # logger.debug(f"In slice mode changing to volume mode {viewer.layers}")
-                    cfg.retrieval_mode = "volume"
-                    cfg.local_sv = True
-                    for _ in range(len(viewer.layers)):
-                        viewer.layers.pop(0)
-                    view_feature(viewer, {"feature_id": cfg.current_feature_name})
-                except KeyError as e:
-                    print(e)
-        elif msg["data"] == "refesh_annotations":
+        if msg["data"] == "refesh_annotations":
             refresh_annotations_in_viewer(msg)
         elif msg["data"] == "paint_annotations":
             paint_annotations(msg)
@@ -608,8 +473,6 @@ def frontend(viewer):
             view_regions(viewer, msg)
         elif msg["data"] == "view_objects":
             view_objects(viewer, msg)
-        elif msg["data"] == "view_entities":
-            view_entities(viewer, msg)
         elif msg["data"] == "view_patches":
             view_patches(msg)
         elif msg["data"] == "show_roi":
@@ -619,6 +482,8 @@ def frontend(viewer):
             run_workflow_worker.start()
             processEvents({"data": "faster_refresh"})
         elif msg["data"] == "refresh":
+            params = dict(workspace=DataModel.g.current_workspace)
+            result = Launcher.g.run("workspace", "set_workspace", **params)
             logger.debug("Refreshing plugin panel")
             dw.ppw.setup()
         elif msg["data"] == "faster_refresh":
@@ -658,26 +523,6 @@ def frontend(viewer):
             make_roi_ws(msg)
         elif msg["data"] == "transfer_layer":
             transfer_layer(msg)
-
-    def _switch_to_slice_mode_and_jump():
-        cfg.retrieval_mode = "slice"
-        viewer_order = viewer.window.qt_viewer.viewer.dims.order
-        for l in viewer.layers:
-            viewer.layers.remove(l)
-
-        if len(viewer_order) == 3:
-            cfg.order = [int(d) for d in viewer_order]
-            # logger.debug(f"Setting order to {cfg.order}")
-        else:
-            cfg.order = [0, 1, 2]
-            # logger.debug(f"Viewer order {viewer_order} Resetting order to {cfg.order}")
-        cfg.slice_max = cfg.base_dataset_shape[cfg.order[0]]
-        # logger.debug(f"Setting slice max to {cfg.slice_max}")
-        view_feature(viewer, {"feature_id": cfg.current_feature_name})
-        try:
-            jump_to_slice({"frame": 0})
-        except AttributeError as e:
-            print(e)
 
     # setup message based event handling mechanism and return it to the dockwidget
     dw.ppw.clientEvent.connect(lambda x: processEvents(x))

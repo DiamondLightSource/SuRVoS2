@@ -3,35 +3,15 @@ QT Plugins Base
 
 
 """
-import numpy as np
-import pandas as pd
-
-# from numba import jit
-import scipy
-import yaml
-from vispy import scene
-from vispy.color import Colormap
-from loguru import logger
-from scipy import ndimage
-from skimage import img_as_ubyte, img_as_float
-from skimage import io
-
-from qtpy.QtWidgets import QTabWidget, QVBoxLayout, QWidget, QRadioButton, QPushButton
-from qtpy.QtCore import QSize
-from qtpy import QtWidgets, QtCore, QtGui
-
-from vispy import scene
-from vispy.color import Colormap
-
-from survos2.frontend.components.base import VBox, QCSWidget, ScrollPane, Header
-
-from survos2.frontend.components.base import QCSWidget
-
 from collections import OrderedDict
+from qtpy import QtWidgets, QtCore, QtGui
+from qtpy.QtCore import QSize, Signal
+from qtpy.QtWidgets import QPushButton, QRadioButton, QTabWidget, QVBoxLayout, QWidget
+
+from survos2.frontend.components.base import Header, QCSWidget, ScrollPane, VBox
+from survos2.config import config
 
 __available_plugins__ = OrderedDict()
-
-from survos2.config import config
 
 
 class Plugin(QCSWidget):
@@ -100,14 +80,16 @@ class PluginContainer(QCSWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.setMinimumWidth(self.__sidebar_width__ + 50)
+        # self.setMinimumWidth(self.__sidebar_width__)
         # self.setMinimumHeight(450)
         self.tabwidget = QTabWidget()
         vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
         vbox.addWidget(self.tabwidget, 1)
 
         self.tabs = [
-            (QWidget(), t) for t in config["api"]["plugins"] if (t != "workspace") and (t != "render")
+            (QWidget(), t)
+            for t in config["api"]["plugins"]
+            if (t != "workspace") and (t != "render")
         ]
         # 'workspace' and 'render' are internal plugins with no gui
         for t in self.tabs:

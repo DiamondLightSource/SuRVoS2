@@ -1,5 +1,4 @@
 import re
-
 import h5py as h5
 import mrcfile
 from skimage import io
@@ -165,7 +164,9 @@ class ExportPlugin(Plugin):
             logger.info(f"Pipeline ID: {pid}")
             fname_filter, ext = self.get_data_filetype(self.pipe_ftype_combo)
             filename = pid + "Output" + ext
-            path, _ = QFileDialog.getSaveFileName(self, "Save Pipeline Output", filename, fname_filter)
+            path, _ = QFileDialog.getSaveFileName(
+                self, "Save Pipeline Output", filename, fname_filter
+            )
             if path is not None and len(path) > 0:
                 pipe_data = self.get_arr_data(pid, "pipelines")
                 self.save_data(pipe_data.astype(np.uint8), path, ext)

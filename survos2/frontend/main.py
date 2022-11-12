@@ -23,6 +23,29 @@ def preprocess(img_volume):
     return img_volume
 
 
+def create_and_initialize_workspace(ws_name, tmpvol_fullpath, fname):
+    from survos2.api.workspace import create as create_workspace
+    from survos2.api.workspace import add_dataset, add_data
+    from survos2.api.features import create as create_feature
+
+    create_workspace(ws_name)
+    logger.info(f"Created workspace {ws_name}")
+    add_data(ws_name, tmpvol_fullpath)
+    os.remove(tmpvol_fullpath)
+    response = add_dataset(ws_name, ws_name + "_dataset", dtype="float32")
+    DataModel.g.current_workspace = ws_name
+    create_feature(ws_name, "raw")
+    src = DataModel.g.dataset_uri("__data__", None)
+    dst = DataModel.g.dataset_uri("001_raw", group="features")
+    with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
+        orig_dataset = DM.sources[0]
+        dst_dataset = DM.out
+        src_arr = orig_dataset[:]
+        dst_dataset[:] = src_arr
+
+    return response
+
+
 def init_ws(workspace_params):
     ws_name = workspace_params["workspace_name"]
     dataset_name = workspace_params["dataset_name"]
@@ -50,7 +73,9 @@ def init_ws(workspace_params):
         try:
             img_volume = original_data[dataset_name]
         except KeyError as e:
-            raise WorkspaceException(f"Internal HDF5 dataset: '{dataset_name}' does not exist!") from e
+            raise WorkspaceException(
+                f"Internal HDF5 dataset: '{dataset_name}' does not exist!"
+            ) from e
     if len(img_volume.shape) == 2:
         img_volume = np.reshape(img_volume, (1, img_volume.shape[0], img_volume.shape[1]))
     logger.info(f"Loaded vol of size {img_volume.shape}")
@@ -71,90 +96,37 @@ def init_ws(workspace_params):
             if workspace_params["entities_name"] is not None:
                 entities_name = workspace_params["entities_name"]
 
-            img_volume, entities_df = precrop(img_volume, entities_df, precrop_coords, precrop_vol_size)
+            img_volume, entities_df = precrop(
+                img_volume, entities_df, precrop_coords, precrop_vol_size
+            )
 
     if "downsample_by" in workspace_params:
         downby = int(workspace_params["downsample_by"])
         logger.info(f"Downsampling data by a factor of {downby}")
         img_volume = img_volume[::downby, ::downby, ::downby]
 
-    tmpvol_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".h5"))
+    tmpvol_fullpath = os.path.abspath(
+        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".h5")
+    )
     logger.info(tmpvol_fullpath)
 
     with h5py.File(tmpvol_fullpath, "w") as hf:
         hf.create_dataset("data", data=img_volume)
 
-    survos.run_command("workspace", "create", workspace=ws_name)
-
-    survos.run_command(
-        "workspace",
-        "add_data",
-        workspace=ws_name,
-        data_fname=tmpvol_fullpath,
-    )
-
-    logger.info(f"Added data to workspace from {os.path.join(datasets_dir, fname)}")
-
-    os.remove(tmpvol_fullpath)
-    response = survos.run_command(
-        "workspace",
-        "add_dataset",
-        workspace=ws_name,
-        dataset_name=dataset_name,
-        dtype="float32",
-    )
-
-    DataModel.g.current_workspace = ws_name
-
-    survos.run_command("features", "create", uri=None, workspace=ws_name, feature_type="raw")
-
-    src = DataModel.g.dataset_uri("__data__", None)
-    dst = DataModel.g.dataset_uri("001_raw", group="features")
-    with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
-        orig_dataset = DM.sources[0]
-        dst_dataset = DM.out
-        src_arr = orig_dataset[:]
-        dst_dataset[:] = src_arr
+    response = create_and_initialize_workspace(ws_name, tmpvol_fullpath, fname)
 
     return (_, response)
 
 
 def roi_ws(img_volume, ws_name):
-    tmpvol_fullpath = "tmp\\tmpvol.h5"
+    frontend_dir = os.path.abspath(os.path.dirname(__file__))
+    fname = "tmp/tmpvol.h5"
+    tmpvol_fullpath = frontend_dir + "/" + "../../" + fname
 
     with h5py.File(tmpvol_fullpath, "w") as hf:
         hf.create_dataset("data", data=img_volume)
 
-    survos.run_command("workspace", "create", workspace=ws_name)
-    logger.info(f"Created workspace {ws_name}")
-
-    survos.run_command(
-        "workspace",
-        "add_data",
-        workspace=ws_name,
-        data_fname=tmpvol_fullpath,
-        dtype="float32",
-    )
-
-    response = survos.run_command(
-        "workspace",
-        "add_dataset",
-        workspace=ws_name,
-        dataset_name=ws_name + "_dataset",
-        dtype="float32",
-    )
-
-    DataModel.g.current_workspace = ws_name
-
-    survos.run_command("features", "create", uri=None, workspace=ws_name, feature_type="raw")
-    src = DataModel.g.dataset_uri("__data__", None)
-    dst = DataModel.g.dataset_uri("001_raw", group="features")
-    with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
-        print(DM.sources[0].shape)
-        orig_dataset = DM.sources[0]
-        dst_dataset = DM.out
-        src_arr = orig_dataset[:]
-        dst_dataset[:] = src_arr
+    response = create_and_initialize_workspace(ws_name, tmpvol_fullpath, fname)
 
     return response
 
