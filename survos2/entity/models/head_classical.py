@@ -17,6 +17,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+from skimage.feature import hog
 from survos2.entity.utils import get_surface, pad_vol
 from survos2.entity.entities import offset_points, make_entity_df
 from survos2.frontend.nb_utils import show_images, slice_plot
@@ -46,7 +47,9 @@ def classical_head_train(features, labels, saved_cls=False, n_components=7):
     #         'metric':'euclidean'}
     # reduced_data = UMAP(**params).fit_transform(np.nan_to_num(features))
 
-    X_train, X_test, y_train, y_test = train_test_split(reduced_data, labels, test_size=0.9, random_state=41)
+    X_train, X_test, y_train, y_test = train_test_split(
+        reduced_data, labels, test_size=0.9, random_state=41
+    )
     n_classes = len(np.unique(y_train))
     print(f"Number of classes: {n_classes}")
     n_estimators = 100
@@ -61,11 +64,11 @@ def classical_head_train(features, labels, saved_cls=False, n_components=7):
         "subsample": 0.5,
     }
 
-    # rfc = RandomForestClassifier(n_estimators=n_estimators, max_depth=6)
+    rfc = RandomForestClassifier(n_estimators=n_estimators, max_depth=6)
     etc = ExtraTreesClassifier(n_estimators=n_estimators)
-    # gbc = GradientBoostingClassifier(**gbc_params)
-    # mlp = MLPClassifier(random_state=1, max_iter=300)
+    gbc = GradientBoostingClassifier(**gbc_params)
 
+    # mlp = MLPClassifier(random_state=1, max_iter=300)
     # svc = svm.SVC(kernel="linear", C=1)
 
     X = X_train
@@ -77,20 +80,19 @@ def classical_head_train(features, labels, saved_cls=False, n_components=7):
     X_std = (X - mean) / std
     X_test_std = (X_test - mean) / std
 
-    # rfc.fit(X, y)
+    rfc.fit(X, y)
     etc.fit(X, y)
-    # gbc.fit(X, y)
+    gbc.fit(X, y)
     # svc.fit(X, y)
     # mlp.fit(X, y)
 
     trained_classifiers = {}
-    # scores = rfc.score(X, y)
-    # preds = rfc.predict(X_test)
-    # trained_classifiers = {"rfc": {"score": accuracy_score(y_test, preds)}}
-    # trained_classifiers["rfc"]["classifier"] = rfc
-    # print(f"Random forest accuracy score: {accuracy_score(y_test, preds)}")
+    scores = rfc.score(X, y)
+    preds = rfc.predict(X_test)
+    trained_classifiers = {"rfc": {"score": accuracy_score(y_test, preds)}}
+    trained_classifiers["rfc"]["classifier"] = rfc
+    print(f"Random forest accuracy score: {accuracy_score(y_test, preds)}")
 
-    # # print(scores_svm)
     scores_etc = etc.score(X, y)
     preds_etc = etc.predict(X_test)
     trained_classifiers["etc"] = {}
@@ -98,13 +100,11 @@ def classical_head_train(features, labels, saved_cls=False, n_components=7):
     trained_classifiers["etc"]["classifier"] = etc
     print(f"Extra random tree accuracy score: {accuracy_score(y_test, preds_etc)}")
 
-    # preds_gbc = gbc.predict(X_test)
-    # trained_classifiers["gbc"] = {}
-    # trained_classifiers["gbc"]["score"] = accuracy_score(y_test, preds_gbc)
-    # trained_classifiers["gbc"]["classifier"] = gbc
-    # print(
-    #     f"Gradient boosting classifier accuracy score: {accuracy_score(y_test, preds_gbc)}"
-    # )
+    preds_gbc = gbc.predict(X_test)
+    trained_classifiers["gbc"] = {}
+    trained_classifiers["gbc"]["score"] = accuracy_score(y_test, preds_gbc)
+    trained_classifiers["gbc"]["classifier"] = gbc
+    print(f"Gradient boosting classifier accuracy score: {accuracy_score(y_test, preds_gbc)}")
 
     # preds_svc = svc.predict(X_test_std)
     # trained_classifiers["svc"] = {}
@@ -191,7 +191,9 @@ def prepare_classical_features(
             offset_type="None",
         )
     print(f"Prepared classical feature volumes of shape {fvd[0][0][0].shape}")
-    features = extract_classical_features(fvd, bvol_dim, plot_all=plot_all, resnet=True)
+    features = extract_classical_features(
+        fvd, bvol_dim, plot_all=plot_all, resnet=False, hog_features=True
+    )
     print(f"Extracted classical features of shape {features.shape}")
     if model_file:
         model3d = setup_fpn_for_extraction(wf, model_file)
@@ -211,7 +213,7 @@ def get_resnet_feature(img, model="resnet-50", gpu_id=0):
     return fv
 
 
-def extract_classical_features(fvd, bvol_dim, plot_all=False, resnet=False):
+def extract_classical_features(fvd, bvol_dim, plot_all=False, resnet=False, hog_features=False):
     features = []
     for i in range(len(fvd)):
         curvols, target = fvd[i]
@@ -220,17 +222,17 @@ def extract_classical_features(fvd, bvol_dim, plot_all=False, resnet=False):
         label = target["labels"]
         max_slice, slice_incr = segvol.shape[0], segvol.shape[0] // 3
 
-        if plot_all:
-            show_images(
-                [curvols[0][i, :] for i in range(0, max_slice, slice_incr)],
-                [label for i in range(0, max_slice, slice_incr)],
-                figsize=(1, 1),
-            )
-            show_images(
-                [segvol[i, :] for i in range(0, max_slice, slice_incr)],
-                [label for i in range(0, max_slice, slice_incr)],
-                figsize=(1, 1),
-            )
+        # if plot_all:
+        #     show_images(
+        #         [curvols[0][i, :] for i in range(0, max_slice, slice_incr)],
+        #         [label for i in range(0, max_slice, slice_incr)],
+        #         figsize=(1, 1),
+        #     )
+        #     show_images(
+        #         [segvol[i, :] for i in range(0, max_slice, slice_incr)],
+        #         [label for i in range(0, max_slice, slice_incr)],
+        #         figsize=(1, 1),
+        #     )
 
         if np.sum(segvol) > 0:
             sphericity = get_surface((segvol > 0) * 1.0)[-1]
@@ -252,8 +254,8 @@ def extract_classical_features(fvd, bvol_dim, plot_all=False, resnet=False):
                 np.mean(v),
                 np.std(v),
                 np.median(v),
-                np.mean(v[16:48, 16:48, 16:48]),
-                np.std(v[16:48, 16:48, 16:48]),
+                # np.mean(v[16:48, 16:48, 16:48]),
+                # np.std(v[16:48, 16:48, 16:48]),
                 sphericity,
                 size_largest_cc,
             ]
@@ -263,16 +265,27 @@ def extract_classical_features(fvd, bvol_dim, plot_all=False, resnet=False):
         fv = np.array(fv).flatten()
         fv = list(fv)
 
+        img = curvols[2][bvol_dim[0] // 2, :]
         if resnet:
-            resnet_fv = get_resnet_feature(curvols[2][bvol_dim[0] // 2, :])
+            resnet_fv = get_resnet_feature(img)
             fv.extend(resnet_fv)
+
+        if hog_features:
+            # img_3channel = np.stack((img, img, img)).T
+            fd = hog(
+                img,
+                orientations=8,
+                pixels_per_cell=(8, 8),
+                cells_per_block=(1, 1),
+                visualize=False,
+            )  # , channel_axis=-1)
+            fv.extend(fd)
 
         fv = np.array(fv).flatten()
         fv = np.nan_to_num(fv)
         features.append(fv)
 
     print(fv.shape[0])
-    # print(f" Features Length: {len(features[0][0])} Curvols length: {len(curvols)}")
     features = np.array(features).reshape((len(fvd), fv.shape[0]))
 
     print(features)
@@ -379,7 +392,9 @@ def classical_detect(
         plot_all=plot_all,
         flip_xy=flip_xy,
     )
-    print(f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}")
+    print(
+        f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}"
+    )
     proposal_entities[:, 3] = preds
     detected_entities = proposal_entities[detected]
 
@@ -393,7 +408,9 @@ def classical_detect(
     return offset_detected_entities, proba, fvd
 
 
-def prepare_classical_detector_fvols(wf, class_proposal_fname, padding, area_min=10000, area_max=1000000):
+def prepare_classical_detector_fvols(
+    wf, class_proposal_fname, padding, area_min=10000, area_max=1000000
+):
     proposal_segmentation_fullpath = os.path.join(wf.params["outdir"], class_proposal_fname)
     padded_vol = pad_vol(wf.vols[1], padding)
     padded_mask = pad_vol(wf.bg_mask, padding)
@@ -423,7 +440,9 @@ def classical_detector_predict(
         score_thresh=score_thresh,
         bvol_dim=bvol_dim,
     )
-    print(f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}")
+    print(
+        f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}"
+    )
     proposal_entities[:, 3] = preds
     return proposal_entities[detected]
 
@@ -441,21 +460,15 @@ def prepare_feature_vols(features, padded_vol, padded_proposal, additional_featu
     return features_stack
 
 
-def prepare_classical_detector_data2(
+def _prepare_feature_vols(
     main_vol,
-    gt_entities,
     proposal,
     padding,
     additional_feature_vols=None,
-    area_min=0,
-    area_max=1e14,
-    flip_xy=False,
 ):
 
-    # component_table, padded_proposal = prepare_component_table(
-    #    wf, proposal_fullpath, area_min=area_min, area_max=area_max, padding=padding
-    # )
     padding = np.array(padding)
+    print(f"Padding in prepare feature vols{padding}")
     proposal_filt = proposal
     padded_proposal = pad_vol(proposal_filt, padding // 2)
     padded_vol = pad_vol(main_vol, np.array(padding) // 2)
@@ -469,7 +482,7 @@ def prepare_classical_detector_data2(
         padded_additional_feature_vols = None
 
     print(f"Padded vol {padded_vol.shape} and padded_proposal {padded_proposal.shape}")
-    # feature_vols = generate_feature_vols(padded_vol, padded_proposal, wf)
+
     feature_vols = []
     fvol = prepare_feature_vols(
         feature_vols,
@@ -478,13 +491,22 @@ def prepare_classical_detector_data2(
         additional_feature_vols=padded_additional_feature_vols,
     )
 
-    (
-        dataloaders,
-        gt_train_entities,
-        gt_val_entities,
-    ) = prepare_patch_dataloaders_and_entities(main_vol, gt_entities, padding=padding, flip_xy=flip_xy)
+    return fvol
 
-    return gt_train_entities, gt_val_entities, fvol
+
+def prepare_trainvalidate_entities(
+    main_vol,
+    gt_entities,
+    padding,
+    flip_xy=False,
+):
+    print(f"prepare_trainvalidate_entities with number of gt_entities {gt_entities.shape}")
+    padding = np.array(padding)
+    (dataloaders, gt_train_entities, gt_val_entities,) = prepare_patch_dataloaders_and_entities(
+        main_vol, gt_entities, padding=padding, flip_xy=flip_xy
+    )
+
+    return gt_train_entities, gt_val_entities
 
 
 def prepare_classical_detector_data(
@@ -638,7 +660,9 @@ def make_classical_detector_prediction2(
         plot_all=plot_all,
         flip_xy=flip_xy,
     )
-    print(f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}")
+    print(
+        f"ran_classical_head generated detections of shape {detected.shape} and preds {preds.shape}"
+    )
     proposal_entities[:, 3] = preds
     detected_entities = proposal_entities[detected]
 

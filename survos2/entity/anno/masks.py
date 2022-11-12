@@ -160,7 +160,9 @@ def ellipsoidal_mask(
         center = [np.int(d / 2.0, np.int(w / 2.0), np.int(h / 2.0))]
 
     if radius is None:
-        radius = np.min(center[0], center[1], center[2], w - center[0], h - center[1], d - center[2])
+        radius = np.min(
+            center[0], center[1], center[2], w - center[0], h - center[1], d - center[2]
+        )
 
     if debug_verbose:
         print("Making sphere of radius: {}".format(radius))
@@ -303,9 +305,15 @@ def generate_sphere_masks_fast(
         st = np.array((pt[0] - radius, pt[2] - radius, pt[1] - radius))
         st = st.astype(np.uint32)
 
-        if st[0] < input_array.shape[0] and st[1] < input_array.shape[1] and st[2] < input_array.shape[2]:
+        if (
+            st[0] < input_array.shape[0]
+            and st[1] < input_array.shape[1]
+            and st[2] < input_array.shape[2]
+        ):
             if point_in_vol(input_array, pt, sz):
-                total_mask[st[0] : st[0] + sz[0], st[1] : st[1] + sz[1], st[2] : st[2] + sz[2]] += init_ls
+                total_mask[
+                    st[0] : st[0] + sz[0], st[1] : st[1] + sz[1], st[2] : st[2] + sz[2]
+                ] += init_ls
 
     return total_mask
 

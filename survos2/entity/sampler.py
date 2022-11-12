@@ -44,9 +44,13 @@ def centroid_to_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
     """
     d, w, h = bvol_dim
     if flipxy:
-        bvols = np.array([(cz - d, cx - w, cy - h, cz + d, cx + w, cy + h) for cz, cx, cy, _ in centers])
+        bvols = np.array(
+            [(cz - d, cx - w, cy - h, cz + d, cx + w, cy + h) for cz, cx, cy, _ in centers]
+        )
     else:
-        bvols = np.array([(cz - d, cx - w, cy - h, cz + d, cx + w, cy + h) for cz, cy, cx, _ in centers])
+        bvols = np.array(
+            [(cz - d, cx - w, cy - h, cz + d, cx + w, cy + h) for cz, cy, cx, _ in centers]
+        )
 
     return bvols
 
@@ -71,9 +75,13 @@ def centroid_to_detnet_bvol(centers, bvol_dim=(10, 10, 10), flipxy=False):
     d, w, h = bvol_dim
 
     if flipxy:
-        bvols = np.array([(cx - w, cy - h, cx + w, cy + h, cz - d, cz + d) for cz, cx, cy, _ in centers])
+        bvols = np.array(
+            [(cx - w, cy - h, cx + w, cy + h, cz - d, cz + d) for cz, cx, cy, _ in centers]
+        )
     else:
-        bvols = np.array([(cx - w, cy - h, cx + w, cy + h, cz - d, cz + d) for cz, cy, cx, _ in centers])
+        bvols = np.array(
+            [(cx - w, cy - h, cx + w, cy + h, cz - d, cz + d) for cz, cy, cx, _ in centers]
+        )
 
     return bvols
 
@@ -98,11 +106,17 @@ def centroid_to_boxes(centers, bvol_dim=(10, 10, 10), flipxy=False):
     d, w, h = bvol_dim
     if flipxy:
         bvols = np.array(
-            [(0, cz, cx, cy, cz - d, cx - w, cy - h, cz + d, cx + w, cy + h) for cz, cx, cy, _ in centers]
+            [
+                (0, cz, cx, cy, cz - d, cx - w, cy - h, cz + d, cx + w, cy + h)
+                for cz, cx, cy, _ in centers
+            ]
         )
     else:
         bvols = np.array(
-            [(0, cz, cx, cy, cz - d, cx - w, cy - h, cz + d, cx + w, cy + h) for cz, cy, cx, _ in centers]
+            [
+                (0, cz, cx, cy, cz - d, cx - w, cy - h, cz + d, cx + w, cy + h)
+                for cz, cy, cx, _ in centers
+            ]
         )
 
     return bvols
@@ -508,7 +522,9 @@ def crop_vol_and_pts(
 
     if debug_verbose:
         print(
-            "\n z x y w h: {}".format((location[0], location[1], location[2], patch_size[1], patch_size[2]))
+            "\n z x y w h: {}".format(
+                (location[0], location[1], location[2], patch_size[1], patch_size[2])
+            )
         )
         print("Slice start, slice end {} {}".format(slice_start, slice_end))
         print("Cropped points array shape: {}".format(cropped_pts.shape))
@@ -653,7 +669,9 @@ def crop_vol_and_pts_centered(
 
     if debug_verbose:
         print(
-            "\n z x y w h: {}".format((location[0], location[1], location[2], patch_size[1], patch_size[2]))
+            "\n z x y w h: {}".format(
+                (location[0], location[1], location[2], patch_size[1], patch_size[2])
+            )
         )
         print("Slice start, slice end {} {}".format(slice_start, slice_end))
         print("Cropped points array shape: {}".format(cropped_pts.shape))

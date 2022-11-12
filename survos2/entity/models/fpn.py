@@ -174,7 +174,9 @@ class ResBlock(nn.Module):
             raise Exception("Chosen activation {} not implemented.".format(self.relu))
 
         if stride != 1 or start_filts != end_filts or not identity_skip:
-            self.scale_residual = conv(start_filts, end_filts, ks=1, stride=stride, norm=norm, relu=None)
+            self.scale_residual = conv(
+                start_filts, end_filts, ks=1, stride=stride, norm=norm, relu=None
+            )
         else:
             self.scale_residual = None
 
@@ -403,9 +405,15 @@ class FPN(nn.Module):
                 relu=relu_dec,
             )
 
-        self.P5_conv1 = conv(sf * self.block_exp * 8, self.out_channels, ks=1, stride=1, relu=relu_dec)
-        self.P4_conv1 = conv(sf * self.block_exp * 4, self.out_channels, ks=1, stride=1, relu=relu_dec)
-        self.P3_conv1 = conv(sf * self.block_exp * 2, self.out_channels, ks=1, stride=1, relu=relu_dec)
+        self.P5_conv1 = conv(
+            sf * self.block_exp * 8, self.out_channels, ks=1, stride=1, relu=relu_dec
+        )
+        self.P4_conv1 = conv(
+            sf * self.block_exp * 4, self.out_channels, ks=1, stride=1, relu=relu_dec
+        )
+        self.P3_conv1 = conv(
+            sf * self.block_exp * 2, self.out_channels, ks=1, stride=1, relu=relu_dec
+        )
         self.P2_conv1 = conv(sf * self.block_exp, self.out_channels, ks=1, stride=1, relu=relu_dec)
         self.P1_conv1 = conv(sf, self.out_channels, ks=1, stride=1, relu=relu_dec)
 
@@ -420,11 +428,21 @@ class FPN(nn.Module):
                 relu=relu_dec,
             )
 
-        self.P1_conv2 = conv(self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec)
-        self.P2_conv2 = conv(self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec)
-        self.P3_conv2 = conv(self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec)
-        self.P4_conv2 = conv(self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec)
-        self.P5_conv2 = conv(self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec)
+        self.P1_conv2 = conv(
+            self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec
+        )
+        self.P2_conv2 = conv(
+            self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec
+        )
+        self.P3_conv2 = conv(
+            self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec
+        )
+        self.P4_conv2 = conv(
+            self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec
+        )
+        self.P5_conv2 = conv(
+            self.out_channels, self.out_channels, ks=3, stride=1, pad=1, relu=relu_dec
+        )
 
         if self.sixth_pooling:
             self.P6_conv2 = conv(

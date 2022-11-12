@@ -1,33 +1,14 @@
 import os
-import os.path as op
 import shutil
 
 import numpy as np
 import tempfile
 
-# import logging as log
-
-from survos2.config import Config
 from survos2.utils import check_relpath
 from survos2.model.dataset import Dataset
 from survos2.model.model import DataModel
 
 from loguru import logger
-
-
-# Config.update_yaml()
-
-# CHROOT = Config["model.chroot"]
-# DATABASE = Config["model.dbtype"]
-# CHUNK_DATA = Config["computing.chunks"]
-# CHUNK_SIZE = Config["computing.chunk_size"]
-
-# if CHROOT in ["tmp", "temp"]:
-#     tmp = tempfile.gettempdir()
-#     CHROOT = os.path.join(tmp, "tmp_survos_chroot")
-#     os.makedirs(CHROOT, exist_ok=True)
-
-# logger.info(f"CHROOT is {CHROOT}")
 
 
 class WorkspaceException(Exception):

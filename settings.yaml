@@ -5,7 +5,7 @@ api:
   host: 127.0.0.1
   plugins:
   - workspace
-  - server
+  - workspaces
   - features
   - superregions
   - annotations
@@ -14,7 +14,7 @@ api:
   - analyzer
   - roi
   - export
-  port: 8123
+  port: 8130
   renderer: mpl
 computing:
   chunk_padding: 8

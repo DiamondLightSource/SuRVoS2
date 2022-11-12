@@ -27,7 +27,7 @@ with open(filename) as f:
 if __name__ == "__main__":
     setup(
         # name="SuRVoS2",
-        version="0.0.1",
+        version="2.2",
         # author='DLS',
         # author_email='',
         # license='CC-BY-NC-4.0',

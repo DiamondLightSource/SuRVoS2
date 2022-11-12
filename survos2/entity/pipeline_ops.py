@@ -104,13 +104,13 @@ def make_masks(patch: Patch, params: dict):
         radius=params["mask_params"]["core_mask_radius"][0],
     )
 
-    show_images(
-        [
-            total_mask[total_mask.shape[0] // 2, :],
-            core_mask[core_mask.shape[0] // 2, :],
-        ],
-        figsize=(4, 4),
-    )
+    # show_images(
+    #     [
+    #         total_mask[total_mask.shape[0] // 2, :],
+    #         core_mask[core_mask.shape[0] // 2, :],
+    #     ],
+    #     figsize=(4, 4),
+    # )
 
     patch.image_layers["total_mask"] = total_mask
     patch.image_layers["core_mask"] = core_mask

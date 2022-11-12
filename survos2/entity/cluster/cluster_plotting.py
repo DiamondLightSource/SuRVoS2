@@ -32,7 +32,9 @@ def cluster_scatter(x, colors, text_labels=False):
         for i in range(num_classes):
             xtext, ytext = np.median(x[colors == i, :], axis=0)
             txt = ax.text(xtext, ytext, str(i), fontsize=24)
-            txt.set_path_effects([PathEffects.Stroke(linewidth=5, foreground="w"), PathEffects.Normal()])
+            txt.set_path_effects(
+                [PathEffects.Stroke(linewidth=5, foreground="w"), PathEffects.Normal()]
+            )
             txts.append(txt)
 
 
@@ -75,7 +77,9 @@ def plot_clustered_img(
         xtext, ytext = np.median(proj[colors == i, :], axis=0)
         txt = ax.text(xtext, ytext, str(i), fontsize=24, zorder=200)
         print(f"Class {i}")
-        txt.set_path_effects([PathEffects.Stroke(linewidth=5, foreground="w"), PathEffects.Normal()])
+        txt.set_path_effects(
+            [PathEffects.Stroke(linewidth=5, foreground="w"), PathEffects.Normal()]
+        )
 
     txts.append(txt)
     print(txts)
@@ -111,7 +115,9 @@ def image_grid(
 
                 axarr[i, j].grid(False)
                 # axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10, color=color)
-                axarr[i, j].tick_params(labeltop=False, labelleft=False, labelbottom=False, labelright=False)
+                axarr[i, j].tick_params(
+                    labeltop=False, labelleft=False, labelbottom=False, labelright=False
+                )
         f.suptitle(bigtitle, color=color)
     return f, axarr
 
@@ -148,7 +154,9 @@ def image_grid2(
 
                 axarr[i, j].grid(False)
                 # axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10, color=color)
-                axarr[i, j].tick_params(labeltop=False, labelleft=False, labelbottom=False, labelright=False)
+                axarr[i, j].tick_params(
+                    labeltop=False, labelleft=False, labelbottom=False, labelright=False
+                )
                 axarr[i, j].margins(0)
                 axarr[i, j].axes.axis("off")
 

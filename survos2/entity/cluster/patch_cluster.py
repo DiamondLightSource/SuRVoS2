@@ -60,10 +60,14 @@ def patch_cluster(
     selected_images_arr = selected_images_arr[:, :, :, 1]
 
     fig, ax = plt.subplots(figsize=(17, 17))
-    plt.title("Windows around a click clustered using deep features and embedded in 2d using T-SNE".format())
+    plt.title(
+        "Windows around a click clustered using deep features and embedded in 2d using T-SNE".format()
+    )
 
     skip_px = skip_px
-    plot_clustered_img(twoD_projected_data, preds, images=selected_images_arr[:, ::skip_px, ::skip_px])
+    plot_clustered_img(
+        twoD_projected_data, preds, images=selected_images_arr[:, ::skip_px, ::skip_px]
+    )
 
     return twoD_projected_data, preds
 
@@ -90,9 +94,9 @@ def extract_hog_features(selected_images, gpu_id=0):
 
     for i, img in enumerate(selected_images):
         fv = []
-        img_3channel = np.stack((img, img, img)).T
+        # img_3channel = np.stack((img, img, img)).T
         fd = hog(
-            img_3channel,
+            img,  # img_3channel,
             orientations=8,
             pixels_per_cell=(8, 8),
             cells_per_block=(1, 1),
@@ -191,7 +195,9 @@ def roi_pool_vol(cropped_vol, filtered_tables, padvol=14):
                 pass
                 # print(f"rejected {bb}, {z_l}, {z_u}")
 
-        bb2d_centdim = [(x_s, y_s, x_f - x_s, y_f - y_s) for (x_s, y_s, x_f, y_f, z_s, z_f, _), _ in good_bb]
+        bb2d_centdim = [
+            (x_s, y_s, x_f - x_s, y_f - y_s) for (x_s, y_s, x_f, y_f, z_s, z_f, _), _ in good_bb
+        ]
 
         preds = [c for (_, _, _, _, _, _, c), _ in good_bb]
         scores = [1.0 for i in range(len(good_bb))]
@@ -262,7 +268,8 @@ def roi_pool_vol2(cropped_vol, filtered_tables):
         padx, pady = 10, 10
 
         expanded_bbox = [
-            (0, bb[1] - padx, bb[0] - pady, bb[3] + padx, bb[2] + pady) for i, bb in enumerate(good_bb)
+            (0, bb[1] - padx, bb[0] - pady, bb[3] + padx, bb[2] + pady)
+            for i, bb in enumerate(good_bb)
         ]
         print(expanded_bbox)
 

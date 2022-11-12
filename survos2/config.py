@@ -8,7 +8,7 @@ class _Config(type):
         "title": "SuRVoS",
         "api": {
             "host": "127.0.0.1",
-            "port": 8023,
+            "port": 8000,
             "plugins": [],
             "renderer": "mpl",
         },

@@ -6,14 +6,17 @@ begins
 black
 click
 coverage
+colorama
 cryptography
 cycler
 cython
 dask
 decorator
 falcon
+fastapi[all]
 h5py
 hdbscan
+httpx
 hug
 imageio==2.9.0
 ipywidgets==7.7.2
@@ -33,7 +36,6 @@ numba
 numpy
 numpydoc
 pandas
-paramiko
 parse
 pillow
 pip
@@ -71,6 +73,7 @@ torchio
 torchmetrics
 tqdm
 traitlets
+trio
 typing_extensions
 umap-learn
 unet
@@ -79,6 +82,5 @@ vispy
 volume-segmantics
 wget
 wheel
-xgboost
 zict
 zstd

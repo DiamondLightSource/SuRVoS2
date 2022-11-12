@@ -85,7 +85,9 @@ def organize_entities(img_vol, clustered_pts, entity_meta, flipxy=False, plot_al
             plt.figure(figsize=(9, 9))
             plt.imshow(img_vol[img_vol.shape[0] // 4, :], cmap="gray")
             plt.scatter(classwise_pts[:, 1], classwise_pts[:, 2], c="cyan")
-            plt.title(str(entity_meta[c]["name"]) + " Clustered Locations: " + str(len(classwise_pts)))
+            plt.title(
+                str(entity_meta[c]["name"]) + " Clustered Locations: " + str(len(classwise_pts))
+            )
 
     combined_clustered_pts = np.concatenate(classwise_entities)
 
@@ -140,7 +142,9 @@ def generate_augmented_entities(
         gt_entities = entities
 
     if generate_random_bg_entities:
-        random_entities = generate_random_points_in_volume(wf.vols[0], num_before_masking).astype(np.uint32)
+        random_entities = generate_random_points_in_volume(wf.vols[0], num_before_masking).astype(
+            np.uint32
+        )
         from survos2.entity.utils import remove_masked_entities
 
         print(f"Before masking random entities generated of shape {random_entities.shape}")
@@ -215,7 +219,9 @@ def generate_annotation_volume(
         gt_entities = entities
 
     if generate_random_bg_entities:
-        random_entities = generate_random_points_in_volume(wf.vols[0], num_before_masking).astype(np.uint32)
+        random_entities = generate_random_points_in_volume(wf.vols[0], num_before_masking).astype(
+            np.uint32
+        )
         from survos2.entity.utils import remove_masked_entities
 
         print(f"Before masking random entities generated of shape {random_entities.shape}")
@@ -332,8 +338,8 @@ def make_pseudomasks(
     anno_all = [anno_masks[i]["mask"] for i in classwise_entities.keys()]
     anno_all.extend(anno_shell_gen)
 
-    if plot_all:
-        slice_plot(anno_all, None, wf.vols[0], (89, 200, 200))
+    # if plot_all:
+    #    slice_plot(anno_all, None, wf.vols[0], (89, 200, 200))
 
     anno_acwe = {}
     if acwe:
