@@ -100,9 +100,7 @@ class LabelSplitter(AnalyzerCardBase):
         all_params["json_transport"] = True
 
         logger.debug(f"Running analyzer with params {all_params}")
-        result = Launcher.g.run(
-            "analyzer", "label_splitter", **all_params
-        )
+        result = Launcher.g.run("analyzer", "label_splitter", **all_params)
         print(result)
         result_features, features_array, _ = result
         features_ndarray = np.array(features_array)

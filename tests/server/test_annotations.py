@@ -1,28 +1,18 @@
+import pytest
+from httpx import AsyncClient
+from main import app
 import os
-
 import h5py
 import numpy as np
-import pytest
-from torch.testing import assert_allclose
 from loguru import logger
-from skimage.data import binary_blobs
 
-
-import survos
-import survos2.frontend.control
-from survos2.frontend.control import Launcher
-from survos2.entity.pipeline import Patch
-import survos2.frontend.control
 from survos2.model import DataModel
-from survos2.improc.utils import DatasetManager
-from survos2.entity.pipeline import run_workflow
-from survos2.server.state import cfg
-from survos2.server.superseg import sr_predict
-from survos2.api.superregions import supervoxels
-from survos2.server.superseg import sr_predict
-from survos2.frontend.nb_utils import view_dataset
+from survos2.api.workspace import create as create_workspace
+from survos2.api.workspace import add_dataset, add_data, delete, get
 
-tmp_ws_name = "testworkspace_tmp2"
+tmp_ws_name = "testworkspace_tmp1"
+
+
 @pytest.fixture(scope="session")
 def datamodel():
     # make test vol
@@ -55,99 +45,95 @@ def datamodel():
             ],
         ]
     )
-    # testvol = np.ones((4,4,4)).astype(np.float32) / 2.0
-    # print(testvol)
-
     with h5py.File(map_fullpath, "w") as hf:
         hf.create_dataset("data", data=testvol)
 
-    print(DataModel.g.CHROOT)
-    
-    test_anno = np.array([[[0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]],
-
-       [[0, 0, 0, 0],
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [0, 0, 0, 0]],
-
-       [[0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]],
-
-       [[0, 0, 0, 0],
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [0, 0, 0, 0]]], dtype=np.uint32)
-
-    result = survos.run_command("workspace", "get", uri=None, workspace=tmp_ws_name)
-
-    # create temp workspace
-    if not type(result[0]) == dict:
-        logger.debug("Creating temp workspace")
-        survos.run_command("workspace", "create", uri=None, workspace=tmp_ws_name)
-    else:
+    result = get(workspace=tmp_ws_name)
+    if not isinstance(result, bool):
         logger.debug("tmp exists, deleting and recreating")
-        survos.run_command("workspace", "delete", uri=None, workspace=tmp_ws_name)
+        delete(workspace=tmp_ws_name)
         logger.debug("workspace deleted")
-        survos.run_command("workspace", "create", uri=None, workspace=tmp_ws_name)
-        logger.debug("workspace recreated")
 
-    # add data to workspace
-    survos.run_command(
-        "workspace",
-        "add_data",
-        uri=None,
-        workspace=tmp_ws_name,
-        data_fname=map_fullpath,
-        dtype="float32",
-    )
-
-    survos.run_command(
-        "features", "create", uri=None, workspace=tmp_ws_name, feature_type="raw"
-    )
-
+    create_workspace(workspace=tmp_ws_name)
+    logger.debug("workspace recreated")
+    add_data(workspace=tmp_ws_name, data_fname=map_fullpath)
     DataModel.g.current_workspace = tmp_ws_name
-
-    # add level to workspace and add a red label
-    result = survos.run_command('annotations', 'add_level', uri=None, workspace=tmp_ws_name)
-    params = dict(level="001_level")
-    result = survos.run_command('annotations', 'add_label', uri=None, workspace=tmp_ws_name, **params)
-    label = dict(
-                idx=2,
-                name="Labelname",
-                color="#FF0000",
-                visible=True,
-            )
-    result = survos.run_command('annotations', 'update_label', uri=None, workspace=tmp_ws_name, **params, **label)
-    
-    # set the array to test_anno above
-    src = DataModel.g.dataset_uri('001_level', group="annotations")
-    survos.run_command('annotations', 'set_volume', uri=None, workspace=tmp_ws_name, src=src, vol_array=test_anno)
 
     return DataModel
 
 
 class Tests(object):
-    def test_setup(self, datamodel):
-        result = survos.run_command('annotations', 'get_levels', uri=None, workspace=tmp_ws_name)
-        assert result[0][0]['kind'] == 'level'
-        assert result[0][0]['name'] == '001 Level'
-        assert result[0][0]['labels']['2']['idx'] == 2
+    @pytest.mark.asyncio
+    async def test_features(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/features/existing", params=params)
+            assert response.text == "{}"
 
-        result = survos.run_command('features', 'existing', uri=None, workspace=tmp_ws_name,
-                    dtype='float32')
-        assert result[0]['001_raw']['id'] == '001_raw'
+            params = {"workspace": "testworkspace_tmp1", "feature_type": "raw"}
+            response = await ac.get("/features/create", params=params)
 
-    def test_annotations(self, datamodel):
-        result = survos.run_command('annotations', 'add_level', uri=None, workspace=tmp_ws_name)
-        assert 'name' in result[0]
-        result = survos.run_command('annotations', 'get_levels', uri=None, workspace=tmp_ws_name)
-        assert 'name' in result[0][0]
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/features/existing", params=params)
+            assert response.text == '{"001_raw":{"kind":"raw","name":"001 Raw","id":"001_raw"}}'
+
+    @pytest.mark.asyncio
+    async def test_levels(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/annotations/get_levels", params=params)
+            assert response.text == "[]"
+
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/annotations/add_level", params=params)
+
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/annotations/get_levels", params=params)
+            assert (
+                response.text
+                == '[{"kind":"level","modified":[0],"name":"001 Level","id":"001_level"}]'
+            )
+
+            params = {"workspace": "testworkspace_tmp1", "level": "001_level"}
+            response = await ac.get("/annotations/get_single_level", params=params)
+            assert (
+                response.text
+                == '{"kind":"level","modified":[0],"name":"001 Level","id":"001_level"}'
+            )
+
+            params = {"workspace": "testworkspace_tmp1", "level": "001_level"}
+            response = await ac.get("/annotations/delete_level", params=params)
+
+    @pytest.mark.asyncio
+    async def test_rename_level(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/annotations/get_levels", params=params)
+            assert response.text == "[]"
+
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/annotations/add_level", params=params)
+
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/annotations/get_levels", params=params)
+            assert (
+                response.text
+                == '[{"kind":"level","modified":[0],"name":"001 Level","id":"001_level"}]'
+            )
+
+            params = {"workspace": "testworkspace_tmp1", "level": "001_level", "name": "A level"}
+            response = await ac.get("/annotations/rename_level", params=params)
+
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/annotations/get_levels", params=params)
+            assert (
+                response.text
+                == '[{"kind":"level","modified":[0],"name":"A level","id":"001_level"}]'
+            )
+
+            params = {"workspace": "testworkspace_tmp1", "level": "001_level"}
+            response = await ac.get("/annotations/delete_level", params=params)
+
 
 if __name__ == "__main__":
     pytest.main()
-

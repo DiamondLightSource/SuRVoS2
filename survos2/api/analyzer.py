@@ -511,13 +511,13 @@ def label_splitter(
 
     map_blocks(pass_through, new_labels, out=dst, normalize=False)
 
-#    bvols = windows_to_bvols(obj_windows)
+    #    bvols = windows_to_bvols(obj_windows)
     result_features = np.array(result_features)
     result_features = result_features.tolist()
     features_array = np.array(features_array)
     features_array = features_array.tolist()
 
-    return result_features, features_array #, bvols
+    return result_features, features_array  # , bvols
 
 
 def apply_rules(features: np.ndarray, label: int, rules: tuple, out: np.ndarray, num_objects: int):

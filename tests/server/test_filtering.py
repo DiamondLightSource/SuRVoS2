@@ -1,16 +1,13 @@
 from survos2.server.filtering.blur import tvdenoise_kornia
 import numpy as np
-from torch.testing import assert_allclose
 import pytest
 
-from survos2.server.config import cfg
 from survos2.server.filtering import (
     gaussian_blur_kornia,
     simple_invert,
     laplacian,
     spatial_gradient_3d,
     ndimage_laplacian,
-    compute_structure_tensor_determinant,
     hessian_eigvals_image,
     simple_invert,
     median,
@@ -20,7 +17,6 @@ from survos2.server.filtering import (
 )
 
 from survos2.server.features import generate_features
-from skimage.data import binary_blobs
 
 
 def test_feature_generation():
@@ -107,22 +103,14 @@ def test_feature_generation():
     ]
 
     num_feature_params = len(feature_params)
-
     roi_crop = [0, img_vol.shape[0], 0, img_vol.shape[1], 0, img_vol.shape[2]]
-
     sr_feat = generate_features(img_vol, feature_params, roi_crop, 1.0)
-
     num_generated_features = len(sr_feat.filtered_layers)
-
     assert num_feature_params == num_generated_features
 
     generated_feature_shapes = [layer.shape for layer in sr_feat.filtered_layers]
-
-    assert generated_feature_shapes == [
-        img_vol.shape for i in range(num_generated_features)
-    ]
+    assert generated_feature_shapes == [img_vol.shape for i in range(num_generated_features)]
 
 
 if __name__ == "__main__":
     pytest.main()
-

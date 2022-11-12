@@ -25,6 +25,7 @@ from survos2.frontend.nb_utils import view_dataset
 
 tmp_ws_name = "testworkspace_tmp2"
 
+
 @pytest.fixture(scope="session")
 def datamodel():
     # make test vol
@@ -59,35 +60,23 @@ def datamodel():
         ]
     )
 
- 
-    test_anno = np.array([[[0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]],
+    test_anno = np.array(
+        [
+            [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+            [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 0]],
+            [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 0]],
+            [[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 0]],
+        ],
+        dtype=np.uint32,
+    )
 
-       [[0, 0, 0, 0],
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [0, 0, 0, 0]],
+    testvol = np.random.random((32, 32, 32))  # astype(np.uint8)
 
-       [[0, 0, 0, 0],
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [0, 0, 0, 0]],
-
-       [[0, 0, 0, 0],
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [0, 0, 0, 0]]], dtype=np.uint32)
-
-    testvol = np.random.random((32,32,32))# astype(np.uint8)
-    
     test_anno = np.zeros_like(testvol)
-    test_anno[8:12,8:12,8:12] = 1
-    test_anno[8:12, 24:28,24:28] = 1
-    test_anno[8:12,16:18,16:18] = 1
+    test_anno[8:12, 8:12, 8:12] = 1
+    test_anno[8:12, 24:28, 24:28] = 1
+    test_anno[8:12, 16:18, 16:18] = 1
     test_anno = test_anno.astype(np.uint)
-    
 
     with h5py.File(map_fullpath, "w") as hf:
         hf.create_dataset("data", data=testvol)
@@ -115,75 +104,86 @@ def datamodel():
         dtype="float32",
     )
 
-    survos.run_command(
-        "features", "create", uri=None, workspace=tmp_ws_name, feature_type="raw"
-    )
-    
+    survos.run_command("features", "create", uri=None, workspace=tmp_ws_name, feature_type="raw")
+
     # add level to workspace and add a red label
-    result = survos.run_command('annotations', 'add_level', uri=None, workspace=tmp_ws_name)
+    result = survos.run_command("annotations", "add_level", uri=None, workspace=tmp_ws_name)
     params = dict(level="001_level")
-    result = survos.run_command('annotations', 'add_label', uri=None, workspace=tmp_ws_name, **params)
+    result = survos.run_command(
+        "annotations", "add_label", uri=None, workspace=tmp_ws_name, **params
+    )
     label = dict(
-                idx=1,
-                name="Labelname",
-                color="#FF0000",
-                visible=True,
-            )
-    result = survos.run_command('annotations', 'update_label', uri=None, workspace=tmp_ws_name, **params, **label)
-    
+        idx=1,
+        name="Labelname",
+        color="#FF0000",
+        visible=True,
+    )
+    result = survos.run_command(
+        "annotations", "update_label", uri=None, workspace=tmp_ws_name, **params, **label
+    )
+
     # set the array to test_anno above
-    src = DataModel.g.dataset_uri('001_level', group="annotations")
-    survos.run_command('annotations', 'set_volume', uri=None, workspace=tmp_ws_name, src=src, vol_array=test_anno)
+    src = DataModel.g.dataset_uri("001_level", group="annotations")
+    survos.run_command(
+        "annotations", "set_volume", uri=None, workspace=tmp_ws_name, src=src, vol_array=test_anno
+    )
 
     return DataModel
 
 
 class Tests(object):
     def test_label_splitter(self, datamodel):
-        DataModel = datamodel        
-        src = DataModel.g.dataset_uri('001_level', group="annotations")  
-        r1, r2 = survos.run_command('analyzer', 'label_splitter',
-                            src=src,
-                            dst=src,
-                            workspace=tmp_ws_name,
-                            mode='3',
-                            pipelines_id='None',
-                            analyzers_id='None',
-                            annotations_id='001_level',
-                            feature_id='001_raw',
-                            split_ops={1: {'split_feature_index': 4,'split_op': 1,'split_threshold' :0.5} },
-                            background_label=0)
+        DataModel = datamodel
+        src = DataModel.g.dataset_uri("001_level", group="annotations")
+        r1, r2 = survos.run_command(
+            "analyzer",
+            "label_splitter",
+            src=src,
+            dst=src,
+            workspace=tmp_ws_name,
+            mode="3",
+            pipelines_id="None",
+            analyzers_id="None",
+            annotations_id="001_level",
+            feature_id="001_raw",
+            split_ops={1: {"split_feature_index": 4, "split_op": 1, "split_threshold": 0.5}},
+            background_label=0,
+        )
         result_features, features_array, bvols = r1
         assert len(features_array[0]) == 20
 
     def test_point_generator(self, datamodel):
-        src = DataModel.g.dataset_uri('001_level', group="annotations")   
+        src = DataModel.g.dataset_uri("001_level", group="annotations")
 
-        r1, r2 = survos.run_command('analyzer', 'point_generator',
-                                src=src,
-                                dst=src,
-                                workspace=tmp_ws_name,
-                                bg_mask_id='None',
-                                num_before_masking=10)
+        r1, r2 = survos.run_command(
+            "analyzer",
+            "point_generator",
+            src=src,
+            dst=src,
+            workspace=tmp_ws_name,
+            bg_mask_id="None",
+            num_before_masking=10,
+        )
         assert len(r1) == 10
 
-        
-    def test_find_connected_components(self, datamodel):    
-        src = DataModel.g.dataset_uri('001_level', group="annotations")   
-        r1, r2 = survos.run_command('analyzer', 'find_connected_components',
-                        src=src,
-                        dst=src,
-                        workspace=tmp_ws_name,                        
-                        label_index=1, 
-                        area_min=0, 
-                        area_max=1e16,
-                        mode=3,
-                        pipelines_id='None', 
-                        analyzers_id='None',
-                        annotations_id='001_level')
-        assert r1 == 'bob'
-       
-       
+    def test_find_connected_components(self, datamodel):
+        src = DataModel.g.dataset_uri("001_level", group="annotations")
+        r1, r2 = survos.run_command(
+            "analyzer",
+            "find_connected_components",
+            src=src,
+            dst=src,
+            workspace=tmp_ws_name,
+            label_index=1,
+            area_min=0,
+            area_max=1e16,
+            mode=3,
+            pipelines_id="None",
+            analyzers_id="None",
+            annotations_id="001_level",
+        )
+        assert r1 == "bob"
+
+
 if __name__ == "__main__":
     pytest.main()
-
