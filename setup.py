@@ -16,7 +16,7 @@ base_path = os.path.abspath(os.path.dirname(__file__))
 # Note: you can add test-specific requirements in tox.ini
 requirements = []
 root = Path(__file__).parent
-filename = str(root / "req.txt")
+filename = str(root / "requirements.txt")
 with open(filename) as f:
     for line in f:
         stripped = line.split("#")[0].strip()

@@ -68,13 +68,13 @@ and activate it:
   (CUDA 11.6)
 	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
   (CUDA 11.7 or No GPU support)
-	$ pip install -r req.txt
+	$ pip install -r requirements.txt
 
 (WINDOWS)
   (CUDA 11.6)
 	$ pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
   (CUDA 11.7 or No GPU support)
-	$ pip install -r req_windows.txt
+	$ pip install -r requirements_windows.txt
 
 
 6. Build survos2 cython + cuda stuff:
@@ -100,7 +100,7 @@ and activate it:
 	$ napari
 
 	Then select the Workspace (SuRVoS2) plugin from the Plugins menu.
-	
+
 --------------------------------------------------------------------------------------
 
 CUDA INSTALLATION
