@@ -551,13 +551,6 @@ class WorkspacesPlugin(Plugin):
         workspace_fields = self.get_workspace_fields()
         tab1.layout.addWidget(workspace_fields)
 
-        # self.setup_adv_run_fields()
-        # self.adv_run_fields.hide()
-
-        # run_fields = self.get_run_fields()
-        # tab1.layout.addWidget(run_fields)
-        # output_config_button = QPushButton("Save config")
-
         self.create_workspace_button.clicked.connect(self.create_workspace_clicked)
         # output_config_button.clicked.connect(self.output_config_clicked)
         self.layout.addWidget(tabwidget)
@@ -753,10 +746,11 @@ class WorkspacesPlugin(Plugin):
         return user
 
     def refresh_chroot(self):
-        workspaces = os.listdir(DataModel.g.CHROOT)
-        self.workspaces_list.clear()
-        for s in workspaces:
-            self.workspaces_list.addItem(key=s)
+        pass
+        # workspaces = os.listdir(DataModel.g.CHROOT)
+        # self.workspaces_list.clear()
+        # for s in workspaces:
+        #     self.workspaces_list.addItem(key=s)
 
     @pyqtSlot()
     def set_chroot(self):
@@ -816,14 +810,6 @@ class WorkspacesPlugin(Plugin):
         else:
             self.adv_run_fields.hide()
 
-    # @pyqtSlot()
-    # def toggle_ssh(self):
-    #     """Controls displaying/hiding the SSH fields on radio button toggle."""
-    #     rbutton = self.sender()
-    #     if rbutton.isChecked():
-    #         self.adv_ssh_fields.show()
-    #     else:
-    #         self.adv_ssh_fields.hide()
 
     @pyqtSlot()
     def create_workspace_clicked(self):

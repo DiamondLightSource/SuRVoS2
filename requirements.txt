@@ -53,7 +53,7 @@ pytz
 pywavelets
 pyyaml
 pyzmq
-PyQt5==5.14.2
+PyQt5
 qtawesome
 qtconsole
 qtpy
