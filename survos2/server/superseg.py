@@ -21,7 +21,7 @@ from sklearn.ensemble import (
     IsolationForest,
     RandomForestClassifier,
 )
-from xgboost import XGBClassifier
+
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -44,13 +44,6 @@ def obtain_classifier(clf_p):
     if clf_p["clf"] == "Ensemble":
         mode = "ensemble"
 
-        if clf_p["type"] == "xgb":
-            clf = XGBClassifier(
-                n_estimators=clf_p["n_estimators"],
-                max_depth=clf_p["max_depth"],
-                n_jobs=clf_p["n_jobs"],
-            )
-
         if clf_p["type"] == "rf":
             clf = RandomForestClassifier(
                 n_estimators=clf_p["n_estimators"],
@@ -65,7 +58,9 @@ def obtain_classifier(clf_p):
                 n_jobs=clf_p["n_jobs"],
             )
         elif clf_p["type"] == "ada":
-            clf = AdaBoostClassifier(n_estimators=clf_p["n_estimators"], learning_rate=clf_p["learning_rate"])
+            clf = AdaBoostClassifier(
+                n_estimators=clf_p["n_estimators"], learning_rate=clf_p["learning_rate"]
+            )
         else:
             clf = GradientBoostingClassifier(
                 n_estimators=clf_p["n_estimators"],
@@ -170,7 +165,9 @@ def train_and_classify_regions(
 
     X = sr.supervoxel_features
     if mask is not None:
-        logger.debug(f"Masking with mask of shape {mask.shape} and unique labels  {np.unique(mask)}")
+        logger.debug(
+            f"Masking with mask of shape {mask.shape} and unique labels  {np.unique(mask)}"
+        )
         mask.shape = -1
         mask = mask.astype(np.int16)
         _mask = np.bincount(sr.supervoxel_vol.ravel(), weights=mask.ravel() * 2 - 1) > 0

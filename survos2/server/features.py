@@ -1,10 +1,11 @@
 import numpy as np
-from survos2.server.model import SRFeatures
-from loguru import logger
-from survos2.io import dataset_from_uri
-from survos2.improc.utils import map_blocks
 import scipy
-from survos2.improc.segmentation.mappings import rmeans, normalize
+from loguru import logger
+
+from survos2.data_io import dataset_from_uri
+from survos2.improc.segmentation.mappings import normalize, rmeans
+from survos2.improc.utils import map_blocks
+from survos2.server.model import SRFeatures
 
 
 def prepare_prediction_features(filtered_layers):
@@ -95,7 +96,8 @@ def generate_features(img_vol, feature_params, roi_crop, resample_amt):
 
     # map_blocks through Dask
     filtered_layers = [
-        proc_layer(map_blocks(filter_fn, img_vol, **params_dict)) for filter_fn, params_dict in feature_params
+        proc_layer(map_blocks(filter_fn, img_vol, **params_dict))
+        for filter_fn, params_dict in feature_params
     ]
 
     filtered_layers = np.array(filtered_layers).astype(np.float32)

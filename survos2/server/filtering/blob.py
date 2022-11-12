@@ -27,7 +27,8 @@ def compute_hessian(data, sigma):
     gradients = [np.gradient(gaussian_filtered, axis=i) for i in range(3)]
     axes = range(data.ndim)
     H_elems = [
-        np.gradient(gradients[2 - ax0], axis=2 - ax1) for ax0, ax1 in combinations_with_replacement(axes, 2)
+        np.gradient(gradients[2 - ax0], axis=2 - ax1)
+        for ax0, ax1 in combinations_with_replacement(axes, 2)
     ]
     if not isinstance(sigma, numbers.Number):
         sigma = max(sigma)
@@ -56,7 +57,11 @@ def compute_hessian_determinant(data, sigma, bright=False):
     """
     Hxx, Hxy, Hxz, Hyy, Hyz, Hzz = compute_hessian(data, sigma)
 
-    det = Hxx * (Hyy * Hzz - Hyz * Hyz) - Hxy * (Hxy * Hzz - Hyz * Hxz) + Hxz * (Hxy * Hyz - Hyy * Hxz)
+    det = (
+        Hxx * (Hyy * Hzz - Hyz * Hyz)
+        - Hxy * (Hxy * Hzz - Hyz * Hxz)
+        + Hxz * (Hxy * Hyz - Hyy * Hxz)
+    )
 
     if bright:
         return -det
@@ -138,7 +143,9 @@ def hessian_eigvals(data, sigma, correct=False):
 
     Hs = torch.FloatTensor([[Hzz, Hyz, Hxz], [Hyz, Hyy, Hxy], [Hxz, Hxy, Hxx]])
     Hs_batch = Hs.reshape((3, 3, Hs.shape[-3] * Hs.shape[-2] * Hs.shape[-1]))
-    e, v = torch.symeig(Hs_batch.permute((2, 0, 1)))
+    e, v = torch.linalg.eigh(
+        Hs_batch.permute((2, 0, 1))
+    )  # UPLO='U' needed for upper-triangular matrix
     e = e.reshape((Hs.shape[-3], Hs.shape[-2], Hs.shape[-1], 3))
 
     img: np.ndarray = kornia.tensor_to_image(e)
@@ -179,7 +186,7 @@ def hessian_eigvals_image(data, sigma, correct=False):
 
     Hs = torch.FloatTensor([[Hzz, Hyz, Hxz], [Hyz, Hyy, Hxy], [Hxz, Hxy, Hxx]])
     Hs_batch = Hs.reshape((3, 3, Hs.shape[-3] * Hs.shape[-2] * Hs.shape[-1]))
-    e, v = torch.symeig(Hs_batch.permute((2, 0, 1)))
+    e, v = torch.linalg.eigh(Hs_batch.permute((2, 0, 1)))
     e = e.reshape((Hs.shape[-3], Hs.shape[-2], Hs.shape[-1], 3))
 
     img: np.ndarray = kornia.tensor_to_image(e)
@@ -280,7 +287,9 @@ def compute_structure_tensor_determinant(data, sigma=1):
     Sxx, Sxy, Sxz, Syy, Syz, Szz = compute_structure_tensor(data=data, sigma=sigma)
 
     determinant = (
-        Sxx * (Syy * Szz - Syz * Syz) - Sxy * (Sxy * Szz - Syz * Sxz) + Sxz * (Sxy * Syz - Syy * Sxz)
+        Sxx * (Syy * Szz - Syz * Syz)
+        - Sxy * (Sxy * Szz - Syz * Sxz)
+        + Sxz * (Sxy * Syz - Syy * Sxz)
     )
 
     return determinant

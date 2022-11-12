@@ -22,7 +22,7 @@ from survos2.improc.regions.rag import create_rag
 from survos2.improc.segmentation import _qpbo as qpbo
 from survos2.improc.segmentation.appearance import invrmap, predict, refine, train
 from survos2.improc.segmentation.mappings import rmeans, rstats
-from survos2.io import dataset_from_uri
+from survos2.data_io import dataset_from_uri
 from survos2.server.model import SRData
 
 
@@ -139,7 +139,9 @@ def prepare_supervoxels(
 
     supervoxel_proc = scipy.ndimage.zoom(supervoxel_proc, resample_amt, order=1)
 
-    logger.debug(f"Loading Supervoxel {os.path.basename(supervoxels[0])} with shape {supervoxel_proc.shape}")
+    logger.debug(
+        f"Loading Supervoxel {os.path.basename(supervoxels[0])} with shape {supervoxel_proc.shape}"
+    )
 
     supervoxel_features = rmeans(filtered_stack, supervoxel_proc)
     supervoxel_rag = create_rag(np.array(supervoxel_proc).astype(np.uint32), connectivity=6)
