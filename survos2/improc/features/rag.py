@@ -169,7 +169,9 @@ class WRAG(nx.Graph):
         self.dist_weights = is_distance(mode)
 
 
-def rag_from_neighbors(nodes, neighbors, min_boundary=None, norm_counts="unit", margin=0, return_rag=True):
+def rag_from_neighbors(
+    nodes, neighbors, min_boundary=None, norm_counts="unit", margin=0, return_rag=True
+):
     """Creates a Region Adjacency Graph between superpixels.
 
     Parameters
@@ -346,7 +348,9 @@ def create_rag(
         return neighbors
 
 
-def draw_rag(rag, splabels, img, border_color=(1, 1, 0), node_color=(0, 0, 1), edge_color=(0, 1, 0)):
+def draw_rag(
+    rag, splabels, img, border_color=(1, 1, 0), node_color=(0, 0, 1), edge_color=(0, 1, 0)
+):
     """Draws Region Adjacency Graph's nodes and edges in an image.
 
     Parameters

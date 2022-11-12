@@ -326,7 +326,9 @@ def _apply(
     if stack and len(datasets) > 1:
         dataset = da.stack(datasets, axis=0)
         dataset = da.rechunk(dataset, chunks=(dataset.shape[0],) + dataset.chunks[1:])
-        logger.debug(f"Stack=True, Rechunked with chunks: {(dataset.shape[0],) + dataset.chunks[1:]}")
+        logger.debug(
+            f"Stack=True, Rechunked with chunks: {(dataset.shape[0],) + dataset.chunks[1:]}"
+        )
         datasets = [dataset]
 
     logger.info(f"Applying {func} to datasets of shape {datasets} with stack: {stack}")
@@ -519,13 +521,13 @@ def map_blocks(
 
 class DatasetManager(object):
     """
-    In and out dataset manager. Uses `survos2.io.dataset_from_uri` to allow
+    In and out dataset manager. Uses `survos2.data_io.dataset_from_uri` to allow
     functions to receive input and output datasets from strings. Implements
     a context manager that closes and opens datasets automatically.
     """
 
     def __init__(self, *args, out=None, dtype=None, fillvalue=0, src_mode="r"):
-        from ..io import dataset_from_uri, is_dataset_uri
+        from ..data_io import dataset_from_uri, is_dataset_uri
 
         self._src_mode = src_mode
         self._closed = False
@@ -538,7 +540,7 @@ class DatasetManager(object):
             self._sources.append(source)
 
         if is_dataset_uri(out):
-            logger.info(f"DatasetManager setting out to {out}")
+            # logger.info(f"DatasetManager setting out to {out}")
             shape = self._sources[0].shape
             dtype = dtype or self._sources[0].dtype
             out = dataset_from_uri(out, mode="w", shape=shape, dtype=dtype, fill=fillvalue)
@@ -553,7 +555,7 @@ class DatasetManager(object):
         for f in self._sources + [self._out]:
             if f is not None and hasattr(f, "close"):
                 f.close()
-                logger.info(f"Closed: {f}")
+                # logger.info(f"Closed: {f}")
         self._closed = True
 
     @property
