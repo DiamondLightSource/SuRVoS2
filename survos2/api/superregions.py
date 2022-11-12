@@ -1,78 +1,62 @@
-import logging
-import os.path as op
-
-import dask.array as da
-import hug
-import numpy as np
 import ntpath
-
+import numpy as np
 from loguru import logger
-import survos2
-from survos2.api import workspace as ws
-from survos2.api.types import (
-    DataURI,
-    DataURIList,
-    Float,
-    FloatList,
-    FloatOrVector,
-    Int,
-    IntList,
-    SmartBoolean,
-    String,
-)
-from survos2.api.utils import dataset_repr, save_metadata
-from survos2.improc import map_blocks
-from survos2.io import dataset_from_uri
-from survos2.utils import encode_numpy
-from survos2.improc.utils import DatasetManager
 from skimage.segmentation import slic
+from survos2.api import workspace as ws
+from survos2.api.utils import dataset_repr, save_metadata
+from survos2.data_io import dataset_from_uri
+from survos2.improc import map_blocks
+from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
-
+from survos2.utils import encode_numpy
+from fastapi import APIRouter
 
 __region_fill__ = 0
 __region_dtype__ = "uint32"
 __region_group__ = "superregions"
 __region_names__ = [None, "supervoxels"]
 
+superregions = APIRouter()
 
-@hug.get()
-def get_volume(src: DataURI):
+
+@superregions.get("/get_volume")
+def get_volume(src: str):
     logger.debug("Getting region volume")
     ds = dataset_from_uri(src, mode="r")
     data = ds[:]
     return encode_numpy(data)
 
 
-@hug.get()
-def get_slice(src: DataURI, slice_idx: Int, order: tuple):
+@superregions.get("/get_slice")
+def get_slice(src: str, slice_idx: int, order: tuple):
     ds = dataset_from_uri(src, mode="r")[:]
     ds = np.transpose(ds, order)
     data = ds[slice_idx]
     return encode_numpy(data)
 
 
-@hug.get()
-def get_crop(src: DataURI, roi: IntList):
+@superregions.get("/get_crop")
+def get_crop(src: str, roi: list):
     logger.debug("Getting regions crop")
     ds = dataset_from_uri(src, mode="r")
     data = ds[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]]
     return encode_numpy(data)
 
 
-@hug.get()
+@superregions.get("/supervoxels")
 @save_metadata
 def supervoxels(
-    src: DataURI,
-    dst: DataURI,
-    mask_id: DataURI,
-    n_segments: Int = 10,
-    compactness: Float = 20,
-    spacing: FloatList = [1, 1, 1],
-    multichannel: SmartBoolean = False,
-    enforce_connectivity: SmartBoolean = False,
-    out_dtype="int",
-    zero_parameter=False,
-    max_num_iter=10,
+    src: str,
+    dst: str,
+    mask_id: str,
+    n_segments: int = 10,
+    compactness: float = 20,
+    spacing: list = [1, 1, 1],
+    multichannel: bool = False,
+    enforce_connectivity: bool = False,
+    out_dtype: str = "int",
+    zero_parameter: bool = False,
+    max_num_iter: int = 10,
 ):
     with DatasetManager(src, out=None, dtype=out_dtype, fillvalue=0) as DM:
         src_data_arr = DM.sources[0][:]
@@ -105,16 +89,16 @@ def supervoxels(
     map_blocks(pass_through, supervoxel_image, out=dst, normalize=False)
 
 
-@hug.get()
+@superregions.get("/supervoxels_chunked")
 @save_metadata
 def supervoxels_chunked(
-    src: DataURIList,
-    dst: DataURI,
-    n_segments: Int = 10,
-    compactness: Float = 20,
-    spacing: FloatList = [1, 1, 1],
-    multichannel: SmartBoolean = False,
-    enforce_connectivity: SmartBoolean = False,
+    src: list,
+    dst: str,
+    n_segments: int = 10,
+    compactness: float = 20,
+    spacing: list = [1, 1, 1],
+    multichannel: bool = False,
+    enforce_connectivity: bool = False,
     out_dtype="int",
 ):
 
@@ -144,8 +128,8 @@ def supervoxels_chunked(
     dst_dataset.set_attr("num_supervoxels", num_sv)
 
 
-@hug.get()
-def create(workspace: String, order: Int = 1, big: bool = False):
+@superregions.get("/create")
+def create(workspace: str, order: int = 1, big: bool = False):
     region_type = __region_names__[order]
     if big:
         logger.debug("Creating int64 regions")
@@ -164,7 +148,7 @@ def create(workspace: String, order: Int = 1, big: bool = False):
             region_type,
             __region_group__,
             __region_dtype__,
-            dtype=np.uint32,
+            # dtype=np.uint32,
             fill=__region_fill__,
         )
 
@@ -172,9 +156,8 @@ def create(workspace: String, order: Int = 1, big: bool = False):
     return dataset_repr(ds)
 
 
-@hug.get()
-@hug.local()
-def existing(workspace: String, full: SmartBoolean = False, order: Int = 1):
+@superregions.get("/existing")
+def existing(workspace: str, full: bool = False, order: int = 1):
     filter = __region_names__[order]
     datasets = ws.existing_datasets(workspace, group=__region_group__, filter=filter)
     if full:
@@ -182,11 +165,13 @@ def existing(workspace: String, full: SmartBoolean = False, order: Int = 1):
     return {k: dataset_repr(v) for k, v in datasets.items()}
 
 
-@hug.get()
-def remove(workspace: String, region_id: String):
+@superregions.get("/remove")
+def remove(workspace: str, region_id: str):
     ws.delete_dataset(workspace, region_id, group=__region_group__)
 
+    return {"done": True}
 
-@hug.get()
-def rename(workspace: String, region_id: String, new_name: String):
+
+@superregions.get("/rename")
+def rename(workspace: str, region_id: str, new_name: str):
     ws.rename_dataset(workspace, region_id, __region_group__, new_name)

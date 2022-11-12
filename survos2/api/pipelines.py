@@ -7,7 +7,6 @@ Generally a pipeline function has no return value as it follows the convention t
 destination pipeline is used as output.
 
 """
-import ast
 import logging
 import ntpath
 import os
@@ -18,7 +17,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-import hug
 import numpy as np
 from loguru import logger
 from survos2.api import workspace as ws
@@ -31,20 +29,8 @@ from survos2.api.annotations import (
     update_label,
 )
 from survos2.api.objects import get_entities
-from survos2.api.types import (
-    DataURI,
-    DataURIList,
-    Float,
-    FloatOrVector,
-    Int,
-    IntOrVector,
-    SmartBoolean,
-    String,
-    StringList,
-)
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.api.workspace import auto_create_dataset
-from survos2.entity.anno.pseudo import make_pseudomasks
 from survos2.entity.patches import PatchWorkflow, make_patches, organize_entities
 from survos2.entity.pipeline_ops import make_proposal
 from survos2.entity.sampler import generate_random_points_in_volume
@@ -67,6 +53,10 @@ from survos2.utils import decode_numpy
 __pipeline_group__ = "pipelines"
 __pipeline_dtype__ = "float32"
 __pipeline_fill__ = 0
+
+from fastapi import APIRouter, Body, Query
+
+pipelines = APIRouter()
 
 
 class InterceptHandler(logging.Handler):
@@ -103,21 +93,21 @@ class PatchWorkflow:
     gold: np.ndarray
 
 
-@hug.get()
+@pipelines.get("/rasterize_points")
 @save_metadata
 def rasterize_points(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    feature_id: DataURI,
-    object_id: DataURI,
-    acwe: SmartBoolean,
-    size: FloatOrVector,
-    balloon: Float,
-    threshold: Float,
-    iterations: Int,
-    smoothing: Int,
-    selected_class: Int,
+    src: str,
+    dst: str,
+    workspace: str,
+    feature_id: str,
+    object_id: str,
+    acwe: bool,
+    balloon: float,
+    threshold: float,
+    iterations: int,
+    smoothing: int,
+    selected_class: int,
+    size: List[float] = Query(),
 ) -> "SYNTHESIS":
 
     from survos2.entity.anno.pseudo import organize_entities
@@ -135,17 +125,19 @@ def rasterize_points(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
 
-    objects_fullname = ds_objects.get_metadata("fullname")
+    objects_fullname = ntpath.basename(ds_objects.get_metadata("fullname"))
     objects_scale = ds_objects.get_metadata("scale")
     objects_offset = ds_objects.get_metadata("offset")
     objects_crop_start = ds_objects.get_metadata("crop_start")
     objects_crop_end = ds_objects.get_metadata("crop_end")
 
-    logger.debug(f"Getting objects from {src} and file {objects_fullname} with scale {objects_scale}")
+    logger.debug(
+        f"Getting objects from {src} and file {objects_fullname} with scale {objects_scale}"
+    )
     from survos2.frontend.components.entity import make_entity_df, setup_entity_table
 
     tabledata, entities_df = setup_entity_table(
-        objects_fullname,
+        os.path.join(ds_objects._path, objects_fullname),
         scale=objects_scale,
         offset=objects_offset,
         crop_start=objects_crop_start,
@@ -207,9 +199,12 @@ def rasterize_points(
         combined_clustered_pts,
     )
 
-    combined_clustered_pts, classwise_entities = organize_entities(wf.vols[0], wf.locs, entity_meta)
+    combined_clustered_pts, classwise_entities = organize_entities(
+        wf.vols[0], wf.locs, entity_meta, plot_all=False
+    )
 
     wf.params["entity_meta"] = entity_meta
+    from survos2.entity.anno.pseudo import make_pseudomasks
 
     anno_masks, anno_acwe = make_pseudomasks(
         wf,
@@ -237,39 +232,39 @@ def rasterize_points(
         DM.out[:] = combined_anno
 
 
-@hug.get()
+@pipelines.get("/superregion_segment")
 @save_metadata
 def superregion_segment(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    anno_id: DataURI,
-    constrain_mask: DataURI,
-    region_id: DataURI,
-    feature_ids: DataURIList,
-    lam: float,
-    refine: SmartBoolean,
-    classifier_type: String,
-    projection_type: String,
-    classifier_params: dict,
-    confidence: bool,
+    src: str = Body(),
+    dst: str = Body(),
+    workspace: str = Body(),
+    anno_id: str = Body(),
+    constrain_mask: str = Body(),
+    region_id: str = Body(),
+    lam: float = Body(),
+    refine: bool = Body(),
+    classifier_type: str = Body(),
+    projection_type: str = Body(),
+    confidence: bool = Body(),
+    classifier_params: dict = Body(),
+    feature_ids: List[str] = Body(),
 ) -> "CLASSICAL":
     """Classical ML for superregion segmentation. Multiple feature images can be used to calculate per-region features, which
     are then used train a model that can classify superregions. Usually a subset of the superregions is used, corresponding to
-    those superregiosn for which scribbles have been painted. The entire volume of superregions is then predicted using this model.
+    those superregions for which scribbles have been painted. The entire volume of superregions is then predicted using this model.
 
     Args:
-        src (DataURI): Source pipeline URI.
-        dst (DataURI): Destination pipeline URI.
-        workspace (String): Workspace to use.
-        anno_id (DataURI): Annotation URI to use as the label image.
-        constrain_mask (DataURI): Mask to constrain the prediction to.
-        region_id (DataURI): Region URI to use as the super-regions.
+        src (str): Source pipeline URI.
+        dst (str): Destination pipeline URI.
+        workspace (str): Workspace to use.
+        anno_id (str): Annotation URI to use as the label image.
+        constrain_mask (str): Mask to constrain the prediction to.
+        region_id (str): Region URI to use as the super-regions.
         feature_ids (DataURIList): Feature URIs to use as features.
         lam (float): Lambda for the MRF smoothing model.
-        refine (SmartBoolean): Boolean to use the refinement step.
-        classifier_type (String): One of Ensemble or SVM.
-        projection_type (String): Which type of projection to use to compute features.
+        refine (bool): Boolean to use the refinement step.
+        classifier_type (str): One of Ensemble or SVM.
+        projection_type (str): Which type of projection to use to compute features.
         classifier_params (dict): Classifier-specific parameters
         confidence (bool): Whether to generate a confidence map as a feature image.
 
@@ -324,19 +319,14 @@ def superregion_segment(
         constrain_mask = ast.literal_eval(constrain_mask)
         constrain_mask_id = ntpath.basename(constrain_mask["level"])
         label_idx = constrain_mask["idx"]
-
         src = DataModel.g.dataset_uri(constrain_mask_id, group="annotations")
-
         with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
             src_dataset = DM.sources[0]
             constrain_mask_level = src_dataset[:] & 15
-
         logger.debug(
             f"Constrain mask {constrain_mask_id}, label {label_idx} level shape {constrain_mask_level.shape} with unique labels {np.unique(constrain_mask_level)}"
         )
-
         mask = constrain_mask_level == label_idx - 1
-
     else:
         mask = None
 
@@ -379,6 +369,9 @@ def get_feature_from_id(feat_id):
     return feature
 
 
+########################################
+
+
 def _unpack_lists(input_list):
     """Unpacks a list of strings containing sublists of strings
     such as provided by the data table in the 2d U-net training pipeline card
@@ -389,18 +382,19 @@ def _unpack_lists(input_list):
     Returns:
         list: list of hidden items from the table (first member in sublist)
     """
-    return [ast.literal_eval(item)[0] for item in input_list]
+    return [item[0] for item in input_list]
+    # return [ast.literal_eval(item)[0] for item in input_list]
 
 
-@hug.get()
+@pipelines.get("/train_multi_axis_cnn")
 @save_metadata
 def train_multi_axis_cnn(
-    src: DataURI,
-    dst: DataURI,
-    workspace: StringList,
-    anno_id: DataURIList,
-    feature_id: DataURIList,
-    multi_ax_train_params: dict,
+    src: str = Body(),
+    dst: str = Body(),
+    workspace: list = Body(),
+    anno_id: list = Body(),
+    feature_id: list = Body(),
+    multi_ax_train_params: dict = Body(),
 ) -> "CNN":
     # Unpack the list
     workspace = _unpack_lists(workspace)
@@ -444,6 +438,7 @@ def train_multi_axis_cnn(
     anno_slice_path = data_out_path / settings.seg_im_out_dirname
     data_slice_path.mkdir(exist_ok=True, parents=True)
     anno_slice_path.mkdir(exist_ok=True, parents=True)
+
     # Get datsets from workspaces and slice to disk
     for count, (workspace_id, data_id, label_id) in enumerate(zip(workspace, feature_id, anno_id)):
         logger.info(f"Current workspace: {workspace_id}. Retrieving datasets.")
@@ -456,7 +451,9 @@ def train_multi_axis_cnn(
             labels = src_dataset.get_metadata("labels", {})
             anno_level = src_dataset[:] & 15
         anno_labels = np.unique(anno_level)
-        logger.debug(f"Obtained annotation level with labels {anno_labels} and shape {anno_level.shape}")
+        logger.debug(
+            f"Obtained annotation level with labels {anno_labels} and shape {anno_level.shape}"
+        )
         slicer = TrainingDataSlicer(feature, anno_level, settings)
         data_prefix, label_prefix = f"data{count}", f"seg{count}"
         slicer.output_data_slices(data_slice_path, data_prefix)
@@ -478,9 +475,13 @@ def train_multi_axis_cnn(
     if num_cyc_frozen > 0:
         trainer.train_model(model_out, num_cyc_frozen, settings.patience, create=True, frozen=True)
     if num_cyc_unfrozen > 0 and num_cyc_frozen > 0:
-        trainer.train_model(model_out, num_cyc_unfrozen, settings.patience, create=False, frozen=False)
+        trainer.train_model(
+            model_out, num_cyc_unfrozen, settings.patience, create=False, frozen=False
+        )
     elif num_cyc_unfrozen > 0 and num_cyc_frozen == 0:
-        trainer.train_model(model_out, num_cyc_unfrozen, settings.patience, create=True, frozen=False)
+        trainer.train_model(
+            model_out, num_cyc_unfrozen, settings.patience, create=True, frozen=False
+        )
     trainer.output_loss_fig(model_out)
     trainer.output_prediction_figure(model_out)
     # Clean up all the saved slices
@@ -513,19 +514,16 @@ def train_multi_axis_cnn(
     if not np.array_equal(np.array([0, 1]), label_values):
         segmentation += np.ones_like(segmentation)
 
-    def pass_through(x):
-        return x
-
     map_blocks(pass_through, segmentation, out=dst, normalize=False)
 
 
-@hug.get()
+@pipelines.get("/predict_multi_axis_cnn")
 @save_metadata
 def predict_multi_axis_cnn(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    feature_id: DataURI,
+    src: str,
+    dst: str,
+    workspace: str,
+    feature_id: str,
     model_path: str,
     no_of_planes: int,
     cuda_device: int,
@@ -541,7 +539,9 @@ def predict_multi_axis_cnn(
             logger.debug(f"Adding feature of shape {src_dataset.shape}")
             feature = src_dataset[:]
 
-        logger.info(f"Predict_multi_axis_cnn with feature shape {feature.shape} using model {model_path}")
+        logger.info(
+            f"Predict_multi_axis_cnn with feature shape {feature.shape} using model {model_path}"
+        )
     else:
         logging.error("No feature selected!")
         return
@@ -583,9 +583,6 @@ def predict_multi_axis_cnn(
         del pred_manager
         torch.cuda.empty_cache()
 
-        def pass_through(x):
-            return x
-
         map_blocks(pass_through, segmentation, out=dst, normalize=False)
     else:
         logging.error("Unable to add level for output!")
@@ -597,7 +594,9 @@ def create_new_labels_for_level(workspace, level_id, label_codes):
         for key in label_codes:
             label_result = add_label(workspace=workspace, level=level_id)
             if label_result:
-                update_result = update_label(workspace=workspace, level=level_id, **label_codes[key])
+                update_result = update_label(
+                    workspace=workspace, level=level_id, **label_codes[key]
+                )
                 logger.info(f"Label created: {update_result}")
         # Old style codes are in a list
     elif isinstance(label_codes, list):
@@ -615,41 +614,41 @@ def create_new_labels_for_level(workspace, level_id, label_codes):
                 logger.info(f"Label created: {update_result}")
 
 
-@hug.get()
+@pipelines.get("/train_3d_cnn")
 @save_metadata
 def train_3d_cnn(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    anno_id: DataURI,
-    feature_id: DataURI,
-    objects_id: DataURI,
-    num_samples: Int,
-    num_epochs: Int,
-    num_augs: Int,
-    patch_size: IntOrVector = 64,
-    patch_overlap: IntOrVector = 16,
-    fcn_type: String = "unet3d",
-    bce_to_dice_weight: Float = 0.7,
-    threshold: Float = 0.5,
+    src: str,
+    dst: str,
+    workspace: str,
+    anno_id: str,
+    feature_id: str,
+    objects_id: str,
+    num_samples: int,
+    num_epochs: int,
+    num_augs: int,
+    patch_size: List[int] = Query(),  # = 64,
+    patch_overlap: List[int] = Query(),  # 16
+    fcn_type: str = "unet3d",
+    bce_to_dice_weight: float = 0.7,
+    threshold: float = 0.5,
 ) -> "CNN":
     """3D CNN using eithe FPN or U-net architecture.
 
     Args:
-        src (DataURI): Source Pipeline URI.
-        dst (DataURI): Destination Pipeline URI.
-        workspace (String): Workspace to use.
-        anno_id (DataURI): Annotation label image.
-        feature_id (DataURI): Feature to use for training.
-        objects_id (DataURI): Point entitites to use as the locations to sample patches for training.
-        num_samples (Int): If no object_id is provided, sample num_sample locations randomly.
-        num_epochs (Int): Number of training epochs.
-        num_augs (Int): Number of flip augmentations to use.
-        patch_size (IntOrVector, optional): Size of patches to sample Defaults to 64.
-        patch_overlap (IntOrVector, optional): Overlap of patches when predicting output volume. Defaults to 16.
-        fcn_type (String, optional): Either FPN or Unet3d. Defaults to "unet3d".
-        bce_to_dice_weight (Float, optional): Balance between Binary Cross-Entropy and Dice for loss. Defaults to 0.7.
-        threshold (Float, optional): Final segmentation threshold value. Defaults to 0.5.
+        src (str): Source Pipeline URI.
+        dst (str): Destination Pipeline URI.
+        workspace (str): Workspace to use.
+        anno_id (str): Annotation label image.
+        feature_id (str): Feature to use for training.
+        objects_id (str): Point entitites to use as the locations to sample patches for training.
+        num_samples (int): If no object_id is provided, sample num_sample locations randomly.
+        num_epochs (int): Number of training epochs.
+        num_augs (int): Number of flip augmentations to use.
+        patch_size (list, optional): Size of patches to sample Defaults to 64.
+        patch_overlap (list, optional): Overlap of patches when predicting output volume. Defaults to 16.
+        fcn_type (str, optional): Either FPN or Unet3d. Defaults to "unet3d".
+        bce_to_dice_weight (float, optional): Balance between Binary Cross-Entropy and Dice for loss. Defaults to 0.7.
+        threshold (float, optional): Final segmentation threshold value. Defaults to 0.5.
 
     """
     logger.debug(f"Train_3d fcn using anno {anno_id} and feature {feature_id}")
@@ -770,35 +769,35 @@ def train_3d_cnn(
             DM.out[:] = proposal.copy()
 
 
-@hug.get()
+@pipelines.get("/predict_3d_cnn")
 @save_metadata
 def predict_3d_cnn(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    anno_id: DataURI,
-    feature_id: DataURI,
-    model_fullname: String,
-    patch_size: IntOrVector = 64,
-    patch_overlap: IntOrVector = 8,
-    threshold: Float = 0.5,
-    model_type: String = "unet3d",
-    overlap_mode: String = "crop",
+    src: str,
+    dst: str,
+    workspace: str,
+    anno_id: str,
+    feature_id: str,
+    model_fullname: str,
+    patch_size: List[int] = Query(),  # 64,
+    patch_overlap: List[int] = Query(),  #  8,
+    threshold: float = 0.5,
+    model_type: str = "unet3d",
+    overlap_mode: str = "crop",
 ) -> "CNN":
     """Predict a 3D CNN (U-net or FPN) using a previously trained model.
 
     Args:
-        src (DataURI): Source Pipeline URI.
-        dst (DataURI): Destination Pipeline URI.
-        workspace (String): Workspace to use.
-        anno_id (DataURI): Annotation label image.
-        feature_id (DataURI): Feature for prediction.
-        model_fullname (String): Full path and filename of pretrained model.
-        patch_size (IntOrVector, optional): Patch size for prediction. Defaults to 64.
-        patch_overlap (IntOrVector, optional): Patch overlap for prediction. Defaults to 8.
-        threshold (Float, optional): Threshold to binarize image with. Defaults to 0.5.
-        model_type (String, optional): Unet3d or Feature Pyramid Network (FPN). Defaults to "unet3d".
-        overlap_mode (String, optional): Either "crop" or "average". Defaults to "crop".
+        src (str): Source Pipeline URI.
+        dst (str): Destination Pipeline URI.
+        workspace (str): Workspace to use.
+        anno_id (str): Annotation label image.
+        feature_id (str): Feature for prediction.
+        model_fullname (str): Full path and filename of pretrained model.
+        patch_size (list, optional): Patch size for prediction. Defaults to 64.
+        patch_overlap (list, optional): Patch overlap for prediction. Defaults to 8.
+        threshold (float, optional): Threshold to binarize image with. Defaults to 0.5.
+        model_type (str, optional): Unet3d or Feature Pyramid Network (FPN). Defaults to "unet3d".
+        overlap_mode (str, optional): Either "crop" or "average". Defaults to "crop".
 
     Returns:
         CNN: _description_
@@ -835,19 +834,19 @@ def predict_3d_cnn(
             DM.out[:] = proposal.copy()
 
 
-@hug.get()
+@pipelines.get("/cleaning")
 def cleaning(
-    # object_id : DataURI,
-    feature_id: DataURI,
-    dst: DataURI,
-    min_component_size: Int = 100,
+    # object_id : str,
+    feature_id: str,
+    dst: str,
+    min_component_size: int = 100,
 ) -> "POSTPROCESSING":
     """Clean components smaller than a given size from a binary feature volume.
 
     Args:
-        feature_id (DataURI): Feature URI.
-        dst (DataURI): Destination Pipeline URI.
-        min_component_size (Int, optional): Minimum component size. Defaults to 100.
+        feature_id (str): Feature URI.
+        dst (str): Destination Pipeline URI.
+        min_component_size (int, optional): Minimum component size. Defaults to 100.
     """
     from survos2.entity.components import (
         filter_small_components,
@@ -869,27 +868,27 @@ def cleaning(
         DM.out[:] = seg_cleaned  # (seg_cleaned > 0) * 1.0
 
 
-@hug.get()
+@pipelines.get("/label_postprocess")
 @save_metadata
 def label_postprocess(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    level_over: DataURI,
-    level_base: DataURI,
-    selected_label_for_over: Int,
-    offset: Int,
-    base_offset: Int,
+    src: str,
+    dst: str,
+    workspace: str,
+    level_over: str,
+    level_base: str,
+    selected_label_for_over: int,
+    offset: int,
+    base_offset: int,
 ) -> "POSTPROCESSING":
     """Takes two label (integer) image and performs an operation to combine them.
     Args:
-        src (DataURI): stub
-        dst (DataURI): Destination pipeline to save into
-        workspace (String): workspace id
-        level_over (DataURI): Image B
-        level_base (DataURI): Image A
-        selected_label (Int):
-        offset (Int): Integer value to offset the label
+        src (str): stub
+        dst (str): Destination pipeline to save into
+        workspace (str): workspace id
+        level_over (str): Image B
+        level_base (str): Image A
+        selected_label (int):
+        offset (int): Integer value to offset the label
     """
     if level_over != "None":
         src1 = DataModel.g.dataset_uri(level_over, group="annotations")
@@ -907,7 +906,9 @@ def label_postprocess(
     if level_over != "None":
         # zero out everything but the selected level in the over image
         anno_over_level[anno_over_level != selected_label_for_over] = 0
-        anno_over_level[anno_over_level == selected_label_for_over] = selected_label_for_over + offset
+        anno_over_level[anno_over_level == selected_label_for_over] = (
+            selected_label_for_over + offset
+        )
         # mask out those voxels that are in the over image, in the base image
         result = result * (1.0 - (anno_over_level > 0) * 1.0)
         result += anno_over_level
@@ -915,10 +916,13 @@ def label_postprocess(
     map_blocks(pass_through, result, out=dst, normalize=False)
 
 
-@hug.get()
+@pipelines.get("/per_object_cleaning")
 @save_metadata
 def per_object_cleaning(
-    dst: DataURI, feature_id: DataURI, object_id: DataURI, patch_size: IntOrVector = 64
+    dst: str,
+    feature_id: str,
+    object_id: str,
+    patch_size: List[int] = Query(),  # 64
 ) -> "POSTPROCESSING":
     # get image feature
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
@@ -938,13 +942,13 @@ def per_object_cleaning(
     entities_arr[:, 3] = np.array([[1] * len(entities_arr)])
     entities = np.array(make_entity_df(entities_arr, flipxy=False))
 
-    target = per_object_cleaning(entities, feature, display_plots=False, bvol_dim=patch_size)
+    target = _per_object_cleaning(entities, feature, display_plots=False, bvol_dim=patch_size)
     # dst = DataModel.g.dataset_uri(dst, group="pipelines")
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         DM.out[:] = target
 
 
-def per_object_cleaning(
+def _per_object_cleaning(
     entities,
     seg,
     bvol_dim=(32, 32, 32),
@@ -996,14 +1000,14 @@ def per_object_cleaning(
     return target
 
 
-@hug.get()
-def watershed(src: DataURI, anno_id: DataURI, dst: DataURI) -> "CLASSICAL":
+@pipelines.get("/watershed")
+def watershed(src: str, anno_id: str, dst: str) -> "CLASSICAL":
     """Simple wrapper around skimage watershed algorithm.
 
     Args:
-        src (DataURI): Source Pipeline URI. Feature image to be segmented.
-        anno_id (DataURI): Annotation label image to use as seed points.
-        dst (DataURI): Destination Pipeline URI.
+        src (str): Source Pipeline URI. Feature image to be segmented.
+        anno_id (str): Annotation label image to use as seed points.
+        dst (str): Destination Pipeline URI.
 
     Returns:
     """
@@ -1028,8 +1032,8 @@ def watershed(src: DataURI, anno_id: DataURI, dst: DataURI) -> "CLASSICAL":
         DM.out[:] = filtered
 
 
-@hug.get()
-def create(workspace: String, pipeline_type: String):
+@pipelines.get("/create")
+def create(workspace: str, pipeline_type: str):
     ds = ws.auto_create_dataset(
         workspace,
         pipeline_type,
@@ -1042,13 +1046,15 @@ def create(workspace: String, pipeline_type: String):
     return dataset_repr(ds)
 
 
-@hug.get()
-@hug.local()
-def existing(workspace: String, full: SmartBoolean = False, filter: SmartBoolean = True):
+# @hug.local()
+@pipelines.get("/existing")
+def existing(workspace: str, full: bool = False, filter: bool = True):
     datasets = ws.existing_datasets(workspace, group=__pipeline_group__)
 
     if full:
-        datasets = {"{}/{}".format(__pipeline_group__, k): dataset_repr(v) for k, v in datasets.items()}
+        datasets = {
+            "{}/{}".format(__pipeline_group__, k): dataset_repr(v) for k, v in datasets.items()
+        }
     else:
         datasets = {k: dataset_repr(v) for k, v in datasets.items()}
 
@@ -1058,30 +1064,33 @@ def existing(workspace: String, full: SmartBoolean = False, filter: SmartBoolean
     return datasets
 
 
-@hug.get()
-def remove(workspace: String, pipeline_id: String):
+@pipelines.get("/remove")
+def remove(workspace: str, pipeline_id: str):
     ws.delete_dataset(workspace, pipeline_id, group=__pipeline_group__)
+    return {"done": "ok"}
 
 
-@hug.get()
-def rename(workspace: String, pipeline_id: String, new_name: String):
+@pipelines.get("/rename")
+def rename(workspace: str, pipeline_id: str, new_name: str):
     ws.rename_dataset(workspace, pipeline_id, __pipeline_group__, new_name)
+    return {"done": "ok"}
 
 
-@hug.get()
+@pipelines.get("/group")
 def group():
     return __pipeline_group__
 
 
-@hug.get()
+@pipelines.get("/available")
 def available():
-    h = hug.API(__name__)
+    h = pipelines  # hug.API(__name__)
     all_features = []
-    for name, method in h.http.routes[""].items():
-        if name[1:] in ["available", "create", "existing", "remove", "rename", "group"]:
+    for r in h.routes:
+        name = r.name
+        # method = r.methods
+        if name in ["available", "create", "existing", "remove", "rename", "group"]:
             continue
-        name = name[1:]
-        func = method["GET"][None].interface.spec
+        func = r.endpoint
         desc = get_function_api(func)
         category = desc["returns"] or "Others"
         desc = dict(name=name, params=desc["params"], category=category)

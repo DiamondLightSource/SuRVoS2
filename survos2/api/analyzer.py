@@ -1,71 +1,44 @@
-from cProfile import label
-import logging
 import ntpath
-import os.path as op
-from posixpath import split
-from xmlrpc.client import Boolean
-import pandas as pd
-import dask.array as da
-from numba.core.types.scalars import Integer
-import hug
+from typing import List
+
 import matplotlib.patheffects as PathEffects
 import numpy as np
+import pandas as pd
 import seaborn as sns
+import torch
 from loguru import logger
-import tempfile
-from functools import lru_cache
 from matplotlib import offsetbox
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
-import torch
-from survos2.api import workspace as ws
-from survos2.api.types import (
-    DataURI,
-    DataURIList,
-    Float,
-    FloatList,
-    FloatOrVector,
-    IntOrVector,
-    Int,
-    IntList,
-    SmartBoolean,
-    String,
-)
-
 from scipy import ndimage
-from survos2.api.utils import dataset_repr, get_function_api, save_metadata
-from survos2.entity.sampler import centroid_to_bvol, offset_points, viz_bvols
-from survos2.entity.utils import get_surface
-from survos2.frontend.components.entity import setup_entity_table
-from survos2.frontend.nb_utils import summary_stats
-from survos2.improc import map_blocks
-from survos2.improc.utils import DatasetManager
-from survos2.io import dataset_from_uri
-from survos2.model import DataModel
-from survos2.utils import encode_numpy
-from survos2.entity.entities import make_entity_df, make_entity_bvol
-
-from scipy.ndimage.measurements import label as splabel
-from skimage.morphology import octahedron, ball
 from scipy.ndimage import measurements as measure
-from scipy.stats import binned_statistic
+from skimage.morphology import ball, octahedron
 from sklearn.decomposition import PCA
 
-from torch.utils.data import DataLoader
-from survos2.improc import map_blocks
+from survos2.api import workspace as ws
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.entity.components import measure_components
-from survos2.entity.patches import PatchWorkflow, organize_entities, make_patches
-from survos2.entity.anno.pseudo import generate_augmented_entities, make_pseudomasks, make_anno
-from survos2.entity.patches import pad_vol
-
-
-from survos2.entity.cluster.cluster_plotting import cluster_scatter, plot_clustered_img
-
+from survos2.entity.entities import make_entity_bvol, make_entity_df
+from survos2.entity.instance.detector import ObjectVsBgClassifier, ObjectVsBgCNNClassifier
+from survos2.entity.patches import PatchWorkflow, make_patches, organize_entities, pad_vol
 from survos2.entity.sampler import (
+    centroid_to_bvol,
     generate_random_points_in_volume,
+    offset_points,
+    viz_bvols,
 )
+from survos2.entity.utils import get_surface
+from survos2.frontend.components.entity import setup_entity_table
+from survos2.improc import map_blocks
+from survos2.improc.utils import DatasetManager
+from survos2.model import DataModel
+from survos2.utils import encode_numpy
+
+
+from fastapi import APIRouter, Body, Query, Request
+
+analyzer = APIRouter()
 
 
 def pass_through(x):
@@ -156,7 +129,6 @@ FEATURE_TYPES = [
 
 
 def window_to_bb(w):
-
     return (
         0,
         0,
@@ -214,40 +186,42 @@ def detect_blobs(
             plt.imshow(images[idx][zidx, :], cmap="gray")
             plt.scatter(bbs_arrs[idx][:, 4], bbs_arrs[idx][:, 3])
 
-    selected_entities = bbs_tables[0][(bbs_tables[0]["area"] > area_min) & (bbs_tables[0]["area"] < area_max)]
+    selected_entities = bbs_tables[0][
+        (bbs_tables[0]["area"] > area_min) & (bbs_tables[0]["area"] < area_max)
+    ]
     logger.debug(f"Number of selected entities {len(selected_entities)}")
 
     return bbs_tables, selected_entities
 
 
-@hug.get()
+@analyzer.get("/label_analyzer")
 def label_analyzer(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    mode: String,
-    pipelines_id: DataURI,
-    analyzers_id: DataURI,
-    annotations_id: DataURI,
-    feature_id: DataURI,
-    split_ops: dict,
-    background_label: Int,
+    src: str = Body(),
+    dst: str = Body(),
+    workspace: str = Body(),
+    mode: str = Body(),
+    pipelines_id: str = Body(),
+    analyzers_id: str = Body(),
+    annotations_id: str = Body(),
+    feature_id: str = Body(),
+    split_ops: dict = Body(),
+    background_label: int = Body(),
 ) -> "SEGMENTATION":
     """Analyzes an integer image, finding it's connected components and
     allowing the user to calculate a table of statistics and to plot
     particular features as a histogram.
 
     Args:
-        src (DataURI): Source image URI
-        dst (DataURI): Destination image URI
-        workspace (String): Workspace to use
-        mode (String): Whether to use pipelines, annotations or analyzer images.
-        pipelines_id (DataURI): Pipeline URI if mode is pipelines.
-        analyzers_id (DataURI): Analyzer URI if mode is analyzers.
-        annotations_id (DataURI): Annotations URI if mode is annotations.
-        feature_id (DataURI): Feature image to calculate image stats from per-component.
+        src (str): Source image URI
+        dst (str): Destination image URI
+        workspace (str): Workspace to use
+        mode (str): Whether to use pipelines, annotations or analyzer images.
+        pipelines_id (str): Pipeline URI if mode is pipelines.
+        analyzers_id (str): Analyzer URI if mode is analyzers.
+        annotations_id (str): Annotations URI if mode is annotations.
+        feature_id (str): Feature image to calculate image stats from per-component.
         split_ops (dict): (Not used for label analyzer)
-        background_label (Int): Label to use as background for connected component calculation.
+        background_label (int): Label to use as background for connected component calculation.
 
     Returns:
         list of dicts: List of dicts containing statistics for each component, as well as plot information.
@@ -267,18 +241,18 @@ def label_analyzer(
     )
 
 
-@hug.get()
+@analyzer.get("/label_splitter")
 def label_splitter(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    mode: String,
-    pipelines_id: DataURI,
-    analyzers_id: DataURI,
-    annotations_id: DataURI,
-    feature_id: DataURI,
-    split_ops: dict,
-    background_label: Int,
+    src: str = Body(),
+    dst: str = Body(),
+    workspace: str = Body(),
+    mode: str = Body(),
+    pipelines_id: str = Body(),
+    analyzers_id: str = Body(),
+    annotations_id: str = Body(),
+    feature_id: str = Body(),
+    split_ops: dict = Body(),
+    background_label: int = Body(),
 ) -> "SEGMENTATION":
     """Label splitter is Label Analyzer with the added ability to
     use rules to split the components of the image by feature properties.
@@ -287,6 +261,8 @@ def label_splitter(
         split_ops (dict): Dictionary of rules to use to split the components.
 
     """
+
+    DataModel.g.current_workspace = workspace
 
     if mode == "1":
         src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id), group="pipelines")
@@ -345,8 +321,11 @@ def label_splitter(
     feature_surface_area = []
     feature_volume = []
     feature_sphericity = []
+
     for w in obj_windows:
-        feature.append((w[0].stop - w[0].start) * (w[1].stop - w[1].start) * (w[2].stop - w[2].start))
+        feature.append(
+            (w[0].stop - w[0].start) * (w[1].stop - w[1].start) * (w[2].stop - w[2].start)
+        )
         depth.append(w[0].stop - w[0].start)
         height.append(w[1].stop - w[1].start)
         width.append(w[2].stop - w[2].start)
@@ -410,7 +389,9 @@ def label_splitter(
 
     feature_sum = ndimage.measurements.sum(feature_dataset_arr, objs, index=objlabels)
     feature_mean = ndimage.measurements.mean(feature_dataset_arr, objs, index=objlabels)
-    feature_std = ndimage.measurements.standard_deviation(feature_dataset_arr, objs, index=objlabels)
+    feature_std = ndimage.measurements.standard_deviation(
+        feature_dataset_arr, objs, index=objlabels
+    )
     feature_var = ndimage.measurements.variance(feature_dataset_arr, objs, index=objlabels)
 
     feature_pos = measure.center_of_mass(objs, labels=objs, index=objlabels)
@@ -508,26 +489,35 @@ def label_splitter(
                 ]
                 feature_index = int(split_feature_index)  # feature_names.index(split_feature_index)
                 rules.append((int(feature_index), s, split_threshold))
-                logger.debug(f"Adding split rule: {split_feature_index} {split_op} {split_threshold}")
+                logger.debug(
+                    f"Adding split rule: {split_feature_index} {split_op} {split_threshold}"
+                )
 
-    if calculate:
-        masked_out, result_features = apply_rules(features_array, -1, rules, np.array(objlabels), num_objects)
-        logger.debug(f"Masking out: {masked_out}")
-        bg_label = max(np.unique(new_labels))
-        logger.debug(f"Masking out bg label {bg_label}")
-        for i, l in enumerate(masked_out):
-            if l != -1:
-                new_labels[new_labels == l] = 0
+        if calculate:
+            masked_out, result_features = apply_rules(
+                features_array, -1, rules, np.array(objlabels), num_objects
+            )
+            logger.debug(f"Masking out: {masked_out}")
+            # bg_label = max(np.unique(new_labels))
+            # logger.debug(f"Masking out bg label {bg_label}")
+            for i, l in enumerate(masked_out):
+                if l != -1:
+                    new_labels[new_labels == l] = 0
 
-        new_labels[new_labels == bg_label] = 0
-        new_labels = (new_labels > 0) * 1.0
-    else:
-        result_features = features_array
+            # new_labels[new_labels == bg_label] = 0
+            new_labels = (new_labels > 0) * 1.0
+        else:
+            result_features = features_array
+
     map_blocks(pass_through, new_labels, out=dst, normalize=False)
 
-    bvols = windows_to_bvols(obj_windows)
+#    bvols = windows_to_bvols(obj_windows)
+    result_features = np.array(result_features)
+    result_features = result_features.tolist()
+    features_array = np.array(features_array)
+    features_array = features_array.tolist()
 
-    return result_features, features_array, bvols
+    return result_features, features_array #, bvols
 
 
 def apply_rules(features: np.ndarray, label: int, rules: tuple, out: np.ndarray, num_objects: int):
@@ -546,37 +536,120 @@ def apply_rules(features: np.ndarray, label: int, rules: tuple, out: np.ndarray,
     return out, result_features
 
 
-@hug.get()
+def component_bounding_boxes(images):
+    bbs_tables = []
+    bbs_arrs = []
+
+    for image in images:
+        bbs_arr = measure_components(image)
+        bbs_arrs.append(bbs_arr)
+        bbs_table = make_entity_bvol(bbs_arr)
+        bbs_tables.append(bbs_table)
+
+    return bbs_tables, bbs_arrs
+
+
+def window_to_bb(w):
+
+    return (
+        0,
+        0,
+        (w[0].start + w[0].stop) // 2,
+        (w[1].start + w[1].stop) // 2,
+        (w[2].start + w[2].stop) // 2,
+        w[0].start,
+        w[0].stop,
+        w[1].start,
+        w[1].stop,
+        w[2].start,
+        w[2].stop,
+    )
+
+
+def windows_to_bvols(windows):
+    bbs = []
+    for w in windows:
+        bbs.append(window_to_bb(w))
+    return bbs
+
+
+def sample_windows(img_volume, win):
+    z_st, z_end, y_st, y_end, x_st, x_end = win
+    z_st = int(z_st)
+    z_end = int(z_end)
+    y_st = int(y_st)
+    y_end = int(y_end)
+    x_st = int(x_st)
+    x_end = int(x_end)
+    img = img_volume[z_st:z_end, y_st:y_end, x_st:x_end]
+    return img
+
+
+def detect_blobs(
+    padded_proposal,
+    area_min=0,
+    area_max=1e12,
+    plot_all=False,
+):
+    images = [padded_proposal]
+    bbs_tables, bbs_arrs = component_bounding_boxes(images)
+    logger.debug(f"Detecting blobs on image of shape {padded_proposal.shape}")
+    zidx = padded_proposal.shape[0] // 2
+
+    from survos2.frontend.nb_utils import summary_stats
+
+    logger.debug("Component stats: ")
+    logger.debug(f"{summary_stats(bbs_tables[0]['area'])}")
+
+    if plot_all:
+        for idx in range(len(bbs_tables)):
+            logger.debug(idx)
+            plt.figure(figsize=(5, 5))
+            plt.imshow(images[idx][zidx, :], cmap="gray")
+            plt.scatter(bbs_arrs[idx][:, 4], bbs_arrs[idx][:, 3])
+
+    selected_entities = bbs_tables[0][
+        (bbs_tables[0]["area"] > area_min) & (bbs_tables[0]["area"] < area_max)
+    ]
+    logger.debug(f"Number of selected entities {len(selected_entities)}")
+
+    return bbs_tables, selected_entities
+
+
+@analyzer.get("/find_connected_components")
 def find_connected_components(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    label_index: Int,
-    area_min: Int,
-    area_max: Int,
-    mode: String,
-    pipelines_id: DataURI,
-    analyzers_id: DataURI,
-    annotations_id: DataURI,
+    src: str,
+    dst: str,
+    workspace: str,
+    label_index: int,
+    area_min: int,
+    area_max: int,
+    mode: str,
+    pipelines_id: str,
+    analyzers_id: str,
+    annotations_id: str,
 ) -> "SEGMENTATION":
     """Find connected components and calculate a table of stats for each component. Filter the components by the
     area min and max. The mode can be 'largest' or 'smallest'.
 
     Args:
-        src (DataURI): Source image URI.
-        dst (DataURI): Destination image URI.
-        workspace (String): Workspace to get images from.
-        label_index (Int): Index of the label to find connected components for.
-        area_min (Int): Minimumm component area.
-        area_max (Int): Maximum component area.
-        mode (String): Select either Pipelines, Annotations or Analyzers.
-        pipelines_id (DataURI): Pipelines URI if mode is 'pipelines'.
-        analyzers_id (DataURI): Analyzers URI if mode is 'analyzers'.
-        annotations_id (DataURI): Annotations URI if mode is 'annotations'.
+        src (str): Source image URI.
+        dst (str): Destination image URI.
+        workspace (str): Workspace to get images from.
+        label_index (int): Index of the label to find connected components for.
+        area_min (int): Minimumm component area.
+        area_max (int): Maximum component area.
+        mode (str): Select either Pipelines, Annotations or Analyzers.
+        pipelines_id (str): Pipelines URI if mode is 'pipelines'.
+        analyzers_id (str): Analyzers URI if mode is 'analyzers'.
+        annotations_id (str): Annotations URI if mode is 'annotations'.
 
     Returns:
         list of dict: List of dictionaries with the stats for each component.
     """
+
+    DataModel.g.current_workspace = workspace
+
     logger.debug(f"Finding connected components on segmentation: {pipelines_id}")
 
     if mode == "1":
@@ -613,46 +686,49 @@ def find_connected_components(
 
     map_blocks(pass_through, single_label_level, out=dst, normalize=False)
 
+    result_list = np.array(result_list)
+    result_list = result_list.tolist()
     return result_list
 
 
-@hug.get()
+@analyzer.get("/segmentation_stats")
 def segmentation_stats(
-    src: DataURI,
-    dst: DataURI,
-    modeA: String,
-    modeB: String,
-    workspace: String,
-    pipelines_id_A: DataURI,
-    analyzers_id_A: DataURI,
-    annotations_id_A: DataURI,
-    pipelines_id_B: DataURI,
-    analyzers_id_B: DataURI,
-    annotations_id_B: DataURI,
-    label_index_A: Int,
-    label_index_B: Int,
+    src: str,
+    dst: str,
+    modeA: str,
+    modeB: str,
+    workspace: str,
+    pipelines_id_A: str,
+    analyzers_id_A: str,
+    annotations_id_A: str,
+    pipelines_id_B: str,
+    analyzers_id_B: str,
+    annotations_id_B: str,
+    label_index_A: int,
+    label_index_B: int,
 ) -> "IMAGE":
     """Calculate segmentation statistics to compare two label images.
     Dice and IOU are returned.
 
     Args:
-        src (DataURI): Source image URI.
-        dst (DataURI): Destination image URI.
-        modeA (String): Pipeline, Analyzer or Annotation.
-        modeB (String): Pipeline, Analyzer or Annotation.
-        workspace (String): Workspace to get images from.
-        pipelines_id_A (DataURI): Pipelines URI if mode A is 'pipelines'.
-        analyzers_id_A (DataURI): Analyzers URI if mode A is 'analyzers'.
-        annotations_id_A (DataURI): Annotations URI if mode A is 'annotations'.
-        pipelines_id_B (DataURI): Pipelines URI if mode B is 'pipelines'.
-        analyzers_id_B (DataURI): Analyzers URI if mode B is 'analyzers'.
-        annotations_id_B (DataURI): Annotations URI if mode B is 'annotations'.
-        label_index_A (Int): Label value to use as foreground.
-        label_index_B (Int): Label value to use as foreground.
+        src (str): Source image URI.
+        dst (str): Destination image URI.
+        modeA (str): Pipeline, Analyzer or Annotation.
+        modeB (str): Pipeline, Analyzer or Annotation.
+        workspace (str): Workspace to get images from.
+        pipelines_id_A (str): Pipelines URI if mode A is 'pipelines'.
+        analyzers_id_A (str): Analyzers URI if mode A is 'analyzers'.
+        annotations_id_A (str): Annotations URI if mode A is 'annotations'.
+        pipelines_id_B (str): Pipelines URI if mode B is 'pipelines'.
+        analyzers_id_B (str): Analyzers URI if mode B is 'analyzers'.
+        annotations_id_B (str): Annotations URI if mode B is 'annotations'.
+        label_index_A (int): Label value to use as foreground.
+        label_index_B (int): Label value to use as foreground.
 
     Returns:
         list of float: Dice and IOU.
     """
+    DataModel.g.current_workspace = workspace
 
     if modeA == "1":
         src = DataModel.g.dataset_uri(ntpath.basename(pipelines_id_A), group="pipelines")
@@ -665,6 +741,9 @@ def segmentation_stats(
         logger.debug(f"Analyzer calc on annotation src {src}")
 
     with DatasetManager(src, out=None, dtype="int32", fillvalue=0) as DM:
+        print(src)
+        print(DM.sources)
+        print(DM.sources[0][:])
         seg = DM.sources[0][:]
         logger.debug(f"src_dataset shape {seg[:].shape}")
 
@@ -694,7 +773,7 @@ def segmentation_stats(
     # from survos2.entity.trainer import score_dice
     # logger.debug(f"Dice loss {score_dice(single_label_level_A, single_label_level_B)}")
 
-    from torchmetrics import JaccardIndex, Dice
+    from torchmetrics import Dice, JaccardIndex
 
     dice = Dice(average="micro")
     jaccard = JaccardIndex(num_classes=2)
@@ -710,16 +789,19 @@ def segmentation_stats(
     return result_list
 
 
-@hug.get()
+@analyzer.get("/binary_image_stats")
 def binary_image_stats(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    feature_id: DataURI,
-    threshold: Float = 0.5,
-    area_min: Int = 0,
-    area_max: Int = 1e12,
+    src: str,
+    dst: str,
+    workspace: str,
+    feature_id: str,
+    threshold: float = 0.5,
+    area_min: int = 0,
+    area_max: int = 1e12,
 ) -> "IMAGE":
+
+    DataModel.g.current_workspace = workspace
+
     logger.debug(f"Calculating stats on feature: {feature_id}")
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -760,26 +842,28 @@ def plot_to_image(arr, title="Histogram", vert_line_at=None):
     return plot_image
 
 
-@hug.get()
+@analyzer.get("/spatial_clustering")
 def spatial_clustering(
-    src: DataURI,
-    feature_id: DataURI,
-    object_id: DataURI,
-    workspace: String,
-    params: dict,
+    src: str = Body(),
+    feature_id: str = Body(),
+    object_id: str = Body(),
+    workspace: str = Body(),
+    params: dict = Body(),
 ) -> "OBJECTS":
     """Cluster points using HDBSCAN or DBSCAN.
 
     Args:
-        src (DataURI): Source Pipelines URI (the current image.)
-        feature_id (DataURI): Feature URI to constrain the point locations to.
-        object_id (DataURI): Object URI as source points.
-        workspace (String): Workspace to use.
+        src (str): Source Pipelines URI (the current image.)
+        feature_id (str): Feature URI to constrain the point locations to.
+        object_id (str): Object URI as source points.
+        workspace (str): Workspace to use.
         params (dict): Clustering parameters.
 
     Returns:
         list of lists: List of lists of entities.
     """
+    DataModel.g.current_workspace = workspace
+
     src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
     logger.debug(f"Getting objects {src}")
 
@@ -836,26 +920,30 @@ def remove_masked_entities(bg_mask, entities):
     return np.array(masked_entities)
 
 
-@hug.get()
+@analyzer.get("/remove_masked_objects")
 def remove_masked_objects(
-    src: DataURI,
-    dst: DataURI,
-    feature_id: DataURI,
-    object_id: DataURI,
-    invert: Boolean,
+    src: str,
+    dst: str,
+    workspace: str,
+    feature_id: str,
+    object_id: str,
+    invert: bool,
 ) -> "OBJECTS":
     """Remove objects that are masked by a background mask.
 
     Args:
-        src (DataURI): Source image URI.
-        dst (DataURI): Destination image URI.
-        feature_id (DataURI): Feature image to constrain the point locations to.
-        object_id (DataURI): Object URI to use as source points.
+        src (str): Source image URI.
+        dst (str): Destination image URI.
+        feature_id (str): Feature image to constrain the point locations to.
+        object_id (str): Object URI to use as source points.
         invert (Boolean): Whether to invert the mask.
 
     Returns:
         list of lists: List of lists of entities.
     """
+
+    DataModel.g.current_workspace = workspace
+
     src = DataModel.g.dataset_uri(ntpath.basename(object_id), group="objects")
     logger.debug(f"Getting objects {src}")
 
@@ -891,7 +979,9 @@ def remove_masked_objects(
         mask = 1.0 - mask
 
     logger.debug(f"Initial number of objects: {len(entities_df)}")
-    refined_entity_df = make_entity_df(remove_masked_entities((mask == 0) * 1.0, np.array(entities_df)))
+    refined_entity_df = make_entity_df(
+        remove_masked_entities((mask == 0) * 1.0, np.array(entities_df))
+    )
 
     logger.debug(f"Removing entities using mask with shape {mask.shape}")
     result_list = []
@@ -908,30 +998,33 @@ def remove_masked_objects(
     return result_list
 
 
-@hug.get()
+@analyzer.get("/patch_stats")
 def patch_stats(
-    src: DataURI,
-    dst: DataURI,
-    workspace: String,
-    object_id: DataURI,
-    feature_id: DataURI,
-    stat_name: String,
-    box_size: Int,
+    src: str,
+    dst: str,
+    workspace: str,
+    object_id: str,
+    feature_id: str,
+    stat_name: str,
+    box_size: int,
 ) -> "OBJECTS":
     """Image statistics calculated on patches sampled from locations.
 
     Args:
-        src (DataURI): Source URI.
-        dst (DataURI): Destination URI.q
-        workspace (String): Workspace to use.
-        object_id (DataURI): Object URI to use as source points.
-        feature_id (DataURI): Feature image to constrain the point locations to.
-        stat_name (String): Which statistic to calculate.
-        box_size (Int): Side dimension of box to sample from.
+        src (str): Source URI.
+        dst (str): Destination URI.q
+        workspace (str): Workspace to use.
+        object_id (str): Object URI to use as source points.
+        feature_id (str): Feature image to constrain the point locations to.
+        stat_name (str): Which statistic to calculate.
+        box_size (int): Side dimension of box to sample from.
 
     Returns:
         tuple: Tuple of (list of float, np.ndarray).
     """
+
+    DataModel.g.current_workspace = workspace
+
     logger.debug(f"Calculating stats on cubical patches: {object_id}")
 
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
@@ -1031,49 +1124,50 @@ def plot_clustered_img(
     for i in range(num_classes):
         xtext, ytext = np.median(proj[colors == i, :], axis=0)
         txt = ax.text(xtext, ytext, str(i), fontsize=18)
-        txt.set_path_effects([PathEffects.Stroke(linewidth=5, foreground="y"), PathEffects.Normal()])
+        txt.set_path_effects(
+            [PathEffects.Stroke(linewidth=5, foreground="y"), PathEffects.Normal()]
+        )
 
 
-@hug.get()
+@analyzer.get("/object_analyzer")
 def object_analyzer(
-    workspace: String,
-    object_id: DataURI,
-    feature_id: DataURI,
-    feature_extraction_method: String,
-    embedding_method: String,
-    dst: DataURI,
-    bvol_dim: IntOrVector,
-    axis: Int,
-    embedding_params: dict,
-    min_cluster_size: Int,
-    flipxy: SmartBoolean,
+    workspace: str = Body(),
+    object_id: str = Body(),
+    feature_id: str = Body(),
+    feature_extraction_method: str = Body(),
+    embedding_method: str = Body(),
+    dst: str = Body(),
+    bvol_dim: List[int] = Body(),
+    axis: int = Body(),
+    embedding_params: dict = Body(),
+    min_cluster_size: int = Body(),
+    flipxy: bool = Body(),
 ) -> "OBJECTS":
     """Patch-based clustering tool. Provided locations are sampled in multiple locations in 2d, image
     features are calculated from the patches and the features are clustered and plotted. Allows selection of a
     set of clusters to return a subset of the input locations.
 
     Args:
-        workspace (String): Workspace to use.
-        object_id (DataURI): Object URI to use as sample locations.
-        feature_id (DataURI): Feature image to constrain the point locations to.
-        feature_extraction_method (String): Either Resnet CNN features or HOG features.
-        embedding_method (String): TSNE or UMAP.
-        dst (DataURI): Destination URI (not used).
-        bvol_dim (IntOrVector): Dimension of bounding volume to use.
-        axis (Int): Which axis to sample 2D patches along.
+        workspace (str): Workspace to use.
+        object_id (str): Object URI to use as sample locations.
+        feature_id (str): Feature image to constrain the point locations to.
+        feature_extraction_method (str): Either Resnet CNN features or HOG features.
+        embedding_method (str): TSNE or UMAP.
+        dst (str): Destination URI (not used).
+        bvol_dim (Union[int, List]): Dimension of bounding volume to use.
+        axis (int): Which axis to sample 2D patches along.
         embedding_params (dict): Parameters for embedding method.
-        min_cluster_size (Int): HDBScan is used to cluster the embedded points. This is the minimum number of points in a cluster.
-        flipxy (SmartBoolean): Flip the XY coordinates of the input points.
+        min_cluster_size (int): HDBScan is used to cluster the embedded points. This is the minimum number of points in a cluster.
+        flipxy (bool): Flip the XY coordinates of the input points.
 
     Returns:
         Tuple of (_, list, list of entities, np.ndarray, np.ndarray)
     """
+    DataModel.g.current_workspace = workspace
+
     logger.debug(f"Calculating clustering on patches located at entities: {object_id}")
     from survos2.entity.cluster.cluster_plotting import cluster_scatter
-    from survos2.entity.cluster.clusterer import (
-        PatchCluster,
-        prepare_patches_for_clustering,
-    )
+    from survos2.entity.cluster.clusterer import PatchCluster, prepare_patches_for_clustering
     from survos2.entity.cluster.cnn_features import prepare_3channel
 
     # get features
@@ -1151,6 +1245,11 @@ def object_analyzer(
     else:
         skip_px = 2
 
+    labels = np.array(labels)
+    labels = labels.tolist()
+    entities = np.array(entities)
+    entities = entities.tolist()
+
     return (
         None,
         labels,
@@ -1160,25 +1259,26 @@ def object_analyzer(
     )
 
 
-@hug.get()
+@analyzer.get("/binary_classifier")
 def binary_classifier(
-    workspace: String,
-    feature_id: DataURI,
-    proposal_id: DataURI,
-    mask_id: DataURI,
-    object_id: DataURI,
-    background_id: DataURI,
-    dst: DataURI,
-    bvol_dim: IntOrVector,
-    score_thresh: Float,
-    area_min: Int,
-    area_max: Int,
-    model_fullname: String,
+    workspace: str = Body(),
+    feature_id: str = Body(),
+    proposal_id: str = Body(),
+    mask_id: str = Body(),
+    object_id: str = Body(),
+    background_id: str = Body(),
+    dst: str = Body(),
+    bvol_dim: List[int] = Body(),
+    score_thresh: float = Body(),
+    area_min: int = Body(),
+    area_max: int = Body(),
+    model_fullname: str = Body(),
 ):
     """
     Takes proposal seg and a set of gt entities
 
     """
+    DataModel.g.current_workspace = workspace
     # load the proposal seg
     # load the gt entities
     # make the gt training data patches
@@ -1187,9 +1287,6 @@ def binary_classifier(
     # find the components in the proposal seg given the filter components settings and apply mask
     # run the classifier and generate detections
     # be able to load the obj or the background as entities
-
-    from survos2.entity.instance.det import make_augmented_entities
-    from survos2.entity.instance.detector import ObjectVsBgClassifier, ObjectVsBgCNNClassifier
 
     # get image feature
     src = DataModel.g.dataset_uri(ntpath.basename(feature_id), group="features")
@@ -1225,10 +1322,11 @@ def binary_classifier(
 
     # get background entities
     src = DataModel.g.dataset_uri(ntpath.basename(background_id), group="objects")
-    logger.debug(f"Getting objects {src}")
+    logger.debug(f"Getting background entities {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
     entities_fullname = ds_objects.get_metadata("fullname")
+
     tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
     entities_arr = np.array(entities_df)
     entities_arr[:, 3] = np.array([[0] * len(entities_arr)])
@@ -1269,45 +1367,50 @@ def binary_classifier(
         combined_clustered_pts,
     )
 
-    # gt_entities, random_bg_entities =  generate_augmented_entities(wf,
-    #                                                                 generate_random_bg_entities=True,
-    #                                                                 num_before_masking=num_before_masking,
-    #                                                                 stratified_selection=True,
-    #                                                                 class_proportion = {0:1, 1: 1, 2: 1.0, 5:1})
-
-    # logger.debug(entities.shape, random_bg_entities.shape)
-
     if model_fullname != "None":
         logger.debug(f"Loading model for fpn features: {model_fullname}")
     else:
         model_fullname = None
 
-    instdet = ObjectVsBgCNNClassifier(
-        wf,
-        augmented_entities,
-        proposal_segmentation,
-        feature,
-        bg_mask,
-        padding=bvol_dim,
-        area_min=area_min,
-        area_max=area_max,
-        plot_debug=True,
-    )
-
-    classifier_type = "cnn"
+    classifier_type = "classical"
     if classifier_type == "classical":
+        instdet = ObjectVsBgClassifier(
+            wf,
+            augmented_entities,
+            proposal_segmentation,
+            feature,
+            bg_mask,
+            padding=bvol_dim,
+            area_min=area_min,
+            area_max=area_max,
+            plot_debug=True,
+        )
         instdet.reset_bg_mask()
-        instdet.make_component_tables()
+        instdet.make_component_tables()  # find connected components in proposal seg
         instdet.prepare_detector_data()
-        instdet.train_validate_model(model_file=model_fullname)
+        instdet.train_validate_model(model_file=None)
         instdet.predict(
             instdet.class1_dets, score_thresh=score_thresh, model_file=model_fullname, offset=False
         )
-        instdet.analyze_result(instdet.class1_gold_entities, instdet.class1_dets, instdet.detections)
+        # instdet.analyze_result(instdet.class1_gold_entities, instdet.class1_dets, instdet.detections)
         logger.debug("\nProduced foreground detections: \n")
-        logger.debug(instdet.class1_dets)
-        result_entities = offset_points(result_entities, np.array((-16, -16, -16)))
+        logger.debug(instdet.detections)
+        # result_entities = instdet.detections
+        result_entities = offset_points(
+            instdet.detections, -3 * np.array(padding)
+        )  # offset_points(result_entities, np.array((-16, -16, -16)))
     elif classifier_type == "cnn":
+        instdet = ObjectVsBgCNNClassifier(
+            wf,
+            augmented_entities,
+            proposal_segmentation,
+            feature,
+            bg_mask,
+            padding=bvol_dim,
+            area_min=area_min,
+            area_max=area_max,
+            plot_debug=True,
+        )
         instdet.reset_bg_mask()
         instdet.make_component_tables()
         instdet.prepare_detector_data()
@@ -1316,19 +1419,23 @@ def binary_classifier(
             instdet.class1_dets, score_thresh=score_thresh, model_file=model_fullname, offset=False
         )
         result_entities = offset_points(instdet.class1_dets, -2 * np.array(padding))
+
+    result_entities = np.array(result_entities)
+    result_entities = result_entities.tolist()
+
     return result_entities
 
 
-@hug.get()
+@analyzer.get("/point_generator")
 def point_generator(
-    bg_mask_id: DataURI,
-    num_before_masking: Int,
+    bg_mask_id: str,
+    num_before_masking: int,
 ):
     """Generate a set of random points and then mask out regions based on the background mask.
 
     Args:
-        bg_mask_id (DataURI): Background mask to use
-        num_before_masking (Int): Number of points to start with, before masking.
+        bg_mask_id (str): Background mask to use
+        num_before_masking (int): Number of points to start with, before masking.
 
     Returns:
         (list of entities): Resultant set of masked points
@@ -1351,9 +1458,9 @@ def point_generator(
             bg_mask = DM.sources[0][:]
             logger.debug(f"Feature shape {bg_mask.shape}")
 
-    random_entities = generate_random_points_in_volume(bg_mask, num_before_masking, border=(0, 0, 0)).astype(
-        np.uint32
-    )
+    random_entities = generate_random_points_in_volume(
+        bg_mask, num_before_masking, border=(0, 0, 0)
+    ).astype(np.uint32)
 
     if mask_name != "None":
         from survos2.entity.utils import remove_masked_entities
@@ -1363,28 +1470,16 @@ def point_generator(
         logger.debug(f"After masking: {random_entities.shape}")
     else:
         result_entities = random_entities
+
     result_entities[:, 3] = np.array([6] * len(result_entities))
     result_entities = np.array(make_entity_df(result_entities, flipxy=True))
+    result_entities = result_entities.tolist()
 
     return result_entities
 
 
-# def analyze_detector_predictions(
-#     gt_entities,
-#     detected_entities,
-#     bvol_dim=(24, 24, 24),
-#     debug_verbose=True,
-# ):
-#     logger.debug(f"Evaluating detections of shape {detected_entities.shape}")
-
-#     preds = centroid_to_bvol(detected_entities, bvol_dim=bvol_dim)
-#     targs = centroid_to_bvol(gt_entities, bvol_dim=bvol_dim)
-#     eval_result = eval_matches(preds, targs, debug_verbose=debug_verbose)
-#     return detected_entities
-
-
-@hug.get()
-def create(workspace: String, order: Int = 0):
+@analyzer.get("/create")
+def create(workspace: str, order: int = 0):
     analyzer_type = __analyzer_names__[order]
 
     ds = ws.auto_create_dataset(
@@ -1398,10 +1493,11 @@ def create(workspace: String, order: Int = 0):
     return dataset_repr(ds)
 
 
-@lru_cache(maxsize=2)
-@hug.get()
-@hug.local()
-def existing(workspace: String, full: SmartBoolean = False, order: Int = 0):
+# @lru_cache(maxsize=2)
+
+# @hug.local()
+@analyzer.get("/existing")
+def existing(workspace: str, full: bool = False, order: int = 0):
     filter = __analyzer_names__[order]
     datasets = ws.existing_datasets(workspace, group=__analyzer_group__)  # , filter=filter)
     if full:
@@ -1409,25 +1505,27 @@ def existing(workspace: String, full: SmartBoolean = False, order: Int = 0):
     return {k: dataset_repr(v) for k, v in datasets.items()}
 
 
-@hug.get()
-def remove(workspace: String, analyzer_id: String):
+@analyzer.get("/remove")
+def remove(workspace: str, analyzer_id: str):
     ws.delete_dataset(workspace, analyzer_id, group=__analyzer_group__)
+    return {"done": "ok"}
 
 
-@hug.get()
-def rename(workspace: String, analyzer_id: String, new_name: String):
+@analyzer.get("/rename")
+def rename(workspace: str, analyzer_id: str, new_name: str):
     ws.rename_dataset(workspace, analyzer_id, __analyzer_group__, new_name)
+    return {"done": "ok"}
 
 
-@hug.get()
+@analyzer.get("/available")
 def available():
-    h = hug.API(__name__)
+    h = analyzer  # hug.API(__name__)
     all_features = []
-    for name, method in h.http.routes[""].items():
-        if name[1:] in ["available", "create", "existing", "remove", "rename", "group"]:
+    for r in h.routes:
+        name = r.name
+        if name in ["available", "create", "existing", "remove", "rename", "group"]:
             continue
-        name = name[1:]
-        func = method["GET"][None].interface.spec
+        func = r.endpoint
         desc = get_function_api(func)
         category = desc["returns"] or "Others"
         desc = dict(name=name, params=desc["params"], category=category)

@@ -1,35 +1,11 @@
-import logging
-import os.path as op
-import dask.array as da
-import hug
 import numpy as np
-from skimage.segmentation import slic
-from ast import literal_eval
 from loguru import logger
-import matplotlib
-
-import survos2
 from survos2.api import workspace as ws
-from survos2.api.types import (
-    DataURI,
-    DataURIList,
-    Float,
-    FloatList,
-    FloatOrVector,
-    Int,
-    IntList,
-    SmartBoolean,
-    String,
-)
-from survos2.api.utils import dataset_repr, save_metadata
-from survos2.improc import map_blocks
-from survos2.io import dataset_from_uri
-from survos2.utils import encode_numpy
+from survos2.data_io import dataset_from_uri
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.api.annotations import (
     add_level,
-    get_levels,
     get_level,
     add_label,
     update_label,
@@ -42,19 +18,32 @@ __export_dtype__ = "float32"
 __export_group__ = "roi"
 
 
-@hug.get()
-def create(workspace: String, roi_fname: String, roi: list, original_workspace: String, original_level):
+from typing import List, Union
+from fastapi import APIRouter, Query
+
+roi = APIRouter()
+
+
+@roi.get("/create")
+def create(
+    workspace: str,
+    roi_fname: str,
+    original_workspace: str,
+    original_level: str,
+    roi: List[int] = Query(),
+):
     DataModel.g.current_workspace = original_workspace
     logger.debug(f"Original workspace: {original_workspace}")
-    logger.debug(original_level)
-    if original_level:
-        anno_ds = ws.get_dataset(original_workspace, original_level, group="annotations")
+    if original_level != "None":
+        anno_ds = ws.get_dataset(
+            original_workspace, original_level, group="annotations", session="default"
+        )
         anno_ds_crop = anno_ds[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]] & 15
         original_labels = get_labels(original_workspace, original_level)
     roi_dict = {}
     DataModel.g.current_workspace = workspace
 
-    if original_level:
+    if original_level != "None":
         add_level(roi_fname)
         new_anno_ds = get_level(roi_fname, level="001_level")
 
@@ -75,7 +64,7 @@ def create(workspace: String, roi_fname: String, roi: list, original_workspace: 
         metadata["id"] = len(roi_dict.keys())
         metadata["name"] = roi_fname
 
-    if original_level:
+    if original_level != "None":
         label_values = np.unique(anno_ds_crop)
 
         for v in label_values:
@@ -109,8 +98,8 @@ def create(workspace: String, roi_fname: String, roi: list, original_workspace: 
     return metadata
 
 
-@hug.get()
-def pull_anno(roi_fname: String, anno_id="001_level", target_anno_id="001_level"):
+@roi.get("/pull_anno")
+def pull_anno(roi_fname: str, anno_id="001_level", target_anno_id="001_level"):
     logger.debug(f"{roi_fname} {anno_id}")
     ds = ws.get_dataset(roi_fname, anno_id, group="annotations")
     roi_parts = roi_fname.split("_")
@@ -126,10 +115,12 @@ def pull_anno(roi_fname: String, anno_id="001_level", target_anno_id="001_level"
     main_anno[z_min:z_max, x_min:x_max, y_min:y_max] = ds[:]
 
 
-@hug.get()
+@roi.get("/existing")
 def existing():
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+        print(src)
+        print(DM.sources)
         src_dataset = DM.sources[0]
         ds_metadata = src_dataset.get_metadata()
         if not "roi_fnames" in ds_metadata:
@@ -139,8 +130,8 @@ def existing():
         return roi_fnames
 
 
-@hug.get()
-def remove(workspace: String, roi_fname: String):
+@roi.get("/remove")
+def remove(workspace: str, roi_fname: str):
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
