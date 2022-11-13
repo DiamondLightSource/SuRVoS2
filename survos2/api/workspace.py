@@ -34,7 +34,9 @@ def get(workspace: str):
     workspace, session = parse_workspace(workspace)
     if Workspace.exists(workspace):
         return Workspace(workspace)
-    raise APIException("Workspace '%s' does not exist." % workspace)
+    else:
+        return False
+    #raise APIException("Workspace '%s' does not exist." % workspace)
 
 
 @workspace.get("/make_roi_ws")
