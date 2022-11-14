@@ -35,6 +35,7 @@ def get(workspace: str):
     if Workspace.exists(workspace):
         return Workspace(workspace)
     else:
+        logger.info(f"Workspace doesn't exist: {workspace}")
         return False
     #raise APIException("Workspace '%s' does not exist." % workspace)
 
@@ -47,12 +48,7 @@ def make_roi_ws(feature_id: str, current_workspace_name: str, roi: List[int] = Q
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0][:]
 
-    # print(roi)
-    # rc_dataset = src_dataset[roi[0] : roi[3], roi[1] : roi[4], roi[2] : roi[5]]
-
     src_dataset = src_dataset[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]]
-
-    # print(src_dataset.shape)
 
     # make new ws from roi crop of raw data
     roi_name = (
@@ -72,9 +68,6 @@ def make_roi_ws(feature_id: str, current_workspace_name: str, roi: List[int] = Q
     )
 
     roi_ws(src_dataset, roi_name)
-    # src_ws = get(current_workspace_name)
-    # target_ws = get(roi_name)
-    # src_ws.replicate_workspace(target_ws.path)
 
     return roi_name
 

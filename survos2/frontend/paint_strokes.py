@@ -152,7 +152,6 @@ def paint_strokes(
                 viewer_order_str = "".join(map(str, viewer_order))
                 if viewer_order_str != "012" and len(viewer_order_str) == 3:
                     sv_arr = np.transpose(sv_arr, viewer_order)
-                    # logger.debug(f"After viewer_order transform {sv_arr.shape}")
 
                 for x, y in zip(line_x, line_y):
                     if (
@@ -168,7 +167,6 @@ def paint_strokes(
 
                 # Commit annotation to server
                 params = dict(workspace=True, level=level, label=sel_label)
-
                 params.update(
                     region=cfg.current_regions_dataset,
                     r=list(map(int, all_regions)),
