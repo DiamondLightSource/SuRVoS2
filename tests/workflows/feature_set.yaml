@@ -1,0 +1,59 @@
+2:
+    action: features.tvdenoise
+    src: 001_raw
+    dst: 002_tvdenoise
+    params:
+        regularization_amount: 0.0005
+        pad: 8
+        max_iter: 100
+3:
+    action: features.gaussian_blur
+    src: 001_raw
+    dst: 003_gaussian_blur
+    params:
+        sigma: 
+            - 6
+            - 6
+            - 6
+4:
+    action: features.laplacian
+    src: 001_raw
+    dst: 004_laplacian
+    params:
+        sigma: 
+            - 3
+            - 3
+            - 3 
+5:
+    action: features.spatial_gradient_3d
+    src: 001_raw
+    dst: 005_spatial_gradient_3d
+    params:
+        dim: 0
+6:
+    action: features.hessian_eigenvalues
+    src: 001_raw
+    dst: 006_hessian
+    params:
+        sigma: 
+            - 3
+            - 3
+            - 3 
+7:
+    action: features.gamma_correct
+    src: 003_gaussian_blur
+    dst: 007_gamma_correct
+    params:
+        gamma: 2.0
+8:
+    action: features.threshold
+    src: 007_gamma_correct
+    dst: 008_threshold
+    params:
+        num_iter: 1
+9:
+    action: features.dilation
+    src: 008_threshold
+    dst: 009_dilation
+    params:
+        num_iter: 1
