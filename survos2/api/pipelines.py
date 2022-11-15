@@ -275,8 +275,10 @@ def superregion_segment(
 
     # get anno
     src = DataModel.g.dataset_uri(anno_id, group="annotations")
+    print(src)
     with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
+        print(src_dataset)
         anno_level = src_dataset[:] & 15
 
         logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
