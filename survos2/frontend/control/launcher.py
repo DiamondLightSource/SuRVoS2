@@ -88,6 +88,10 @@ class Launcher(QtCore.QObject):
         self.pending = []
         self.remote_ip_port = uri
 
+    def set_current_workspace(self, workspace_name):
+        logger.debug(f"Setting workspace to {workspace_name}")
+        DataModel.g.current_workspace = workspace_name
+
     def set_current_workspace_shape(self, workspace_shape, **kwargs):
         logger.debug(f"Setting workspace shape to {workspace_shape}")
         DataModel.g.current_workspace_shape = workspace_shape

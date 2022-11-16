@@ -103,6 +103,8 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         logger.info(f"Setting remote: {remote_ip_port}")
         resp = Launcher.g.set_remote(remote_ip_port)
         logger.info(f"Response from server to setting remote: {resp}")
+        resp = Launcher.g.run("workspace", "set_workspace", self.selected_workspace)
+        logger.info(f"Response from server to setting workspace: {resp}")
 
         # cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
 
@@ -148,11 +150,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.run_config = run_config
         QtWidgets.QWidget.__init__(self, *args, **kwargs)
 
-        # self.slice_mode = False
-        # self.slider = Slider(value=0, vmax=cfg.slice_max - 1)
-        # self.slider.setMinimumWidth(150)
-        # self.slider.sliderReleased.connect(self._params_updated)
-
         button_refresh = QPushButton("Refresh", self)
         button_refresh.clicked.connect(self.button_refresh_clicked)
 
@@ -165,9 +162,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         button_transfer = QPushButton("Transfer Layer to Workspace")
         button_transfer.clicked.connect(self.button_transfer_clicked)
 
-        # self.button_slicemode = QPushButton("Slice mode", self)
-        # self.button_slicemode.clicked.connect(self.button_slicemode_clicked)
-
         workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list = ComboBox()
         for s in workspaces:
@@ -176,18 +170,13 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.workspaces_list.setEditable(True)
         self.workspaces_list.activated[str].connect(self.workspaces_selected)
 
-        # self.hbox_layout0 = QtWidgets.QHBoxLayout()
         hbox_layout_ws = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
-
-        # self.hbox_layout0.addWidget(self.slider)
-        # self.slider.hide()
 
         hbox_layout_ws.addWidget(workspaces_widget)
         hbox_layout_ws.addWidget(button_load_workspace)
 
         hbox_layout1.addWidget(button_transfer)
-        # hbox_layout1.addWidget(self.button_slicemode)
         hbox_layout1.addWidget(button_refresh)
         hbox_layout1.addWidget(button_clear_client)
 
@@ -227,16 +216,16 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         # self.slider.setMinimumWidth(cfg.base_dataset_shape[0])
 
     def workspaces_selected(self):
-        selected_workspace = self.workspaces_list.value()
+        self.selected_workspace = self.workspaces_list.value()
         self.workspaces_list.blockSignals(True)
-        self.workspaces_list.select(selected_workspace)
+        self.workspaces_list.select(self.selected_workspace)
         self.workspaces_list.blockSignals(False)
 
         cfg.ppw.clientEvent.emit(
             {
                 "source": "panel_gui",
                 "data": "set_workspace",
-                "workspace": selected_workspace,
+                "workspace": self.selected_workspace,
             }
         )
 
@@ -272,6 +261,9 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         remote_ip_port = "127.0.0.1:" + port
         logger.info(f"Setting remote: {remote_ip_port}")
         resp = Launcher.g.set_remote(remote_ip_port)
+        resp = Launcher.g.run("workspace", "set_workspace", self.selected_workspace)
+        logger.info(f"Response from server to setting workspace: {resp}")
+
 
     def button_load_workspace_clicked(self):
         with progress(total=2) as pbar:

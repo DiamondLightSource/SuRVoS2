@@ -250,7 +250,7 @@ def superregion_segment(
     feature_ids: List[str] = Body(),
 ) -> "CLASSICAL":
     """Classical ML for superregion segmentation. Multiple feature images can be used to calculate per-region features, which
-    are then used train a model that can classify superregions. Usually a subset of the superregions is used, corresponding to
+    are then used to train a model that can classify superregions. Usually a subset of the superregions is used, corresponding to
     those superregions for which scribbles have been painted. The entire volume of superregions is then predicted using this model.
 
     Args:
@@ -275,10 +275,10 @@ def superregion_segment(
 
     # get anno
     src = DataModel.g.dataset_uri(anno_id, group="annotations")
-    print(src)
+
     with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
         src_dataset = DM.sources[0]
-        print(src_dataset)
+
         anno_level = src_dataset[:] & 15
 
         logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")

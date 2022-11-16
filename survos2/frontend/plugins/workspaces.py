@@ -561,7 +561,10 @@ class WorkspacesPlugin(Plugin):
         self.setWindowIcon(QIcon(os.path.join(current_fpth, "resources", "logo.png")))
         self.setLayout(self.layout)
         self.show()
-
+    def setup(self):
+        pass
+    def clear(self):
+        pass
     def select_chroot_path(self):
         print("select_chroot_path")
         full_path = QtWidgets.QFileDialog.getExistingDirectory(
@@ -945,8 +948,10 @@ class WorkspacesPlugin(Plugin):
         self.script_fullname = os.path.join(command_dir, "survos2.start_server:app")
         # if not os.path.isfile(self.script_fullname):
         #    raise Exception("{}: Script not found".format(self.script_fullname))
+
+        workspace_name = self.ws_name_linedt_2.text()
         # Retrieve the parameters from the fields TODO: Put some error checking in
-        self.run_config["workspace_name"] = self.ws_name_linedt_2.text()
+        self.run_config["workspace_name"] = workspace_name
         self.run_config["server_port"] = self.server_port_linedt.text()
         # Temporary measure to check whether the workspace exists or not
         full_ws_path = os.path.join(Config["model.chroot"], self.run_config["workspace_name"])
@@ -978,12 +983,13 @@ class WorkspacesPlugin(Plugin):
         except subprocess.TimeoutExpired:
             pass
 
-        # self.start_client()
         logger.info(f"Setting remote: {self.server_port_linedt.text()}")
         remote_ip_port = "127.0.0.1:" + self.server_port_linedt.text()
         logger.info(f"Setting remote: {remote_ip_port}")
         resp = Launcher.g.set_remote(remote_ip_port)
         logger.info(f"Response from server to setting remote: {resp}")
+        resp = Launcher.g.run("workspace", "set_workspace", workspace_name)
+        logger.info(f"Response from server to setting workspace: {resp}")
 
         cfg.ppw.clientEvent.emit(
             {
