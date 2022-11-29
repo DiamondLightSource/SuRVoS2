@@ -604,18 +604,19 @@ class ROIPlugin(Plugin):
 
     def setup(self):
         self.existing_roi = {}
-        # self.roi_layout = QtWidgets.QVBoxLayout()
-        # self.vbox.addLayout(self.roi_layout)
-
         for i in reversed(range(self.roi_layout.count())):
             self.roi_layout.itemAt(i).widget().setParent(None)
         params = dict(workspace=DataModel.g.current_workspace)
         result = Launcher.g.run("workspace", "set_workspace", **params)
         result = Launcher.g.run("roi", "existing")
-        logger.debug(f"roi result {result}")
+        print(f"Result of roi existing: {result}")
         if result:
+            from survos2.api.workspace import add_dataset, add_data, delete, get
+
             for k, v in result.items():
-                self._add_roi_widget(k, v)
+                if get(v):
+                    print("Workspace exists")
+                    self._add_roi_widget(k, v)
 
     def _add_roi_widget(self, rid, rname, expand=False):
         widget = ROICard(rid, rname)

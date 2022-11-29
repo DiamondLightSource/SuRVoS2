@@ -101,7 +101,7 @@ def create(
 @roi.get("/pull_anno")
 def pull_anno(roi_fname: str, anno_id="001_level", target_anno_id="001_level"):
     logger.debug(f"{roi_fname} {anno_id}")
-    ds = ws.get_dataset(roi_fname, anno_id, group="annotations")
+    ds = ws.get_dataset(roi_fname, anno_id, group="annotations", session="default")
     roi_parts = roi_fname.split("_")
     z_min = int(roi_parts[-6])
     z_max = int(roi_parts[-5])
@@ -119,13 +119,13 @@ def pull_anno(roi_fname: str, anno_id="001_level", target_anno_id="001_level"):
 def existing():
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        print(src)
-        print(DM.sources)
         src_dataset = DM.sources[0]
         ds_metadata = src_dataset.get_metadata()
+
         if not "roi_fnames" in ds_metadata:
             src_dataset.set_metadata("roi_fnames", {})
             return {}
+        
         roi_fnames = ds_metadata["roi_fnames"]
         return roi_fnames
 

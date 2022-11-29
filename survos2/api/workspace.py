@@ -204,13 +204,14 @@ def get_dataset(
 def existing_datasets(workspace: str, group: str = None, filter: str = None):
     ws, session = parse_workspace(workspace)
     ws = get(ws)
-    all_ds = sorted(ws.available_datasets(session=session, group=group))
-    result = {}
-    for dsname in all_ds:
-        if filter is None or filter in dsname:
-            ds = ws.get_dataset(dsname, session=session)
-            result[dsname.split(op.sep)[1]] = ds
-    return result
+    if ws:
+        all_ds = sorted(ws.available_datasets(session=session, group=group))
+        result = {}
+        for dsname in all_ds:
+            if filter is None or filter in dsname:
+                ds = ws.get_dataset(dsname, session=session)
+                result[dsname.split(op.sep)[1]] = ds
+        return result
 
 
 @workspace.get("/metadata")
