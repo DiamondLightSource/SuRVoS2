@@ -6,6 +6,7 @@ from scipy.ndimage import binary_dilation
 from skimage.draw import line
 from skimage.morphology import disk
 from qtpy import QtWidgets, QtCore
+from qtpy.QtWidgets import QPushButton, QRadioButton, QGroupBox, QGridLayout
 from survos2.frontend.components.base import (
     VBox,
     HWidgets,
@@ -14,12 +15,8 @@ from survos2.frontend.components.base import (
     CheckBox,
     CardWithId,
     LineEdit,
-)
-from survos2.frontend.components.base import (
-    FAIcon,
     HBox,
     LazyComboBox,
-    LazyMultiComboBox,
     PluginNotifier,
     Slider,
     ColorButton,
@@ -29,6 +26,7 @@ from survos2.frontend.plugins.base import (
     Plugin,
     register_plugin,
 )
+
 from survos2.frontend.components.icon_buttons import DelIconButton, IconButton
 from survos2.frontend.control.launcher import Launcher
 from survos2.frontend.plugins.annotation_tool import (
@@ -99,13 +97,17 @@ class AnnotationPlugin(Plugin):
         self.btn_addlevel = IconButton("fa.plus", "Add Level", accent=True)
         self.vbox = VBox(self, spacing=10)
         self.vbox2 = VBox(self, spacing=10)
-        # self.button_pause_save = QPushButton("Pause Save to Server", self)
-        # self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
-        # self.vbox.addWidget(self.button_pause_save)
 
+        advanced_button = QRadioButton("Advanced")
+        advanced_button.toggled.connect(self.toggle_advanced)
+        self.vbox.addWidget(advanced_button)
+
+        self.setup_adv_run_fields()
+        self.vbox.addWidget(self.adv_run_fields)
+        self.adv_run_fields.hide()
+        
         self.levels = {}
         self.btn_addlevel.clicked.connect(self.add_level)
-        # self.annotation_tool = AnnotationTool()
         self.timer_id = -1
 
         hbox = HBox(self, margin=1, spacing=3)
@@ -124,19 +126,35 @@ class AnnotationPlugin(Plugin):
         hbox.addWidget(self.width)
         hbox.addWidget(self.btn_set)
 
-        # hbox2 = HBox(self, margin=1, spacing=3)
-        # widgets = HWidgets("3d voxel brush:",cfg.three_dim_checkbox, stretch=1)
-        # hbox2.addWidget(widgets)
-
         self.vbox.addLayout(hbox)
         self.vbox.addWidget(self.btn_addlevel)
-        # self.vbox2.addLayout(hbox2)
-        # _AnnotationNotifier.listen(self.set_sv)
+
+    def toggle_advanced(self):
+        """Controls displaying/hiding the advanced run fields on radio button toggle."""
+        rbutton = self.sender()
+        if rbutton.isChecked():
+            self.adv_run_fields.show()
+        else:
+            self.adv_run_fields.hide()
+
+    def setup_adv_run_fields(self):
+        self.adv_run_fields = QGroupBox()
+        self.button_pause_save = QPushButton("Local Annotation", self)
+        self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
+        self.button_save_anno = QPushButton("Save to Server", self)
+        self.button_save_anno.clicked.connect(self.button_save_anno_clicked)
+        self.hbox2 = HBox(self, margin=1, spacing=10)
+        self.hbox2.addWidget(self.button_pause_save)
+        self.hbox2.addWidget(self.button_save_anno)
+        #self.vbox.addLayout(self.hbox2)
+        self.adv_run_fields.setLayout(self.hbox2)
+
 
     def on_created(self):
         pass
 
     def add_level(self):
+        cfg.anno_data = None
         level = Launcher.g.run("annotations", "add_level", workspace=True)
         if level:
             self._add_level_widget(level)
@@ -163,13 +181,28 @@ class AnnotationPlugin(Plugin):
             self.remove_level(level)
         self.levels = {}
 
-    def button_pause_save_clicked(self):
-        if cfg.pause_save:
-            self.button_pause_save.setText("Pause Saving Annotations to Server")
-        else:
-            self.button_pause_save.setText("Resume Saving Annotations to Server")
+    def button_save_anno_clicked(self):
+        if 'anno_data' in cfg:
+            cfg.anno_data = cfg.anno_data & 15
+        cfg.ppw.clientEvent.emit(
+            {
+                "source": "save_annotation",
+                "data": "save_annotation",
+                "value": None,
+            }
+        )
 
-        cfg.pause_save = not cfg.pause_save
+    def button_pause_save_clicked(self):
+        cfg.remote_annotation = not cfg.remote_annotation
+        if cfg.remote_annotation:
+            self.button_pause_save.setText("Local Annotation")
+        else:
+            self.button_pause_save.setText("Remote Annotation")
+        
+        #if 'anno_data' in cfg:
+        #    cfg.anno_data = np.zeros_like(cfg.anno_data)
+        if 'prev_arr' in cfg:
+            cfg.prev_arr = np.zeros_like(cfg.prev_arr)
 
     def setup(self):
         params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)

@@ -51,8 +51,6 @@ def annotate_voxels(
         label (int, optional): Label value to set. Defaults to 0.
         parent_mask (np.ndarray, optional): Mask image. Defaults to None.
         viewer_order (tuple, optional): Axes order. Defaults to (0, 1, 2).
-        three_dim (bool, optional): Three-d brush. Defaults to False.
-        brush_size (int, optional): Size of brush. Defaults to 10.
     Raises:
         ValueError: Label index must be less than 16 and greater than 0.
     """

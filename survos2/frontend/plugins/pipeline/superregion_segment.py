@@ -213,5 +213,5 @@ class SuperregionSegment(PipelineCardBase):
             all_params["classifier_params"] = self.svm.get_params()
 
         all_params["json_transport"] = True
-        print(all_params)
+
         return all_params

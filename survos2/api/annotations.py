@@ -274,9 +274,6 @@ def annotate_voxels(
     parent_level: str = Body(),
     parent_label_idx: int = Body(),
     viewer_order: tuple = Body(),
-    three_dim: bool = Body(),
-    brush_size: int = Body(),
-    centre_point: list = Body(),
 ):
 
     ds = get_level(workspace, level, full)
@@ -306,9 +303,6 @@ def annotate_voxels(
         label=label,
         parent_mask=parent_mask,
         viewer_order=viewer_order,
-        three_dim=three_dim,
-        brush_size=brush_size,
-        centre_point=centre_point,
     )
     DataModel.g.current_workspace = workspace
     dst = DataModel.g.dataset_uri(level, group="annotations")
