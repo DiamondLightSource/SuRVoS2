@@ -96,9 +96,6 @@ def paint_strokes(
                     parent_label_idx=parent_label_idx,
                     full=False,
                     viewer_order=viewer_order,
-                    three_dim=cfg.three_dim,
-                    brush_size=int(cfg.brush_size),
-                    centre_point=(int(z), int(px), int(py)),
                     workspace=DataModel.g.current_workspace,
                 )
 
@@ -167,19 +164,129 @@ def paint_strokes(
 
                 # Commit annotation to server
                 params = dict(workspace=True, level=level, label=sel_label)
-                params.update(
-                    region=cfg.current_regions_dataset,
-                    r=list(map(int, all_regions)),
-                    modal=False,
-                    parent_level=parent_level,
-                    parent_label_idx=parent_label_idx,
-                    full=False,
-                    bb=bb,
-                    viewer_order=viewer_order,
-                )
-                result = Launcher.g.run(
-                    "annotations", "annotate_regions", json_transport=True, **params
-                )
+                        
+                if cfg.remote_annotation:
+                    params.update(
+                        region=cfg.current_regions_dataset,
+                        r=list(map(int, all_regions)),
+                        modal=False,
+                        parent_level=parent_level,
+                        parent_label_idx=parent_label_idx,
+                        full=False,
+                        bb=bb,
+                        viewer_order=viewer_order,
+                    )
+                    result = Launcher.g.run("annotations", "annotate_regions", json_transport=True, **params)
+                else:
+                    _annotate_regions_local(
+                        cfg.anno_data.copy(),
+                        sv_arr,
+                        list(map(int, all_regions)),
+                        label=sel_label,
+                        parent_level=parent_level,
+                        parent_label_idx=parent_label_idx,
+                        bb=bb,
+                        viewer_order=viewer_order,
+                    )
+
 
     except Exception as e:
         logger.debug(f"paint_strokes Exception: {e}")
+
+
+
+def _annotate_regions_local(
+    level: np.ndarray,
+    region: np.ndarray,
+    r: list,
+    label: int,
+    parent_level: str,
+    parent_label_idx: int,
+    bb: list,
+    viewer_order=(0, 1, 2),
+):
+    from survos2.frontend.frontend import get_level_from_server
+
+    if parent_level != "-1" and parent_level != -1:
+        parent_arr, parent_annotations_dataset = get_level_from_server(
+            {"level_id": parent_level}, retrieval_mode="volume"
+        )
+        parent_arr = parent_arr & 15
+        parent_mask = parent_arr == parent_label_idx
+    else:
+        parent_arr = None
+        parent_mask = None
+
+    logger.debug(f"BB in annotate_regions {bb}")
+
+    if label >= 16 or label < 0 or type(label) != int:
+        raise ValueError("Label has to be in bounds [0, 15]")
+    if r is None or len(r) == 0:
+        return
+
+    #mbit = 2 ** (np.dtype(level.dtype).itemsize * 8 // _MaskSize) - 1
+    #rmax = np.max(r)
+    #modified = dataset.get_attr("modified")
+    
+    cfg.modified = [0]
+    ds = level[:]
+    reg = region[:]
+    print(f"reg shape {reg.shape} ds shape {ds.shape}")
+
+    viewer_order_str = "".join(map(str, viewer_order))
+    if viewer_order_str != "012" and len(viewer_order_str) == 3:
+        # print(f"Viewer order {viewer_order} Performing viewer_order transform {ds.shape}")
+        ds_t = np.transpose(ds, viewer_order)
+
+    else:
+        # print(f"Viewer order {viewer_order} No viewer_order transform {ds.shape}")
+        ds_t = ds
+
+    mask = np.zeros_like(reg)
+
+    # print(f"BB: {bb}")
+    try:
+        if not bb:
+            # print("No mask")
+            bb = [0, 0, 0, ds_t.shape[0], ds_t.shape[1], ds_t.shape[2]]
+
+        # else:
+        # print(f"Masking using bb: {bb}")
+        for r_idx in r:
+            mask[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] += (
+                reg[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] == r_idx
+            )
+    except Exception as e:
+        print(f"__annotate_regions_local exception {e}")
+
+    if parent_mask is not None:
+        parent_mask_t = np.transpose(parent_mask, viewer_order)
+        # print(f"Using parent mask of shape: {parent_mask.shape}")
+        mask = mask * parent_mask_t
+
+    mask = (mask > 0) * 1.0
+    mask = mask > 0
+    # if not np.any(mask):
+    #    modified[i] = (modified[i] << 1) & mbit
+
+    ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
+    ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
+    print(f"Returning annotated region ds {ds.shape}")
+
+    if viewer_order_str != "012" and len(viewer_order_str) == 3:
+        new_order = get_order(viewer_order)
+        # logger.info(
+        #    f"new order {new_order} Dataset before second transpose: {ds_t.shape}"
+        # )
+        cfg.anno_data = np.transpose(ds_t, new_order)  # .reshape(original_shape)
+        # logger.info(f"Dataset after second transpose: {ds_o.shape}")
+        
+    else:
+        cfg.anno_data = ds_t
+
+    
+    cfg.modified = [1]
+
+
+
+

@@ -56,7 +56,6 @@ def frontend(viewer):
     cfg.current_regions_name = None
     cfg.current_analyzers_name = None
     cfg.emptying_viewer = False
-    cfg.three_dim = False
 
     cfg.current_regions_dataset = None
     cfg.current_supervoxels = None
@@ -64,9 +63,10 @@ def frontend(viewer):
     cfg.supervoxels_cached = False
     cfg.supervoxel_size = 10
     cfg.brush_size = 10
-    cfg.local_sv = True
-    cfg.pause_save = False
+
+    # controls whether annotation updates the server with every stroke
     cfg.remote_annotation = True
+
     cfg.object_offset = (0, 0, 0)
     cfg.num_undo = 0
 
@@ -99,25 +99,21 @@ def frontend(viewer):
             logger.debug(f"set_paint_params {msg['paint_params']}")
             paint_params = msg["paint_params"]
             label_value = paint_params["label_value"]
-
+            
             if label_value is not None and len(viewer.layers.selection) > 0:
-                _set_params(label_value, paint_params)
+                _set_anno_layer_params(label_value, paint_params)
 
-    def _set_params(label_value, paint_params):
+    def _set_anno_layer_params(label_value, paint_params):
         anno_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
 
         if len(anno_layer) > 0:
-            if not cfg.remote_annotation:
-                if cfg.retrieval_mode != "slice":
-                    cfg.ppw.clientEvent.emit(
-                        {
-                            "source": "save_annotation",
-                            "data": "save_annotation",
-                            "value": None,
-                        }
-                    )
-            cfg.local_sv = False
+            if cfg.remote_annotation:
+                pass
+            else:
+                update_annotation_layer_in_viewer(cfg.current_annotation_name, cfg.anno_data)
 
+            
+            #cfg.local_sv = False
             anno_layer = anno_layer[0]
             cfg.label_ids = list(np.unique(anno_layer))
             anno_layer.mode = "paint"
@@ -138,9 +134,16 @@ def frontend(viewer):
 
     def update_annotations(msg):
         logger.debug(f"update_annotation {msg}")
-
-        if cfg.local_sv:
+        if not cfg.remote_annotation:
+            print("Remote annotation")
             update_annotation_layer_in_viewer(msg["level_id"], cfg.anno_data)
+            cfg.ppw.clientEvent.emit(
+                        {
+                            "source": "save_annotation",
+                            "data": "save_annotation",
+                            "value": None,
+                        }
+                    )
         else:
             src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
             with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -154,24 +157,29 @@ def frontend(viewer):
             existing_layer[0].data = src_arr.astype(np.int32) & 15
 
     def refresh_annotations_in_viewer(msg):
-        logger.debug(f"refresh_annotation {msg['level_id']}")
+        print(f"refresh_annotation {msg['level_id']}")
+
         if not cfg.emptying_viewer:
             try:
                 cfg.current_annotation_name = msg["level_id"]
-
-                if cfg.local_sv:
+                if cfg.remote_annotation:
+                    print("Remote annotation, getting level from server")
+                    src_arr, src_annotations_dataset = get_level_from_server(
+                        msg, retrieval_mode=cfg.retrieval_mode
+                    )
+                else:
+                    # annotation level is not in viewer, needs to be loaded from server
                     anno_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
                     if len(anno_layer) == 0:
+                        print("Number of annotation layers is 0")
                         src_arr, src_annotations_dataset = get_level_from_server(
                             msg, retrieval_mode=cfg.retrieval_mode
                         )
                         cfg.anno_data = src_arr
 
                     print("Refresh from server paused, updating annotation from cfg.anno_data")
-                    if "prev_arr" in cfg:
-                        src_arr = cfg.prev_arr
-                    else:
-                        src_arr = cfg.anno_data
+
+                    src_arr = cfg.anno_data
 
                     if cfg.retrieval_mode != "slice":
                         print("Saving annotation")
@@ -182,10 +190,8 @@ def frontend(viewer):
                                 "value": None,
                             }
                         )
-                else:
-                    src_arr, src_annotations_dataset = get_level_from_server(
-                        msg, retrieval_mode=cfg.retrieval_mode
-                    )
+                
+                    
                 result = Launcher.g.run(
                     "annotations", "get_levels", workspace=DataModel.g.current_workspace
                 )
@@ -209,7 +215,6 @@ def frontend(viewer):
             label_layer = existing_layer[0]
             existing_layer[0].color = cmapping
         elif cfg.current_annotation_name:
-            # print(f"Adding labels {src_arr.shape} {cmapping }")
             label_layer = viewer.add_labels(src_arr & 15, name=msg["level_id"], color=cmapping)
             label_layer.mode = cfg.current_mode
             label_layer.brush_size = brush_size
@@ -219,28 +224,10 @@ def frontend(viewer):
 
         return label_layer
 
-    def setup_paint_undo_remote(label_layer):
+    def setup_paint_undo(label_layer):
         @label_layer.bind_key("Control-Z", overwrite=True)
         def undo(v):
-            logger.info("Undoing")
-            if cfg.num_undo == 0:
-                level = cfg.current_annotation_name
-                params = dict(workspace=True, level=level)
-                result = Launcher.g.run("annotations", "annotate_undo", **params)
-                cfg.ppw.clientEvent.emit(
-                    {
-                        "source": "annotations",
-                        "data": "update_annotations",
-                        "level_id": level,
-                    }
-                )
-
-                cfg.num_undo += 1
-
-    def setup_paint_undo_local(label_layer):
-        @label_layer.bind_key("Control-Z", overwrite=True)
-        def undo(v):
-            # logger.info("Undoing local annotation")
+            logger.info("Undoing annotation")
             if cfg.num_undo == 0:
                 # cfg.anno_data = cfg.anno_data >> _MaskSize
                 cfg.anno_data = cfg.prev_arr.copy()
@@ -260,18 +247,22 @@ def frontend(viewer):
                     )
 
     def setup_painting_layer(label_layer, msg, parent_level, parent_label_idx):
-        if not hasattr(label_layer, "already_init"):
+        #cfg.current_annotation_name = label_layer
+        if 'anno_data' in cfg:
+            print(f"Anno data is of shape {cfg.anno_data}")
+        else:
+            cfg.anno_data = label_layer.data
+            print(f"Anno data is initialized to shape {cfg.anno_data}")
 
+        if not hasattr(label_layer, "already_init"):
             @label_layer.mouse_drag_callbacks.append
             def painting_layer(layer, event):
+                print(cfg.current_annotation_name)
                 cfg.prev_arr = label_layer.data.copy()
                 drag_pts = []
                 coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(np.int32)
                 try:
-                    if cfg.retrieval_mode == "slice":
-                        drag_pt = [coords[0], coords[1]]
-                    elif cfg.retrieval_mode == "volume" or cfg.retrieval_mode == "volume_http":
-                        drag_pt = [coords[0], coords[1], coords[2]]
+                    drag_pt = [coords[0], coords[1], coords[2]]
                     drag_pts.append(drag_pt)
                     yield
 
@@ -279,18 +270,11 @@ def frontend(viewer):
                         layer.mode = "paint"
                     if layer.mode == "paint" or layer.mode == "erase":
                         while event.type == "mouse_move":
-
                             coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(
                                 np.int32
                             )
 
-                            if cfg.retrieval_mode == "slice":
-                                drag_pt = [coords[0], coords[1]]
-                            elif (
-                                cfg.retrieval_mode == "volume"
-                                or cfg.retrieval_mode == "volume_http"
-                            ):
-                                drag_pt = [coords[0], coords[1], coords[2]]
+                            drag_pt = [coords[0], coords[1], coords[2]]
                             drag_pts.append(drag_pt)
                             yield
 
@@ -302,13 +286,13 @@ def frontend(viewer):
                                 anno_layer = anno_layer[0]
 
                                 def update_anno(msg):
-                                    if cfg.local_sv:
-
-                                        src_arr = cfg.anno_data
-                                    else:
+                                    if cfg.remote_annotation:
                                         src_arr, _ = get_level_from_server(
                                             msg, retrieval_mode=cfg.retrieval_mode
                                         )
+                                    else:
+                                        src_arr = cfg.anno_data
+                                        print(f"replaced src array with array of shape {src_arr.shape}")
                                     update_annotation_layer_in_viewer(msg["level_id"], src_arr)
 
                                 update = partial(update_anno, msg=msg)
@@ -340,9 +324,12 @@ def frontend(viewer):
         label_layer.already_init = 1
 
     def paint_annotations(msg):
+        # if not in the process of clearing viewer
         if not cfg.emptying_viewer:
             try:
                 label_layer = refresh_annotations_in_viewer(msg)
+                
+
                 sel_label = int(cfg.label_value["idx"]) if cfg.label_value is not None else 1
                 if msg["level_id"] is not None:
                     params = dict(workspace=True, level=msg["level_id"], label_idx=sel_label)
@@ -351,7 +338,7 @@ def frontend(viewer):
                     parent_label_idx = result[1]
                     cfg.parent_level = parent_level
                     cfg.parent_label_idx = parent_label_idx
-                    setup_paint_undo_local(label_layer)
+                    setup_paint_undo(label_layer)
                     setup_painting_layer(label_layer, msg, parent_level, parent_label_idx)
 
             except Exception as e:
