@@ -153,7 +153,6 @@ class Launcher(QtCore.QObject):
                     self.connected = False
                     cnt += 1
                     logger.info("ConnectionError - delayed")
-                    # ModalManager.g.connection_lost()
 
                     if self.terminated:
                         return False
@@ -204,12 +203,8 @@ class Launcher(QtCore.QObject):
 
     def setup(self, caption):
         logger.debug("### {} ###".format(caption))
-        # if self.modal:
-        #    ModalManager.g.show_loading(caption)
-
+        
     def cleanup(self):
-        # if self.modal:
-        #    ModalManager.g.hide()
         QtWidgets.QApplication.processEvents()
 
     def process_error(self, error):
@@ -217,7 +212,6 @@ class Launcher(QtCore.QObject):
             error = format_yaml(error, explicit_start=False, explicit_end=False, flow=False)
 
         logger.error("{} :: {}".format(self.title, error))
-        # ModalManager.g.show_error(error)
         QtWidgets.QApplication.processEvents()
         return False
 

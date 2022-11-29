@@ -65,7 +65,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         adv_run_layout.addWidget(self.existing_button, 2, 1)
 
         self.existing_button.clicked.connect(self.existing_clicked)
-
         self.adv_run_fields.setLayout(adv_run_layout)
 
     def stop_clicked(self):
@@ -103,10 +102,12 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         logger.info(f"Setting remote: {remote_ip_port}")
         resp = Launcher.g.set_remote(remote_ip_port)
         logger.info(f"Response from server to setting remote: {resp}")
-        resp = Launcher.g.run("workspace", "set_workspace", self.selected_workspace)
-        logger.info(f"Response from server to setting workspace: {resp}")
+        if hasattr(self, 'selected_workspace'):
+            logger.info(f"Setting workspace to: {self.selected_workspace}")
+            resp = Launcher.g.run("workspace", "set_workspace", workspace=self.selected_workspace)
+            logger.info(f"Response from server to setting workspace: {resp}")
 
-        # cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
 
     def existing_clicked(self):
         ssh_ip = self.server_ip_linedt.text()
@@ -288,14 +289,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.refresh_workspaces()
         cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
 
-    def button_pause_save_clicked(self):
-        if cfg.pause_save:
-            self.button_pause_save.setText("Pause Saving to Server")
-        else:
-            self.button_pause_save.setText("Resume saving to Server")
-
-        cfg.pause_save = not cfg.pause_save
-
     def button_transfer_clicked(self):
         cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "transfer_layer", "value": None})
 
@@ -408,13 +401,13 @@ class PluginPanelWidget(QtWidgets.QWidget):
             plugin = get_plugin(plugin_name)
             name = plugin["name"]
             tab = plugin["tab"]
-            self.pluginContainer.show_plugin2(name, tab)
+            self.pluginContainer.show_plugin_fast(name, tab)
 
     def setup_features(self):
         plugin = get_plugin("features")
         name = plugin["name"]
         tab = plugin["tab"]
-        self.pluginContainer.show_plugin2(name, tab)
+        self.pluginContainer.show_plugin_fast(name, tab)
 
     def setup_named_plugin(self, name):
         plugin = get_plugin(name)
@@ -426,7 +419,7 @@ class PluginPanelWidget(QtWidgets.QWidget):
         plugin = get_plugin(name)
         name = plugin["name"]
         tab = plugin["tab"]
-        self.pluginContainer.show_plugin2(name, tab)
+        self.pluginContainer.show_plugin_fast(name, tab)
 
 
 class QtPlotWidget(QtWidgets.QWidget):
