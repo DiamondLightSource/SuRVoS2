@@ -263,7 +263,7 @@ class Dataset(BaseDataset):
 
         if chunks is None:
             chunk_size = list(shape)
-        elif isinstance(chunks, collections.Iterable) and len(chunks) == len(shape):
+        elif isinstance(chunks, collections.abc.Iterable) and len(chunks) == len(shape):
             chunk_size = list(chunks)
         elif isinstance(chunks, numbers.Number):
             chunk_size = list(optimal_chunksize(shape, chunks, item_size=isize, **kwargs))
