@@ -33,7 +33,7 @@ networkx
 nibabel
 nose
 numba
-numpy==1.20.3
+numpy==1.21.6
 numpydoc
 pandas
 parse
