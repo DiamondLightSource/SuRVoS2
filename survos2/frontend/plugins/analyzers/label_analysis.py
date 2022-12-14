@@ -102,7 +102,7 @@ class LabelSplitter(AnalyzerCardBase):
         logger.debug(f"Running analyzer with params {all_params}")
         result = Launcher.g.run("analyzer", "label_splitter", **all_params)
         print(result)
-        result_features, features_array, _ = result
+        result_features, features_array = result
         features_ndarray = np.array(features_array)
         logger.debug(f"Shape of features_array: {features_ndarray.shape}")
 
