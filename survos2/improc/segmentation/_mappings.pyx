@@ -1,11 +1,11 @@
-##cython: language_level=3
-##cython: boundscheck=False
-##cython: cdivision=True
-##cython: wraparound=False
+#cython: language_level=3
+#cython: boundscheck=False
+#cython: cdivision=True
+#cython: wraparound=False
 
 
 import numpy as np
-#cimport numpy as np
+cimport numpy as np
 
 
 def _rlabels(unsigned char[::1] y, unsigned int[::1] R, int ny, int nr, double min_ratio):
