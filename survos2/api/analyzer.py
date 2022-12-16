@@ -427,8 +427,8 @@ def label_splitter(
         [
             [
                 np.int32(np.float32(features_df.iloc[i]["z"])),
-                np.int32(np.float32(features_df.iloc[i]["y"])),
                 np.int32(np.float32(features_df.iloc[i]["x"])),
+                np.int32(np.float32(features_df.iloc[i]["y"])),
                 np.float32(np.float32(features_df.iloc[i]["Sum"])),
                 np.float32(np.float32(features_df.iloc[i]["Mean"])),
                 np.float32(np.float32(features_df.iloc[i]["Std"])),
@@ -465,8 +465,8 @@ def label_splitter(
                 s = int(split_op) - 1  # split_op starts at 1
                 feature_names = [
                     "z",
-                    "y",
                     "x",
+                    "y",
                     "Sum",
                     "Mean",
                     "Std",
