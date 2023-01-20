@@ -13,7 +13,7 @@ cython
 dask
 decorator
 falcon
-fastapi[all]
+fastapi[all]==0.85.2
 h5py
 hdbscan
 httpx
