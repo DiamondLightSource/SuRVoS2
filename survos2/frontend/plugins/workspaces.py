@@ -971,6 +971,8 @@ class WorkspacesPlugin(Plugin):
         os.chdir(os.path.join(command_dir, "survos2"))
         self.server_process = subprocess.Popen(
             [
+                "python",
+                "-m", 
                 "uvicorn",
                 "start_server:app",
                 "--port",

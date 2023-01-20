@@ -85,6 +85,8 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.run_config["server_port"] = self.server_port_linedt.text()
         cfg.server_process = subprocess.Popen(
             [
+                "python",
+                "-m", 
                 "uvicorn",
                 "start_server:app",
                 "--port",

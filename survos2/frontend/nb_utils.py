@@ -28,6 +28,8 @@ def start_server(server_port):
 
     server_process = subprocess.Popen(
         [
+            "python",
+            "-m",
             "uvicorn",
             "start_server:app",
             "--port",

@@ -672,6 +672,7 @@ def find_connected_components(
 
     bbs_tables, selected_entities = detect_blobs(single_label_level)
 
+    # iterate through component and create result list
     result_list = []
     for i in range(len(bbs_tables[0])):
         if (bbs_tables[0].iloc[i]["area"] > area_min) & (bbs_tables[0].iloc[i]["area"] < area_max):
