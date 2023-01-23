@@ -129,7 +129,7 @@ def upload(file: UploadFile = File(...)):
 
 
 @objects.get("/get_entities")
-def get_entities(src: str, basename=True):
+def get_entities(src: str, basename: bool =True):
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
         logger.debug(f"Using dataset {ds_objects}")

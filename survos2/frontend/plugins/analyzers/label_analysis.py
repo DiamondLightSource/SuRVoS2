@@ -224,7 +224,7 @@ class RemoveMaskedObjects(AnalyzerCardBase):
         all_params["feature_id"] = str(self.feature_source.value())
         all_params["object_id"] = str(self.objects_source.value())
         all_params["invert"] = self.invert_checkbox.value()
-        all
+        
         result = Launcher.g.run("analyzer", "remove_masked_objects", **all_params)
         logger.debug(f"remove_masked_objects result table {len(result)}")
         self.display_component_results(result)
