@@ -106,13 +106,10 @@ def frontend(viewer):
     def _set_anno_layer_params(label_value, paint_params):
         anno_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
 
-        if len(anno_layer) > 0:
-            if cfg.remote_annotation:
-                pass
-            else:
+        if anno_layer:
+            if not cfg.remote_annotation:
                 update_annotation_layer_in_viewer(cfg.current_annotation_name, cfg.anno_data)
 
-            
             #cfg.local_sv = False
             anno_layer = anno_layer[0]
             cfg.label_ids = list(np.unique(anno_layer))
@@ -226,7 +223,7 @@ def frontend(viewer):
 
     def setup_paint_undo(label_layer):
         @label_layer.bind_key("Control-Z", overwrite=True)
-        def undo(v):
+        def undo():
             logger.info("Undoing annotation")
             if cfg.num_undo == 0:
                 # cfg.anno_data = cfg.anno_data >> _MaskSize
@@ -266,9 +263,9 @@ def frontend(viewer):
                     drag_pts.append(drag_pt)
                     yield
 
-                    if layer.mode == "fill" or layer.mode == "pick":
+                    if layer.mode in ["fill", "pick"]:
                         layer.mode = "paint"
-                    if layer.mode == "paint" or layer.mode == "erase":
+                    if layer.mode in ["paint", "erase"]:
                         while event.type == "mouse_move":
                             coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(
                                 np.int32
@@ -389,20 +386,23 @@ def frontend(viewer):
             pbar.set_description("Transferring layer")
             logger.debug(f"transfer_layer {msg}")
             selected_layer = viewer.layers.selection.pop()
+
             if isinstance(selected_layer, Labels):
-                _transfer_labels(selected_layer)
-                pbar.update(1)
-                processEvents({"data": "refresh_plugin", "plugin_name": "annotations"})
+                transfer_function = _transfer_labels
+                plugin_name = "annotations"
             elif isinstance(selected_layer, Points):
-                _transfer_points(selected_layer)
-                pbar.update(1)
-                processEvents({"data": "refresh_plugin", "plugin_name": "objects"})
+                transfer_function = _transfer_points
+                plugin_name = "objects"
             elif isinstance(selected_layer, Image):
-                _transfer_features_http(selected_layer)
-                pbar.update(1)
-                processEvents({"data": "refresh_plugin", "plugin_name": "features"})
+                transfer_function = _transfer_features_http
+                plugin_name = "features"
             else:
                 logger.debug("Unsupported layer type.")
+                return
+
+            transfer_function(selected_layer)
+            pbar.update(1)
+            processEvents({"data": "refresh_plugin", "plugin_name": plugin_name})
 
     def make_roi_ws(msg):
         logger.debug(f"Goto roi: {msg}")
