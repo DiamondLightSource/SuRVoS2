@@ -125,7 +125,7 @@ def existing():
         if not "roi_fnames" in ds_metadata:
             src_dataset.set_metadata("roi_fnames", {})
             return {}
-        
+
         roi_fnames = ds_metadata["roi_fnames"]
         return roi_fnames
 

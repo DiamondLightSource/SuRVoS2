@@ -561,10 +561,13 @@ class WorkspacesPlugin(Plugin):
         self.setWindowIcon(QIcon(os.path.join(current_fpth, "resources", "logo.png")))
         self.setLayout(self.layout)
         self.show()
+
     def setup(self):
         pass
+
     def clear(self):
         pass
+
     def select_chroot_path(self):
         print("select_chroot_path")
         full_path = QtWidgets.QFileDialog.getExistingDirectory(
@@ -813,7 +816,6 @@ class WorkspacesPlugin(Plugin):
         else:
             self.adv_run_fields.hide()
 
-
     @pyqtSlot()
     def create_workspace_clicked(self):
         """Performs checks and coordinates workspace creation on button press."""
@@ -972,7 +974,7 @@ class WorkspacesPlugin(Plugin):
         self.server_process = subprocess.Popen(
             [
                 "python",
-                "-m", 
+                "-m",
                 "uvicorn",
                 "start_server:app",
                 "--port",

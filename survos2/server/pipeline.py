@@ -26,6 +26,7 @@ from survos2.model import DataModel
 from survos2.server.model import SRFeatures
 import survos2.survos as survos
 
+
 @dataclass
 class Patch:
     """A Patch is processed by a Pipeline
@@ -106,7 +107,7 @@ def run_workflow(workflow_file):
             print(f"+ Running {k}, with {plugin}, {command} on {src}\n to dst {dst} {all_params}\n")
 
             Launcher.g.run(plugin, command, **all_params)
-            #survos.run_command(plugin, command, uri=None, src=src, dst=dst)
+            # survos.run_command(plugin, command, uri=None, src=src, dst=dst)
 
     else:
         print("Need input workflow YAML file")

@@ -37,7 +37,7 @@ def get(workspace: str):
     else:
         logger.info(f"Workspace doesn't exist: {workspace}")
         return False
-    #raise APIException("Workspace '%s' does not exist." % workspace)
+    # raise APIException("Workspace '%s' does not exist." % workspace)
 
 
 @workspace.get("/make_roi_ws")

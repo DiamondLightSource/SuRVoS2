@@ -8,7 +8,8 @@ from survos2.model import DataModel, Dataset, Workspace
 from loguru import logger
 import h5py
 
-tmp_ws_name = 'blank'
+tmp_ws_name = "blank"
+
 
 @pytest.fixture(scope="session")
 def datamodel():
@@ -65,7 +66,6 @@ class Tests(object):
             response = await ac.get("/features/existing", params=params)
         assert response.status_code == 200
 
-
     @pytest.mark.asyncio
     async def test_objects(self, datamodel):
         async with AsyncClient(app=app, base_url="http://test") as ac:
@@ -73,14 +73,12 @@ class Tests(object):
             response = await ac.get("/objects/existing", params=params)
         assert response.status_code == 200
 
-
     @pytest.mark.asyncio
     async def test_pipelines(self, datamodel):
         async with AsyncClient(app=app, base_url="http://test") as ac:
             params = {"workspace": "blank"}
             response = await ac.get("/pipelines/existing", params=params)
         assert response.status_code == 200
-
 
     @pytest.mark.asyncio
     async def test_analyzer(self, datamodel):

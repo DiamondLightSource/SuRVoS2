@@ -3,6 +3,9 @@ import os
 import numpy as np
 from loguru import logger
 import tempfile
+
+from fastapi import APIRouter, Query, Body, File, UploadFile, Form, Depends
+
 from survos2.api import workspace as ws
 
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
@@ -13,14 +16,14 @@ from survos2.utils import encode_numpy
 from survos2.frontend.components.entity import setup_entity_table
 from survos2.entity.entities import load_entities_via_file, make_entity_df, make_entity_bvol
 
+
+
 __objects_fill__ = 0
 __objects_dtype__ = "uint32"
 __objects_group__ = "objects"
 __objects_names__ = ["points", "boxes", "patches"]
 
 
-from pydantic import BaseModel
-from fastapi import APIRouter, Query, Body, File, UploadFile, Form, Depends
 
 objects = APIRouter()
 
@@ -129,7 +132,7 @@ def upload(file: UploadFile = File(...)):
 
 
 @objects.get("/get_entities")
-def get_entities(src: str, basename: bool =True):
+def get_entities(src: str, basename: bool = True):
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
         logger.debug(f"Using dataset {ds_objects}")

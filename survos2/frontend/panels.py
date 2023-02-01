@@ -86,7 +86,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         cfg.server_process = subprocess.Popen(
             [
                 "python",
-                "-m", 
+                "-m",
                 "uvicorn",
                 "start_server:app",
                 "--port",
@@ -104,7 +104,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         logger.info(f"Setting remote: {remote_ip_port}")
         resp = Launcher.g.set_remote(remote_ip_port)
         logger.info(f"Response from server to setting remote: {resp}")
-        if hasattr(self, 'selected_workspace'):
+        if hasattr(self, "selected_workspace"):
             logger.info(f"Setting workspace to: {self.selected_workspace}")
             resp = Launcher.g.run("workspace", "set_workspace", workspace=self.selected_workspace)
             logger.info(f"Response from server to setting workspace: {resp}")
@@ -266,7 +266,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         resp = Launcher.g.set_remote(remote_ip_port)
         resp = Launcher.g.run("workspace", "set_workspace", self.selected_workspace)
         logger.info(f"Response from server to setting workspace: {resp}")
-
 
     def button_load_workspace_clicked(self):
         with progress(total=2) as pbar:

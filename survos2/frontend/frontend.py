@@ -99,7 +99,7 @@ def frontend(viewer):
             logger.debug(f"set_paint_params {msg['paint_params']}")
             paint_params = msg["paint_params"]
             label_value = paint_params["label_value"]
-            
+
             if label_value is not None and len(viewer.layers.selection) > 0:
                 _set_anno_layer_params(label_value, paint_params)
 
@@ -110,7 +110,7 @@ def frontend(viewer):
             if not cfg.remote_annotation:
                 update_annotation_layer_in_viewer(cfg.current_annotation_name, cfg.anno_data)
 
-            #cfg.local_sv = False
+            # cfg.local_sv = False
             anno_layer = anno_layer[0]
             cfg.label_ids = list(np.unique(anno_layer))
             anno_layer.mode = "paint"
@@ -135,12 +135,12 @@ def frontend(viewer):
             print("Remote annotation")
             update_annotation_layer_in_viewer(msg["level_id"], cfg.anno_data)
             cfg.ppw.clientEvent.emit(
-                        {
-                            "source": "save_annotation",
-                            "data": "save_annotation",
-                            "value": None,
-                        }
-                    )
+                {
+                    "source": "save_annotation",
+                    "data": "save_annotation",
+                    "value": None,
+                }
+            )
         else:
             src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
             with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
@@ -187,8 +187,7 @@ def frontend(viewer):
                                 "value": None,
                             }
                         )
-                
-                    
+
                 result = Launcher.g.run(
                     "annotations", "get_levels", workspace=DataModel.g.current_workspace
                 )
@@ -244,14 +243,15 @@ def frontend(viewer):
                     )
 
     def setup_painting_layer(label_layer, msg, parent_level, parent_label_idx):
-        #cfg.current_annotation_name = label_layer
-        if 'anno_data' in cfg:
+        # cfg.current_annotation_name = label_layer
+        if "anno_data" in cfg:
             print(f"Anno data is of shape {cfg.anno_data}")
         else:
             cfg.anno_data = label_layer.data
             print(f"Anno data is initialized to shape {cfg.anno_data}")
 
         if not hasattr(label_layer, "already_init"):
+
             @label_layer.mouse_drag_callbacks.append
             def painting_layer(layer, event):
                 print(cfg.current_annotation_name)
@@ -289,7 +289,9 @@ def frontend(viewer):
                                         )
                                     else:
                                         src_arr = cfg.anno_data
-                                        print(f"replaced src array with array of shape {src_arr.shape}")
+                                        print(
+                                            f"replaced src array with array of shape {src_arr.shape}"
+                                        )
                                     update_annotation_layer_in_viewer(msg["level_id"], src_arr)
 
                                 update = partial(update_anno, msg=msg)
@@ -325,7 +327,6 @@ def frontend(viewer):
         if not cfg.emptying_viewer:
             try:
                 label_layer = refresh_annotations_in_viewer(msg)
-                
 
                 sel_label = int(cfg.label_value["idx"]) if cfg.label_value is not None else 1
                 if msg["level_id"] is not None:

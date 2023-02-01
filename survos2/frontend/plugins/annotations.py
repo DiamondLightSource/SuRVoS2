@@ -105,7 +105,7 @@ class AnnotationPlugin(Plugin):
         self.setup_adv_run_fields()
         self.vbox.addWidget(self.adv_run_fields)
         self.adv_run_fields.hide()
-        
+
         self.levels = {}
         self.btn_addlevel.clicked.connect(self.add_level)
         self.timer_id = -1
@@ -146,9 +146,8 @@ class AnnotationPlugin(Plugin):
         self.hbox2 = HBox(self, margin=1, spacing=10)
         self.hbox2.addWidget(self.button_pause_save)
         self.hbox2.addWidget(self.button_save_anno)
-        #self.vbox.addLayout(self.hbox2)
+        # self.vbox.addLayout(self.hbox2)
         self.adv_run_fields.setLayout(self.hbox2)
-
 
     def on_created(self):
         pass
@@ -182,7 +181,7 @@ class AnnotationPlugin(Plugin):
         self.levels = {}
 
     def button_save_anno_clicked(self):
-        if 'anno_data' in cfg:
+        if "anno_data" in cfg:
             cfg.anno_data = cfg.anno_data & 15
         cfg.ppw.clientEvent.emit(
             {
@@ -198,10 +197,10 @@ class AnnotationPlugin(Plugin):
             self.button_pause_save.setText("Local Annotation")
         else:
             self.button_pause_save.setText("Remote Annotation")
-        
-        #if 'anno_data' in cfg:
+
+        # if 'anno_data' in cfg:
         #    cfg.anno_data = np.zeros_like(cfg.anno_data)
-        if 'prev_arr' in cfg:
+        if "prev_arr" in cfg:
             cfg.prev_arr = np.zeros_like(cfg.prev_arr)
 
     def setup(self):

@@ -203,7 +203,7 @@ class Launcher(QtCore.QObject):
 
     def setup(self, caption):
         logger.debug("### {} ###".format(caption))
-        
+
     def cleanup(self):
         QtWidgets.QApplication.processEvents()
 

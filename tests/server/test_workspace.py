@@ -73,6 +73,7 @@ def datamodel():
 class Tests(object):
     def test_workspace(self, datamodel):
         from survos2.api.workspace import add_session, list_sessions
+
         add_session(workspace=tmp_ws_name, session="roi1")
         result = list_sessions(workspace=tmp_ws_name)
         assert result[0] == "roi1"

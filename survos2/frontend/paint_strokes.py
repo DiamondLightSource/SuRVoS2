@@ -35,16 +35,19 @@ def get_line_points(drag_pts, anno_layer_shape, viewer_order):
             py, px = y, x
     return np.array(line_x), np.array(line_y), z
 
-def annotate_voxels(line_x, 
-        line_y, 
-        z, 
-        level, 
-        sel_label, 
-        brush_size,
-        anno_shape, 
-        parent_level, 
-        parent_label_idx, 
-        viewer_order):
+
+def annotate_voxels(
+    line_x,
+    line_y,
+    z,
+    level,
+    sel_label,
+    brush_size,
+    anno_shape,
+    parent_level,
+    parent_label_idx,
+    viewer_order,
+):
     ########################################################################
     line_y, line_x = dilate_annotations(
         line_x,
@@ -69,22 +72,20 @@ def annotate_voxels(line_x,
         workspace=DataModel.g.current_workspace,
     )
 
-    result = Launcher.g.run(
-        "annotations", "annotate_voxels", json_transport=True, **params
-    )
+    result = Launcher.g.run("annotations", "annotate_voxels", json_transport=True, **params)
 
 
 def annotate_regions(
-    line_x, 
-        line_y, 
-        z, 
-        level, 
-        sel_label, 
-        brush_size,
-        anno_shape, 
-        parent_level, 
-        parent_label_idx, 
-        viewer_order
+    line_x,
+    line_y,
+    z,
+    level,
+    sel_label,
+    brush_size,
+    anno_shape,
+    parent_level,
+    parent_label_idx,
+    viewer_order,
 ):
     ################################################################################
     # we are painting with supervoxels, so check if we have a current supervoxel cache
@@ -112,9 +113,7 @@ def annotate_regions(
     # logger.debug(f"BB: {bb}")
 
     if cfg.supervoxels_cached == False:
-        regions_dataset = DataModel.g.dataset_uri(
-            cfg.current_regions_name, group="superregions"
-        )
+        regions_dataset = DataModel.g.dataset_uri(cfg.current_regions_name, group="superregions")
         with DatasetManager(
             regions_dataset,
             out=None,
@@ -173,7 +172,8 @@ def annotate_regions(
             bb=bb,
             viewer_order=viewer_order,
         )
-        
+
+
 @thread_worker
 def paint_strokes(
     msg,
@@ -184,7 +184,7 @@ def paint_strokes(
     viewer_order=(0, 1, 2),
 ):
     """
-    Gather all information required from viewer and call annotation function 
+    Gather all information required from viewer and call annotation function
     """
     level = msg["level_id"]
     anno_layer_shape = anno_layer.data.shape
@@ -214,30 +214,33 @@ def paint_strokes(
 
             # Check if we are painting using supervoxels, if not, annotate voxels
             if cfg.current_supervoxels is None:
-                annotate_voxels(line_x, 
-                    line_y, 
-                    z, 
-                    level, 
-                    sel_label, 
-                    anno_layer.brush_size,
-                    anno_shape, 
-                    parent_level, 
-                    parent_label_idx, 
-                    viewer_order)
-            else:
-                annotate_regions(line_x, 
-                    line_y, 
-                    z, 
-                    level, 
-                    sel_label, 
+                annotate_voxels(
+                    line_x,
+                    line_y,
+                    z,
+                    level,
+                    sel_label,
                     anno_layer.brush_size,
                     anno_shape,
-                    parent_level, 
-                    parent_label_idx, 
-                    viewer_order)
+                    parent_level,
+                    parent_label_idx,
+                    viewer_order,
+                )
+            else:
+                annotate_regions(
+                    line_x,
+                    line_y,
+                    z,
+                    level,
+                    sel_label,
+                    anno_layer.brush_size,
+                    anno_shape,
+                    parent_level,
+                    parent_label_idx,
+                    viewer_order,
+                )
     except Exception as e:
         logger.debug(f"paint_strokes Exception: {e}")
-
 
 
 def _annotate_regions_local(
@@ -269,10 +272,10 @@ def _annotate_regions_local(
     if r is None or len(r) == 0:
         return
 
-    #mbit = 2 ** (np.dtype(level.dtype).itemsize * 8 // _MaskSize) - 1
-    #rmax = np.max(r)
-    #modified = dataset.get_attr("modified")
-    
+    # mbit = 2 ** (np.dtype(level.dtype).itemsize * 8 // _MaskSize) - 1
+    # rmax = np.max(r)
+    # modified = dataset.get_attr("modified")
+
     cfg.modified = [0]
     ds = level[:]
     reg = region[:]
@@ -325,13 +328,8 @@ def _annotate_regions_local(
         # )
         cfg.anno_data = np.transpose(ds_t, new_order)  # .reshape(original_shape)
         # logger.info(f"Dataset after second transpose: {ds_o.shape}")
-        
+
     else:
         cfg.anno_data = ds_t
 
-    
     cfg.modified = [1]
-
-
-
-
