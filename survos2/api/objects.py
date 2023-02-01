@@ -393,6 +393,7 @@ def available():
             "upload",
             "get_entities",
             "get_entities_metadata",
+            "import_entities",
             "update_metadata",
         ]:
             continue

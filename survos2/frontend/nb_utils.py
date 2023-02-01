@@ -20,14 +20,21 @@ from survos2.model import DataModel
 from survos2 import survos
 
 
-def start_server(server_port):
+def start_server(server_port, short_form_subprocess_command=False):
     command_dir = os.path.abspath(os.path.dirname(__file__))
     command_dir = Path(command_dir).absolute().parent.resolve()
     os.chdir(command_dir)
     server_port = str(server_port)
 
-    server_process = subprocess.Popen(
-        [
+    if short_form_subprocess_command:
+        subprocess_command = [
+            "uvicorn",
+            "start_server:app",
+            "--port",
+            server_port,
+        ]
+    else:
+        subprocess_command = [
             "python",
             "-m",
             "uvicorn",
@@ -35,7 +42,9 @@ def start_server(server_port):
             "--port",
             server_port,
         ]
-    )
+
+    server_process = subprocess.Popen(subprocess_command)
+
     with contextlib.suppress(subprocess.TimeoutExpired):
         outs, errs = server_process.communicate(timeout=10)
         print(f"OUTS: {outs, errs}")
