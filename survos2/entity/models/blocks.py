@@ -14,7 +14,6 @@ import torch.nn.functional as F
 
 
 class NDConvGenerator(object):
-    
     def __init__(self, dim):
         self.dim = dim
 
@@ -65,7 +64,6 @@ class NDConvGenerator(object):
             conv = nn.Sequential(conv, relu_layer)
 
         return conv
-
 
 
 class Interpolate(nn.Module):
@@ -135,6 +133,7 @@ class ResBlockFPN(nn.Module):
         out = self.relu(out)
         return out
 
+
 class ResBlock(nn.Module):
     def __init__(
         self,
@@ -144,7 +143,7 @@ class ResBlock(nn.Module):
         conv,
         stride=1,
         identity_skip=True,
-        norm='instance_norm',
+        norm="instance_norm",
         relu="PReLU",
     ):
         """Builds a residual net block with three conv-layers.
@@ -200,7 +199,7 @@ class ResBlock_x2(nn.Module):
         conv,
         stride=1,
         identity_skip=True,
-        norm='instance_norm',
+        norm="instance_norm",
         relu="PReLU",
     ):
         """Builds a residual net block with two conv layers.
@@ -254,7 +253,7 @@ class ResBlock_x1(nn.Module):
         conv,
         stride=1,
         identity_skip=True,
-        norm='instance_norm',
+        norm="instance_norm",
         relu="PReLU",
     ):
         """Builds a residual net block with one conv layer.
@@ -297,19 +296,16 @@ class ResBlock_x1(nn.Module):
         return out
 
 
-
 def UpsampleDeconv(in_channels, out_channels, kernel_size=2, stride=2):
     return nn.Sequential(
-        nn.ConvTranspose3d(in_channels, out_channels, kernel_size, stride),
-        nn.PReLU()
+        nn.ConvTranspose3d(in_channels, out_channels, kernel_size, stride), nn.PReLU()
     )
-
 
 
 def ConvPool(in_channels, out_channels, kernel_size=2, stride=2):
     return nn.Sequential(
-        nn.Conv3d(in_channels, out_channels, kernel_size, stride, padding=0),
-        nn.PReLU())
+        nn.Conv3d(in_channels, out_channels, kernel_size, stride, padding=0), nn.PReLU()
+    )
 
 
 class ConvSoftmax(nn.Module):
@@ -320,31 +316,32 @@ class ConvSoftmax(nn.Module):
 
     def forward(self, x):
         """Output shape [batch_size, 1, depth, height, width]."""
-        y_conv = self.conv_2(self.conv_1(x)) # Don't normalize output
+        y_conv = self.conv_2(self.conv_1(x))  # Don't normalize output
         return nn.Sigmoid()(y_conv)
-    
+
 
 class DeConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, relu="PReLU", norm="instance_norm"):
         super(DeConvBlock, self).__init__()
         self.upsample = UpsampleDeconv(in_channels, out_channels)
         conv = NDConvGenerator(3)
-        self.lhs_conv = conv(out_channels // 2, out_channels, ks=1, stride=stride, relu=relu, norm=norm)
+        self.lhs_conv = conv(
+            out_channels // 2, out_channels, ks=1, stride=stride, relu=relu, norm=norm
+        )
         self.conv_x3 = nn.Sequential(
-            nn.Conv3d(2*out_channels, out_channels,5,1,2),
+            nn.Conv3d(2 * out_channels, out_channels, 5, 1, 2),
             nn.PReLU(),
-            nn.Conv3d(out_channels, out_channels,5,1,2),
+            nn.Conv3d(out_channels, out_channels, 5, 1, 2),
             nn.PReLU(),
-            nn.Conv3d(out_channels, out_channels,5,1,2),
+            nn.Conv3d(out_channels, out_channels, 5, 1, 2),
             nn.PReLU(),
         )
 
     def forward(self, lhs, rhs):
         rhs_up = self.upsample(rhs)
         lhs_conv = self.lhs_conv(lhs)
-        rhs_cat = torch.cat((rhs_up, lhs_conv),dim=1) 
-        return self.conv_x3(rhs_cat)+ rhs_up
-
+        rhs_cat = torch.cat((rhs_up, lhs_conv), dim=1)
+        return self.conv_x3(rhs_cat) + rhs_up
 
 
 class DeConvBlock_x2(nn.Module):
@@ -352,19 +349,21 @@ class DeConvBlock_x2(nn.Module):
         super(DeConvBlock_x2, self).__init__()
         self.upsample = UpsampleDeconv(in_channels, out_channels)
         conv = NDConvGenerator(3)
-        self.lhs_conv = conv(out_channels // 2, out_channels, ks=1, stride=stride, relu=relu, norm=norm)
+        self.lhs_conv = conv(
+            out_channels // 2, out_channels, ks=1, stride=stride, relu=relu, norm=norm
+        )
         self.conv_x2 = nn.Sequential(
-            nn.Conv3d(2*out_channels, out_channels,5,1,2),
+            nn.Conv3d(2 * out_channels, out_channels, 5, 1, 2),
             nn.PReLU(),
-            nn.Conv3d(out_channels, out_channels,5,1,2),
-            nn.PReLU()
+            nn.Conv3d(out_channels, out_channels, 5, 1, 2),
+            nn.PReLU(),
         )
 
     def forward(self, lhs, rhs):
         rhs_up = self.upsample(rhs)
         lhs_conv = self.lhs_conv(lhs)
-        rhs_cat = torch.cat((rhs_up, lhs_conv),dim=1) 
-        return self.conv_x2(rhs_cat)+ rhs_up
+        rhs_cat = torch.cat((rhs_up, lhs_conv), dim=1)
+        return self.conv_x2(rhs_cat) + rhs_up
 
 
 class DeConvBlock_x1(nn.Module):
@@ -372,15 +371,16 @@ class DeConvBlock_x1(nn.Module):
         super(DeConvBlock_x1, self).__init__()
         self.upsample = UpsampleDeconv(in_channels, out_channels)
         conv = NDConvGenerator(3)
-        self.lhs_conv = conv(out_channels // 2, out_channels, ks=1, stride=stride, relu=relu, norm=norm)
+        self.lhs_conv = conv(
+            out_channels // 2, out_channels, ks=1, stride=stride, relu=relu, norm=norm
+        )
         self.conv_x1 = nn.Sequential(
-            nn.Conv3d(2*out_channels, out_channels,5,1,2),
+            nn.Conv3d(2 * out_channels, out_channels, 5, 1, 2),
             nn.PReLU(),
-
         )
 
     def forward(self, lhs, rhs):
         rhs_up = self.upsample(rhs)
         lhs_conv = self.lhs_conv(lhs)
-        rhs_cat = torch.cat((rhs_up, lhs_conv),dim=1) 
-        return self.conv_x1(rhs_cat)+ rhs_up
+        rhs_cat = torch.cat((rhs_up, lhs_conv), dim=1)
+        return self.conv_x1(rhs_cat) + rhs_up

@@ -29,8 +29,6 @@ from loguru import logger
 from survos2.frontend.main import init_ws, roi_ws
 
 
-
-
 def load_model(detmod, file_path):
     def load_model_parameters(full_path):
         checkpoint = torch.load(full_path)
@@ -91,7 +89,7 @@ def remove_padding(vol, padding):
 
 
 def get_largest_cc(I):
-    # Initialize connected component (cc) as an array of zeros with the same shape as the input 
+    # Initialize connected component (cc) as an array of zeros with the same shape as the input
     cc = np.zeros_like(I)
 
     # Check if there are any non-zero values in the input image
@@ -164,4 +162,3 @@ def remove_padding(vol, padding):
         padding[2] : vol.shape[2] + padding[2],
     ]
     return unpadded_vol
-

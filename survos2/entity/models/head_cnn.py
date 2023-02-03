@@ -345,7 +345,6 @@ def display_fpn3d_pred(model3d, dataloaders, device=0):
         show_images([1.0 - out_arr_proc[0, i * 8, :, :] for i in range(1, 4)], figsize=(3, 3))
 
 
-
 def display_vnet_pred(model3d, dataloaders, device=0):
     import torch.nn.functional as F
     from survos2.frontend.nb_utils import show_images, summary_stats

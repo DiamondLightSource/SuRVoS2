@@ -290,8 +290,6 @@ def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
     return detmod, optimizer, scheduler
 
 
-
-
 def make_proposal(
     vol,
     model_fullname,
@@ -358,8 +356,7 @@ def make_proposal(
         print(f"Aggregated volume of {output_tensor1.shape}")
         seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
 
-    return output_tensor1 #seg_out
-
+    return output_tensor1  # seg_out
 
 
 def make_proposal2(
@@ -429,4 +426,3 @@ def make_proposal2(
         seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
 
     return output_tensor1, model3d
-

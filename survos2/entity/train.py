@@ -20,7 +20,7 @@ def train_oneclass_detseg(
     model=None,
     num_epochs=1,
     bce_weight=0.7,
-    initial_lr = 0.01
+    initial_lr=0.01,
 ):
 
     train_params = {
@@ -136,6 +136,7 @@ def train_all(
         )
     elif model_type == "vnet":
         from survos2.entity.models.vnet import prepare_vnet
+
         model3d, optimizer, scheduler = prepare_vnet(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
         )
@@ -172,6 +173,7 @@ def train_all(
         if display_plots:
             plot_losses(training_loss, validation_loss)
             from survos2.entity.models.head_cnn import display_vnet_pred
+
             display_vnet_pred(model3d, dataloaders, device=gpu_id)
 
         now = datetime.now()
@@ -264,7 +266,6 @@ def train_all(
             print(f"Saved model {model_file}")
 
     return model_file
-
 
 
 def train_all2(

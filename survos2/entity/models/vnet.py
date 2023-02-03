@@ -6,10 +6,17 @@ import torch
 from torch import optim
 from torch.optim import lr_scheduler
 from survos2.entity.utils import load_model
-from survos2.entity.models.blocks import (ResBlock, ResBlock_x2, ResBlock_x1, DeConvBlock, DeConvBlock_x2, DeConvBlock_x1, 
-        NDConvGenerator, ConvSoftmax, ConvPool)
-
-
+from survos2.entity.models.blocks import (
+    ResBlock,
+    ResBlock_x2,
+    ResBlock_x1,
+    DeConvBlock,
+    DeConvBlock_x2,
+    DeConvBlock_x1,
+    NDConvGenerator,
+    ConvSoftmax,
+    ConvPool,
+)
 
 
 class VNet(nn.Module):
@@ -22,7 +29,7 @@ class VNet(nn.Module):
         self.pool_2 = ConvPool(32, 64)
         self.conv_3 = ResBlock(64, 64, 64, conv=conv)
         self.pool_3 = ConvPool(64, 128)
-        self.conv_4 = ResBlock(128,128, 128, conv=conv)
+        self.conv_4 = ResBlock(128, 128, 128, conv=conv)
         self.pool_4 = ConvPool(128, 256)
         self.bottom = ResBlock(256, 256, 256, conv=conv)
 
@@ -48,7 +55,6 @@ class VNet(nn.Module):
         deconv = self.deconv_2(conv_2, deconv)
         deconv = self.deconv_1(conv_1, deconv)
         return self.out(deconv)
-
 
 
 def prepare_vnet(existing_model_fname=None, num_epochs=2, initial_lr=0.001, device=0):

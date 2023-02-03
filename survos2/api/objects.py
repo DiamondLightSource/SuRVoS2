@@ -17,12 +17,10 @@ from survos2.frontend.components.entity import setup_entity_table
 from survos2.entity.entities import load_entities_via_file, make_entity_df, make_entity_bvol
 
 
-
 __objects_fill__ = 0
 __objects_dtype__ = "uint32"
 __objects_group__ = "objects"
 __objects_names__ = ["points", "boxes", "patches"]
-
 
 
 objects = APIRouter()
