@@ -29,14 +29,6 @@ from loguru import logger
 from survos2.frontend.main import init_ws, roi_ws
 
 
-import torch
-
-
-def accuracy(prediction, groundtruth):
-    FP, FN, TP, TN = numeric_score(prediction, groundtruth)
-    N = FP + FN + TP + TN
-    accuracy = np.divide(TP + TN, N)
-    return accuracy * 100.0
 
 
 def load_model(detmod, file_path):
@@ -99,13 +91,22 @@ def remove_padding(vol, padding):
 
 
 def get_largest_cc(I):
+    # Initialize connected component (cc) as an array of zeros with the same shape as the input 
     cc = np.zeros_like(I)
+
+    # Check if there are any non-zero values in the input image
     if np.sum(I) > 0:
+        # Convert input image to binary forma
         img = I > 0
+        # Label the connected components in the binary image
         label_im, nb_labels = ndimage.label(img)
+        # Calculate the size (sum of values) of each connected component
         sizes = ndimage.sum(I, label_im, range(nb_labels + 1))
+        # Find the size of the largest connected component
         max_sz = np.max(sizes)
+        # Assign the size of each pixel in the image to the size of its connected component
         lab_sz = sizes[label_im]
+        # Set all pixels in the largest connected component to 1 and the rest to 0
         cc = lab_sz == max_sz
         cc = cc.astype(int)
 
@@ -114,8 +115,10 @@ def get_largest_cc(I):
 
 def get_surface(img_vol, plot3d=False):
     try:
+        # Get the vertices, faces, normals and values using marching_cubes
         verts, faces, normals, values = measure.marching_cubes((img_vol > 0) * 1.0, 0)
 
+        # Create a 3D polygon collection using the vertices and faces
         mesh = Poly3DCollection(verts[faces])
 
         if plot3d:
@@ -136,11 +139,16 @@ def get_surface(img_vol, plot3d=False):
             plt.tight_layout()
             plt.show()
 
+        # Calculate the surface area of the mesh
         s = skimage.measure.mesh_surface_area(verts, faces)
+
+        # Calculate the volume of the mesh
         v = np.sum(img_vol)
 
+        # Calculate the sphericity of the mesh
         sphericity = (36 * math.pi * (v**2)) / (s**3)
     except:
+        # Set default values in case of exceptions
         s = 0
         v = 0
         sphericity = 0
@@ -157,9 +165,3 @@ def remove_padding(vol, padding):
     ]
     return unpadded_vol
 
-
-def accuracy(prediction, groundtruth):
-    FP, FN, TP, TN = numeric_score(prediction, groundtruth)
-    N = FP + FN + TP + TN
-    accuracy = np.divide(TP + TN, N)
-    return accuracy * 100.0

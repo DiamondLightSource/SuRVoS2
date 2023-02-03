@@ -33,7 +33,7 @@ def load_model(detmod, file_path):
     checkpoint = load_model_parameters(file_path)
     detmod.load_state_dict(checkpoint["model_state"], strict=False)
     detmod.eval()
-
+    print(detmod)
     print(f"Loaded model from {file_path}")
     return detmod
 
@@ -290,6 +290,8 @@ def prepare_fpn3d(existing_model_fname=None, gpu_id=0):
     return detmod, optimizer, scheduler
 
 
+
+
 def make_proposal(
     vol,
     model_fullname,
@@ -300,6 +302,7 @@ def make_proposal(
     overlap_mode="crop",
     gpu_id=0,
 ):
+    from survos2.entity.models.vnet import prepare_vnet
 
     if model_type == "unet3d":
         print("Using unet3d")
@@ -307,6 +310,8 @@ def make_proposal(
     elif model_type == "fpn3d":
         print("Using fpn3d")
         model3d, _, _ = prepare_fpn3d(gpu_id=gpu_id)
+    elif model_type == "vnet":
+        model3d, _, _ = prepare_vnet(device=gpu_id)
     print(f"Predicting segmentation on volume of shape {vol.shape}")
 
     if model_type == "unet3d":
@@ -338,5 +343,90 @@ def make_proposal(
         output_tensor1 = aggregator.get_output_tensor()
         print(f"Aggregated volume of {output_tensor1.shape}")
         seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
+    elif model_type == "vnet":
+        model3d = load_model(model3d, model_fullname)
+        aggregator = predict_agg_3d(
+            vol,
+            model3d,
+            patch_size=patch_size,
+            patch_overlap=patch_overlap,
+            device=gpu_id,
+            fpn=False,
+            overlap_mode=overlap_mode,
+        )
+        output_tensor1 = aggregator.get_output_tensor()
+        print(f"Aggregated volume of {output_tensor1.shape}")
+        seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
 
-    return seg_out
+    return output_tensor1 #seg_out
+
+
+
+def make_proposal2(
+    vol,
+    model_fullname,
+    model_type="fpn3d",
+    nb=True,
+    patch_size=(64, 64, 64),
+    patch_overlap=(0, 0, 0),
+    overlap_mode="crop",
+    gpu_id=0,
+):
+    from survos2.entity.models.vnet import prepare_vnet
+
+    if model_type == "unet3d":
+        print("Using unet3d")
+        model3d, _, _ = prepare_unet3d(device=gpu_id)
+    elif model_type == "fpn3d":
+        print("Using fpn3d")
+        model3d, _, _ = prepare_fpn3d(gpu_id=gpu_id)
+    elif model_type == "vnet":
+        model3d, _, _ = prepare_vnet(device=gpu_id)
+    print(f"Predicting segmentation on volume of shape {vol.shape}")
+
+    if model_type == "unet3d":
+        model3d = load_model(model3d, model_fullname)
+        aggregator = predict_agg_3d(
+            vol,
+            model3d,
+            patch_size=patch_size,
+            patch_overlap=patch_overlap,
+            device=gpu_id,
+            fpn=False,
+            overlap_mode=overlap_mode,
+        )
+        output_tensor1 = aggregator.get_output_tensor()
+        print(f"Aggregated volume of {output_tensor1.shape}")
+        seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
+
+    elif model_type == "fpn3d":
+        model3d = load_model(model3d, model_fullname)
+        aggregator = predict_agg_3d(
+            vol,
+            model3d,
+            patch_size=patch_size,
+            patch_overlap=patch_overlap,
+            device=gpu_id,
+            fpn=False,
+            overlap_mode=overlap_mode,
+        )
+        output_tensor1 = aggregator.get_output_tensor()
+        print(f"Aggregated volume of {output_tensor1.shape}")
+        seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
+    elif model_type == "vnet":
+        model3d = load_model(model3d, model_fullname)
+        aggregator = predict_agg_3d(
+            vol,
+            model3d,
+            patch_size=patch_size,
+            patch_overlap=patch_overlap,
+            device=gpu_id,
+            fpn=False,
+            overlap_mode=overlap_mode,
+        )
+        output_tensor1 = aggregator.get_output_tensor()
+        print(f"Aggregated volume of {output_tensor1.shape}")
+        seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
+
+    return output_tensor1, model3d
+

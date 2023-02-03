@@ -17,12 +17,16 @@ import tempfile
 
 
 def load_boxes_via_file(boxes_arr, flipxy=True):
+    # Create a DataFrame from the input array using make_entity_boxes
     boxes_df = make_entity_boxes(boxes_arr, flipxy=flipxy)
+
+    # Generate a temporary file path for the CSV file
     tmp_fullpath = os.path.abspath(
         os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
     )
     boxes_df.to_csv(tmp_fullpath, line_terminator="")
-    print(boxes_df)
+
+    # Initialize default values for object scaling and cropping parameters
     object_scale = 1.0
     object_offset = (0.0, 0.0, 0.0)
     object_crop_start = (0.0, 0.0, 0.0)
@@ -35,6 +39,8 @@ def load_boxes_via_file(boxes_arr, flipxy=True):
     )
 
     result = Launcher.g.run("objects", "create", **params)
+
+    # If the operation succeeded, run the "boxes" operation
     if result:
         dst = DataModel.g.dataset_uri(result["id"], group="objects")
         params = dict(

@@ -323,7 +323,6 @@ def display_fpn3d_pred(model3d, dataloaders, device=0):
     from survos2.frontend.nb_utils import show_images, summary_stats
 
     for batch in tqdm(dataloaders["val"]):
-
         input_samples, labels = batch
 
         with torch.no_grad():
@@ -342,4 +341,32 @@ def display_fpn3d_pred(model3d, dataloaders, device=0):
                 figsize=(3, 3),
             )
 
-        show_images([1.0 - out_arr_proc[0, 1, i * 8, :, :] for i in range(1, 4)], figsize=(3, 3))
+        print(f"Output array of shape {out_arr_proc.shape}")
+        show_images([1.0 - out_arr_proc[0, i * 8, :, :] for i in range(1, 4)], figsize=(3, 3))
+
+
+
+def display_vnet_pred(model3d, dataloaders, device=0):
+    import torch.nn.functional as F
+    from survos2.frontend.nb_utils import show_images, summary_stats
+
+    for batch in tqdm(dataloaders["val"]):
+        input_samples, labels = batch
+
+        with torch.no_grad():
+            var_input = input_samples.float().to(device).unsqueeze(1)
+            preds = model3d(var_input)
+            out = torch.sigmoid(preds)
+            out_arr = out.detach().cpu().numpy()
+
+            print(var_input.shape)
+            print(out_arr.shape)
+            print(summary_stats(out_arr))
+
+            out_arr_proc = out_arr.copy()
+            show_images(
+                [input_samples[0, i * 10, :, :].numpy() for i in range(1, 4)],
+                figsize=(3, 3),
+            )
+
+        show_images([1.0 - out_arr_proc[0, 0, i * 8, :, :] for i in range(1, 4)], figsize=(3, 3))
