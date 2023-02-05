@@ -202,7 +202,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.display_histogram_plot(np.array([0, 1]))
 
         # add tabs to button/info panel
-        # tabs[0][0].layout.addLayout(self.hbox_layout0)
         tabs[0][0].layout.addLayout(hbox_layout_ws)
         tabs[0][0].layout.addLayout(hbox_layout1)
         self.setup_adv_run_fields()
@@ -216,8 +215,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.workspaces_list.clear()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
-        # self.slider.setMinimumWidth(cfg.base_dataset_shape[0])
-
+        
     def workspaces_selected(self):
         self.selected_workspace = self.workspaces_list.value()
         self.workspaces_list.blockSignals(True)
@@ -257,7 +255,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
     def startup_server(self):
         from survos2.frontend.nb_utils import start_server
-
         port = str(Config["api"]["port"])
         server_process = start_server(port)
         cfg["server_process"] = server_process
@@ -397,7 +394,7 @@ class PluginPanelWidget(QtWidgets.QWidget):
             cfg.viewer.layers.remove(l)
         cfg.emptying_viewer = False
 
-    def setup2(self):
+    def setup_fast(self):
         for plugin_name in list_plugins():
             plugin = get_plugin(plugin_name)
             name = plugin["name"]

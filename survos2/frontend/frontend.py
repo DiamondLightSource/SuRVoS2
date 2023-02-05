@@ -476,7 +476,10 @@ def frontend(viewer):
             dw.ppw.setup()
         elif msg["data"] == "faster_refresh":
             logger.debug("Faster refresh")
-            dw.ppw.setup2()
+            dw.ppw.setup_fast()
+        elif msg["data"] == "refresh_chroot":
+            logger.debug("Refresh chroot")
+            dw.bpw.refresh_workspaces()
         elif msg["data"] == "refresh_plugin":
             plugin_name = msg["plugin_name"]
             logger.debug("Refresh plugin")

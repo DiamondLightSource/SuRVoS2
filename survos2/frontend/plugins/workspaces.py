@@ -286,6 +286,7 @@ class LoadDataDialog(QDialog):
             self.reset_roi_fields()
             self.update_image(load=True)
 
+
     def reset_roi_fields(self):
         """Resets all the ROI dimension parameters to equal the data shape."""
         if len(self.data_shape) > 2:
@@ -462,9 +463,9 @@ class LoadDataDialog(QDialog):
             self.slider_min_label.setNum(z_start)
             self.slider.setMaximum(z_end - 1)
             self.slider_max_label.setNum(z_end)
+            self.slider.blockSignals(False)
             self.slider.setValue(idx)
             self.slider_z_label.setNum(idx)
-            self.slider.blockSignals(False)
             self.canvas.ax.set_ylim([y_size + 1, -1])
             self.canvas.ax.set_xlim([-1, x_size + 1])
         if isinstance(self.data, h5.Group):
@@ -688,61 +689,61 @@ class WorkspacesPlugin(Plugin):
 
         self.roi_fields.setLayout(roi_fields_layout)
 
-    def setup_adv_run_fields(self):
-        """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
-        self.adv_run_fields = QGroupBox("Advanced Run Settings:")
-        adv_run_layout = QGridLayout()
-        adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
-        self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
-        adv_run_layout.addWidget(self.server_ip_linedt, 0, 1)
-        adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
-        self.server_port_linedt = QLineEdit(self.run_config["server_port"])
-        adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
+    # def setup_adv_run_fields(self):
+    #     """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
+    #     self.adv_run_fields = QGroupBox("Advanced Run Settings:")
+    #     adv_run_layout = QGridLayout()
+    #     adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
+    #     self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
+    #     adv_run_layout.addWidget(self.server_ip_linedt, 0, 1)
+    #     adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
+    #     self.server_port_linedt = QLineEdit(self.run_config["server_port"])
+    #     adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
 
-        self.existing_button = QPushButton("Use Existing Server")
-        adv_run_layout.addWidget(self.existing_button, 2, 1)
+    #     self.existing_button = QPushButton("Use Existing Server")
+    #     adv_run_layout.addWidget(self.existing_button, 2, 1)
 
-        self.existing_button.clicked.connect(self.existing_clicked)
+    #     self.existing_button.clicked.connect(self.existing_clicked)
 
-        self.adv_run_fields.setLayout(adv_run_layout)
+    #     self.adv_run_fields.setLayout(adv_run_layout)
 
-    def get_run_fields(self):
-        """Gets the QGroupBox that contains the fields for starting SuRVoS.
+    # def get_run_fields(self):
+    #     """Gets the QGroupBox that contains the fields for starting SuRVoS.
 
-        Returns:
-            PyQt5.QWidgets.GroupBox: GroupBox with run fields.
-        """
-        self.run_button = QPushButton("Start Server")
-        self.stop_button = QPushButton("Stop Server")
+    #     Returns:
+    #         PyQt5.QWidgets.GroupBox: GroupBox with run fields.
+    #     """
+    #     self.run_button = QPushButton("Start Server")
+    #     self.stop_button = QPushButton("Stop Server")
 
-        advanced_button = QRadioButton("Advanced")
-        run_fields = QGroupBox("Run SuRVoS:")
-        run_layout = QGridLayout()
+    #     advanced_button = QRadioButton("Advanced")
+    #     run_fields = QGroupBox("Run SuRVoS:")
+    #     run_layout = QGridLayout()
 
-        workspaces = os.listdir(CHROOT)
-        self.workspaces_list = ComboBox()
-        for s in workspaces:
-            self.workspaces_list.addItem(key=s)
+    #     workspaces = os.listdir(CHROOT)
+    #     self.workspaces_list = ComboBox()
+    #     for s in workspaces:
+    #         self.workspaces_list.addItem(key=s)
 
-        run_layout.addWidget(QLabel("Workspace Name:"), 0, 0)
-        self.ws_name_linedt_2 = QLineEdit(self.workspace_config["workspace_name"])
-        self.ws_name_linedt_2.setAlignment(Qt.AlignLeft)
-        self.workspaces_list.setLineEdit(self.ws_name_linedt_2)
+    #     run_layout.addWidget(QLabel("Workspace Name:"), 0, 0)
+    #     self.ws_name_linedt_2 = QLineEdit(self.workspace_config["workspace_name"])
+    #     self.ws_name_linedt_2.setAlignment(Qt.AlignLeft)
+    #     self.workspaces_list.setLineEdit(self.ws_name_linedt_2)
 
-        # run_layout.addWidget(self.ws_name_linedt_2, 0, 1)
+    #     # run_layout.addWidget(self.ws_name_linedt_2, 0, 1)
 
-        run_layout.addWidget(self.workspaces_list, 0, 1)
-        run_layout.addWidget(advanced_button, 1, 0)
-        run_layout.addWidget(self.adv_run_fields, 2, 1)
-        run_layout.addWidget(self.run_button, 3, 1)
-        run_layout.addWidget(self.stop_button, 3, 0)
-        run_fields.setLayout(run_layout)
+    #     run_layout.addWidget(self.workspaces_list, 0, 1)
+    #     run_layout.addWidget(advanced_button, 1, 0)
+    #     run_layout.addWidget(self.adv_run_fields, 2, 1)
+    #     run_layout.addWidget(self.run_button, 3, 1)
+    #     run_layout.addWidget(self.stop_button, 3, 0)
+    #     run_fields.setLayout(run_layout)
 
-        advanced_button.toggled.connect(self.toggle_advanced)
-        self.run_button.clicked.connect(self.run_clicked)
-        self.stop_button.clicked.connect(self.stop_clicked)
+    #     advanced_button.toggled.connect(self.toggle_advanced)
+    #     self.run_button.clicked.connect(self.run_clicked)
+    #     self.stop_button.clicked.connect(self.stop_clicked)
 
-        return run_fields
+    #     return run_fields
 
     def get_login_username(self):
         try:
@@ -854,7 +855,8 @@ class WorkspacesPlugin(Plugin):
             except WorkspaceException as e:
                 logger.exception(e)
                 self.button_feedback_response(str(e), self.create_workspace_button, "maroon")
-            self.refresh_chroot()
+            #self.refresh_chroot()
+            cfg.ppw.clientEvent.emit({"source": "workspaces_plugin", "data": "refresh_chroot", "value": None})
 
     def button_feedback_response(self, message, button, colour_str, timeout=2):
         """Changes button colour and displays feedback message for a limited time period.
@@ -1002,7 +1004,7 @@ class WorkspacesPlugin(Plugin):
                 "workspace": self.ws_name_linedt_2.text(),
             }
         )
-        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+        cfg.ppw.clientEvent.emit({"source": "workspaces_plugin", "data": "refresh", "value": None})
         pbar.update(1)
 
     @pyqtSlot()
@@ -1020,7 +1022,7 @@ class WorkspacesPlugin(Plugin):
                 "workspace": self.ws_name_linedt_2.text(),
             }
         )
-        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+        cfg.ppw.clientEvent.emit({"source": "workspaces_plugin", "data": "refresh", "value": None})
 
     # def start_client(self):
     #     if not self.ssh_error:
