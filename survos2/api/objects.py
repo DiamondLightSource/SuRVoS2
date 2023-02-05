@@ -51,14 +51,6 @@ def load_bvols(bvols_arr, flipxy=True):
 
     ds.set_attr("kind", objects_type)
     ds.set_attr("fullname", tmp_fullpath)
-
-    src = DataModel.g.dataset_uri("__data__")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        img_volume = src_dataset[:]
-        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
-
-    ds[:] = np.zeros_like(img_volume)
     ds.set_attr("scale", object_scale)
     ds.set_attr("offset", list(object_offset))
     ds.set_attr("crop_start", list(object_crop_start))
@@ -97,14 +89,6 @@ def load_entities(entities_arr, flipxy=True):
 
     ds.set_attr("kind", objects_type)
     ds.set_attr("fullname", tmp_fullpath)
-
-    src = DataModel.g.dataset_uri("__data__")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        img_volume = src_dataset[:]
-        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
-
-    ds[:] = np.zeros_like(img_volume)
     ds.set_attr("scale", object_scale)
     ds.set_attr("offset", list(object_offset))
     ds.set_attr("crop_start", list(object_crop_start))
@@ -185,14 +169,6 @@ def points(
     fullname: str,
     scale: float,
 ) -> "GEOMETRY":
-    src = DataModel.g.dataset_uri("__data__")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        img_volume = src_dataset[:]
-        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
-    # store in dst
-    logger.debug(f"Storing in dataset {dst}")
-
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
         #DM.out[:] = np.zeros_like(img_volume)
         dst_dataset = DM.sources[0]
@@ -224,17 +200,7 @@ def boxes(
     crop_start: list,
     crop_end: list,
 ) -> "GEOMETRY":
-    src = DataModel.g.dataset_uri("__data__")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        img_volume = src_dataset[:]
-        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
-
-    # store in dst
-    logger.debug(f"Storing in dataset {dst}")
-
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        #DM.out[:] = np.zeros_like(img_volume)
         dst_dataset = DM.sources[0]
         dst_dataset.set_attr("scale", scale)
         dst_dataset.set_attr("offset", offset)
@@ -255,16 +221,7 @@ def patches(
     crop_start: list,
     crop_end: list,
 ) -> "GEOMETRY":
-    src = DataModel.g.dataset_uri("__data__")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        #src_dataset = DM.sources[0]
-        img_volume = src_dataset[:]
-        logger.debug(f"Got __data__ volume of size {img_volume.shape}")
-    # store in dst
-    logger.debug(f"Storing in dataset {dst}")
-
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = np.zeros_like(img_volume)
         dst_dataset = DM.sources[0]
         dst_dataset.set_attr("scale", scale)
         dst_dataset.set_attr("offset", offset)
