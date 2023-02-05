@@ -238,7 +238,7 @@ class Dataset(BaseDataset):
 
     @staticmethod
     def create(path, shape=None, dtype=None, data=None, fillvalue=0, chunks=CHUNKS, **kwargs):
-        logger.info(f"Creating dataset on {path} {shape} {dtype} {data} {chunks}")
+        logger.info(f"Creating dataset on {path} of shape {shape} of dtype {dtype} with data {data} in chunks {chunks}")
 
         database = kwargs.pop("database", "yaml")
         readonly = kwargs.pop("readonly", False)

@@ -194,7 +194,7 @@ def points(
     logger.debug(f"Storing in dataset {dst}")
 
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = np.zeros_like(img_volume)
+        #DM.out[:] = np.zeros_like(img_volume)
         dst_dataset = DM.sources[0]
         dst_dataset.set_attr("scale", scale)
 
@@ -234,7 +234,7 @@ def boxes(
     logger.debug(f"Storing in dataset {dst}")
 
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        DM.out[:] = np.zeros_like(img_volume)
+        #DM.out[:] = np.zeros_like(img_volume)
         dst_dataset = DM.sources[0]
         dst_dataset.set_attr("scale", scale)
         dst_dataset.set_attr("offset", offset)
@@ -257,7 +257,7 @@ def patches(
 ) -> "GEOMETRY":
     src = DataModel.g.dataset_uri("__data__")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
+        #src_dataset = DM.sources[0]
         img_volume = src_dataset[:]
         logger.debug(f"Got __data__ volume of size {img_volume.shape}")
     # store in dst
