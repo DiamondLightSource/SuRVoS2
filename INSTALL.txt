@@ -1,8 +1,9 @@
 Before the installation of SuRVoS, if GPU support is desired please check that either one of the
 following CUDA versions is installed:
 
- * CUDA 11.6 (you can install it by following this link https://developer.nvidia.com/cuda-11-6-2-download-archive)
- * CUDA 11.7 (you can install it by following this link https://developer.nvidia.com/cuda-11-7-1-download-archive)
+ * CUDA 10.2 (you can install it by following this link https://developer.nvidia.com/cuda-10.2-download-archive)
+ * CUDA 11.3 (you can install it by following this link https://developer.nvidia.com/cuda-11-3-1-download-archive)
+ * CUDA 11.6 (you can install it by following this https://developer.nvidia.com/cuda-11-6-2-download-archive)
 
 To verify that one of the CUDA versions above is installed and available for use run the following command:
 
@@ -65,7 +66,7 @@ and activate it:
 
 If conda is used:
 
-	$ conda create --name survos2_conda_env
+	$ conda create --name survos2_conda_env python=3.8
 
 	Shared environmnent needed?
 	$ conda create --prefix <system-location-that-is-accessible>/survos2_conda_env python=3.8
@@ -80,17 +81,47 @@ and activate it:
 
 
 Perform the survos2 pip installs using:
+Below depending on the CUDA version / No GPU support, 3 commands have to be executed
+The first 2 replace text in the req.txt/req_windows.txt files to set it for the appropriate CUDA version / No GPU support
+(e.g.      sed -i 's|torch==1.12.1|torch==1.12.1+cpu|g' req.txt   it replaces torch==1.12.1 with torch==1.12.1+cpu in the req.txt,
+similarly  (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cpu"} | set-content req_windows.txt
+does the same in windows)
+The last command pip installs the packages listed in the req.txt/req_windows.txt files
 (LINUX)
+  (No GPU support)
+	$ sed -i 's|torch==1.12.1|torch==1.12.1+cpu|g' req.txt
+	$ sed -i 's|torchvision==0.13.1|torchvision==0.13.1+cpu|g' req.txt
+	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cpu
+  (CUDA 10.2 or No GPU support)
+	$ sed -i 's|torch==1.12.1|torch==1.12.1+cu102|g' req.txt
+	$ sed -i 's|torchvision==0.13.1|torchvision==0.13.1+cu102|g' req.txt
+	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu102
+  (CUDA 11.3)
+	$ sed -i 's|torch==1.12.1|torch==1.12.1+cu113|g' req.txt
+	$ sed -i 's|torchvision==0.13.1|torchvision==0.13.1+cu113|g' req.txt
+	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
-	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
-  (CUDA 11.7 or No GPU support)
-	$ pip install -r req.txt
+	$ sed -i 's|torch==1.12.1|torch==1.12.1+cu116|g' req.txt
+	$ sed -i 's|torchvision==0.13.1|torchvision==0.13.1+cu116|g' req.txt
+	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
 
-(WINDOWS)
+(WINDOWS) (use Powershell for the get-content, set-content commands)
+  (No GPU support)
+	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cpu"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1","torchvision==0.13.1+cpu"} | set-content req_windows.txt
+	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cpu
+  (CUDA 10.2 or No GPU support)
+	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cu102"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1","torchvision==0.13.1+cu102"} | set-content req_windows.txt
+	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu102
+  (CUDA 11.3)
+	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cu113"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1","torchvision==0.13.1+cu113"} | set-content req_windows.txt
+	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
-	$ pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
-  (CUDA 11.7 or No GPU support)
-	$ pip install -r req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cu116"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1","torchvision==0.13.1+cu116"} | set-content req_windows.txt
+	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
 
 
 7. Build survos2 cython + cuda stuff:
@@ -101,11 +132,10 @@ Perform the survos2 pip installs using:
 (For a central install remember to make this somewhere that is readable to everyone)]
 	
 9. Edit settings.yaml file. Change the CHROOT to <survos2 workspace>.
-	
 
 10. Install SuRVoS plugin for Napari
 
-	$ pip install -e .
+	$ python3 -m pip install -e .
 	
 	Installation should be completed.
 	The '-e' will install in development mode.
