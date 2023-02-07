@@ -18,7 +18,7 @@ import subprocess
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2 import survos
-
+from datetime import datetime
 
 def start_server(server_port, short_form_subprocess_command=False):
     command_dir = os.path.abspath(os.path.dirname(__file__))
@@ -375,7 +375,7 @@ def make_directories(dirs):
             os.makedirs(directory)
 
 
-def show_images(images, titles=None, figsize=(12, 12), suptitle=""):
+def show_images(images, titles=None, figsize=(12, 12), suptitle="", outdir=None):
     n_images = len(images)
 
     if titles is None:
@@ -392,6 +392,11 @@ def show_images(images, titles=None, figsize=(12, 12), suptitle=""):
         a.set_title(title)
 
     fig.set_size_inches(np.array(fig.get_size_inches()) * n_images)
+
+    if outdir:
+        now = datetime.now()
+        dt_string = now.strftime("%d%m_%H%M")
+        plt.savefig(os.path.join(outdir, "patches_" + dt_string + "_" + suptitle + '.png'))
     plt.show()
 
 

@@ -100,7 +100,7 @@ class ResBlockFPN(nn.Module):
         :param norm:
         :param relu:
         """
-        super(ResBlock, self).__init__()
+        super(ResBlockFPN, self).__init__()
 
         self.conv1 = conv(start_filts, planes, ks=1, pad=2, stride=stride, norm=norm, relu=relu)
         self.conv2 = conv(planes, planes, ks=3, pad=1, norm=norm, relu=relu)

@@ -29,6 +29,13 @@ class Train3DCNN(PipelineCardBase):
             all_params["objects_id"] = "None"
 
         all_params["fcn_type"] = self.fcn_type.value()
+        all_params["bce_to_dice_weight"] = 0.3
+        all_params["num_epochs"] = 2
+        all_params["num_augs"] = 0
+        all_params["num_samples"] = 400
+        all_params["threshold"] = 0.5
+        all_params["patch_overlap"] = (16,16,16)
+        all_params["patch_size"] = (64,64,64)
 
         return all_params
 
@@ -46,14 +53,17 @@ class Predict3DCNN(PipelineCardBase):
 
     def compute_pipeline(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
-        all_params = dict(src=src, modal=True)
+        all_params = dict(src=src, dst=self.dst, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         all_params["anno_id"] = str(self.annotations_source.value().rsplit("/", 1)[-1])
         all_params["feature_id"] = self.feature_source.value()
         all_params["model_fullname"] = self.model_fullname
         all_params["model_type"] = self.fcn_type.value()
-        all_params["dst"] = self.dst
         all_params["overlap_mode"] = self.overlap_type.value()
+        all_params["threshold"] = 0.5
+        all_params["patch_overlap"] = [16,16,16]
+        all_params["patch_size"] = [64,64,64]
+
 
         return all_params
 

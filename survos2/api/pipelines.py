@@ -713,7 +713,7 @@ def train_3d_cnn(
         padding=padding,
         num_augs=num_augs,
         max_vols=-1,
-        plot_all=False,
+        plot_all=True,
         patch_size=patch_size,
     )
 
@@ -754,6 +754,13 @@ def train_3d_cnn(
         patch_overlap=patch_overlap,
         overlap_mode=overlap_mode,
     )
+
+    proposal = proposal.numpy()
+
+    print(f"Made proposal {proposal.shape}")
+
+    if len(proposal.shape)==4:
+        proposal = proposal[0,:]
     # normalize volume and threshold
     proposal -= np.min(proposal)
     proposal = proposal / np.max(proposal)
@@ -798,7 +805,7 @@ def predict_3d_cnn(
         patch_size (list, optional): Patch size for prediction. Defaults to 64.
         patch_overlap (list, optional): Patch overlap for prediction. Defaults to 8.
         threshold (float, optional): Threshold to binarize image with. Defaults to 0.5.
-        model_type (str, optional): Unet3d or Feature Pyramid Network (FPN). Defaults to "unet3d".
+        model_type (str, optional): Unet3d or Feature Pyramid Network ("fpn3d") or V-Net. ("vnet") Defaults to "unet3d".
         overlap_mode (str, optional): Either "crop" or "average". Defaults to "crop".
 
     Returns:
@@ -811,6 +818,7 @@ def predict_3d_cnn(
         src_dataset = DM.sources[0]
         logger.debug(f"Adding feature of shape {src_dataset.shape}")
 
+
     proposal = make_proposal(
         src_dataset,
         model_fullname,
@@ -819,6 +827,11 @@ def predict_3d_cnn(
         patch_overlap=patch_overlap,
         overlap_mode=overlap_mode,
     )
+
+    proposal = proposal.numpy()
+
+    if len(proposal.shape)==4:
+        proposal = proposal[0,:]
 
     proposal -= np.min(proposal)
     proposal = proposal / np.max(proposal)

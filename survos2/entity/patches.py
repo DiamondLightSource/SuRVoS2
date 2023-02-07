@@ -361,6 +361,9 @@ def make_patches(
     test_loader3d = torch.utils.data.DataLoader(
         test_dataset3d, batch_size=1, shuffle=False, num_workers=0, drop_last=False
     )
+    
+    # wf.params["selected_locs"] = selected_locs
+    wf.params["outdir"] = outdir
 
     if plot_all:
         for i in range(10):
@@ -370,14 +373,18 @@ def make_patches(
 
             from survos2.frontend.nb_utils import show_images
 
-            show_images([img[padding[0] // 2, :], lbl[padding[0] // 2, :]], figsize=(4, 4))
+            show_images([img[padding[0] // 2, :], 
+                lbl[padding[0] // 2, :]], 
+                figsize=(4, 4), 
+                outdir=wf.params["outdir"],
+                suptitle=str(i)
+            )
 
             print(f"Unique mask values: {np.unique(lbl)}")
 
     print(f"Augmented image vols shape {img_vols.shape}, label vols shape {label_vols.shape}")
-    # wf.params["selected_locs"] = selected_locs
-    wf.params["outdir"] = outdir
-
+    
+    
     # save vols
     now = datetime.now()
     dt_string = now.strftime("%d%m_%H%M")

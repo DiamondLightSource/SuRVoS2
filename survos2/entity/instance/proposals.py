@@ -446,11 +446,7 @@ def make_proposal(
 ):
 
     if model_type == "unet3d":
-        model3d, optimizer, scheduler = prepare_unet3d(device=gpu_id)
-    elif model_type == "fpn3d":
-        model3d, optimizer, scheduler = prepare_fpn3d(gpu_id=gpu_id)
-
-    if model_type == "unet3d":
+        model3d, _, _ = prepare_unet3d(device=gpu_id)
         model3d = load_model(model3d, model_fullname)
         aggregator = predict_agg_3d(
             vol,
@@ -464,8 +460,22 @@ def make_proposal(
         output_tensor1 = aggregator.get_output_tensor()
         print(f"Aggregated volume of {output_tensor1.shape}")
         seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
-
     elif model_type == "fpn3d":
+        model3d, _, _ = prepare_fpn3d(gpu_id=gpu_id)
+        model3d = load_model(model3d, model_fullname)
+        aggregator = predict_agg_3d(
+            vol,
+            model3d,
+            patch_size=patch_size,
+            patch_overlap=patch_overlap,
+            device=gpu_id,
+            fpn=False,
+        )
+        output_tensor1 = aggregator.get_output_tensor()
+        print(f"Aggregated volume of {output_tensor1.shape}")
+        seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
+    elif model_type == "vnet":
+        model3d, _, _ = prepare_vnet(device=gpu_id)
         model3d = load_model(model3d, model_fullname)
         aggregator = predict_agg_3d(
             vol,

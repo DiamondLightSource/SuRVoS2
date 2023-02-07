@@ -6,7 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-from survos2.entity.models.blocks import ResBlock, Interpolate
+from survos2.entity.models.blocks import ResBlock
+from survos2.entity.models.blocks import Interpolate
 
 
 class FPN(nn.Module):

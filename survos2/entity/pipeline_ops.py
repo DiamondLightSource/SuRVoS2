@@ -152,7 +152,7 @@ def predict_agg_3d(
     model3d,
     patch_size=(128, 224, 224),
     patch_overlap=(12, 12, 12),
-    nb=True,
+    nb=False,
     device=0,
     debug_verbose=False,
     fpn=False,

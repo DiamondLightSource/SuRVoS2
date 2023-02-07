@@ -155,6 +155,7 @@ class PipelineCardBase(Card):
         self.fcn_type = ComboBox()
         self.fcn_type.addItem(key="fpn3d")
         self.fcn_type.addItem(key="unet3d")
+        self.fcn_type.addItem(key="vnet")
         widget = HWidgets("FCN Type:", self.fcn_type, stretch=0)
         self.add_row(widget)
 
