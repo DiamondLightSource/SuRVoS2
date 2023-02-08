@@ -83,44 +83,40 @@ and activate it:
 Perform the survos2 pip installs using:
 Below depending on the CUDA version / No GPU support, 3 commands have to be executed
 The first 2 replace text in the req.txt/req_windows.txt files to set it for the appropriate CUDA version / No GPU support
-(e.g.      sed -i 's|torch==1.12.1|torch==1.12.1+cpu|g' req.txt   it replaces torch==1.12.1 with torch==1.12.1+cpu in the req.txt,
-similarly  (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cpu"} | set-content req_windows.txt
+(e.g.      sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu102|g' req.txt   it replaces torch==1.12.1+cpu with torch==1.12.1+cu102 in the req.txt,
+similarly  (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1+cpu","torch==1.12.1+cu102"} | set-content req_windows.txt
 does the same in windows)
 The last command pip installs the packages listed in the req.txt/req_windows.txt files
 (LINUX)
   (No GPU support)
-	$ sed -i 's|torch==1.12.1|torch==1.12.1+cpu|g' req.txt
-	$ sed -i 's|torchvision==0.13.1|torchvision==0.13.1+cpu|g' req.txt
 	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cpu
   (CUDA 10.2 or No GPU support)
-	$ sed -i 's|torch==1.12.1|torch==1.12.1+cu102|g' req.txt
-	$ sed -i 's|torchvision==0.13.1|torchvision==0.13.1+cu102|g' req.txt
+	$ sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu102|g' req.txt
+	$ sed -i 's|torchvision==0.13.1+cpu|torchvision==0.13.1+cu102|g' req.txt
 	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu102
   (CUDA 11.3)
-	$ sed -i 's|torch==1.12.1|torch==1.12.1+cu113|g' req.txt
-	$ sed -i 's|torchvision==0.13.1|torchvision==0.13.1+cu113|g' req.txt
+	$ sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu113|g' req.txt
+	$ sed -i 's|torchvision==0.13.1+cpu|torchvision==0.13.1+cu113|g' req.txt
 	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
-	$ sed -i 's|torch==1.12.1|torch==1.12.1+cu116|g' req.txt
-	$ sed -i 's|torchvision==0.13.1|torchvision==0.13.1+cu116|g' req.txt
+	$ sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu116|g' req.txt
+	$ sed -i 's|torchvision==0.13.1+cpu|torchvision==0.13.1+cu116|g' req.txt
 	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
 
 (WINDOWS) (use Powershell for the get-content, set-content commands)
   (No GPU support)
-	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cpu"} | set-content req_windows.txt
-	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1","torchvision==0.13.1+cpu"} | set-content req_windows.txt
 	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cpu
   (CUDA 10.2 or No GPU support)
-	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cu102"} | set-content req_windows.txt
-	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1","torchvision==0.13.1+cu102"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1+cpu","torch==1.12.1+cu102"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1+cpu","torchvision==0.13.1+cu102"} | set-content req_windows.txt
 	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu102
   (CUDA 11.3)
-	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cu113"} | set-content req_windows.txt
-	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1","torchvision==0.13.1+cu113"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1+cpu","torch==1.12.1+cu113"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1+cpu","torchvision==0.13.1+cu113"} | set-content req_windows.txt
 	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
-	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1","torch==1.12.1+cu116"} | set-content req_windows.txt
-	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1","torchvision==0.13.1+cu116"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1+cpu","torch==1.12.1+cu116"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1+cpu","torchvision==0.13.1+cu116"} | set-content req_windows.txt
 	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
 
 

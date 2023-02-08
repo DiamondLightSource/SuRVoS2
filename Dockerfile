@@ -7,8 +7,7 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
     apt-get update -y && apt-get install -y dialog apt-utils && \
     apt-get install -y  \
         build-essential \
-        python3.9 \
-        python3-pip \
+        wget \
         git \
         mesa-utils \
         libgl1-mesa-glx \
@@ -29,15 +28,24 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
         libxcb-shape0 \
         && apt-get clean
 
-RUN sed -i 's|torch==1.12.1|torch==1.12.1+cu116|g' req.txt && \
-    sed -i 's|torchvision==0.13.1|torchvision==0.13.1+cu116|g' req.txt && \
-    python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
+# Install miniconda
+ENV PATH="/usr/local/miniconda3/bin:${PATH}"
+ARG PATH="/usr/local/miniconda3/bin:${PATH}"
+RUN wget \
+    https://repo.anaconda.com/miniconda/Miniconda3-py38_22.11.1-1-Linux-x86_64.sh -O Miniconda3.sh \
+    && bash Miniconda3.sh -b -p /usr/local/miniconda3 \
+    && rm -f Miniconda3.sh
+SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 
-RUN python3 ./survos2/improc/setup.py build_ext --inplace
+RUN sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu116|g' req.txt && \
+    sed -i 's|torchvision==0.13.1+cpu|torchvision==0.13.1+cu116|g' req.txt && \
+    pip install -r req.txt --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu116
 
-RUN mkdir survos2_workbench && sed -i 's|/tmp|/app/survos2_workbench|g' settings.yaml && python3 -m  pip install -e .
+RUN python ./survos2/improc/setup.py build_ext --inplace
 
-ENTRYPOINT ["python3", "-m", "napari"]
+RUN mkdir survos2_workbench && sed -i 's|/tmp|/app/survos2_workbench|g' settings.yaml && pip install -e .
+
+ENTRYPOINT ["napari"]
 
 RUN apt-get install -y wget gnupg2 apt-transport-https && \
     wget -O - https://xpra.org/gpg.asc | apt-key add - && \

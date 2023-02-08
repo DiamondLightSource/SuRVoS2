@@ -54,11 +54,11 @@ You can do this with the following command, where `<Alias>` can be either `appta
 ### Run Apptainer/Singularity image
 To run a locally builded Apptainer/Singularity image run (with `<Alias>` being either `apptainer` or `singularity`)
 ```
-<Alias> run --nv --bind=$(pwd):/app/survos2_workbench --workdir=/app/survos2_workbench survos2-<tag-version>.sif
+<Alias> run --cleanenv --no-home --nv --bind=$(pwd):/app/survos2_workbench --workdir=/app/survos2_workbench survos2-<tag-version>.sif
 ```
 To run a pre-builded Apptainer/Singularity image of version `<tag-version>` run:
 ```
-<Alias> run --nv --bind=$(pwd):/app/survos2_workbench --workdir=/app/survos2_workbench docker://quay.io/rosalindfranklininstitute/survos2:<tag-version>
+<Alias> run --cleanenv --no-home --nv --bind=$(pwd):/app/survos2_workbench --workdir=/app/survos2_workbench docker://quay.io/rosalindfranklininstitute/survos2:<tag-version>
 ```
 With this image you don’t need X server running on the host machine. A browser is sufficient!
 
