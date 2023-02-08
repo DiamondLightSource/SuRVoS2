@@ -1218,7 +1218,7 @@ def object_analyzer(
             perplexity=embedding_params["perplexity"], n_iter=embedding_params["n_iter"]
         )
     else:
-        embedding_params.pop("context")
+        #embedding_params.pop("context")
         patch_clusterer.embed_UMAP(params=embedding_params)
 
     patch_clusterer.density_cluster(min_cluster_size=min_cluster_size)
