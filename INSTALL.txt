@@ -8,7 +8,7 @@ following CUDA versions is installed:
 
 To verify that one of the CUDA versions above is installed and available for use run the following command:
 
-	$ nvcc --version
+    $ nvcc --version
 
 Additionally, you may also include the cuDNN library in your CUDA installation for improved performance
 during the training and inference of neural networks.
@@ -24,61 +24,61 @@ with the SuRVoS 2 installation guide below.
 Create a folder (on the Desktop for example) to download the survos2 installer.
 The actual survos2 application will be installed in the miniconda environment later.
 
-	$ mkdir survos2
+    $ mkdir survos2
 
 Navigate to the folder created
 
-	$ cd survos2
+    $ cd survos2
 
 Download Survos2 using git clone
 
-	$ git clone https://github.com/DiamondLightSource/SuRVoS2.git
+    $ git clone https://github.com/DiamondLightSource/SuRVoS2.git
 
 Navigate into the Survos2 folder
 
-	$ cd SuRVoS2
+    $ cd SuRVoS2
 
 
 Make sure that either conda or python-pip (python version 3.8 is needed) is installed
 If neither is available you can download and install them from here:
 
 For python-pip (please install python 3.8):
-	Download at: https://www.python.org/downloads/
+    Download at: https://www.python.org/downloads/
 
 For Conda:
-	Download at: https://docs.conda.io/en/latest/miniconda.html
+    Download at: https://docs.conda.io/en/latest/miniconda.html
 
 
 Create a new environment for survos2
 
 If python-pip (python version 3.8) is used:
 
-	$ python3 -m venv survos2_env
+    $ python3 -m venv survos2_env
 
-	Shared environmnent needed?
-	$ python3 -m venv <system-location-that-is-accessible>/survos2_conda_env
-	e.g.
-	$ python3 -m venv /home/user/Documents/survos2_conda_env
+    Shared environmnent needed?
+    $ python3 -m venv <system-location-that-is-accessible>/survos2_conda_env
+    e.g.
+    $ python3 -m venv /home/user/Documents/survos2_conda_env
 
 and activate it:
-	$ source survos2_conda_env/bin/activate
+    $ source survos2_conda_env/bin/activate
     or
-	$ source <system-location-that-is-accessible>/survos2_conda_env/bin/activate
+    $ source <system-location-that-is-accessible>/survos2_conda_env/bin/activate
 
 If conda is used:
 
-	$ conda create --name survos2_conda_env python=3.8
+    $ conda create --name survos2_conda_env python=3.8
 
-	Shared environmnent needed?
-	$ conda create --prefix <system-location-that-is-accessible>/survos2_conda_env python=3.8
-	e.g.
-	$ conda create --prefix /home/user/Documents/survos2_conda_env python=3.8
+    Shared environmnent needed?
+    $ conda create --prefix <system-location-that-is-accessible>/survos2_conda_env python=3.8
+    e.g.
+    $ conda create --prefix /home/user/Documents/survos2_conda_env python=3.8
 
 and activate it:
 
-	$ conda activate survos2_conda_env
-	or
-	$ conda activate /home/user/Documents/survos2_conda_env
+    $ conda activate survos2_conda_env
+    or
+    $ conda activate /home/user/Documents/survos2_conda_env
 
 
 Perform the survos2 pip installs using:
@@ -92,37 +92,37 @@ does the same in windows)
 
 (LINUX)
   (No GPU support)
-	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cpu
+    $ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cpu
   (CUDA 10.2)
-	$ sed -i 's|torchvision|torchvision==0.13.1+cu102|g' req.txt
-	$ sed -i 's|torchio|placeholder1|g' req.txt
+    $ sed -i 's|torchvision|torchvision==0.13.1+cu102|g' req.txt
+    $ sed -i 's|torchio|placeholder1|g' req.txt
     $ sed -i 's|torchmetrics|placeholder2|g' req.txt
     $ sed -i 's|medicaltorch|placeholder3|g' req.txt
-	$ sed -i 's|torch|torch==1.12.1+cu102|g' req.txt
-	$ sed -i 's|placeholder1|torchio|g' req.txt
+    $ sed -i 's|torch|torch==1.12.1+cu102|g' req.txt
+    $ sed -i 's|placeholder1|torchio|g' req.txt
     $ sed -i 's|placeholder2|torchmetrics|g' req.txt
     $ sed -i 's|placeholder3|medicaltorch|g' req.txt
-	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu102
+    $ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu102
   (CUDA 11.3)
-	$ sed -i 's|torchvision|torchvision==0.13.1+cu113|g' req.txt
-	$ sed -i 's|torchio|placeholder1|g' req.txt
+    $ sed -i 's|torchvision|torchvision==0.13.1+cu113|g' req.txt
+    $ sed -i 's|torchio|placeholder1|g' req.txt
     $ sed -i 's|torchmetrics|placeholder2|g' req.txt
     $ sed -i 's|medicaltorch|placeholder3|g' req.txt
-	$ sed -i 's|torch|torch==1.12.1+cu113|g' req.txt
-	$ sed -i 's|placeholder1|torchio|g' req.txt
+    $ sed -i 's|torch|torch==1.12.1+cu113|g' req.txt
+    $ sed -i 's|placeholder1|torchio|g' req.txt
     $ sed -i 's|placeholder2|torchmetrics|g' req.txt
     $ sed -i 's|placeholder3|medicaltorch|g' req.txt
-	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu113
+    $ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
-	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
+    $ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
   (CUDA 11.7)
-	$ python3 -m pip install -r req.txt
+    $ python3 -m pip install -r req.txt
 
 (WINDOWS) (use Powershell for the get-content, set-content commands)
   (No GPU support)
-	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cpu
+    $ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cpu
   (CUDA 10.2)
-	$ (get-content req_windows.txt) | %{$_ -replace "torchvision","torchvision==0.13.1+cu102"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "torchvision","torchvision==0.13.1+cu102"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "torchio","placeholder1"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "torchmetrics","placeholder2"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "medicaltorch","placeholder3"} | set-content req_windows.txt
@@ -130,9 +130,9 @@ does the same in windows)
     $ (get-content req_windows.txt) | %{$_ -replace "placeholder1","torchio"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "placeholder2","torchmetrics"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "placeholder3","medicaltorch"} | set-content req_windows.txt
-	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu102
+    $ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu102
   (CUDA 11.3)
-	$ (get-content req_windows.txt) | %{$_ -replace "torchvision","torchvision==0.13.1+cu113"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "torchvision","torchvision==0.13.1+cu113"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "torchio","placeholder1"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "torchmetrics","placeholder2"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "medicaltorch","placeholder3"} | set-content req_windows.txt
@@ -140,30 +140,30 @@ does the same in windows)
     $ (get-content req_windows.txt) | %{$_ -replace "placeholder1","torchio"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "placeholder2","torchmetrics"} | set-content req_windows.txt
     $ (get-content req_windows.txt) | %{$_ -replace "placeholder3","medicaltorch"} | set-content req_windows.txt
-	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu113
+    $ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
-	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
+    $ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
   (CUDA 11.7)
-	$ python3 -m pip install -r req_windows.txt
+    $ python3 -m pip install -r req_windows.txt
 
 
 7. Build survos2 cython + cuda stuff:
 
-	$ python3 ./survos2/improc/setup.py build_ext --inplace
+    $ python3 ./survos2/improc/setup.py build_ext --inplace
 
 8. Create a folder for the <survos2 workspace>
 (For a central installation remember to make this somewhere that is readable to everyone)]
-	
+    
 9. Edit settings.yaml file. Change the CHROOT to <survos2 workspace>.
 
 10. Install SuRVoS plugin for Napari
 
-	$ python3 -m pip install -e .
-	
-	Installation should be completed.
-	The '-e' will install in development mode.
-	
-	
+    $ python3 -m pip install -e .
+    
+    Installation should be completed.
+    The '-e' will install in development mode.
+    
+    
 
 
 
