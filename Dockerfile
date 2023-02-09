@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.6.2-devel-ubuntu20.04
+FROM nvidia/cuda:11.7.1-devel-ubuntu20.04
 
 WORKDIR /app
 COPY . .
@@ -37,9 +37,7 @@ RUN wget \
     && rm -f Miniconda3.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 
-RUN sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu116|g' req.txt && \
-    sed -i 's|torchvision==0.13.1+cpu|torchvision==0.13.1+cu116|g' req.txt && \
-    pip install -r req.txt --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cu116
+RUN pip install -r req.txt --no-cache-dir
 
 RUN python ./survos2/improc/setup.py build_ext --inplace
 

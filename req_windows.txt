@@ -39,8 +39,8 @@ seaborn
 setuptools
 python-snappy
 tifffile
-torch==1.12.1+cpu
-torchvision==0.13.1+cpu
+torch
+torchvision
 torchmetrics
 tornado
 typing_extensions

@@ -4,6 +4,7 @@ following CUDA versions is installed:
  * CUDA 10.2 (you can install it by following this link https://developer.nvidia.com/cuda-10.2-download-archive)
  * CUDA 11.3 (you can install it by following this link https://developer.nvidia.com/cuda-11-3-1-download-archive)
  * CUDA 11.6 (you can install it by following this https://developer.nvidia.com/cuda-11-6-2-download-archive)
+ * CUDA 11.7 (you can install it by following this https://developer.nvidia.com/cuda-11-7-1-download-archive)
 
 To verify that one of the CUDA versions above is installed and available for use run the following command:
 
@@ -81,43 +82,69 @@ and activate it:
 
 
 Perform the survos2 pip installs using:
-Below depending on the CUDA version / No GPU support, 3 commands have to be executed
-The first 2 replace text in the req.txt/req_windows.txt files to set it for the appropriate CUDA version / No GPU support
-(e.g.      sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu102|g' req.txt   it replaces torch==1.12.1+cpu with torch==1.12.1+cu102 in the req.txt,
-similarly  (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1+cpu","torch==1.12.1+cu102"} | set-content req_windows.txt
+Below depending on the CUDA version / No GPU support, some 'sed' commands have to be executed in Linux or some
+some get-content set-content commands in Windows
+Their purpose is to replace text in the req.txt/req_windows.txt files to set it for the appropriate CUDA version / No GPU support
+
+(e.g.      sed -i 's|torch|torch==1.12.1+cu102|g' req.txt   it replaces torch with torch==1.12.1+cu102 in the req.txt,
+similarly  (get-content req_windows.txt) | %{$_ -replace "torch","torch==1.12.1+cu102"} | set-content req_windows.txt
 does the same in windows)
-The last command pip installs the packages listed in the req.txt/req_windows.txt files
+
 (LINUX)
   (No GPU support)
 	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cpu
-  (CUDA 10.2 or No GPU support)
-	$ sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu102|g' req.txt
-	$ sed -i 's|torchvision==0.13.1+cpu|torchvision==0.13.1+cu102|g' req.txt
+  (CUDA 10.2)
+	$ sed -i 's|torchvision|torchvision==0.13.1+cu102|g' req.txt
+	$ sed -i 's|torchio|placeholder1|g' req.txt
+    $ sed -i 's|torchmetrics|placeholder2|g' req.txt
+    $ sed -i 's|medicaltorch|placeholder3|g' req.txt
+	$ sed -i 's|torch|torch==1.12.1+cu102|g' req.txt
+	$ sed -i 's|placeholder1|torchio|g' req.txt
+    $ sed -i 's|placeholder2|torchmetrics|g' req.txt
+    $ sed -i 's|placeholder3|medicaltorch|g' req.txt
 	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu102
   (CUDA 11.3)
-	$ sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu113|g' req.txt
-	$ sed -i 's|torchvision==0.13.1+cpu|torchvision==0.13.1+cu113|g' req.txt
+	$ sed -i 's|torchvision|torchvision==0.13.1+cu113|g' req.txt
+	$ sed -i 's|torchio|placeholder1|g' req.txt
+    $ sed -i 's|torchmetrics|placeholder2|g' req.txt
+    $ sed -i 's|medicaltorch|placeholder3|g' req.txt
+	$ sed -i 's|torch|torch==1.12.1+cu113|g' req.txt
+	$ sed -i 's|placeholder1|torchio|g' req.txt
+    $ sed -i 's|placeholder2|torchmetrics|g' req.txt
+    $ sed -i 's|placeholder3|medicaltorch|g' req.txt
 	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
-	$ sed -i 's|torch==1.12.1+cpu|torch==1.12.1+cu116|g' req.txt
-	$ sed -i 's|torchvision==0.13.1+cpu|torchvision==0.13.1+cu116|g' req.txt
 	$ python3 -m pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
+  (CUDA 11.7)
+	$ python3 -m pip install -r req.txt
 
 (WINDOWS) (use Powershell for the get-content, set-content commands)
   (No GPU support)
 	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cpu
-  (CUDA 10.2 or No GPU support)
-	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1+cpu","torch==1.12.1+cu102"} | set-content req_windows.txt
-	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1+cpu","torchvision==0.13.1+cu102"} | set-content req_windows.txt
+  (CUDA 10.2)
+	$ (get-content req_windows.txt) | %{$_ -replace "torchvision","torchvision==0.13.1+cu102"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "torchio","placeholder1"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "torchmetrics","placeholder2"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "medicaltorch","placeholder3"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "torch","torch==1.12.1+cu102"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "placeholder1","torchio"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "placeholder2","torchmetrics"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "placeholder3","medicaltorch"} | set-content req_windows.txt
 	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu102
   (CUDA 11.3)
-	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1+cpu","torch==1.12.1+cu113"} | set-content req_windows.txt
-	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1+cpu","torchvision==0.13.1+cu113"} | set-content req_windows.txt
+	$ (get-content req_windows.txt) | %{$_ -replace "torchvision","torchvision==0.13.1+cu113"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "torchio","placeholder1"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "torchmetrics","placeholder2"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "medicaltorch","placeholder3"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "torch","torch==1.12.1+cu113"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "placeholder1","torchio"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "placeholder2","torchmetrics"} | set-content req_windows.txt
+    $ (get-content req_windows.txt) | %{$_ -replace "placeholder3","medicaltorch"} | set-content req_windows.txt
 	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
-	$ (get-content req_windows.txt) | %{$_ -replace "torch==1.12.1+cpu","torch==1.12.1+cu116"} | set-content req_windows.txt
-	$ (get-content req_windows.txt) | %{$_ -replace "torchvision==0.13.1+cpu","torchvision==0.13.1+cu116"} | set-content req_windows.txt
 	$ python3 -m pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
+  (CUDA 11.7)
+	$ python3 -m pip install -r req_windows.txt
 
 
 7. Build survos2 cython + cuda stuff:
@@ -125,7 +152,7 @@ The last command pip installs the packages listed in the req.txt/req_windows.txt
 	$ python3 ./survos2/improc/setup.py build_ext --inplace
 
 8. Create a folder for the <survos2 workspace>
-(For a central install remember to make this somewhere that is readable to everyone)]
+(For a central installation remember to make this somewhere that is readable to everyone)]
 	
 9. Edit settings.yaml file. Change the CHROOT to <survos2 workspace>.
 
