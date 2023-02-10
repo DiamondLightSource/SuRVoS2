@@ -1,5 +1,5 @@
 from survos2.model import Workspace
-from survos2.io import dataset_from_uri
+from survos2.data_io import dataset_from_uri
 
 import os
 import pytest
@@ -14,14 +14,16 @@ from survos2.model import DataModel
 
 from loguru import logger
 from torch.testing import assert_allclose
+from survos2.api.workspace import create as create_workspace
+from survos2.api.workspace import add_dataset, add_data, delete, get
 
 tmp_ws_name = "testworkspace_tmp1"
+
 
 @pytest.fixture(scope="session")
 def datamodel():
     # make test vol
     map_fullpath = os.path.join("./tmp/testvol_4x4x4b.h5")
-
     testvol = np.array(
         [
             [
@@ -50,35 +52,19 @@ def datamodel():
             ],
         ]
     )
-
     with h5py.File(map_fullpath, "w") as hf:
         hf.create_dataset("data", data=testvol)
 
-    
-    print(DataModel.g.CHROOT)
-
-    result = survos.run_command("workspace", "get", uri=None, workspace=tmp_ws_name)
-
-    if not type(result[0]) == dict:
-        logger.debug("Creating temp workspace")
-        survos.run_command("workspace", "create", uri=None, workspace=tmp_ws_name)
-    else:
+    result = get(workspace=tmp_ws_name)
+    print(result)
+    if not isinstance(result, bool):
         logger.debug("tmp exists, deleting and recreating")
-        survos.run_command("workspace", "delete", uri=None, workspace=tmp_ws_name)
+        delete(workspace=tmp_ws_name)
         logger.debug("workspace deleted")
-        survos.run_command("workspace", "create", uri=None, workspace=tmp_ws_name)
-        logger.debug("workspace recreated")
 
-    # add data to workspace
-    survos.run_command(
-        "workspace",
-        "add_data",
-        uri=None,
-        workspace=tmp_ws_name,
-        data_fname=map_fullpath,
-        dtype="float32",
-    )
-
+    create_workspace(workspace=tmp_ws_name)
+    logger.debug("workspace recreated")
+    add_data(workspace=tmp_ws_name, data_fname=map_fullpath)
     DataModel.g.current_workspace = tmp_ws_name
 
     return DataModel
@@ -86,11 +72,12 @@ def datamodel():
 
 class Tests(object):
     def test_workspace(self, datamodel):
-        result = survos.run_command('workspace', 'add_session', uri=None, workspace=tmp_ws_name, session='roi1')
-        result = survos.run_command("workspace", "list_sessions", uri=None, workspace=tmp_ws_name)
-        assert result[0][0] == 'roi1'
+        from survos2.api.workspace import add_session, list_sessions
+
+        add_session(workspace=tmp_ws_name, session="roi1")
+        result = list_sessions(workspace=tmp_ws_name)
+        assert result[0] == "roi1"
+
 
 if __name__ == "__main__":
     pytest.main()
-
-

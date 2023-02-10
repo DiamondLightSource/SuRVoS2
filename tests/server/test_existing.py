@@ -1,0 +1,92 @@
+import pytest
+import os
+import numpy as np
+from httpx import AsyncClient
+from survos2.api.workspace import create as create_workspace, add_dataset, add_data, delete, get
+from main import app
+from survos2.model import DataModel, Dataset, Workspace
+from loguru import logger
+import h5py
+
+tmp_ws_name = "blank"
+
+
+@pytest.fixture(scope="session")
+def datamodel():
+    map_fullpath = os.path.join("./tmp/testvol_4x4x4b.h5")
+    testvol = np.array(
+        [
+            [
+                [0.1761602, 0.6701295, 0.13151232, 0.95726678],
+                [0.4795476, 0.48114134, 0.0410548, 0.29893265],
+                [0.49127266, 0.70298447, 0.42751211, 0.08101552],
+                [0.73805652, 0.83111601, 0.36852477, 0.38732476],
+            ],
+            [
+                [0.2847222, 0.96054574, 0.25430756, 0.35403861],
+                [0.54439093, 0.65897414, 0.1959487, 0.90714872],
+                [0.84462152, 0.90754182, 0.02455657, 0.26180662],
+                [0.1711208, 0.40122666, 0.54562598, 0.01419861],
+            ],
+            [
+                [0.59280376, 0.42706895, 0.86637913, 0.87831645],
+                [0.57991401, 0.31989204, 0.85869799, 0.6333411],
+                [0.21539274, 0.63780214, 0.64204493, 0.74425482],
+                [0.1903691, 0.81962537, 0.31774673, 0.34812628],
+            ],
+            [
+                [0.40880077, 0.595773, 0.28856063, 0.19316746],
+                [0.03195766, 0.62475541, 0.50762591, 0.34700798],
+                [0.98913461, 0.07883111, 0.96534233, 0.57697606],
+                [0.71496714, 0.70764578, 0.92294417, 0.91300531],
+            ],
+        ]
+    )
+    with h5py.File(map_fullpath, "w") as hf:
+        hf.create_dataset("data", data=testvol)
+
+    result = get(workspace=tmp_ws_name)
+    if not isinstance(result, bool):
+        logger.debug("tmp exists, deleting and recreating")
+        delete(workspace=tmp_ws_name)
+        logger.debug("workspace deleted")
+
+    create_workspace(workspace=tmp_ws_name)
+    logger.debug("workspace recreated")
+    add_data(workspace=tmp_ws_name, data_fname=map_fullpath)
+    DataModel.g.current_workspace = tmp_ws_name
+    return DataModel
+
+
+class Tests(object):
+    @pytest.mark.asyncio
+    async def test_features(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            params = {"workspace": "blank"}
+            response = await ac.get("/features/existing", params=params)
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_objects(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            params = {"workspace": "blank"}
+            response = await ac.get("/objects/existing", params=params)
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_pipelines(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            params = {"workspace": "blank"}
+            response = await ac.get("/pipelines/existing", params=params)
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_analyzer(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            params = {"workspace": "blank"}
+            response = await ac.get("/analyzer/existing", params=params)
+        assert response.status_code == 200
+
+
+if __name__ == "__main__":
+    pytest.main()

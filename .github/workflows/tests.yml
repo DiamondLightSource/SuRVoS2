@@ -18,13 +18,13 @@ jobs:
       run: python -c "import sys; print(sys.version)"
     - name: Install dependencies
       run: |
-        pip install --no-cache-dir -r req.txt
+        pip install --no-cache-dir -r requirements.txt
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
       shell: bash
       run: |
-        conda install pytest
+        pip install pytest
         pytest .
   build-windows:
     runs-on: windows-latest
@@ -40,7 +40,7 @@ jobs:
         conda list
     - name: Install dependencies
       run: |
-        pip install --no-cache-dir -r req.txt
+        pip install --no-cache-dir -r requirements.txt
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
@@ -48,10 +48,3 @@ jobs:
       run: |
         conda install pytest
         pytest .
-
-
-
-
-
-
-

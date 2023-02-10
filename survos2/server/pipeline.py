@@ -24,6 +24,7 @@ from survos2.frontend.control import Launcher
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.model import SRFeatures
+import survos2.survos as survos
 
 
 @dataclass
@@ -105,10 +106,8 @@ def run_workflow(workflow_file):
 
             print(f"+ Running {k}, with {plugin}, {command} on {src}\n to dst {dst} {all_params}\n")
 
-            import survos
-
-            # Launcher.g.run(plugin, command, **all_params)
-            survos.run_command(plugin, command, uri=None, src=src, dst=dst)
+            Launcher.g.run(plugin, command, **all_params)
+            # survos.run_command(plugin, command, uri=None, src=src, dst=dst)
 
     else:
         print("Need input workflow YAML file")

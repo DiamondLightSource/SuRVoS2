@@ -97,9 +97,12 @@ class LabelSplitter(AnalyzerCardBase):
             split_ops[0] = split_op
 
         all_params["split_ops"] = split_ops
+        all_params["json_transport"] = True
 
         logger.debug(f"Running analyzer with params {all_params}")
-        result_features, features_array, bvols = Launcher.g.run("analyzer", "label_splitter", **all_params)
+        result = Launcher.g.run("analyzer", "label_splitter", **all_params)
+        print(result)
+        result_features, features_array = result
         features_ndarray = np.array(features_array)
         logger.debug(f"Shape of features_array: {features_ndarray.shape}")
 
@@ -168,9 +171,12 @@ class LabelAnalyzer(AnalyzerCardBase):
         split_feature_indexes = [int(self.feature_name_combo_box.value())]
         split_feature_thresholds = []
         all_params["split_ops"] = split_ops
+        all_params["json_transport"] = True  # needed as api call uses a dict
 
         logger.debug(f"Running analyzer with params {all_params}")
-        result_features, features_array, bvols = Launcher.g.run("analyzer", "label_analyzer", **all_params)
+        result_features, features_array, bvols = Launcher.g.run(
+            "analyzer", "label_analyzer", **all_params
+        )
         features_ndarray = np.array(features_array)
 
         if features_array:
@@ -184,11 +190,10 @@ class LabelAnalyzer(AnalyzerCardBase):
                 feature_arrays.append(feature_plot_array)
                 feature_titles.append(feature_title)
                 logger.debug(f"Titles of feature names: {feature_titles}")
-            
+
             self.display_splitter_results(result_features)
-            self.display_splitter_plot(
-                feature_arrays, titles=feature_titles, vert_line_at=None
-            )
+            self.display_splitter_plot(feature_arrays, titles=feature_titles, vert_line_at=None)
+
 
 class RemoveMaskedObjects(AnalyzerCardBase):
     def __init__(self, analyzer_id, analyzer_name, analyzer_type, parent=None):
@@ -272,4 +277,3 @@ class FindConnectedComponents(AnalyzerCardBase):
         if result:
             logger.debug(f"Segmentation stats result table {len(result)}")
             self.display_component_results(result)
-

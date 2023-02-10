@@ -194,7 +194,9 @@ def aggregate_cluster_votes(cluster_coords):
     agg = []
 
     for c in cluster_coords:
-        cluster_df = pd.DataFrame(np.array(c), columns=["slice", "click_x", "click_y", "class_code"])
+        cluster_df = pd.DataFrame(
+            np.array(c), columns=["slice", "click_x", "click_y", "class_code"]
+        )
         cluster_df = cluster_df.astype(
             {
                 "slice": "float32",
@@ -311,7 +313,9 @@ def aggregate_common_centroids(entities):
 
     entities_df = pd.DataFrame(np.array(cc), columns=["z", "x", "y", "class_code"])
 
-    entities_df = entities_df.astype({"z": "int32", "x": "int32", "y": "int32", "class_code": "int32"})
+    entities_df = entities_df.astype(
+        {"z": "int32", "x": "int32", "y": "int32", "class_code": "int32"}
+    )
 
     return entities_df
 
@@ -327,7 +331,9 @@ def parse_tuple(string):
 
 
 ##########################################################
-def extract_session_roi(roi_data, range_start=0, range_end=50, plot_slices=False, debug_verbose=False):
+def extract_session_roi(
+    roi_data, range_start=0, range_end=50, plot_slices=False, debug_verbose=False
+):
     session_extract = []
     click_data = []  # list of per-session data
     global_idx = 0
@@ -455,7 +461,9 @@ def generate_clicklist(click_data_arr, crop_roi, slicestart, sliceend):
     scale_factor_y = 1  # vol_shape_y / x_coords_range
 
     sel_clicks = click_data_arr[
-        np.where(np.logical_and(click_data_arr[:, 0] >= slicestart, click_data_arr[:, 0] <= sliceend))
+        np.where(
+            np.logical_and(click_data_arr[:, 0] >= slicestart, click_data_arr[:, 0] <= sliceend)
+        )
     ]
 
     return sel_clicks, x_coords_range, y_coords_range
@@ -534,7 +542,9 @@ def generate_clicklist(click_data_arr, crop_roi, slicestart, sliceend):
     scale_factor_y = 1  # vol_shape_y / x_coords_range
 
     sel_clicks = click_data_arr[
-        np.where(np.logical_and(click_data_arr[:, 0] >= slicestart, click_data_arr[:, 0] <= sliceend))
+        np.where(
+            np.logical_and(click_data_arr[:, 0] >= slicestart, click_data_arr[:, 0] <= sliceend)
+        )
     ]
 
     return sel_clicks, x_coords_range, y_coords_range

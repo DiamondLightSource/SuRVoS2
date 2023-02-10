@@ -155,6 +155,7 @@ class PipelineCardBase(Card):
         self.fcn_type = ComboBox()
         self.fcn_type.addItem(key="fpn3d")
         self.fcn_type.addItem(key="unet3d")
+        self.fcn_type.addItem(key="vnet")
         widget = HWidgets("FCN Type:", self.fcn_type, stretch=0)
         self.add_row(widget)
 
@@ -293,7 +294,9 @@ class PipelineCardBase(Card):
         if "anno_id" in params:
             if params["anno_id"] is not None:
                 if isinstance(params["anno_id"], list):
-                    self.annotations_source.select(os.path.join("annotations/", params["anno_id"][0]))
+                    self.annotations_source.select(
+                        os.path.join("annotations/", params["anno_id"][0][0])
+                    )
                 else:
                     self.annotations_source.select(os.path.join("annotations/", params["anno_id"]))
 
@@ -332,7 +335,9 @@ class PipelineCardBase(Card):
                 constrain_mask_dict = ast.literal_eval(params["constrain_mask"])
                 logger.debug(constrain_mask_dict)
 
-                constrain_mask_source = constrain_mask_dict["level"] + ":" + str(constrain_mask_dict["idx"])
+                constrain_mask_source = (
+                    constrain_mask_dict["level"] + ":" + str(constrain_mask_dict["idx"])
+                )
                 logger.debug(f"Constrain mask source {constrain_mask_source}")
                 self.constrain_mask_source.select(constrain_mask_source)
         if "multi_ax_train_params" in params:
@@ -523,7 +528,9 @@ class PipelineCardBase(Card):
                             color=label_hex,
                         )
                         params = dict(level=result["id"], workspace=True)
-                        label_result = Launcher.g.run("annotations", "update_label", **params, **label)
+                        label_result = Launcher.g.run(
+                            "annotations", "update_label", **params, **label
+                        )
             except Exception as err:
                 logger.debug(f"Exception {err}")
 

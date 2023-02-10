@@ -3,11 +3,24 @@ import numpy as np
 from loguru import logger
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
-from qtpy.QtWidgets import QPushButton, QTabWidget, QVBoxLayout, QWidget
+import subprocess
+from survos2.frontend.control import Launcher
+
+from PyQt5.QtWidgets import (
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QRadioButton,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
 from vispy import scene
-
 from survos2.frontend.components.base import HWidgets, Slider
-
 from survos2.frontend.plugins.base import list_plugins, get_plugin, PluginContainer, register_plugin
 from survos2.frontend.components.base import (
     VBox,
@@ -20,7 +33,6 @@ from survos2.frontend.components.base import (
     ComboBox,
 )
 from survos2.frontend.plugins.features import MplCanvas
-
 from survos2.server.state import cfg
 from survos2.model.model import DataModel
 from napari.qt.progress import progress
@@ -30,12 +42,116 @@ from survos2.config import Config
 class ButtonPanelWidget(QtWidgets.QWidget):
     clientEvent = Signal(object)
 
+    def toggle_advanced(self):
+        """Controls displaying/hiding the advanced run fields on radio button toggle."""
+        rbutton = self.sender()
+        if rbutton.isChecked():
+            self.adv_run_fields.show()
+        else:
+            self.adv_run_fields.hide()
+
+    def setup_adv_run_fields(self):
+        """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
+        self.adv_run_fields = QGroupBox()
+        adv_run_layout = QGridLayout()
+        adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
+        self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
+        adv_run_layout.addWidget(self.server_ip_linedt, 0, 1)
+        adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
+        self.server_port_linedt = QLineEdit(self.run_config["server_port"])
+        adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
+
+        self.existing_button = QPushButton("Use Existing Server")
+        adv_run_layout.addWidget(self.existing_button, 2, 1)
+
+        self.existing_button.clicked.connect(self.existing_clicked)
+        self.adv_run_fields.setLayout(adv_run_layout)
+
+    def stop_clicked(self):
+        logger.info("Stopping server")
+        if cfg["server_process"] is not None:
+            cfg["server_process"].kill()
+
+    def run_clicked(self):
+        """Starts SuRVoS2 server when 'Run' button pressed."""
+        command_dir = os.path.abspath(os.path.dirname(__file__))  # os.getcwd()
+
+        # Set current dir to survos root
+        from pathlib import Path
+
+        command_dir = Path(command_dir).absolute().parent.resolve()
+        os.chdir(command_dir)
+
+        self.run_config["server_port"] = self.server_port_linedt.text()
+        cfg.server_process = subprocess.Popen(
+            [
+                "python",
+                "-m",
+                "uvicorn",
+                "start_server:app",
+                "--port",
+                self.run_config["server_port"],
+            ]
+        )
+        try:
+            outs, errs = cfg.server_process.communicate(timeout=10)
+            print(f"OUTS: {outs, errs}")
+        except subprocess.TimeoutExpired:
+            pass
+
+        logger.info(f"Setting remote: {self.server_port_linedt.text()}")
+        remote_ip_port = "127.0.0.1:" + self.server_port_linedt.text()
+        logger.info(f"Setting remote: {remote_ip_port}")
+        resp = Launcher.g.set_remote(remote_ip_port)
+        logger.info(f"Response from server to setting remote: {resp}")
+        if hasattr(self, "selected_workspace"):
+            logger.info(f"Setting workspace to: {self.selected_workspace}")
+            resp = Launcher.g.run("workspace", "set_workspace", workspace=self.selected_workspace)
+            logger.info(f"Response from server to setting workspace: {resp}")
+
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+
+    def existing_clicked(self):
+        ssh_ip = self.server_ip_linedt.text()
+        remote_ip_port = ssh_ip + ":" + self.server_port_linedt.text()
+        logger.info(f"setting remote: {remote_ip_port}")
+        resp = Launcher.g.set_remote(remote_ip_port)
+        logger.info(f"Response from server to setting remote: {resp}")
+
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+
+    def get_run_layout(self):
+        """Gets the QGroupBox that contains the fields for starting SuRVoS.
+
+        Returns:
+            PyQt5.QWidgets.GroupBox: GroupBox with run fields.
+        """
+        self.run_button = QPushButton("Start Server")
+        self.stop_button = QPushButton("Stop Server")
+
+        advanced_button = QRadioButton("Advanced")
+        run_layout = QGridLayout()
+
+        run_layout.addWidget(advanced_button, 1, 0)
+        run_layout.addWidget(self.adv_run_fields, 2, 1)
+        run_layout.addWidget(self.run_button, 3, 1)
+        run_layout.addWidget(self.stop_button, 3, 0)
+
+        advanced_button.toggled.connect(self.toggle_advanced)
+        self.run_button.clicked.connect(self.run_clicked)
+        self.stop_button.clicked.connect(self.stop_clicked)
+
+        return run_layout
+
     def __init__(self, *args, **kwargs):
+
+        run_config = {
+            "server_ip": "127.0.0.1",
+            "server_port": "8000",
+            "workspace_name": "blank",
+        }
+        self.run_config = run_config
         QtWidgets.QWidget.__init__(self, *args, **kwargs)
-        self.slice_mode = False
-        self.slider = Slider(value=0, vmax=cfg.slice_max - 1)
-        self.slider.setMinimumWidth(150)
-        self.slider.sliderReleased.connect(self._params_updated)
 
         button_refresh = QPushButton("Refresh", self)
         button_refresh.clicked.connect(self.button_refresh_clicked)
@@ -43,35 +159,27 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         button_load_workspace = QPushButton("Load", self)
         button_load_workspace.clicked.connect(self.button_load_workspace_clicked)
 
-        button_clear_client = QPushButton("Clear client")
+        button_clear_client = QPushButton("Clear layer list")
         button_clear_client.clicked.connect(self.button_clear_client_clicked)
 
-        button_transfer = QPushButton("Transfer Layer to Server")
+        button_transfer = QPushButton("Transfer Layer to Workspace")
         button_transfer.clicked.connect(self.button_transfer_clicked)
-
-        # self.button_slicemode = QPushButton("Slice mode", self)
-        # self.button_slicemode.clicked.connect(self.button_slicemode_clicked)
 
         workspaces = os.listdir(DataModel.g.CHROOT)
         self.workspaces_list = ComboBox()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
-        workspaces_widget = HWidgets("Switch Workspaces:", self.workspaces_list)
+        workspaces_widget = HWidgets("Workspace:", self.workspaces_list)
         self.workspaces_list.setEditable(True)
         self.workspaces_list.activated[str].connect(self.workspaces_selected)
 
-        self.hbox_layout0 = QtWidgets.QHBoxLayout()
         hbox_layout_ws = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
-
-        self.hbox_layout0.addWidget(self.slider)
-        self.slider.hide()
 
         hbox_layout_ws.addWidget(workspaces_widget)
         hbox_layout_ws.addWidget(button_load_workspace)
 
         hbox_layout1.addWidget(button_transfer)
-        # hbox_layout1.addWidget(self.button_slicemode)
         hbox_layout1.addWidget(button_refresh)
         hbox_layout1.addWidget(button_clear_client)
 
@@ -80,7 +188,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.tabwidget = QTabWidget()
         vbox.addWidget(self.tabwidget)
 
-        self.tabs = [(QWidget(), t) for t in ["Workspace", "Histogram"]]
+        self.tabs = [(QWidget(), t) for t in ["Main", "Histogram"]]
 
         # create tabs for button/info panel
         tabs = []
@@ -94,9 +202,11 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.display_histogram_plot(np.array([0, 1]))
 
         # add tabs to button/info panel
-        tabs[0][0].layout.addLayout(self.hbox_layout0)
-        tabs[0][0].layout.addLayout(hbox_layout1)
         tabs[0][0].layout.addLayout(hbox_layout_ws)
+        tabs[0][0].layout.addLayout(hbox_layout1)
+        self.setup_adv_run_fields()
+        self.adv_run_fields.hide()
+        tabs[0][0].layout.addLayout(self.get_run_layout())
 
         tabs[1][0].layout.addLayout(self.plotbox)
 
@@ -105,19 +215,18 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.workspaces_list.clear()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
-        self.slider.setMinimumWidth(cfg.base_dataset_shape[0])
-
+        
     def workspaces_selected(self):
-        selected_workspace = self.workspaces_list.value()
+        self.selected_workspace = self.workspaces_list.value()
         self.workspaces_list.blockSignals(True)
-        self.workspaces_list.select(selected_workspace)
+        self.workspaces_list.select(self.selected_workspace)
         self.workspaces_list.blockSignals(False)
 
         cfg.ppw.clientEvent.emit(
             {
                 "source": "panel_gui",
                 "data": "set_workspace",
-                "workspace": selected_workspace,
+                "workspace": self.selected_workspace,
             }
         )
 
@@ -144,10 +253,30 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.refresh_workspaces()
         cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "make_roi_ws", "roi": roi})
 
+    def startup_server(self):
+        from survos2.frontend.nb_utils import start_server
+        port = str(Config["api"]["port"])
+        server_process = start_server(port)
+        cfg["server_process"] = server_process
+        remote_ip_port = "127.0.0.1:" + port
+        logger.info(f"Setting remote: {remote_ip_port}")
+        resp = Launcher.g.set_remote(remote_ip_port)
+        resp = Launcher.g.run("workspace", "set_workspace", self.selected_workspace)
+        logger.info(f"Response from server to setting workspace: {resp}")
+
     def button_load_workspace_clicked(self):
-        self.refresh_workspaces()
-        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
-        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+        with progress(total=2) as pbar:
+            pbar.set_description("Refreshing viewer")
+            pbar.update(1)
+
+            if "server_process" not in cfg:
+                self.startup_server()
+
+            pbar.update(2)
+
+            self.refresh_workspaces()
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
 
     def button_refresh_clicked(self):
         self.refresh_workspaces()
@@ -157,14 +286,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
     def button_clear_client_clicked(self):
         self.refresh_workspaces()
         cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
-
-    def button_pause_save_clicked(self):
-        if cfg.pause_save:
-            self.button_pause_save.setText("Pause Saving to Server")
-        else:
-            self.button_pause_save.setText("Resume saving to Server")
-
-        cfg.pause_save = not cfg.pause_save
 
     def button_transfer_clicked(self):
         cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "transfer_layer", "value": None})
@@ -190,7 +311,9 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         )
 
     def _params_updated(self):
-        cfg.ppw.clientEvent.emit({"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()})
+        cfg.ppw.clientEvent.emit(
+            {"source": "slider", "data": "jump_to_slice", "frame": self.slider.value()}
+        )
 
     def clear_layout(self, layout):
         while layout.count():
@@ -271,18 +394,18 @@ class PluginPanelWidget(QtWidgets.QWidget):
             cfg.viewer.layers.remove(l)
         cfg.emptying_viewer = False
 
-    def setup2(self):
+    def setup_fast(self):
         for plugin_name in list_plugins():
             plugin = get_plugin(plugin_name)
             name = plugin["name"]
             tab = plugin["tab"]
-            self.pluginContainer.show_plugin2(name, tab)
+            self.pluginContainer.show_plugin_fast(name, tab)
 
     def setup_features(self):
         plugin = get_plugin("features")
         name = plugin["name"]
         tab = plugin["tab"]
-        self.pluginContainer.show_plugin2(name, tab)
+        self.pluginContainer.show_plugin_fast(name, tab)
 
     def setup_named_plugin(self, name):
         plugin = get_plugin(name)
@@ -294,7 +417,7 @@ class PluginPanelWidget(QtWidgets.QWidget):
         plugin = get_plugin(name)
         name = plugin["name"]
         tab = plugin["tab"]
-        self.pluginContainer.show_plugin2(name, tab)
+        self.pluginContainer.show_plugin_fast(name, tab)
 
 
 class QtPlotWidget(QtWidgets.QWidget):

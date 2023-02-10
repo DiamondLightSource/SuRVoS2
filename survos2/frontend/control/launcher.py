@@ -1,22 +1,20 @@
 import hug
-import time
 import multiprocessing
 from requests.exceptions import ConnectTimeout, ConnectionError
 from qtpy import QtCore, QtWidgets
-from hug.use import HTTP, Local
-
+from hug.use import Local  # HTTP,
+import pickle
 from survos2.model import DataModel
 from survos2.model.singleton import Singleton
-from survos2.frontend.modal import ModalManager
 from survos2.utils import encode_numpy, format_yaml, Timer
 from survos2.survos import remote_client, parse_response, init_api
-from survos2.api.utils import APIException, handle_exceptions, handle_api_exceptions
-from importlib import import_module
-
 from loguru import logger
-from survos2.survos import run_command
-
 import requests
+from hug import _empty as empty
+from cgi import parse_header
+import requests
+from io import BytesIO
+
 
 # needed as separate function rather than method for multiprocessing
 def _run_command(plugin, command, client, uri=None, out=None, **kwargs):
@@ -30,6 +28,49 @@ def _run_command(plugin, command, client, uri=None, out=None, **kwargs):
         return result
 
 
+def parse_content_type(content_type):
+    """Separates out the parameters from the content_type and returns both in a tuple (content_type, parameters)"""
+    if content_type is not None and ";" in content_type:
+        return parse_header(content_type)
+    return (content_type, empty.dict)
+
+
+input_format = {
+    "application/json": hug.input_format.json,
+    "application/x-www-form-urlencoded": hug.input_format.urlencoded,
+    "multipart/form-data": hug.input_format.multipart,
+    "text/plain": hug.input_format.text,
+    "text/css": hug.input_format.text,
+    "text/html": hug.input_format.text,
+}
+
+from collections import namedtuple
+
+Response = namedtuple("Response", ("data", "status_code", "headers"))
+
+
+def _parse_uri(uri):
+    if type(uri) == str:
+
+        pattern = r"@?(?P<host>\w+):(?P<port>[0-9]+)"
+        result = re.search(pattern, uri)
+
+        ip = re.findall(r"[0-9]+(?:\.[0-9]+){3}", uri)
+
+        if result is not None:
+            return ip[0], result["port"]
+    elif len(uri) == 2:
+        return uri[0], uri[1]
+    raise ValueError("Not a valid [host:port] URI.")
+
+
+def remote_url(uri, plugin, command):
+    host, port = _parse_uri(uri)
+    endpoint = "http://{}:{}/{}/{}".format(host, port, plugin, command)
+    logger.debug(f"endpoint: {endpoint}")
+    return endpoint
+
+
 @Singleton
 class Launcher(QtCore.QObject):
     def __init__(self):
@@ -41,20 +82,28 @@ class Launcher(QtCore.QObject):
         self.remote_ip_port = None
 
     def set_remote(self, uri):
+        logger.info("Launcher setting remote to {}".format(uri))
         self.client = remote_client(uri)
         self.modal = False
         self.pending = []
         self.remote_ip_port = uri
 
+    def set_current_workspace(self, workspace_name):
+        logger.debug(f"Setting workspace to {workspace_name}")
+        DataModel.g.current_workspace = workspace_name
+
     def set_current_workspace_shape(self, workspace_shape, **kwargs):
-        print(f"Setting workspace shape to {workspace_shape}")
+        logger.debug(f"Setting workspace shape to {workspace_shape}")
         DataModel.g.current_workspace_shape = workspace_shape
 
     def post_array(self, arr, group, name="ndarray", **kwargs):
+        logger.debug(f"Posting array of shape {arr.shape}")
+        data = {"name": name, "data": arr}
+
+        data_as_bytes = pickle.dumps(data)
         response = requests.post(
             "http://" + self.remote_ip_port + "/" + group + "/upload",
-            files={"file": arr},
-            data={"shape": str(tuple(arr.shape)), "name": name},
+            files={"file": data_as_bytes},
         )
 
     def post_file(self, fullname, group, **kwargs):
@@ -101,11 +150,9 @@ class Launcher(QtCore.QObject):
                         result, error = func(plugin, command, **kwargs)
 
                 except (ConnectTimeout, ConnectionError):
-
                     self.connected = False
                     cnt += 1
                     logger.info("ConnectionError - delayed")
-                    # ModalManager.g.connection_lost()
 
                     if self.terminated:
                         return False
@@ -121,9 +168,8 @@ class Launcher(QtCore.QObject):
             return result
 
     def _run_command(self, plugin, command, uri=None, out=None, **kwargs):
-        # logger.debug(f"_run_command: {plugin} {command}")
-        response = self.client.get("{}/{}".format(plugin, command), timeout=5, **kwargs)
-        # logger.debug("parsing_response")
+        logger.debug(f"_run_command: {plugin} {command}")
+        response = self.client.get("{}/{}".format(plugin, command), timeout=12, **kwargs)
         result = parse_response(plugin, command, response, log=False)
         if out is not None:
             out.put(result)
@@ -131,11 +177,13 @@ class Launcher(QtCore.QObject):
             return result
 
     def _run_background(self, plugin, command, **kwargs):
-        print("Running command in background.")
+        logger.debug("Running command in background.")
         queue = multiprocessing.Queue()
         kwargs.update(out=queue)
 
-        p = multiprocessing.Process(target=_run_command, args=[plugin, command, self.client], kwargs=kwargs)
+        p = multiprocessing.Process(
+            target=_run_command, args=[plugin, command, self.client], kwargs=kwargs
+        )
         p.daemon = True
         p.start()
         while p.is_alive():
@@ -155,24 +203,15 @@ class Launcher(QtCore.QObject):
 
     def setup(self, caption):
         logger.debug("### {} ###".format(caption))
-        # if self.modal:
-        #    ModalManager.g.show_loading(caption)
 
     def cleanup(self):
-        # if self.modal:
-        #    ModalManager.g.hide()
         QtWidgets.QApplication.processEvents()
 
     def process_error(self, error):
         if not isinstance(error, str):
             error = format_yaml(error, explicit_start=False, explicit_end=False, flow=False)
-        # try:
-        #     traceback.print_last()
-        # except Exception as e:
-        #     pass
 
         logger.error("{} :: {}".format(self.title, error))
-        # ModalManager.g.show_error(error)
         QtWidgets.QApplication.processEvents()
         return False
 

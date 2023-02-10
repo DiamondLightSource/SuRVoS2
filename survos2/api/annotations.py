@@ -1,23 +1,30 @@
-import os.path as op
-
-import hug
 import numpy as np
-import parse
 from loguru import logger
-
+import ast
 from survos2.api import workspace as ws
-from survos2.api.types import DataURI, Float, Int, IntList, SmartBoolean, String
 from survos2.api.utils import APIException, dataset_repr
 from survos2.config import Config
-from survos2.improc import map_blocks
-from survos2.io import dataset_from_uri
+from survos2.data_io import dataset_from_uri
 from survos2.utils import encode_numpy
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
+from survos2.api.annotate import annotate_regions as _annotate_regions
+from survos2.frontend.view_fn import get_level_from_server
+from survos2.api.annotate import annotate_voxels as _annotate_voxels
+
+import pickle
+from fastapi import APIRouter, Body, File, UploadFile, Query
 
 __level_fill__ = 0
 __level_dtype__ = "uint32"
 __group_pattern__ = "annotations"
+
+
+def pass_through(x):
+    return x
+
+
+annotations = APIRouter()
 
 
 CHUNK_SIZE = Config["computing.chunk_size_sparse"]
@@ -27,15 +34,18 @@ def to_label(idx=0, name="Label", color="#000000", visible=True, **kwargs):
     return dict(idx=idx, name=name, color=color, visible=visible)
 
 
-@hug.post()
-def upload(body, request, response):
-    encoded_array = body["file"]
-    array_shape = body["shape"]
-    anno_id = body["name"]
-    level_arr = np.frombuffer(encoded_array, dtype="uint32")
-    from ast import literal_eval
+# @hug.post()
+@annotations.post("/upload")
+def upload(file: UploadFile = File(...)):
+    """Upload annotations layer as an array (via Launcher) to the current workspace.
+    After unpickling there is a dictionary with a 'name' key and a
+       'data' key. The 'data' key contains a numpy array of labels.
+    """
+    encoded_buffer = file.file.read()
+    d = pickle.loads(encoded_buffer)
 
-    level_arr.shape = literal_eval(array_shape)
+    anno_id = d["name"]
+    level_arr = np.array(d["data"])
     logger.debug(f"Uploaded feature of shape {level_arr.shape}")
     dst = DataModel.g.dataset_uri(anno_id, group="annotations")
 
@@ -47,46 +57,44 @@ def upload(body, request, response):
     modified_ds.set_attr("modified", modified)
 
 
-@hug.get()
-def set_volume(src: DataURI, vol_array):
-    logger.debug("Setting annotation volume")
+@annotations.get("/set_volume")
+def set_volume(src: str, vol_array):
     ds = dataset_from_uri(src, mode="rw")
     if ds[:].shape == vol_array.shape:
         ds[:] = vol_array
 
 
-@hug.get()
-def get_volume(src: DataURI):
-    logger.debug("Getting annotation volume")
+@annotations.get("/get_volume")
+def get_volume(src: str):
     ds = dataset_from_uri(src, mode="r")
     data = ds[:]
     return encode_numpy(data)
 
 
-@hug.get()
-def get_slice(src: DataURI, slice_idx: Int, order: tuple):
+@annotations.get("/get_slice")
+def get_slice(src: str, slice_idx: int, order: tuple = Query()):
     ds = dataset_from_uri(src, mode="r")[:]
+    order = tuple(int(e) for e in order)
     ds = np.transpose(ds, order)
     data = ds[slice_idx]
     return encode_numpy(data)
 
 
-@hug.get()
-def get_crop(src: DataURI, roi: IntList):
-    logger.debug("Getting anno crop")
+@annotations.get("/get_crop")
+def get_crop(src: str, roi: list):
     ds = dataset_from_uri(src, mode="r")
     data = ds[roi[0] : roi[1], roi[2] : roi[3], roi[4] : roi[5]]
     return encode_numpy(data)
 
 
-@hug.get()
+@annotations.get("/set_label_parent")
 def set_label_parent(
-    workspace: String,
-    level: String,
-    label_idx: Int,
-    parent_level: String,
-    parent_label_idx: Int,
-    parent_color: String,
+    workspace: str,
+    level: str,
+    label_idx: int,
+    parent_level: str,
+    parent_label_idx: int,
+    parent_color: str,
 ):
     ds = ws.get_dataset(workspace, level, group=__group_pattern__)
     labels = ds.get_metadata("labels", {})
@@ -99,11 +107,13 @@ def set_label_parent(
     ds.set_metadata("labels", labels)
 
 
-@hug.get()
-def get_label_parent(workspace: String, level: String, label_idx: Int):
+@annotations.get("/get_label_parent")
+def get_label_parent(workspace: str, level: str, label_idx: int):
     ds = get_level(workspace, level)
     labels = ds.get_metadata("labels", {})
-    logger.debug(f"get_label_parent with level {level}, label_idx {label_idx}, result labels: {labels}")
+    logger.debug(
+        f"get_label_parent with level {level}, label_idx {label_idx}, result labels: {labels}"
+    )
     parent_level = -1
     parent_label_idx = -1
     parent_color = None
@@ -117,8 +127,8 @@ def get_label_parent(workspace: String, level: String, label_idx: Int):
     return parent_level, parent_label_idx, parent_color
 
 
-@hug.get()
-def add_level(workspace: String):
+@annotations.get("/add_level")
+def add_level(workspace: str):
     ds = ws.auto_create_dataset(
         workspace,
         "level",
@@ -134,27 +144,27 @@ def add_level(workspace: String):
     return dataset_repr(ds)
 
 
-@hug.local()
-def get_level(workspace: String, level: String, full: SmartBoolean = False):
+# @hug.local()
+@annotations.get("/get_level")
+def get_level(workspace: str, level: str, full: bool = False):
     if full == False:
-        return ws.get_dataset(workspace, level, group=__group_pattern__)
-    return ws.get_dataset(workspace, level)
+        return ws.get_dataset(workspace, level, group=__group_pattern__, session="default")
+    return ws.get_dataset(workspace, level, session="default")
 
 
-@hug.get()
-@hug.local()
-def get_single_level(workspace: String, level: String):
-    ds = ws.get_dataset(workspace, level, group=__group_pattern__)
+# @hug.local()
+@annotations.get("/get_single_level")
+def get_single_level(workspace: str, level: str):
+    ds = ws.get_dataset(workspace, level, group=__group_pattern__, session="default")
     return dataset_repr(ds)
 
 
-@hug.get()
-@hug.local()
-def get_levels(workspace: String, full: SmartBoolean = False):
+# @hug.local()
+@annotations.get("/get_levels")
+def get_levels(workspace: str, full: bool = False):
     datasets = ws.existing_datasets(workspace, group=__group_pattern__)
     datasets = [dataset_repr(v) for k, v in datasets.items()]
 
-    # TODO: unreached
     if full:
         for ds in datasets:
             ds["id"] = "{}/{}".format(__group_pattern__, ds["id"])
@@ -162,22 +172,23 @@ def get_levels(workspace: String, full: SmartBoolean = False):
     return datasets
 
 
-@hug.get()
-def rename_level(workspace: String, level: String, name: String, full: SmartBoolean = False):
+@annotations.get("/rename_level")
+def rename_level(workspace: str, level: str, name: str, full: bool = False):
     ds = get_level(workspace, level, full)
     ds.set_metadata("name", name)
 
 
-@hug.get()
-def delete_level(workspace: String, level: String, full: SmartBoolean = False):
+@annotations.get("/delete_level")
+def delete_level(workspace: str, level: str, full: bool = False):
     if full:
         ws.delete_dataset(workspace, level)
     else:
         ws.delete_dataset(workspace, level, group=__group_pattern__)
+    return dict(done=True)
 
 
-@hug.get()
-def add_label(workspace: String, level: String, full: SmartBoolean = False):
+@annotations.get("/add_label")
+def add_label(workspace: str, level: str, full: bool = False):
     from survos2.api.annotate import erase_label
     from survos2.improc.utils import map_blocks
 
@@ -205,22 +216,22 @@ def add_label(workspace: String, level: String, full: SmartBoolean = False):
     return new_label
 
 
-@hug.get()
-def get_labels(workspace: String, level: String, full: SmartBoolean = False):
+@annotations.get("/get_labels")
+def get_labels(workspace: str, level: str, full: bool = False):
     ds = get_level(workspace, level, full)
     labels = ds.get_metadata("labels", {})
     return {k: to_label(**v) for k, v in labels.items()}
 
 
-@hug.get()
+@annotations.get("/update_label")
 def update_label(
-    workspace: String,
-    level: String,
-    idx: Int,
-    name: String = None,
-    color: String = None,
-    visible: SmartBoolean = None,
-    full: SmartBoolean = False,
+    workspace: str,
+    level: str,
+    idx: int,
+    name: str = None,
+    color: str = None,
+    visible: bool = None,
+    full: bool = False,
 ):
     ds = get_level(workspace, level, full)
     labels = ds.get_metadata("labels", {})
@@ -233,8 +244,8 @@ def update_label(
     raise APIException("Label {}::{} does not exist".format(level, idx))
 
 
-@hug.get()
-def delete_label(workspace: String, level: String, idx: Int, full: SmartBoolean = False):
+@annotations.get("/delete_label")
+def delete_label(workspace: str, level: str, idx: int, full: bool = False):
     ds = get_level(workspace, level, full)
     labels = ds.get_metadata("labels", {})
     if idx in labels:
@@ -244,30 +255,26 @@ def delete_label(workspace: String, level: String, idx: Int, full: SmartBoolean 
     raise APIException("Label {}::{} does not exist".format(level, idx))
 
 
-@hug.get()
-def delete_all_labels(workspace: String, level: String, full: SmartBoolean = False):
+@annotations.get("/delete_all_labels")
+def delete_all_labels(workspace: str, level: str, full: bool = False):
     ds = get_level(workspace, level, full)
     ds.set_metadata("labels", {})
     return dict(done=True)
 
 
-@hug.get()
+@annotations.get("/annotate_voxels")
 def annotate_voxels(
-    workspace: String,
-    level: String,
-    slice_idx: Int,
-    yy: IntList,
-    xx: IntList,
-    label: Int,
-    full: SmartBoolean,
-    parent_level: String,
-    parent_label_idx: Int,
-    viewer_order: tuple,
-    three_dim: SmartBoolean,
-    brush_size: Int,
-    centre_point: tuple,
+    workspace: str = Body(),
+    level: str = Body(),
+    slice_idx: int = Body(),
+    yy: list = Body(),
+    xx: list = Body(),
+    label: int = Body(),
+    full: bool = Body(),
+    parent_level: str = Body(),
+    parent_label_idx: int = Body(),
+    viewer_order: tuple = Body(),
 ):
-    from survos2.api.annotate import annotate_voxels
 
     ds = get_level(workspace, level, full)
 
@@ -277,14 +284,18 @@ def annotate_voxels(
         parent_arr, parent_annotations_dataset = get_level_from_server(
             {"level_id": parent_level}, retrieval_mode="volume"
         )
-        parent_arr = parent_arr & 15
-        parent_mask = parent_arr == parent_label_idx
+
+        if isinstance(parent_arr, np.ndarray):
+            parent_arr = parent_arr & 15
+            parent_mask = parent_arr == parent_label_idx
+        else:
+            parent_arr = None
+            parent_mask = None
     else:
         parent_arr = None
         parent_mask = None
 
-    # logger.debug(f"slice_idx {slice_idx} Viewer order: {viewer_order}")
-    annotate_voxels(
+    _annotate_voxels(
         ds,
         slice_idx=slice_idx,
         yy=yy,
@@ -292,36 +303,30 @@ def annotate_voxels(
         label=label,
         parent_mask=parent_mask,
         viewer_order=viewer_order,
-        three_dim=three_dim,
-        brush_size=brush_size,
-        centre_point=centre_point,
     )
-
+    DataModel.g.current_workspace = workspace
     dst = DataModel.g.dataset_uri(level, group="annotations")
     modified_ds = dataset_from_uri(dst, mode="r")
     modified = [1]
     modified_ds.set_attr("modified", modified)
 
 
-@hug.get()
+@annotations.get("/annotate_regions")
 def annotate_regions(
-    workspace: String,
-    level: String,
-    region: DataURI,
-    r: IntList,
-    label: Int,
-    full: SmartBoolean,
-    parent_level: String,
-    parent_label_idx: Int,
-    bb: IntList,
-    viewer_order: tuple,
+    workspace: str = Body(),
+    level: str = Body(),
+    region: str = Body(),
+    r: list = Body(),
+    label: int = Body(),
+    full: bool = Body(),
+    parent_level: str = Body(),
+    parent_label_idx: int = Body(),
+    bb: list = Body(),
+    viewer_order: tuple = Body(),
 ):
-    from survos2.api.annotate import annotate_regions
-
+    DataModel.g.current_workspace = workspace
     ds = get_level(workspace, level, full)
     region = dataset_from_uri(region, mode="r")
-
-    from survos2.frontend.frontend import get_level_from_server
 
     if parent_level != "-1" and parent_level != -1:
         parent_arr, parent_annotations_dataset = get_level_from_server(
@@ -333,8 +338,7 @@ def annotate_regions(
         parent_arr = None
         parent_mask = None
 
-    # logger.debug(f"BB in annotate_regions {bb}")
-    anno = annotate_regions(
+    anno = _annotate_regions(
         ds,
         region,
         r=r,
@@ -344,18 +348,16 @@ def annotate_regions(
         viewer_order=viewer_order,
     )
 
-    def pass_through(x):
-        return x
-
     dst = DataModel.g.dataset_uri(level, group="annotations")
-    map_blocks(pass_through, anno, out=dst, normalize=False)
-    modified_ds = dataset_from_uri(dst, mode="r")
+    ds[:] = anno
+    # map_blocks(pass_through, anno, out=dst, normalize=False)
+    modified_ds = dataset_from_uri(dst, mode="rw")
     modified = [1]
     modified_ds.set_attr("modified", modified)
 
 
-@hug.get()
-def annotate_undo(workspace: String, level: String, full: SmartBoolean = False):
+@annotations.get("/annotate_undo")
+def annotate_undo(workspace: str, level: str, full: bool = False):
     from survos2.api.annotate import undo_annotation
 
     ds = get_level(workspace, level, full)

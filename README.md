@@ -31,8 +31,6 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [@napari]: https://github.com/napari
 [MIT]: http://opensource.org/licenses/MIT
 [Apache Software License 2.0]: http://www.apache.org/licenses/LICENSE-2.0
-[file an issue]: https://github.com/penningav/SuRVoS2/issues
-[tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/
 [PyPI]: https://pypi.org/
 [SuRVoS2 Tutorial]: docs/Survos_Training_Sept_2022.pdf

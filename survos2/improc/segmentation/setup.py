@@ -5,9 +5,13 @@ from Cython.Build import build_ext
 
 
 def configuration(parent_package="", top_path=None):
-    config = Configuration("segmentation", parent_package, top_path, cmdclass={"build_ext": build_ext})
+    config = Configuration(
+        "segmentation", parent_package, top_path, cmdclass={"build_ext": build_ext}
+    )
 
-    config.add_extension("_mappings", sources=["_mappings.pyx"], include_dirs=[get_numpy_include_dirs()])
+    config.add_extension(
+        "_mappings", sources=["_mappings.pyx"], include_dirs=[get_numpy_include_dirs()]
+    )
 
     qpbo_dir = "qpbo_src"
     files = [

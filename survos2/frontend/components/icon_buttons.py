@@ -41,7 +41,7 @@ class IconButton(QtWidgets.QPushButton):
 
     def enterEvent(self, evt=None):
         if self.flat and not self.isChecked():
-            color = "#4527A0" if self.accent else "#009688"
+            color = "#6c4bf5" if self.accent else "#25ddcc"
             self.setIconColor(color)
 
     def leaveEvent(self, evt=None):
@@ -49,7 +49,7 @@ class IconButton(QtWidgets.QPushButton):
             if self.error:
                 color = "red"
             else:
-                color = "#009688" if self.accent else "#0D47A1"
+                color = "#25ddcc" if self.accent else "#3d85c6"
             self.setIconColor(color)
         elif self.flat:
             self.setIconColor("white")

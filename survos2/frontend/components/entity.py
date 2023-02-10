@@ -39,20 +39,7 @@ def setup_entity_table(
         axis=1,
         inplace=True,
     )
-    # entities_df.drop(
-    #     entities_df.columns[entities_df.columns.str.contains("index", case=False)],
-    #     axis=1,
-    #     inplace=True,
-    # )
-    # class_code_column = (
-    #     len([col for col in entities_df.columns if "class_code" in col]) > 0
-    # )
 
-    # if not class_code_column:
-    #     entities_df["class_code"] = 0
-
-    # cropped_pts = crop_pts_bb(np.array(entities_df), [crop_start[0],crop_end[0],crop_start[1], crop_end[1], crop_start[2], crop_end[2]])
-    # print(cropped_pts)
     entities_df = make_entity_df(np.array(entities_df), flipxy=flipxy)
     logger.debug(
         f"Loaded entities {entities_df.shape} applying scale {scale} and offset {offset} and crop start {crop_start}, crop_end {crop_end}"

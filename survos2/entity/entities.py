@@ -17,10 +17,16 @@ import tempfile
 
 
 def load_boxes_via_file(boxes_arr, flipxy=True):
+    # Create a DataFrame from the input array using make_entity_boxes
     boxes_df = make_entity_boxes(boxes_arr, flipxy=flipxy)
-    tmp_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv"))
+
+    # Generate a temporary file path for the CSV file
+    tmp_fullpath = os.path.abspath(
+        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
+    )
     boxes_df.to_csv(tmp_fullpath, line_terminator="")
-    print(boxes_df)
+
+    # Initialize default values for object scaling and cropping parameters
     object_scale = 1.0
     object_offset = (0.0, 0.0, 0.0)
     object_crop_start = (0.0, 0.0, 0.0)
@@ -33,6 +39,8 @@ def load_boxes_via_file(boxes_arr, flipxy=True):
     )
 
     result = Launcher.g.run("objects", "create", **params)
+
+    # If the operation succeeded, run the "boxes" operation
     if result:
         dst = DataModel.g.dataset_uri(result["id"], group="objects")
         params = dict(
@@ -51,19 +59,24 @@ def load_boxes_via_file(boxes_arr, flipxy=True):
 
 def load_entities_via_file(entities_arr, flipxy=True):
     entities_df = make_entity_df(entities_arr, flipxy=flipxy)
-    tmp_fullpath = os.path.abspath(os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv"))
+    tmp_fullpath = os.path.abspath(
+        os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + ".csv")
+    )
     entities_df.to_csv(tmp_fullpath, line_terminator="")
 
     object_scale = 1.0
-    object_offset = (0.0, 0.0, 0.0)
-    object_crop_start = (0.0, 0.0, 0.0)
-    object_crop_end = (1e9, 1e9, 1e9)
+    object_offset = [0, 0, 0]
+    object_crop_start = [0, 0, 0]
+    object_crop_end = [1e9, 1e9, 1e9]
 
     params = dict(
         order=0,
         workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace,
         fullname=tmp_fullpath,
     )
+
+    print("Load entities via file")
+    print(params)
 
     result = Launcher.g.run("objects", "create", **params)
     if result:
@@ -72,9 +85,9 @@ def load_entities_via_file(entities_arr, flipxy=True):
             dst=dst,
             fullname=tmp_fullpath,
             scale=object_scale,
-            offset=object_offset,
-            crop_start=object_crop_start,
-            crop_end=object_crop_end,
+            # offset=object_offset,
+            # crop_start=object_crop_start,
+            # crop_end=object_crop_end,
         )
         logger.debug(f"Creating objects with params {params}")
         Launcher.g.run("objects", "points", **params)
@@ -162,18 +175,28 @@ def make_entity_df(pts, flipxy=True):
     """
 
     if flipxy:
-        entities_df = pd.DataFrame({"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]})
+        entities_df = pd.DataFrame(
+            {"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]}
+        )
     else:
-        entities_df = pd.DataFrame({"z": pts[:, 0], "x": pts[:, 1], "y": pts[:, 2], "class_code": pts[:, 3]})
+        entities_df = pd.DataFrame(
+            {"z": pts[:, 0], "x": pts[:, 1], "y": pts[:, 2], "class_code": pts[:, 3]}
+        )
 
-    entities_df = entities_df.astype({"x": "int32", "y": "int32", "z": "int32", "class_code": "int32"})
+    entities_df = entities_df.astype(
+        {"x": "int32", "y": "int32", "z": "int32", "class_code": "int32"}
+    )
     return entities_df
 
 
 def make_entity_df2(pts):
-    entities_df = pd.DataFrame({"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]})
+    entities_df = pd.DataFrame(
+        {"z": pts[:, 0], "x": pts[:, 2], "y": pts[:, 1], "class_code": pts[:, 3]}
+    )
 
-    entities_df = entities_df.astype({"x": "float32", "y": "float32", "z": "int32", "class_code": "int32"})
+    entities_df = entities_df.astype(
+        {"x": "float32", "y": "float32", "z": "int32", "class_code": "int32"}
+    )
 
     return entities_df
 

@@ -88,7 +88,9 @@ class RegionsPlugin(Plugin):
         self.existing_supervoxels = {}
 
     def setup(self):
-        params = dict(order=1, workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}")
+        params = dict(
+            order=1, workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}"
+        )
 
         result = Launcher.g.run("superregions", "existing", **params)
         logger.debug(f"Region result {result}")
@@ -112,7 +114,9 @@ class RegionsPlugin(Plugin):
 
 class SupervoxelCard(Card):
     def __init__(self, svid, svname, parent=None):
-        super().__init__(title=svname, collapsible=True, removable=True, editable=True, parent=parent)
+        super().__init__(
+            title=svname, collapsible=True, removable=True, editable=True, parent=parent
+        )
         self.svid = svid
         self.svname = svname
 

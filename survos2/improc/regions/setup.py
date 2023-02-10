@@ -5,7 +5,9 @@ from Cython.Build import build_ext
 
 
 def configuration(parent_package="", top_path=None):
-    config = Configuration("superregions", parent_package, top_path, cmdclass={"build_ext": build_ext})
+    config = Configuration(
+        "superregions", parent_package, top_path, cmdclass={"build_ext": build_ext}
+    )
 
     config.add_extension("_rag", sources="_rag.pyx", include_dirs=[get_numpy_include_dirs()])
 

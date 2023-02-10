@@ -5,7 +5,7 @@ api:
   host: 127.0.0.1
   plugins:
   - workspace
-  - server
+  - workspaces
   - features
   - superregions
   - annotations
@@ -14,7 +14,7 @@ api:
   - analyzer
   - roi
   - export
-  port: 8123
+  port: 8130
   renderer: mpl
 computing:
   chunk_padding: 8
@@ -29,41 +29,11 @@ filters:
     params:
       sigma: 2
     plugin: features
-  filter2:
-    feature: gaussian
-    params:
-      sigma: 2
-    plugin: features
-  filter3:
-    feature: tvdenoising3d
-    params:
-      lamda: 3.7
-    plugin: features
-  filter4:
-    feature: laplacian
-    params:
-      kernel_size: 3
-    plugin: features
-  filter5:
-    feature: gradient
-    params:
-      sigma: 3
-    plugin: features
-  superregions1:
-    feature: slic
-    params:
-      compactness: 20
-      postprocess: false
-      slic_feat_idx: -1
-      sp_shape:
-      - 18
-      - 18
-      - 18
-    plugin: superregions
 logging:
   file: ''
   file_format: '%(asctime)s - | %(levelname)8s | %(message)s'
   level: debug
+  overall_level: INFO
   std: true
   std_format: '%(levelname)8s | %(message)s'
 pipeline:

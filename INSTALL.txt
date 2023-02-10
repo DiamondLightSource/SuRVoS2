@@ -1,25 +1,9 @@
-Before the installation of SuRVoS, if GPU support is desired please check that either one of the
-following CUDA versions is installed:
+SURVOS INSTALLATION
 
- * CUDA 11.6 (you can install it by following this link https://developer.nvidia.com/cuda-11-6-2-download-archive)
- * CUDA 11.7 (you can install it by following this link https://developer.nvidia.com/cuda-11-7-1-download-archive)
+1. Check to see if CUDA is installed, currently 11.3 and 11.6 are recommended. To
+check your CUDA installation see the CUDA instructions at the bottom of this document.
 
-To verify that one of the CUDA versions above is installed and available for use run the following command:
-
-	$ nvcc --version
-
-Additionally, you may also include the cuDNN library in your CUDA installation for improved performance
-during the training and inference of neural networks.
-
-You can download cuDNN from here https://developer.nvidia.com/rdp/cudnn-download
-An installation guide on how to include it in your CUDA install can be found here
-https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html
-
-If once of the above CUDA versions is installed or if GPU support is not needed, please continue
-with the SuRVoS 2 installation guide below.
-
-
-Create a folder (on the Desktop for example) to download the survos2 installer.
+2. Create a folder (on the Desktop for example) to download the survos2 installer.
 The actual survos2 application will be installed in the miniconda environment later.
 
 	$ mkdir survos2
@@ -37,7 +21,7 @@ Navigate into the Survos2 folder
 	$ cd SuRVoS2
 
 
-Make sure that either conda or python-pip (python version 3.8 is needed) is installed
+3. Make sure that either conda or python-pip (python version 3.8 is needed) is installed
 If neither is available you can download and install them from here:
 
 For python-pip (please install python 3.8):
@@ -47,7 +31,7 @@ For Conda:
 	Download at: https://docs.conda.io/en/latest/miniconda.html
 
 
-Create a new environment for survos2
+4. Create a new environment for survos2
 
 If python-pip (python version 3.8) is used:
 
@@ -79,38 +63,68 @@ and activate it:
 	$ conda activate /home/user/Documents/survos2_conda_env
 
 
-Perform the survos2 pip installs using:
+5. Perform the survos2 pip installs using:
 (LINUX)
   (CUDA 11.6)
 	$ pip install -r req.txt --extra-index-url https://download.pytorch.org/whl/cu116
   (CUDA 11.7 or No GPU support)
-	$ pip install -r req.txt
+	$ pip install -r requirements.txt
 
 (WINDOWS)
   (CUDA 11.6)
 	$ pip install -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
   (CUDA 11.7 or No GPU support)
-	$ pip install -r req_windows.txt
+	$ pip install -r requirements_windows.txt
 
 
-7. Build survos2 cython + cuda stuff:
+6. Build survos2 cython + cuda stuff:
 
 	$ python3 ./survos2/improc/setup.py build_ext --inplace
 
-8. Create a folder for the <survos2 workspace>
+7. Create a folder for the <survos2 workspace>
 (For a central install remember to make this somewhere that is readable to everyone)]
 	
-9. Edit settings.yaml file. Change the CHROOT to <survos2 workspace>.
+8. Edit settings.yaml file. Change the CHROOT to <survos2 workspace>.
 	
 
-10. Install SuRVoS plugin for Napari
+9. Install SuRVoS plugin for Napari
 
 	$ pip install -e .
 	
 	Installation should be completed.
 	The '-e' will install in development mode.
 	
-	
+
+10. Run SuRVoS by starting Napari
+
+	$ napari
+
+	Then select the Workspace (SuRVoS2) plugin from the Plugins menu.
+
+--------------------------------------------------------------------------------------
+
+CUDA INSTALLATION
+
+Before the installation of SuRVoS, if GPU support is desired please check that either one of the
+following CUDA versions is installed:
+
+ * CUDA 11.6 (you can install it by following this link https://developer.nvidia.com/cuda-11-6-2-download-archive)
+ * CUDA 11.7 (you can install it by following this link https://developer.nvidia.com/cuda-11-7-1-download-archive)
+
+To verify that one of the CUDA versions above is installed and available for use run the following command:
+
+	$ nvcc --version
+
+Additionally, you may also include the cuDNN library in your CUDA installation for improved performance
+during the training and inference of neural networks.
+
+You can download cuDNN from here https://developer.nvidia.com/rdp/cudnn-download
+An installation guide on how to include it in your CUDA install can be found here
+https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html
+
+If once of the above CUDA versions is installed or if GPU support is not needed, please continue
+with the SuRVoS 2 installation guide below.
+
 
 
 
