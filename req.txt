@@ -30,7 +30,7 @@ networkx
 nibabel
 nose
 numba
-numpy
+numpy==1.21.6
 numpydoc
 pandas
 paramiko
