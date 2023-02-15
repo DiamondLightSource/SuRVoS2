@@ -37,7 +37,7 @@ RUN wget \
     && rm -f Miniconda3.sh
 SHELL ["conda", "run", "-n", "base", "/bin/bash", "-c"]
 
-RUN pip install -r req.txt --no-cache-dir
+RUN pip install --no-cache-dir -r requirements.txt
 
 RUN python ./survos2/improc/setup.py build_ext --inplace
 
