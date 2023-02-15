@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from survos2.entity.utils import accuracy
+
 from survos2.frontend.nb_utils import show_images
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -47,7 +47,10 @@ def display_pred(inputs, label_batch, pred, patch_size=(1, 224, 224)):
     pred_rgb = [x / np.max(x) for x in pred_rgb]
     pred_rgb = [x.reshape(patch_size[1:3]) for x in pred_rgb]
 
-    [show_images([input_images_rgb[i], target_masks_rgb[i], pred_rgb[i]]) for i in range(pred.shape[0])]
+    [
+        show_images([input_images_rgb[i], target_masks_rgb[i], pred_rgb[i]])
+        for i in range(pred.shape[0])
+    ]
     return input_images_rgb, pred_rgb, target_masks_rgb
 
 
@@ -84,7 +87,8 @@ def dice_loss(pred, target, smooth=1.0):
     intersection = (pred * target).sum(dim=2).sum(dim=2)
 
     loss = 1 - (
-        (2.0 * intersection + smooth) / (pred.sum(dim=2).sum(dim=2) + target.sum(dim=2).sum(dim=2) + smooth)
+        (2.0 * intersection + smooth)
+        / (pred.sum(dim=2).sum(dim=2) + target.sum(dim=2).sum(dim=2) + smooth)
     )
 
     return loss.mean()

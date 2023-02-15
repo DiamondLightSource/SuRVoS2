@@ -1,17 +1,12 @@
-import os
 import hug
 import inspect
 import logging as log
 import os.path as op
 from functools import wraps
-from survos2.io import dataset_from_uri
+from survos2.data_io import dataset_from_uri
 from survos2.config import Config
 
 from loguru import logger
-
-# from survos2.utils import get_logger
-# logger = get_logger()
-
 
 CHUNK = Config["computing.chunks"]
 CHUNK_SIZE = Config["computing.chunk_size"]
@@ -45,7 +40,11 @@ def get_function_api(func):
 
 def get_default_args(func):
     signature = inspect.signature(func)
-    return {k: v.default for k, v in signature.parameters.items() if v.default is not inspect.Parameter.empty}
+    return {
+        k: v.default
+        for k, v in signature.parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
 
 
 def save_metadata(func):
@@ -112,32 +111,6 @@ class APIException(Exception):
     def __init__(self, message, critical=False):
         super().__init__(message)
         self.critical = critical
-
-
-###############################################################################
-# Serialize classes to JSON output
-
-
-@hug.default_output_format(apply_globally=True)
-def serialize(result):
-    try:
-        if hasattr(result, "tojson"):
-            result = result.tojson()
-        if result is None:
-            result = dict(done=True)
-        elif type(result) is bool:
-            result = dict(done=result)
-        if type(result) != dict or not result.get("error", False):
-            result = dict(data=result, error=False)
-        result = hug.output_format.json(result)
-    except:
-        raise APIException("Unable to serialize output")
-
-    return result
-
-
-###############################################################################
-# Handling API exceptions and unexpected exceptions
 
 
 def handle_api_exceptions(exception):

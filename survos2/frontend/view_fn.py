@@ -13,6 +13,33 @@ from skimage import img_as_ubyte
 import seaborn as sns
 
 
+def get_level_from_server(msg, retrieval_mode="volume"):
+    if retrieval_mode == "slice":  # get a slice over http
+        src_annotations_dataset = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
+        params = dict(
+            workpace=True,
+            src=src_annotations_dataset,
+            slice_idx=cfg.current_slice,
+            order=cfg.order,
+        )
+        result = Launcher.g.run("annotations", "get_slice", **params)
+        if result:
+            src_arr = decode_numpy(result)
+    elif retrieval_mode == "volume_http":  # get a slice over http
+        src_annotations_dataset = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
+        params = dict(workpace=True, src=src_annotations_dataset)
+        result = Launcher.g.run("annotations", "get_volume", **params)
+        if result:
+            src_arr = decode_numpy(result)
+    elif retrieval_mode == "volume":  # get entire volume
+        src = DataModel.g.dataset_uri(msg["level_id"], group="annotations")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_annotations_dataset = DM.sources[0][:]
+            src_arr = get_array_from_dataset(src_annotations_dataset)
+
+    return src_arr, src_annotations_dataset
+
+
 def remove_layer(viewer, layer_name):
     logger.debug(f"Removing layer {layer_name}")
     existing_layer = [v for v in viewer.layers if v.name == layer_name]
@@ -161,7 +188,9 @@ def view_pipeline(viewer, msg, analyzers=False):
         logger.debug(f"view_pipeline {msg['pipeline_id']} using {msg['level_id']}")
         source = msg["source"]
 
-        result = Launcher.g.run("annotations", "get_levels", workspace=DataModel.g.current_workspace)
+        result = Launcher.g.run(
+            "annotations", "get_levels", workspace=DataModel.g.current_workspace
+        )
 
         if result:
             cmapping, _ = get_color_mapping(result, level_id=msg["level_id"])
@@ -245,57 +274,6 @@ def view_objects(viewer, msg):
     result = Launcher.g.run("objects", "get_entities", **params)
     if result:
         entities_arr = decode_numpy(result)
-
-    # with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-    #    ds_objects = DM.sources[0]
-
-    logger.debug(f"Got entities_arr of shape {entities_arr.shape}")
-
-    # objects_fullname = entities_metadata["fullname"]
-    # objects_scale = entities_metadata["scale"]
-    # objects_offset = entities_metadata["offset"]
-    # objects_crop_start = entities_metadata["crop_start"]
-    # objects_crop_end = entities_metadata["crop_end"]
-
-    entities_df = make_entity_df(entities_arr)
-
-    tabledata, entities_df = setup_entity_table(
-        entities_fullname=None,
-        entities_df=entities_df,
-        # scale=objects_scale,
-        # offset=objects_offset,
-        # crop_start=objects_crop_start,
-        # crop_end=objects_crop_end,
-        flipxy=msg["flipxy"],
-    )
-    sel_start, sel_end = 0, len(entities_df)
-
-    centers = np.array(
-        [
-            [
-                int((float(entities_df.iloc[i]["z"]) * 1.0) + 0),
-                int((float(entities_df.iloc[i]["x"]) * 1.0) + 0),
-                int((float(entities_df.iloc[i]["y"]) * 1.0) + 0),
-            ]
-            for i in range(sel_start, sel_end)
-        ]
-    )
-
-    num_classes = max(9, len(np.unique(entities_df["class_code"]))) + 2
-
-    logger.debug(f"Number of entity classes {num_classes}")
-    palette = np.array(sns.color_palette("hls", num_classes))
-    face_color_list = [palette[class_code] for class_code in entities_df["class_code"]]
-
-    entity_layer = viewer.add_points(
-        centers, size=[10] * len(centers), opacity=0.5, face_color=face_color_list
-    )
-
-
-def view_entities(viewer, msg):
-    logger.debug(f"view_entities {msg['objects_id']}")
-
-    entities_arr = decode_numpy(msg["entities"])
 
     logger.debug(f"Got entities_arr of shape {entities_arr.shape}")
 

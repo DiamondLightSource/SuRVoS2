@@ -1,21 +1,14 @@
-import numpy as np
 from loguru import logger
 from qtpy import QtWidgets
-
 import logging
 import ast
 import os
-import numpy as np
 from loguru import logger
 from qtpy import QtWidgets
 
 from qtpy.QtWidgets import QLabel, QRadioButton
 
 from survos2.frontend.control import Launcher
-
-from survos2.frontend.plugins.annotations import LevelComboBox
-
-
 from survos2.model import DataModel
 from survos2.frontend.components.base import (
     LineEdit,
@@ -28,11 +21,8 @@ from survos2.frontend.components.base import (
     DataTableWidgetItem,
 )
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
-
 from survos2.model import DataModel
 from survos2.server.state import cfg
-
-
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 
 
@@ -62,8 +52,12 @@ class TrainMultiaxisCNN(PipelineCardBase):
                 workspace_list.append(
                     (self.table.item(i, 0).get_hidden_field(), self.table.item(i, 0).text())
                 )
-                data_list.append((self.table.item(i, 1).get_hidden_field(), self.table.item(i, 1).text()))
-                label_list.append((self.table.item(i, 2).get_hidden_field(), self.table.item(i, 2).text()))
+                data_list.append(
+                    (self.table.item(i, 1).get_hidden_field(), self.table.item(i, 1).text())
+                )
+                label_list.append(
+                    (self.table.item(i, 2).get_hidden_field(), self.table.item(i, 2).text())
+                )
         # Can the src parameter be removed?
         src = DataModel.g.dataset_uri("001_raw", group="features")
         all_params = dict(src=src, dst=self.dst, modal=True)
@@ -80,6 +74,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
             bce_dice_alpha=self.bce_dice_alpha_linedt.value(),
             bce_dice_beta=self.bce_dice_beta_linedt.value(),
         )
+        all_params["json_transport"] = True
         return all_params
 
     def _add_multi_ax_cnn_data_table(self):
@@ -120,13 +115,13 @@ class TrainMultiaxisCNN(PipelineCardBase):
 
     def _update_data_table_from_dict(self, data_dict):
         for ws, ds, lbl in zip(data_dict["Workspaces"], data_dict["Data"], data_dict["Labels"]):
-            ws = ast.literal_eval(ws)
+            # ws = ast.literal_eval(ws)
             ws_item = DataTableWidgetItem(ws[1])
             ws_item.hidden_field = ws[0]
-            ds = ast.literal_eval(ds)
+            # ds = ast.literal_eval(ds)
             ds_item = DataTableWidgetItem(ds[1])
             ds_item.hidden_field = ds[0]
-            lbl = ast.literal_eval(lbl)
+            # lbl = ast.literal_eval(lbl)
             lbl_item = DataTableWidgetItem(lbl[1])
             lbl_item.hidden_field = lbl[0]
             self._add_data_row(ws_item, ds_item, lbl_item)
@@ -215,7 +210,9 @@ class TrainMultiaxisCNN(PipelineCardBase):
         train_advanced_button = QRadioButton("Advanced")
         self.setup_adv_train_fields()
         self.adv_train_fields.hide()
-        refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
+        refresh_label = Label(
+            'Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".'
+        )
         self.multi_ax_train_refresh_btn = PushButton("Refresh Data", accent=True)
         self.multi_ax_train_refresh_btn.clicked.connect(self.refresh_multi_ax_data)
         self.multi_ax_pred_refresh_btn = None
@@ -248,7 +245,9 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.volseg_encoder_type = ComboBox()
         self.volseg_encoder_type.addItem(key="resnet34", value="ResNet34 (Pre-trained)")
         self.volseg_encoder_type.addItem(key="resnet50", value="ResNet50 (Pre-trained)")
-        self.volseg_encoder_type.addItem(key="resnext50_32x4d", value="ResNeXt50 (32x4d Pre-trained)")
+        self.volseg_encoder_type.addItem(
+            key="resnext50_32x4d", value="ResNeXt50 (32x4d Pre-trained)"
+        )
         self.loss_type_combo = ComboBox()
         self.loss_type_combo.addItem(key="DiceLoss", value="Dice Loss")
         self.loss_type_combo.addItem(key="CrossEntropyLoss", value="Cross Entropy Loss")
@@ -336,7 +335,9 @@ class PredictMultiaxisCNN(PipelineCardBase):
         advanced_button = QRadioButton("Advanced")
         self.setup_adv_pred_fields()
         self.adv_pred_fields.hide()
-        refresh_label = Label('Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".')
+        refresh_label = Label(
+            'Please: 1. "Compute", 2. "Refresh Data", 3. Reopen dialog and "View".'
+        )
         self.multi_ax_pred_refresh_btn = PushButton("Refresh Data", accent=True)
         self.multi_ax_pred_refresh_btn.clicked.connect(self.refresh_multi_ax_data)
         self.multi_ax_train_refresh_btn = None

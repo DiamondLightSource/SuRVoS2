@@ -1,33 +1,14 @@
 import os
-import os.path as op
 import shutil
 
 import numpy as np
 import tempfile
 
-# import logging as log
-
-from survos2.config import Config
 from survos2.utils import check_relpath
 from survos2.model.dataset import Dataset
 from survos2.model.model import DataModel
 
 from loguru import logger
-
-
-# Config.update_yaml()
-
-# CHROOT = Config["model.chroot"]
-# DATABASE = Config["model.dbtype"]
-# CHUNK_DATA = Config["computing.chunks"]
-# CHUNK_SIZE = Config["computing.chunk_size"]
-
-# if CHROOT in ["tmp", "temp"]:
-#     tmp = tempfile.gettempdir()
-#     CHROOT = os.path.join(tmp, "tmp_survos_chroot")
-#     os.makedirs(CHROOT, exist_ok=True)
-
-# logger.info(f"CHROOT is {CHROOT}")
 
 
 class WorkspaceException(Exception):
@@ -67,7 +48,9 @@ class Workspace(object):
             os.makedirs(DataModel.g.CHROOT, exist_ok=True)
 
         if not DataModel.g.CHROOT and os.path.realpath(path) != path:
-            raise WorkspaceException("'{}' is not a valid workspace path without CHROOT".format(path))
+            raise WorkspaceException(
+                "'{}' is not a valid workspace path without CHROOT".format(path)
+            )
         elif DataModel.g.CHROOT:
             path2 = check_relpath(DataModel.g.CHROOT, path, exception=False)
             if path2 is False:
@@ -220,7 +203,9 @@ class Workspace(object):
         dataset_name = dataset_name.replace("/", os.path.sep)
 
         if self.has_dataset(dataset_name, session=session):
-            raise WorkspaceException("Dataset '{}::{}' already exists.".format(session, dataset_name))
+            raise WorkspaceException(
+                "Dataset '{}::{}' already exists.".format(session, dataset_name)
+            )
 
         metadata = self.metadata()
         shape = shape or metadata["shape"]
@@ -240,7 +225,9 @@ class Workspace(object):
     def remove_dataset(self, dataset_name, session="default"):
         dataset_name = dataset_name.replace("/", os.path.sep)
         if not self.has_dataset(dataset_name, session=session):
-            raise WorkspaceException("Dataset '{}::{}' does not exist.".format(session, dataset_name))
+            raise WorkspaceException(
+                "Dataset '{}::{}' does not exist.".format(session, dataset_name)
+            )
         path = self.genpath(session, dataset_name)
         shutil.rmtree(path)
 
@@ -257,7 +244,9 @@ class Workspace(object):
         dataset_name = dataset_name.replace("/", os.path.sep)
 
         if not self.has_dataset(dataset_name, session=session):
-            raise WorkspaceException("Dataset '{}::{}' does not exist.".format(session, dataset_name))
+            raise WorkspaceException(
+                "Dataset '{}::{}' does not exist.".format(session, dataset_name)
+            )
 
         path = self.genpath(session, dataset_name)
         ds = Dataset(path, **kwargs)

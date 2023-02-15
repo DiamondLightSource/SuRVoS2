@@ -6,6 +6,7 @@ from matplotlib.figure import Figure
 from napari.qt.progress import progress
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
+from survos2.entity.entities import make_entity_df
 
 from survos2.frontend.components.entity import TableWidget
 from survos2.frontend.control import Launcher
@@ -18,6 +19,7 @@ from survos2.frontend.components.base import (
     SimpleComboBox,
     Card,
     LineEdit,
+    MultiComboBox,
 )
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.objects import ObjectComboBox
@@ -27,7 +29,6 @@ from survos2.frontend.utils import FileWidget
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.server.state import cfg
-from survos2.utils import decode_numpy
 from survos2.frontend.plugins.analyzers.constants import feature_names
 
 
@@ -358,7 +359,9 @@ class AnalyzerCardBase(Card):
                             color=label_hex,
                         )
                         params = dict(level=result["id"], workspace=True)
-                        label_result = Launcher.g.run("annotations", "update_label", **params, **label)
+                        label_result = Launcher.g.run(
+                            "annotations", "update_label", **params, **label
+                        )
             except Exception as err:
                 logger.debug(f"Exception {err}")
 
@@ -400,7 +403,9 @@ class AnalyzerCardBase(Card):
         if "anno_id" in params:
             if params["anno_id"] is not None:
                 if isinstance(params["anno_id"], list):
-                    self.annotations_source.select(os.path.join("annotations/", params["anno_id"][0]))
+                    self.annotations_source.select(
+                        os.path.join("annotations/", params["anno_id"][0])
+                    )
                 else:
                     self.annotations_source.select(os.path.join("annotations/", params["anno_id"]))
 
@@ -549,6 +554,7 @@ class AnalyzerCardBase(Card):
         self.entities_arr = np.array(entities)
 
     def display_component_results3(self, result):
+        print(f"display_component_results3: {result}")
         entities = []
         tabledata = []
 
@@ -561,7 +567,6 @@ class AnalyzerCardBase(Card):
                 result[i][3],
             )
             tabledata.append(entry)
-
             entity = (result[i][0], result[i][1], result[i][2], 0)
             entities.append(entity)
 
@@ -604,7 +609,7 @@ class AnalyzerCardBase(Card):
         cfg.ppw.clientEvent.emit(
             {
                 "source": "analyzer",
-                "data": "view_entities",
+                "data": "view_objects",
                 "entities": self.entities_arr,
                 "flipxy": self.flipxy_checkbox.value(),
             }
@@ -632,24 +637,10 @@ class AnalyzerCardBase(Card):
             {"source": "analyzer_plugin", "data": "refresh_plugin", "plugin_name": "objects"}
         )
 
-    # def clustering_plot(self, src_arr):
-    #     if len(self.object_analyzer_plots) > 0:
-    #         for plot in self.object_analyzer_plots:
-    #             plot.setParent(None)
-    #             plot = None
-    #     self.object_analyzer_plots = []
-
-    #     sc = MplCanvas(self, width=5, height=4, dpi=100)
-    #     sc.axes.imshow(src_arr)
-    #     max_height = 600
-    #     sc.setProperty("header", False)
-    #     sc.setMaximumHeight(max_height)
-    #     self.object_analyzer_plots.append(sc)
-    #     self.vbox.addWidget(self.object_analyzer_plots[0])
-    #     print("Added clustering plot")
-
     def export_csv(self):
-        full_path = QtWidgets.QFileDialog.getSaveFileName(self, "Select output filename", ".", filter="*.csv")
+        full_path = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Select output filename", ".", filter="*.csv"
+        )
         if isinstance(full_path, tuple):
             full_path = full_path[0]
 
@@ -801,16 +792,21 @@ class AnalyzerCardBase(Card):
             self.object_analyzer_plots = []
 
     def _add_rule(self):
-        op_card = RuleCard(title="Rule", editable=True, collapsible=False, removable=True, parent=self)
+        op_card = RuleCard(
+            title="Rule", editable=True, collapsible=False, removable=True, parent=self
+        )
         self.op_cards.append(op_card)
         self.add_row(op_card)
         self.add_to_widget_list(op_card)
 
     def load_as_objects(self):
-        logger.debug("Load analyzer result as objects")
-        from survos2.entity.entities import load_entities_via_file
-
-        load_entities_via_file(self.entities_arr, flipxy=True)
+        logger.debug(f"Load analyzer result as objects {self.entities_arr}")
+        # from survos2.entity.entities import load_entities_via_file
+        # load_entities_via_file(self.entities_arr, flipxy=True)
+        entities = np.array(make_entity_df(self.entities_arr, flipxy=True))
+        result = Launcher.g.post_array(
+            entities, group="objects", workspace=DataModel.g.current_workspace, name="objects"
+        )
         cfg.ppw.clientEvent.emit(
             {"source": "analyzer_plugin", "data": "refresh_plugin", "plugin_name": "objects"}
         )

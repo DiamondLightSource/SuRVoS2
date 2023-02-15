@@ -2,7 +2,8 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from loguru import logger
-from survos2.entity.models.fpn import FPN, NDConvGenerator
+from survos2.entity.models.fpn import FPN
+from survos2.entity.models.blocks import NDConvGenerator
 
 from survos2.entity.models.head_cnn import (
     Head_TwoStage_Cls,

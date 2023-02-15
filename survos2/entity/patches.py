@@ -24,8 +24,6 @@ from torch.utils.data import Dataset
 from torch.autograd import Variable
 from torch.nn import init
 from torch.utils.data import DataLoader, Dataset
-from torchio import IMAGE, LOCATION
-from torchio.data.inference import GridAggregator, GridSampler
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -270,7 +268,10 @@ def make_patches(
     padded_anno = pad_vol(proposal_vol, padding)
     if num_augs > 0:
         some_pts = np.vstack(
-            [offset_points(selected_locs, padding, scale=32, random_offset=True) for i in range(num_augs)]
+            [
+                offset_points(selected_locs, padding, scale=32, random_offset=True)
+                for i in range(num_augs)
+            ]
         )
         print(f"Augmented point locations {some_pts.shape}")
     else:
@@ -288,7 +289,9 @@ def make_patches(
             ),
         )
 
-    marked_patches_anno = sample_marked_patches(padded_anno, some_pts, some_pts, patch_size=patch_size)
+    marked_patches_anno = sample_marked_patches(
+        padded_anno, some_pts, some_pts, patch_size=patch_size
+    )
     marked_patches = sample_marked_patches(padded_vol, some_pts, some_pts, patch_size=patch_size)
 
     img_vols = marked_patches.vols
@@ -299,7 +302,9 @@ def make_patches(
     label_labels = marked_patches_anno.vols_locs[:, 3]
     marked_patches.vols_locs.shape
 
-    print(f"Marked patches, unique label vols {np.unique(label_vols)}, img mean: {np.mean(img_vols[0])}")
+    print(
+        f"Marked patches, unique label vols {np.unique(label_vols)}, img mean: {np.mean(img_vols[0])}"
+    )
 
     if num_augs > 0:
 
@@ -356,6 +361,9 @@ def make_patches(
     test_loader3d = torch.utils.data.DataLoader(
         test_dataset3d, batch_size=1, shuffle=False, num_workers=0, drop_last=False
     )
+    
+    # wf.params["selected_locs"] = selected_locs
+    wf.params["outdir"] = outdir
 
     if plot_all:
         for i in range(10):
@@ -365,14 +373,18 @@ def make_patches(
 
             from survos2.frontend.nb_utils import show_images
 
-            show_images([img[padding[0] // 2, :], lbl[padding[0] // 2, :]], figsize=(4, 4))
+            show_images([img[padding[0] // 2, :], 
+                lbl[padding[0] // 2, :]], 
+                figsize=(4, 4), 
+                outdir=wf.params["outdir"],
+                suptitle=str(i)
+            )
 
             print(f"Unique mask values: {np.unique(lbl)}")
 
     print(f"Augmented image vols shape {img_vols.shape}, label vols shape {label_vols.shape}")
-    # wf.params["selected_locs"] = selected_locs
-    wf.params["outdir"] = outdir
-
+    
+    
     # save vols
     now = datetime.now()
     dt_string = now.strftime("%d%m_%H%M")
@@ -464,21 +476,28 @@ def make_patches2(
     padded_anno = pad_vol(proposal_vol, padding)
     if num_augs > 0:
         some_pts = np.vstack(
-            [offset_points(selected_locs, padding, scale=32, random_offset=True) for i in range(num_augs)]
+            [
+                offset_points(selected_locs, padding, scale=32, random_offset=True)
+                for i in range(num_augs)
+            ]
         )
         print(f"Augmented point locations {some_pts.shape}")
     else:
         some_pts = offset_points(selected_locs, np.array(padding), scale=32, random_offset=False)
 
     patch_size = padding
-    marked_patches_anno = sample_marked_patches(padded_anno, some_pts, some_pts, patch_size=patch_size)
+    marked_patches_anno = sample_marked_patches(
+        padded_anno, some_pts, some_pts, patch_size=patch_size
+    )
     marked_patches = sample_marked_patches(padded_vol, some_pts, some_pts, patch_size=patch_size)
 
     img_vols = marked_patches.vols
     label_vols = marked_patches_anno.vols
     marked_patches.vols_locs.shape
 
-    print(f"Marked patches, unique label vols {np.unique(label_vols)}, img mean: {np.mean(img_vols[0])}")
+    print(
+        f"Marked patches, unique label vols {np.unique(label_vols)}, img mean: {np.mean(img_vols[0])}"
+    )
 
     if num_augs > 0:
 
@@ -586,7 +605,9 @@ def prepare_dataloaders(img_vols, label_vols, model_type, batch_size=1):
 
     if model_type != "unet" or model_type != "fpn3d":
         dataloaders = {
-            "train": DataLoader(train_dataset3d, batch_size=batch_size, shuffle=True, num_workers=0),
+            "train": DataLoader(
+                train_dataset3d, batch_size=batch_size, shuffle=True, num_workers=0
+            ),
             "val": DataLoader(test_dataset3d, batch_size=batch_size, shuffle=False, num_workers=0),
         }
 

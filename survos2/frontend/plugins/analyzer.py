@@ -6,8 +6,7 @@ from matplotlib.figure import Figure
 from napari.qt.progress import progress
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
-from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
-from survos2.entity.cluster.clusterer import select_clusters
+
 from survos2.frontend.components.base import VBox, ComboBox
 from survos2.frontend.plugins.base import (
     Plugin,
@@ -34,8 +33,13 @@ from survos2.frontend.plugins.analyzers.label_analysis import (
     RemoveMaskedObjects,
     FindConnectedComponents,
 )
+
+# from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
+# from survos2.entity.cluster.clusterer import select_clusters
+
 from survos2.frontend.plugins.analyzers.spatial_clustering import SpatialClustering
 from survos2.frontend.plugins.annotations import LevelComboBox
+
 from survos2.frontend.plugins.export import SuperRegionSegmentComboBox
 from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.objects import ObjectComboBox
@@ -56,6 +60,22 @@ def _fill_analyzers(combo, full=False, filter=True, ignore=None):
         for fid in result:
             if fid != ignore:
                 combo.addItem(fid, result[fid]["name"])
+
+
+__analyzer_names__ = [
+    "find_connected_components",
+    "patch_stats",
+    "object_detection_stats",
+    "segmentation_stats",
+    "label_analyzer",
+    "label_splitter",
+    "binary_image_stats",
+    "spatial_clustering",
+    "remove_masked_objects",
+    "object_analyzer",
+    "binary_classifier",
+    "point_generator",
+]
 
 
 @register_plugin
@@ -94,7 +114,9 @@ class AnalyzerPlugin(Plugin):
             logger.debug(f"Analyzer {result}")
             for i, category in enumerate(all_categories):
                 self.analyzers_combo.addItem(category)
-                self.analyzers_combo.model().item(i + len(self.analyzer_params) + 1).setEnabled(False)
+                self.analyzers_combo.model().item(i + len(self.analyzer_params) + 1).setEnabled(
+                    False
+                )
 
                 for f in [p for p in result if p["category"] == category]:
                     self.analyzer_params[f["name"]] = f["params"]
@@ -108,7 +130,7 @@ class AnalyzerPlugin(Plugin):
                 return
             self.analyzers_combo.setCurrentIndex(0)
             logger.debug(f"Adding analyzer {analyzer_type}")
-            from survos2.api.analyzer import __analyzer_names__
+            # from survos2.api.analyzer import __analyzer_names__
 
             order = __analyzer_names__.index(analyzer_type)
             params = dict(analyzer_type=analyzer_type, order=order, workspace=True)
@@ -193,12 +215,6 @@ class AnalyzerPlugin(Plugin):
                             analyzer_id, analyzer_name, analyzer_type
                         )
                     )
-
-
-# class ObjectDetectionStats():
-#     def __init__(self, card):
-#         card._add_features_source()
-#         card._add_object_detection_stats_source()
 
 
 class AnalyzerFunctionTest(AnalyzerCardBase):

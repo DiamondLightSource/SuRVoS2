@@ -13,10 +13,14 @@ class LabelPostprocess(PipelineCardBase):
     def setup(self):
         self._add_annotations_source(label="Layer Over: ")
         self._add_annotations_source2(label="Layer Base: ")
-        # self.label_index = LineEdit(default=-1, parse=int)
+        self._add_param("selected_label_for_over", type="Int", default=1)
+        self._add_param("offset", type="Int", default=0)
+        self._add_param("base_offset", type="Int", default=0)
 
     def compute_pipeline(self):
-        src = DataModel.g.dataset_uri(self.annotations_source.value().rsplit("/", 1)[-1], group="annotations")
+        src = DataModel.g.dataset_uri(
+            self.annotations_source.value().rsplit("/", 1)[-1], group="annotations"
+        )
         all_params = dict(src=src, modal=True)
         all_params["workspace"] = DataModel.g.current_workspace
         print(self.annotations_source.value())

@@ -1,25 +1,23 @@
-from survos2.model import Workspace
-from survos2.io import dataset_from_uri
 import os
 import pytest
+from httpx import AsyncClient
+from main import app
 import h5py
 import numpy as np
 
-from survos2 import survos
-from survos2.improc.utils import DatasetManager
-import survos2.frontend.control
-from survos2.frontend.control import Launcher
-from survos2.model import DataModel
-
 from loguru import logger
-from torch.testing import assert_allclose
+from survos2.model import DataModel
+from survos2.api.workspace import create as create_workspace
+from survos2.api.workspace import add_dataset, add_data, delete, get
+from survos2.improc.utils import DatasetManager
+
+tmp_ws_name = "testworkspace_tmp1"
 
 
 @pytest.fixture(scope="session")
 def datamodel():
     # make test vol
     map_fullpath = os.path.join("./tmp/testvol_4x4x4b.h5")
-
     testvol = np.array(
         [
             [
@@ -48,70 +46,135 @@ def datamodel():
             ],
         ]
     )
-
     with h5py.File(map_fullpath, "w") as hf:
         hf.create_dataset("data", data=testvol)
 
-    tmp_ws_name = "testworkspace_tmp1"
-    print(DataModel.g.CHROOT)
-
-    result = survos.run_command("workspace", "get", uri=None, workspace=tmp_ws_name)
-
-    if not type(result[0]) == dict:
-        logger.debug("Creating temp workspace")
-        survos.run_command("workspace", "create", uri=None, workspace=tmp_ws_name)
-    else:
+    result = get(workspace=tmp_ws_name)
+    if not isinstance(result, bool):
         logger.debug("tmp exists, deleting and recreating")
-        survos.run_command("workspace", "delete", uri=None, workspace=tmp_ws_name)
+        delete(workspace=tmp_ws_name)
         logger.debug("workspace deleted")
-        survos.run_command("workspace", "create", uri=None, workspace=tmp_ws_name)
-        logger.debug("workspace recreated")
 
-    # add data to workspace
-    survos.run_command(
-        "workspace",
-        "add_data",
-        uri=None,
-        workspace=tmp_ws_name,
-        data_fname=map_fullpath,
-        dtype="float32",
-    )
-
+    create_workspace(workspace=tmp_ws_name)
+    logger.debug("workspace recreated")
+    add_data(workspace=tmp_ws_name, data_fname=map_fullpath)
     DataModel.g.current_workspace = tmp_ws_name
 
     return DataModel
 
 
 class Tests(object):
-    def test_feature_shape(self, datamodel):
-        DataModel = datamodel
-        src = DataModel.g.dataset_uri("__data__", None)
-        dst = DataModel.g.dataset_uri("001_gaussian_blur", group="features")
+    @pytest.mark.asyncio
+    async def test_feature_gaussian_blur(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            DataModel = datamodel
+            src = DataModel.g.dataset_uri("__data__", None)
+            dst = DataModel.g.dataset_uri("001_gaussian_blur", group="features")
 
-        survos.run_command("features", "gaussian_blur", uri=None, src=src, dst=dst)
+            params = {"workspace": "testworkspace_tmp1", "src": src, "dst": dst, "sigma": 1}
+            response = await ac.get("/features/gaussian_blur", params=params)
+            assert (
+                response.text
+                == '{"kind":"gaussian_blur","name":"gaussian_blur","sigma":[1],"source":"__data__","id":"001_gaussian_blur"}'
+            )
 
-        with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
-            print(DM.sources[0].shape)
-            src_dataset = DM.sources[0]
-            dst_dataset = DM.out
-            src_arr = src_dataset[:]
-            dst_arr = dst_dataset[:]
+            with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
+                src_dataset = DM.sources[0]
+                dst_dataset = DM.out
+                src_arr = src_dataset[:]
+                gblur_arr = dst_dataset[:]
 
-        assert dst_arr.shape == (4, 4, 4)
-        assert np.max(dst_arr) <= 1.0
-        assert np.min(dst_arr) >= 0.0
-    
-    def test_features_existing(self, datamodel):
-        DataModel = datamodel
-        src = DataModel.g.dataset_uri("__data__", None)
-        result = survos.run_command("features", "existing", uri=None, src=src, dst=None, workspace="testworkspace_tmp1")
+            assert src_arr.shape == gblur_arr.shape
 
-        assert '001_gaussian_blur' in result[0] 
-        assert 'name' in result[0]['001_gaussian_blur']
+    @pytest.mark.asyncio
+    async def test_feature_composite(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            DataModel = datamodel
+            src = DataModel.g.dataset_uri("__data__", None)
+            dst = DataModel.g.dataset_uri("001_gaussian_blur", group="features")
 
+            params = {"workspace": "testworkspace_tmp1", "src": src, "dst": dst, "sigma": 1}
+            response = await ac.get("/features/gaussian_blur", params=params)
+            assert (
+                response.text
+                == '{"kind":"gaussian_blur","name":"gaussian_blur","sigma":[1],"source":"__data__","id":"001_gaussian_blur"}'
+            )
+
+            dst = DataModel.g.dataset_uri("002_gaussian_blur", group="features")
+            params = {"workspace": "testworkspace_tmp1", "src": src, "dst": dst, "sigma": 2}
+            response = await ac.get("/features/gaussian_blur", params=params)
+            assert (
+                response.text
+                == '{"kind":"gaussian_blur","name":"gaussian_blur","sigma":[2],"source":"__data__","id":"002_gaussian_blur"}'
+            )
+
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/features/existing", params=params)
+            assert (
+                response.text
+                == '{"001_gaussian_blur":{"kind":"gaussian_blur","name":"gaussian_blur","sigma":[1],"source":"__data__","id":"001_gaussian_blur"},"002_gaussian_blur":{"kind":"gaussian_blur","name":"gaussian_blur","sigma":[2],"source":"__data__","id":"002_gaussian_blur"}}'
+            )
+
+            src = DataModel.g.dataset_uri("__data__", None)
+            dst = DataModel.g.dataset_uri("003_feature_composite", group="features")
+
+            params = {
+                "workspace": "testworkspace_tmp1",
+                "src": src,
+                "dst": dst,
+                "op": "+",
+                "feature_A": "001_gaussian_blur",
+                "feature_B": "002_gaussian_blur",
+            }
+            response = await ac.get("/features/feature_composite", params=params)
+            assert (
+                response.text
+                == '{"kind":"feature_composite","name":"feature_composite","workspace":"testworkspace_tmp1","feature_A":"001_gaussian_blur","feature_B":"002_gaussian_blur","op":"+","source":"__data__","id":"003_feature_composite"}'
+            )
+
+            with DatasetManager(src, out=dst, dtype="float32", fillvalue=0) as DM:
+                src_dataset = DM.sources[0]
+                dst_dataset = DM.out
+                src_arr = src_dataset[:]
+                gblur_arr = dst_dataset[:]
+
+            assert src_arr.shape == gblur_arr.shape
+
+    @pytest.mark.asyncio
+    async def test_remove(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            params = {"workspace": "testworkspace_tmp1", "feature_id": "003_feature_composite"}
+            response = await ac.get("/features/remove", params=params)
+
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/features/existing", params=params)
+            assert (
+                response.text
+                == '{"001_gaussian_blur":{"kind":"gaussian_blur","name":"gaussian_blur","sigma":[1],"source":"__data__","id":"001_gaussian_blur"},"002_gaussian_blur":{"kind":"gaussian_blur","name":"gaussian_blur","sigma":[2],"source":"__data__","id":"002_gaussian_blur"}}'
+            )
+
+    @pytest.mark.asyncio
+    async def test_rename(self, datamodel):
+        async with AsyncClient(app=app, base_url="http://test") as ac:
+            DataModel = datamodel
+            src = DataModel.g.dataset_uri("__data__", None)
+            dst = DataModel.g.dataset_uri("001_gaussian_blur", group="features")
+
+            params = {
+                "workspace": "testworkspace_tmp1",
+                "src": src,
+                "feature_id": "001_gaussian_blur",
+                "new_name": "001_gblur",
+            }
+            response = await ac.get("/features/rename", params=params)
+
+            params = {"workspace": "testworkspace_tmp1"}
+            response = await ac.get("/features/existing", params=params)
+            assert (
+                response.text
+                == '{"001_gaussian_blur":{"kind":"gaussian_blur","name":"001_gblur","sigma":[1],"source":"__data__","id":"001_gaussian_blur"},"002_gaussian_blur":{"kind":"gaussian_blur","name":"gaussian_blur","sigma":[2],"source":"__data__","id":"002_gaussian_blur"}}'
+            )
 
 
 if __name__ == "__main__":
     pytest.main()
-
-

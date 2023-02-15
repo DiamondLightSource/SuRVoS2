@@ -154,7 +154,7 @@ class FeaturesPlugin(Plugin):
         self.feature_combo.setCurrentIndex(0)
         params = dict(feature_type=feature_type, workspace=True)
         result = Launcher.g.run("features", "create", **params)
-
+        print(f"Feature create: {result}")
         if result:
             fid = result["id"]
             ftype = result["kind"]
@@ -183,7 +183,6 @@ class FeaturesPlugin(Plugin):
             workflow = {}
             for i, (k, v) in enumerate(self.existing_features.items()):
                 for x, y in v.widgets.items():
-
                     workflow["f" + str(i)] = {}
                     workflow["f" + str(i)]["action"] = "features." + str(v.feature_type)
                     workflow["f" + str(i)]["src"] = "001_raw"
@@ -194,7 +193,9 @@ class FeaturesPlugin(Plugin):
                         param_value = list(param_value)
                     workflow["f" + str(i)]["params"][x] = param_value
 
-            workflow_yaml = path  # os.path.join(os.path.dirname(__file__), "../../..", "workflow.yaml")
+            workflow_yaml = (
+                path  # os.path.join(os.path.dirname(__file__), "../../..", "workflow.yaml")
+            )
             with open(workflow_yaml, "w") as outfile:
                 yaml.dump(workflow, outfile, default_flow_style=False)
 
@@ -221,11 +222,9 @@ class FeaturesPlugin(Plugin):
 
                 logger.debug(f"fid {fid} ftype {ftype} fname {fname}")
                 if params.pop("kind", "unknown") != "unknown":
-
                     widget = self._add_feature_widget(fid, ftype, fname)
                     widget.update_params(params)
                     self.existing_features[fid] = widget
-
                 else:
                     logger.debug("+ Skipping loading feature: {}, {}".format(fid, fname))
                     if ftype:
@@ -280,8 +279,10 @@ class FeatureCard(CardWithId):
                 stretch=0,
             )
             self.add_row(widget)
-            self._add_params(fparams)
+            # self._add_params(fparams)
             self._add_btns()
+            self._add_param("level", "Int")
+
         elif self.feature_type == "feature_composite":
             self._add_feature_source()
             self._add_feature_source2()
@@ -295,7 +296,63 @@ class FeatureCard(CardWithId):
             self._add_btns()
         elif self.feature_type == "raw":
             self._add_view_and_load_btns()
-
+        elif (
+            self.feature_type == "gaussian_blur"
+            or self.feature_type == "gaussian_norm"
+            or self.feature_type == "gaussian_center"
+            or self.feature_type == "laplacian"
+        ):
+            self._add_source()
+            self._add_param("sigma", "IntOrVector", default=1)
+            self._add_btns()
+        elif self.feature_type == "median":
+            self._add_source()
+            self._add_param("median_size", "IntOrVector", default=1)
+            self._add_btns()
+        elif self.feature_type == "tvdenoise":
+            self._add_source()
+            self._add_param("regularization_amount", "Float", default=0.0001)
+            self._add_param("pad", "Int", default=8)
+            self._add_param("max_iter", "Int", default=100)
+            self._add_btns()
+        elif self.feature_type == "gamma_correct":
+            self._add_source()
+            self._add_param("gamma", "Float", default=1)
+            self._add_btns()
+        elif self.feature_type == "threshold":
+            self._add_source()
+            self._add_param("threshold", "Float", default=1)
+            self._add_btns()
+        elif (
+            self.feature_type == "erosion"
+            or self.feature_type == "dilation"
+            or self.feature_type == "opening"
+            or self.feature_type == "closing"
+        ):
+            self._add_source()
+            self._add_param("num_iter", "Int", default=1)
+            self._add_btns()
+        elif self.feature_type == "difference_of_gaussians":
+            self._add_source()
+            self._add_param("sigma", "IntOrVector", default=1)
+            self._add_param("sigma_ratio", "Float", default=1)
+            self._add_btns()
+        elif (
+            self.feature_type == "structure_tensor_determinant"
+            or self.feature_type == "hessian_eigenvalues"
+        ):
+            self._add_source()
+            self._add_param("sigma", "IntOrVector", default=1)
+            self._add_btns()
+        elif self.feature_type == "frangi":
+            self._add_source()
+            self._add_param("scale_min", "Float", default=1)
+            self._add_param("scale_max", "Float", default=4)
+            self._add_param("scale_step", "Float", default=1)
+            self._add_param("alpha", "Float", default=0.5)
+            self._add_param("beta", "Float", default=0.5)
+            self._add_param("gamma", "Int", default=15)
+            self._add_btns()
         else:
             self._add_source()
             self._add_params(fparams)
@@ -330,6 +387,7 @@ class FeatureCard(CardWithId):
         self.add_row(widget)
 
     def _add_param(self, name, type="String", default=None):
+        print(f"Name: {name} Parameter type: {type}")
         if type == "Int":
             feature = LineEdit(default=default, parse=int)
         elif type == "Float":
@@ -342,7 +400,6 @@ class FeatureCard(CardWithId):
             feature = CheckBox(checked=True)
         else:
             feature = None
-
         if feature:
             self.widgets[name] = feature
             self.add_row(HWidgets(None, name, feature))
@@ -374,7 +431,7 @@ class FeatureCard(CardWithId):
         for k, v in params.items():
             if k in self.widgets:
                 self.widgets[k].setValue(v)
-        if "threshold" in params:
+        if self.feature_type == "wavelet":
             if params["threshold"] is not None:
                 self.wavelet_threshold.setValue(float(params["threshold"]))
 
@@ -456,7 +513,9 @@ class FeatureCard(CardWithId):
                             color=label_hex,
                         )
                         params = dict(level=result["id"], workspace=True)
-                        label_result = Launcher.g.run("annotations", "update_label", **params, **label)
+                        label_result = Launcher.g.run(
+                            "annotations", "update_label", **params, **label
+                        )
             except Exception as err:
                 logger.debug(f"Exception {err}")
 

@@ -1,9 +1,11 @@
+import os
 from survos2.config import Config
 import numpy as np
 from numpy.lib.function_base import flip
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
 from loguru import logger
+from survos2.entity.entities import make_entity_df
 from survos2.frontend.components.base import (
     VBox,
     LazyComboBox,
@@ -33,6 +35,7 @@ from survos2.frontend.plugins.features import FeatureComboBox
 from survos2.frontend.plugins.annotations import LevelComboBox
 from survos2.entity.patches import PatchWorkflow, organize_entities, make_patches
 from survos2.frontend.plugins.base import register_plugin, Plugin
+from survos2.utils import decode_numpy
 
 
 class ObjectComboBox(LazyComboBox):
@@ -50,9 +53,15 @@ class ObjectComboBox(LazyComboBox):
         logger.debug(f"Result of objects existing: {result}")
         if result:
             for fid in result:
-                if result[fid]["kind"] == "points" and result[fid]["kind"] in self.filter_objects_type:
+                if (
+                    result[fid]["kind"] == "points"
+                    and result[fid]["kind"] in self.filter_objects_type
+                ):
                     self.addItem(fid, result[fid]["name"])
-                elif result[fid]["kind"] == "boxes" and result[fid]["kind"] in self.filter_objects_type:
+                elif (
+                    result[fid]["kind"] == "boxes"
+                    and result[fid]["kind"] in self.filter_objects_type
+                ):
                     self.addItem(fid, result[fid]["name"])
 
 
@@ -102,16 +111,14 @@ class ObjectsPlugin(Plugin):
             params = dict(
                 order=order,
                 workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}",
-                fullname="survos2/entity/blank_boxes.csv",
+                fullname="",
             )
-
         else:
             params = dict(
                 order=order,
                 workspace=f"{DataModel.g.current_session}@{DataModel.g.current_workspace}",
-                fullname="survos2/entity/blank_entities.csv",
+                fullname="",
             )
-
         if result := Launcher.g.run("objects", "create", **params):
             objectsid = result["id"]
             objectsname = result["name"]
@@ -119,7 +126,9 @@ class ObjectsPlugin(Plugin):
             objectstype = result["kind"]
             self._add_objects_widget(objectsid, objectsname, objectsfullname, objectstype, True)
 
-    def _add_objects_widget(self, objectsid, objectsname, objectsfullname, objectstype, expand=False):
+    def _add_objects_widget(
+        self, objectsid, objectsname, objectsfullname, objectstype, expand=False
+    ):
         logger.debug(f"Add objects {objectsid} {objectsname} {objectsfullname} {objectstype}")
         widget = ObjectsCard(objectsid, objectsname, objectsfullname, objectstype)
         widget.showContent(expand)
@@ -158,12 +167,16 @@ class ObjectsPlugin(Plugin):
                 objectstype = enitity_params.pop("kind", entity)
                 logger.debug(f"type: {objectstype}")
                 if objectstype != "unknown":
-                    widget = self._add_objects_widget(objectsid, objectsname, objectsfullname, objectstype)
+                    widget = self._add_objects_widget(
+                        objectsid, objectsname, objectsfullname, objectstype
+                    )
 
                     widget.update_params(params)
                     self.existing_objects[objectsid] = widget
                 else:
-                    logger.debug(f"+ Skipping loading entity: {objectsid}, {objectsname}, {objectstype}")
+                    logger.debug(
+                        f"+ Skipping loading entity: {objectsid}, {objectsname}, {objectstype}"
+                    )
 
 
 class ObjectsCard(Card):
@@ -188,13 +201,14 @@ class ObjectsCard(Card):
         self.filewidget.path_updated.connect(self.load_data)
 
         self.compute_btn = PushButton("Compute")
-        self.view_btn = PushButton("View", accent=True)
-        self.get_btn = PushButton("Load", accent=True)
+        # self.load_btn = PushButton("Load from file", accent=True)
+        self.view_btn = PushButton("View 3D", accent=True)
+        self.get_btn = PushButton("View Table", accent=True)
 
-        self._add_param("scale", title="Scale: ", type="Float", default=1)
-        self._add_param("offset", title="Offset: ", type="FloatOrVector", default=0)
-        self._add_param("crop_start", title="Crop Start: ", type="FloatOrVector", default=0)
-        self._add_param("crop_end", title="Crop End: ", type="FloatOrVector", default=10000)
+        # self._add_param("scale", title="Scale: ", type="Float", default=1)
+        # self._add_param("offset", title="Offset: ", type="FloatOrVector", default=0)
+        # self._add_param("crop_start", title="Crop Start: ", type="FloatOrVector", default=0)
+        # self._add_param("crop_end", title="Crop End: ", type="FloatOrVector", default=10000)
 
         self.flipxy_checkbox = CheckBox(checked=False)
         self.add_row(HWidgets(None, "Flip XY", self.flipxy_checkbox))
@@ -209,10 +223,10 @@ class ObjectsCard(Card):
         self.view_btn.clicked.connect(self.view_objects)
         self.get_btn.clicked.connect(self.get_objects)
 
-        cfg.object_scale = self.widgets["scale"].value()
-        cfg.object_offset = self.widgets["offset"].value()
-        cfg.object_crop_start = self.widgets["crop_start"].value()
-        cfg.object_crop_end = self.widgets["crop_end"].value()
+        ##cfg.object_scale = self.widgets["scale"].value()
+        # cfg.object_offset = self.widgets["offset"].value()
+        # cfg.object_crop_start = self.widgets["crop_start"].value()
+        # cfg.object_crop_end = self.widgets["crop_end"].value()
 
         cfg.object_scale = 1.0
         cfg.object_offset = (0, 0, 0)
@@ -237,10 +251,11 @@ class ObjectsCard(Card):
             self.make_bvol_mask_btn.clicked.connect(self.make_bvol_mask)
             self.add_row(HWidgets(None, self.make_bvol_mask_btn))
         elif self.objectstype == "points":
-            self._add_param("box_dim", title="Box dim: ", type="IntOrVector", default=16)
-            self.make_boxes_btn = PushButton("Make boxes from points", accent=True)
-            self.make_boxes_btn.clicked.connect(self.make_boxes_from_points)
-            self.add_row(HWidgets(None, self.make_boxes_btn))
+            pass
+            # self._add_param("box_dim", title="Box dim: ", type="IntOrVector", default=16)
+            # self.make_boxes_btn = PushButton("Make boxes from points", accent=True)
+            # self.make_boxes_btn.clicked.connect(self.make_boxes_from_points)
+            # self.add_row(HWidgets(None, self.make_boxes_btn))
 
         self.table_control = TableWidget()
         self.add_row(self.table_control.w, max_height=500)
@@ -264,8 +279,14 @@ class ObjectsCard(Card):
             self.add_row(HWidgets(None, title, p))
 
     def load_data(self, path):
-        self.objectsfullname = path
-        logger.debug(f"Setting objectsfullname: {self.objectsfullname}")
+        dst = DataModel.g.dataset_uri(self.objectsid, group="objects")
+        params = dict(
+            dst=dst,
+            fullname=path,
+        )
+        logger.debug(f"Importing entities from {path}")
+        result = Launcher.g.run("objects", "import_entities", workspace=True, **params)
+        self.filewidget.path.setText(os.path.basename(result))
 
     def card_deleted(self):
         params = dict(objects_id=self.objectsid, workspace=True)
@@ -313,10 +334,15 @@ class ObjectsCard(Card):
         self.add_row(widget)
 
     def get_objects(self):
-        cfg.object_scale = self.widgets["scale"].value()
-        cfg.object_offset = self.widgets["offset"].value()
-        cfg.object_crop_start = self.widgets["crop_start"].value()
-        cfg.object_crop_end = self.widgets["crop_end"].value()
+        cfg.object_scale = 1.0
+        cfg.object_offset = (0, 0, 0)
+        cfg.object_crop_start = (0, 0, 0)
+        cfg.object_crop_end = (1e9, 1e9, 1e9)
+
+        # cfg.object_scale = self.widgets["scale"].value()
+        # cfg.object_offset = self.widgets["offset"].value()
+        # cfg.object_crop_start = self.widgets["crop_start"].value()
+        # cfg.object_crop_end = self.widgets["crop_end"].value()
 
         dst = DataModel.g.dataset_uri(self.objectsid, group="objects")
         logger.debug(f"objectsfullname: {self.objectsfullname}")
@@ -329,11 +355,17 @@ class ObjectsCard(Card):
             crop_end=cfg.object_crop_end,
         )
         logger.debug(f"Getting objects with params {params}")
-        result = Launcher.g.run("objects", "update_metadata", workspace=True, **params)
+        # result = Launcher.g.run("objects", "update_metadata", workspace=True, **params)
+
+        params = dict(src=dst, basename=True)
+        result = Launcher.g.run("objects", "get_entities", **params)
+        print(f"Got result entities: {result}")
+        entities = make_entity_df(decode_numpy(result))
 
         if self.objectstype == "points":
             tabledata, self.entities_df = setup_entity_table(
-                self.objectsfullname,
+                None,
+                entities_df=entities,
                 scale=cfg.object_scale,
                 offset=cfg.object_offset,
                 crop_start=cfg.object_crop_start,
@@ -360,10 +392,11 @@ class ObjectsCard(Card):
             )
 
         cfg.tabledata = tabledata
-        self.table_control.set_data(tabledata)
 
+        self.table_control.set_data(tabledata)
         logger.debug(f"Loaded tabledata {tabledata}")
         self.table_control.set_data(tabledata)
+
         self.collapse()
         self.expand()
 
@@ -479,7 +512,9 @@ class ObjectsCard(Card):
             combined_clustered_pts,
         )
 
-        src = DataModel.g.dataset_uri(self.annotations_source.value().rsplit("/", 1)[-1], group="annotations")
+        src = DataModel.g.dataset_uri(
+            self.annotations_source.value().rsplit("/", 1)[-1], group="annotations"
+        )
         with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
             src_dataset = DM.sources[0]
             anno_level = src_dataset[:] & 15

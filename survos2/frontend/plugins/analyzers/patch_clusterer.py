@@ -1,13 +1,11 @@
 import numpy as np
 from loguru import logger
-from matplotlib.backends.backend_agg import FigureCanvasAgg
+
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from napari.qt.progress import progress
 from qtpy import QtWidgets
-from qtpy.QtWidgets import QPushButton, QRadioButton
+
 from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
-from survos2.entity.cluster.clusterer import select_clusters
 from survos2.frontend.components.base import (
     VBox,
     SimpleComboBox,
@@ -19,20 +17,9 @@ from survos2.frontend.components.base import (
 )
 
 from survos2.frontend.components.entity import TableWidget
-from survos2.frontend.components.icon_buttons import IconButton
 from survos2.frontend.control import Launcher
 
-from survos2.frontend.plugins.annotations import LevelComboBox
-
-from survos2.frontend.plugins.export import SuperRegionSegmentComboBox
-from survos2.frontend.plugins.features import FeatureComboBox
-from survos2.frontend.plugins.objects import ObjectComboBox
-from survos2.frontend.plugins.pipelines import PipelinesComboBox
-from survos2.frontend.plugins.plugins_components import MultiSourceComboBox
-from survos2.frontend.utils import FileWidget
-from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
-from survos2.server.state import cfg
 from survos2.utils import decode_numpy
 from survos2.frontend.plugins.analyzers.base import AnalyzerCardBase, MplCanvas
 
@@ -79,7 +66,8 @@ class BinaryClassifier(AnalyzerCardBase):
         )
         self.add_row(widget)
         widget = HWidgets(
-            "Score threshold:", self.score_threshold, "Num before masking", self.num_before_masking
+            "Score threshold:",
+            self.score_threshold,
         )
         self.add_row(widget)
         self.load_as_objects_btn = PushButton("Load as Objects")
@@ -100,12 +88,13 @@ class BinaryClassifier(AnalyzerCardBase):
         all_params["area_max"] = int(self.area_max.value())
         all_params["area_min"] = int(self.area_min.value())
         all_params["bvol_dim"] = self.bvol_dim.value()
-        all_params["num_before_masking"] = int(self.num_before_masking.value())
         all_params["score_thresh"] = float(self.score_threshold.value())
         all_params["dst"] = self.analyzer_id
         all_params["model_fullname"] = self.model_fullname
+        all_params["json_transport"] = True
+
         result = Launcher.g.run("analyzer", self.analyzer_type, **all_params)
-        logger.debug(f"remove_masked_objects result table {len(result)}")
+        logger.debug(f"Binary classifier result table {len(result)}")
         self.display_component_results3(result)
 
 
@@ -125,10 +114,14 @@ class PatchStats(AnalyzerCardBase):
     def setup(self):
         self._add_feature_source()
         self._add_objects_source()
-        self.stat_name_combo_box = SimpleComboBox(full=True, values=["Mean", "Std", "Var", "Median", "Sum"])
+        self.stat_name_combo_box = SimpleComboBox(
+            full=True, values=["Mean", "Std", "Var", "Median", "Sum"]
+        )
         self.stat_name_combo_box.fill()
         self.box_dimension = LineEdit(default=16, parse=int)
-        widget = HWidgets("Statistic name:", self.stat_name_combo_box, "Box dimension: ", self.box_dimension)
+        widget = HWidgets(
+            "Statistic name:", self.stat_name_combo_box, "Box dimension: ", self.box_dimension
+        )
         self.add_row(widget)
 
     def calculate(self):
@@ -223,7 +216,9 @@ class ObjectAnalyzer(AnalyzerCardBase):
         )
         self.add_row(widget)
 
-        self.embedding_method_combo_box.currentIndexChanged.connect(self._on_embedding_method_changed)
+        self.embedding_method_combo_box.currentIndexChanged.connect(
+            self._on_embedding_method_changed
+        )
         self.embedding_method_container = QtWidgets.QWidget()
         embedding_method_vbox = VBox(self, spacing=4)
         embedding_method_vbox.setContentsMargins(0, 0, 0, 0)
@@ -274,7 +269,7 @@ class ObjectAnalyzer(AnalyzerCardBase):
             )
         all_params["embedding_params"] = embedding_params
         all_params["min_cluster_size"] = int(self.min_cluster_size.value())
-
+        all_params["json_transport"] = True
         logger.debug(f"Running analyzer with params {all_params}")
         _, labels, entities_arr, selected_images_arr, standard_embedding = Launcher.g.run(
             "analyzer", "object_analyzer", **all_params
@@ -314,7 +309,9 @@ class ObjectAnalyzer(AnalyzerCardBase):
                         n_cols = 6
                     n_rows = min(5, (len(selected_images) // n_cols) + 1)
                     logger.debug(f"Making MplGridCanvas with {n_rows} rows and {n_cols} columns.")
-                    sc2 = MplGridCanvas(self, width=8, height=8, num_rows=n_rows, num_cols=n_cols, dpi=100)
+                    sc2 = MplGridCanvas(
+                        self, width=8, height=8, num_rows=n_rows, num_cols=n_cols, dpi=100
+                    )
                     image_grid2(selected_images, n_cols, sc2.fig, sc2.axesarr, bigtitle=str(l))
                     self.object_analyzer_plots.append(sc2)
 
@@ -362,7 +359,9 @@ class UMAP_Panel(QtWidgets.QWidget):
         self.min_dist = LineEdit(default=0.3, parse=float)
         self.spread = LineEdit(default=1.0, parse=float)
 
-        widget = HWidgets("n_components:", self.n_components, "n_neighbors:", self.n_neighbors, stretch=1)
+        widget = HWidgets(
+            "n_components:", self.n_components, "n_neighbors:", self.n_neighbors, stretch=1
+        )
         vbox.addWidget(widget)
 
         self.metric_combo_box = SimpleComboBox(full=True, values=umap_metrics)
@@ -374,7 +373,9 @@ class UMAP_Panel(QtWidgets.QWidget):
 
 
 class MplGridCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None, width=5, height=4, num_rows=2, num_cols=2, dpi=100, suptitle="Feature"):
+    def __init__(
+        self, parent=None, width=5, height=4, num_rows=2, num_cols=2, dpi=100, suptitle="Feature"
+    ):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axesarr = np.zeros((num_rows, num_cols), dtype=object)
 

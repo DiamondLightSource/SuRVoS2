@@ -10,7 +10,6 @@ base_path = os.path.abspath(os.path.dirname(__file__))
 
 def configuration(parent_package="", top_path=None):
     config = Configuration("improc", parent_package, top_path)
-
     config.add_subpackage("segmentation")
     config.add_subpackage("regions")
     config.add_subpackage("features")

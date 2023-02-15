@@ -310,7 +310,9 @@ def prepare_bb(
     ]
 
     bb_only = [
-        prop.bbox for prop in props if prop.eccentricity > eccentricity_min and prop.bbox_area > bbox_area_min
+        prop.bbox
+        for prop in props
+        if prop.eccentricity > eccentricity_min and prop.bbox_area > bbox_area_min
     ]
     # TODO: eliminate detections on the border
 
@@ -413,7 +415,10 @@ class BBDataset(Dataset):
         ]
 
         expanded_bboxes = np.array(
-            [(0, bb[0] - padx, bb[1] - pady, bb[2] + padx, bb[3] + pady) for bb, _ in bounding_boxes]
+            [
+                (0, bb[0] - padx, bb[1] - pady, bb[2] + padx, bb[3] + pady)
+                for bb, _ in bounding_boxes
+            ]
         )
         expanded_bboxes = np.clip(expanded_bboxes, 0, image.shape[1])
         bboxes = [b for b in expanded_bboxes]
@@ -573,7 +578,9 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
 
         self.class_names = ["BG", "Salient", "Thing1", "Thing2"]
 
-        stratifier = StratifiedKFold(n_splits=self.num_folds, random_state=self.random_state, shuffle=True)
+        stratifier = StratifiedKFold(
+            n_splits=self.num_folds, random_state=self.random_state, shuffle=True
+        )
         f1, f2, f3, f4, f5 = stratifier.split(self.X, self.y)
         folds = [f1, f2, f3, f4, f5]
 
@@ -652,11 +659,15 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
             else:
 
                 if self.threechan:
-                    main_img = self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1], 3) * 255
+                    main_img = (
+                        self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1], 3) * 255
+                    )
 
                 else:
 
-                    main_img = self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1]) * 255
+                    main_img = (
+                        self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1]) * 255
+                    )
 
                 return_tuple = (
                     self.preprocess_img(PIL.Image.fromarray(main_img.astype(np.uint8))),
@@ -684,7 +695,9 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
 
             else:
                 if self.threechan:
-                    main_img = self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1], 3) * 255
+                    main_img = (
+                        self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1], 3) * 255
+                    )
 
                 else:
                     main_img = self.X[self.test_idx[idx]].reshape(self.im_dim[0], self.im_dim[1])

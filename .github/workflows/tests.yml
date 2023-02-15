@@ -5,25 +5,26 @@ env:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
     steps:
-    - uses: actions/checkout@v2
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
       with:
-          python-version: 3.8
-          auto-activate-base: true
-    - shell: bash 
-      run: |
-        conda info
-        conda list
+        python-version: ${{ matrix.python-version }}
+      # You can test your matrix by printing the current Python version
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
     - name: Install dependencies
       run: |
-        pip install --no-cache-dir -r req.txt --extra-index-url https://download.pytorch.org/whl/cpu
+        pip install --no-cache-dir -r requirements.txt
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
       shell: bash
       run: |
-        conda install pytest
+        pip install pytest
         pytest .
   build-windows:
     runs-on: windows-latest
@@ -39,7 +40,7 @@ jobs:
         conda list
     - name: Install dependencies
       run: |
-        pip install --no-cache-dir -r req_windows.txt --extra-index-url https://download.pytorch.org/whl/cpu
+        pip install --no-cache-dir -r requirements.txt
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
@@ -47,10 +48,3 @@ jobs:
       run: |
         conda install pytest
         pytest .
-
-
-
-
-
-
-

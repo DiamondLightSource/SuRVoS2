@@ -1,26 +1,14 @@
-import ast
-import logging
-import numpy as np
 from loguru import logger
 from qtpy import QtWidgets
 from qtpy.QtCore import QSize, Signal
-
 from survos2.frontend.components.base import (
-    VBox,
     ComboBox,
     HWidgets,
-    PushButton,
-    CheckBox,
-    LineEdit3D,
     LineEdit,
 )
-
-
 from survos2.model import DataModel
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 from napari.qt.progress import progress
-
-
 from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 
 
@@ -93,7 +81,6 @@ class EnsembleWidget(QtWidgets.QWidget):
         self.type_combo.addItem("ExtraRandom Forest")
         self.type_combo.addItem("AdaBoost")
         self.type_combo.addItem("GradientBoosting")
-        # self.type_combo.addItem("XGBoost")
 
         self.type_combo.currentIndexChanged.connect(self.on_ensemble_changed)
         vbox.addWidget(self.type_combo)
@@ -123,8 +110,6 @@ class EnsembleWidget(QtWidgets.QWidget):
             )
         )
 
-        # self.btn_train_predict = PushButton('Train & Predict')
-        # self.btn_train_predict.clicked.connect(self.on_train_predict_clicked)
         self.n_jobs = LineEdit(default=10, parse=int)
         vbox.addWidget(HWidgets("Num Jobs", self.n_jobs))
 
@@ -192,6 +177,7 @@ class SuperregionSegment(PipelineCardBase):
 
         self._add_classifier_choice()
         self._add_projection_choice()
+        self._add_param("refine", type="SmartBoolean", default=True)
         self._add_param("lam", type="FloatSlider", default=0.15)
         self._add_confidence_choice()
 
@@ -225,4 +211,7 @@ class SuperregionSegment(PipelineCardBase):
             all_params["classifier_params"] = self.ensembles.get_params()
         else:
             all_params["classifier_params"] = self.svm.get_params()
+
+        all_params["json_transport"] = True
+
         return all_params
