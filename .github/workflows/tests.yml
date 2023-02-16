@@ -18,7 +18,7 @@ jobs:
       run: python -c "import sys; print(sys.version)"
     - name: Install dependencies
       run: |
-        pip install --no-cache-dir -r requirements.txt
+        pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
@@ -40,7 +40,7 @@ jobs:
         conda list
     - name: Install dependencies
       run: |
-        pip install --no-cache-dir -r requirements.txt
+        pip install --no-cache-dir -r requirements_windows.txt --extra-index-url https://download.pytorch.org/whl/cpu
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
