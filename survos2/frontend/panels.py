@@ -166,6 +166,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         button_transfer.clicked.connect(self.button_transfer_clicked)
 
         workspaces = os.listdir(DataModel.g.CHROOT)
+        workspaces.sort()
         self.workspaces_list = ComboBox()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
@@ -212,9 +213,11 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
     def refresh_workspaces(self):
         workspaces = os.listdir(DataModel.g.CHROOT)
+        workspaces.sort()
         self.workspaces_list.clear()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
+        
         
     def workspaces_selected(self):
         self.selected_workspace = self.workspaces_list.value()

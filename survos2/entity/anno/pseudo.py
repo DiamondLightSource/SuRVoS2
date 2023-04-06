@@ -32,8 +32,6 @@ from torch.utils.data import DataLoader, Dataset
 
 from tqdm import tqdm
 
-from survos2 import survos
-from survos2.entity.anno.masks import generate_anno
 
 from survos2.entity.sampler import (
     generate_random_points_in_volume,
@@ -278,6 +276,8 @@ def make_anno(wf, entities, entity_meta, gt_proportion, padding, acwe=False, plo
         padding=padding,
         core_mask_radius=(12, 12, 12),
     )
+
+    
     return anno_masks, anno_all, entities
 
 
@@ -323,6 +323,9 @@ def make_pseudomasks(
     Tuple of (Dict, List)
         (Dict storing all the generated annotation, List of same)
     """
+
+    from survos2.entity.anno.masks import generate_anno
+
     anno_masks, padded_vol = generate_anno(
         wf.vols[0],
         classwise_entities,
@@ -335,6 +338,7 @@ def make_pseudomasks(
     anno_gen = np.sum([anno_masks[i]["mask"] for i in anno_masks.keys()], axis=0)
     anno_shell_gen = np.sum([anno_masks[i]["shell_mask"] for i in anno_masks.keys()], axis=0)
 
+    
     anno_all = [anno_masks[i]["mask"] for i in classwise_entities.keys()]
     anno_all.extend(anno_shell_gen)
 
@@ -362,5 +366,6 @@ def make_pseudomasks(
             anno_acwe[i] = p.image_layers["acwe"]
 
             anno_all = anno_acwe
+
 
     return anno_masks, anno_all

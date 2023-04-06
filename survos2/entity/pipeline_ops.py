@@ -10,6 +10,7 @@ from loguru import logger
 from skimage import img_as_ubyte
 from survos2.entity.anno.masks import generate_sphere_masks_fast
 from survos2.entity.components import filter_proposal_mask, measure_big_blobs
+from survos2.entity.models.x_unet import prepare_xunet
 from survos2.entity.sampler import (
     centroid_to_bvol,
     crop_vol_and_pts_centered,
@@ -301,7 +302,9 @@ def make_proposal(
     gpu_id=0,
 ):
     from survos2.entity.models.vnet import prepare_vnet
-
+    from survos2.entity.models.monai_nets import (prepare_attention_unet, 
+            prepare_swin_unetr, prepare_unetplusplus, prepare_unet, prepare_vnet_monai,
+            prepare_SegResNet, prepare_SegResNetVAE, prepare_dynunet)
     if model_type == "unet3d":
         print("Using unet3d")
         model3d, _, _ = prepare_unet3d(device=gpu_id)
@@ -310,7 +313,27 @@ def make_proposal(
         model3d, _, _ = prepare_fpn3d(gpu_id=gpu_id)
     elif model_type == "vnet":
         model3d, _, _ = prepare_vnet(device=gpu_id)
+    elif model_type == "xunet":
+        model3d, _, _ = prepare_xunet(device=gpu_id)
+    elif model_type == "unet":
+        model3d, _, _ = prepare_unet(device=gpu_id)
+    elif model_type == "vnet_monai":
+        model3d, _, _ = prepare_vnet_monai(device=gpu_id)
+    elif model_type == "attention_unet":
+        model3d, _, _ = prepare_attention_unet(device=gpu_id)
+    elif model_type == "dynunet":
+        model3d, _, _ = prepare_dynunet(device=gpu_id)
+    elif model_type == "swin_unetr":
+        model3d, _, _ = prepare_swin_unetr(device=gpu_id)
+    elif model_type == "unetplusplus":
+        model3d, _, _ = prepare_unetplusplus(device=gpu_id)
+    elif model_type == "segresnet":
+        model3d, _, _ = prepare_SegResNet(device=gpu_id)
+    elif model_type == "segresnetvae":
+        model3d, _, _ = prepare_SegResNetVAE(device=gpu_id)
+
     print(f"Predicting segmentation on volume of shape {vol.shape}")
+
 
     if model_type == "unet3d":
         model3d = load_model(model3d, model_fullname)
@@ -350,6 +373,62 @@ def make_proposal(
             patch_overlap=patch_overlap,
             device=gpu_id,
             fpn=False,
+            overlap_mode=overlap_mode,
+        )
+        output_tensor1 = aggregator.get_output_tensor()
+        print(f"Aggregated volume of {output_tensor1.shape}")
+        seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
+    elif model_type == "xunet":
+        model3d = load_model(model3d, model_fullname)
+        aggregator = predict_agg_3d(
+            vol,
+            model3d,
+            patch_size=patch_size,
+            patch_overlap=patch_overlap,
+            device=gpu_id,
+            fpn=False,
+            overlap_mode=overlap_mode,
+        )
+        output_tensor1 = aggregator.get_output_tensor()
+        print(f"Aggregated volume of {output_tensor1.shape}")
+        seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
+    elif model_type == "attention_unet" or model_type == 'unet' or model_type == 'vnet_monai' or model_type =='dynunet' or model_type == 'segresnet':
+        model3d = load_model(model3d, model_fullname)
+        aggregator = predict_agg_3d(
+            vol,
+            model3d,
+            patch_size=patch_size,
+            patch_overlap=patch_overlap,
+            device=gpu_id,
+            fpn=False,
+            overlap_mode=overlap_mode,
+        )
+        output_tensor1 = aggregator.get_output_tensor()
+        print(f"Aggregated volume of {output_tensor1.shape}")
+        seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
+    elif model_type == "swin_unetr":
+        model3d = load_model(model3d, model_fullname)
+        aggregator = predict_agg_3d(
+            vol,
+            model3d,
+            patch_size=patch_size,
+            patch_overlap=patch_overlap,
+            device=gpu_id,
+            fpn=False,
+            overlap_mode=overlap_mode,
+        )
+        output_tensor1 = aggregator.get_output_tensor()
+        print(f"Aggregated volume of {output_tensor1.shape}")
+        seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
+    elif model_type == "unetplusplus" or model_type == "segresnetvae":
+        model3d = load_model(model3d, model_fullname)
+        aggregator = predict_agg_3d(
+            vol,
+            model3d,
+            patch_size=patch_size,
+            patch_overlap=patch_overlap,
+            device=gpu_id,
+            fpn=True,
             overlap_mode=overlap_mode,
         )
         output_tensor1 = aggregator.get_output_tensor()

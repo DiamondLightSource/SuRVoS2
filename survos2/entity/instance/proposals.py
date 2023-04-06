@@ -66,6 +66,8 @@ class ProposalSegmentor:
         self.combined_anno_all = self.combined_anno_class1 + self.combined_anno_class2
         #combined_shell_anno  = anno_masks['0']['shell_mask'] + anno_masks['1']['shell_mask'] + anno_masks['2']['shell_mask'] + anno_masks['5']['shell_mask']
         slice_plot(self.combined_anno_all, None, None, (50,50,50))
+        slice_plot(self.combined_anno_class1, None, None, (50,50,50))
+        slice_plot(self.combined_anno_class2, None, None, (50,50,50))
 
     def make_training_volumes(self, num_training_patches=None, num_augs=1):
         if num_training_patches:
@@ -100,18 +102,28 @@ class ProposalSegmentor:
         self.augmented_entities = make_augmented_entities(self.aug_pts)
         slice_plot(self.wf.vols[0], self.augmented_entities, None, (50,300,300), unique_color_plot=True)
 
-    def train_model(self, num_epochs=2, model_type="fpn3d"):
+    def train_model(self, num_epochs=2, model_type="fpn3d", bce_weight=0.3, initial_lr=0.001):
         self.class1_model_file = train_oneclass_detseg(self.train_v_all, 
                                     self.project_file, 
                                     self.wf.params,
                                     num_epochs=num_epochs, 
                                     model_type=model_type,
-                                    bce_weight=0.5)
+                                    bce_weight=bce_weight,
+                                    initial_lr=initial_lr)
         
-    def train_multiple_class_model(self, num_epochs=2):
-        self.class2_model_file = train_oneclass_detseg(self.train_v_class2, self.project_file, self.wf.params,num_epochs=num_epochs)
+    def train_multiple_class_model(self, num_epochs=2, model_type="fpn3d", bce_weight=0.3, initial_lr=0.001):
+        self.class2_model_file = train_oneclass_detseg(self.train_v_class2, 
+                    self.project_file, 
+                    self.wf.params,
+                    num_epochs=num_epochs)
         training_vols = [self.train_v_class1, self.train_v_all]
-        self.class1_model_file, self.class2_model_file = train_twoclass_detseg(self.wf, training_vols, self.project_file, num_epochs=num_epochs)
+        self.class1_model_file, self.class2_model_file = train_twoclass_detseg(self.wf, 
+                    training_vols, 
+                    self.project_file, 
+                    num_epochs=num_epochs,
+                    model_type=model_type,
+                    bce_weight=bce_weight,
+                    initial_lr=initial_lr)
     def setup_model_files(self, class1_model_file, class_all_model_file, class2_model_file):
         self.class1_model_file = class1_model_file  
         self.class_all_model_file = class_all_model_file

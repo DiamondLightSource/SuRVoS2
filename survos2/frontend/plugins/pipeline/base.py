@@ -156,6 +156,10 @@ class PipelineCardBase(Card):
         self.fcn_type.addItem(key="fpn3d")
         self.fcn_type.addItem(key="unet3d")
         self.fcn_type.addItem(key="vnet")
+        self.fcn_type.addItem(key="vnet_monai")
+        self.fcn_type.addItem(key="attention_unet")
+        self.fcn_type.addItem(key="unetplusplus")
+        self.fcn_type.addItem(key="unet")
         widget = HWidgets("FCN Type:", self.fcn_type, stretch=0)
         self.add_row(widget)
 
