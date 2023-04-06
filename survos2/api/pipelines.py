@@ -768,7 +768,6 @@ def train_3d_cnn(
     # Load in data volume from current workspace
     DataModel.g.current_workspace = current_ws
 
-
     # setup model filename
     ws_object = ws.get(current_ws)
     data_out_path = Path(ws_object.path, "fcn")
