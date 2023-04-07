@@ -26,6 +26,7 @@ loguru
 mako
 matplotlib
 medicaltorch
+monai
 morphsnakes
 mrcfile
 napari[all]
