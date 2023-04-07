@@ -384,7 +384,7 @@ def difference_of_gaussians(
         out=dst,
         sigma=sigma,
         sigma_ratio=sigma_ratio,
-        pad=max(4, int((np.max(sigma) * 3))),
+        pad=max(4, int((np.max(sigma) * 2))),
         normalize=True,
     )
     simple_norm(dst)
@@ -416,7 +416,7 @@ def gaussian_blur(src: str, dst: str, sigma: List[int] = Query()) -> "DENOISING"
             src,
             out=dst,
             sigma=sigma,
-            pad=max(4, int(max(sigma))),
+            pad=max(4, int((max(sigma) * 2))),
             normalize=False,
         )
 
@@ -432,7 +432,7 @@ def laplacian(src: str, dst: str, sigma: List[int] = Query()) -> "EDGES":
         out=dst,
         kernel_size=sigma,
         # pad=max(4, int(max(np.array(kernel_size))) * 3),
-        pad=max(4, int(np.max(sigma))),
+        pad=max(4, int((max(sigma) * 2))),
         normalize=False,
     )
 

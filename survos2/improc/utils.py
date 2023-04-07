@@ -352,11 +352,11 @@ def _apply(
             else:
                 depth = trim = {i: d for i, d in enumerate(pad)}
 
-            g = da.overlap.overlap(datasets[0], depth=depth, boundary="reflect")
+            g = da.overlap.overlap(datasets[0], depth=depth, boundary="nearest")
             r = g.map_blocks(func, **kwargs)
-            logger.debug(f"Result of applying map blocks before trim {r.shape}")
-            logger.debug(f"Trimming with trim {trim}")
-            result = da.overlap.trim_internal(r, trim)
+            #logger.debug(f"Result of applying map blocks before trim {r.shape}")
+            print(f"Trimming with trim {trim}")
+            result = da.overlap.trim_overlap(r, trim, boundary="nearest")
         else:
             raise ValueError("`pad` only works with single")
 
@@ -469,7 +469,7 @@ def map_blocks(
         other keyword arguments for the specific function being mapped.
     """
     uses_gpu = uses_gpu or getattr(func, "__uses_gpu__", False)
-    out_dtype = out_dtype or getattr(func, "__out_dtype__", np.float64)
+    out_dtype = out_dtype or getattr(func, "__out_dtype__", np.float32)
     out_fillvalue = out_fillvalue or getattr(func, "__out_fillvalue__", 0) or 0
     relabel = relabel or getattr(func, "__requires_relabel__", False)
 
