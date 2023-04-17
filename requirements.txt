@@ -40,7 +40,6 @@ numpydoc
 pandas
 parse
 pillow
-pip==22.3.1
 pluggy
 ptyprocess
 pydantic
