@@ -12,6 +12,7 @@ cycler
 cython
 dask
 decorator
+einops
 falcon
 fastapi[all]==0.85.2
 h5py
@@ -34,7 +35,7 @@ networkx
 nibabel
 nose
 numba
-numpy==1.21.6
+numpy==1.23.5
 numpydoc
 pandas
 parse
