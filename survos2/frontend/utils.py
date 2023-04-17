@@ -207,7 +207,6 @@ class MplCanvas(QWidget):
         self.rs = RectangleSelector(
             self.ax,
             self.line_select_callback,
-            drawtype="box",
             useblit=True,
             button=[1, 3],  # don't use middle button
             minspanx=5,
