@@ -19,6 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --no-cache-dir -r requirements.txt
+        python -m pip install numpy
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
