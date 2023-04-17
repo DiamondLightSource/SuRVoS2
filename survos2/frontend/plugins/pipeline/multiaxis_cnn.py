@@ -199,6 +199,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.volseg_model_type.addItem(key="DeepLabV3_Plus", value="DeepLabV3+")
         self.volseg_model_type.addItem(key="MA_Net", value="MA-Net")
         self.volseg_model_type.addItem(key="LinkNet", value="LinkNet")
+        self.volseg_model_type.addItem(key="PAN", value="PAN")
         widget = HWidgets("Model type:", self.volseg_model_type, Spacing(35), stretch=0)
         self.add_row(widget)
 
@@ -247,6 +248,12 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.volseg_encoder_type.addItem(key="resnet50", value="ResNet50 (Pre-trained)")
         self.volseg_encoder_type.addItem(
             key="resnext50_32x4d", value="ResNeXt50 (32x4d Pre-trained)"
+        )
+        self.volseg_encoder_type.addItem(
+            key="efficientnet-b3", value="EfficientNetB3 (Pre-trained)"
+        )
+        self.volseg_encoder_type.addItem(
+            key="efficientnet-b4", value="EfficientNetB4 (Pre-trained)"
         )
         self.loss_type_combo = ComboBox()
         self.loss_type_combo.addItem(key="DiceLoss", value="Dice Loss")
