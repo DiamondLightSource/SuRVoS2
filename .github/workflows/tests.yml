@@ -42,6 +42,7 @@ jobs:
       run: |
         pip install -r requirements.txt
         pip install numpy
+        pip install cython
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
