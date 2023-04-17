@@ -18,7 +18,7 @@ jobs:
       run: python -c "import sys; print(sys.version)"
     - name: Install dependencies
       run: |
-        pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+        pip install --no-cache-dir -r requirements.txt
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
@@ -28,11 +28,14 @@ jobs:
         pytest .
   build-windows:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
     steps:
     - uses: actions/checkout@v2
     - uses: conda-incubator/setup-miniconda@v2
       with:
-          python-version: 3.8
+          python-version: 3.9
           auto-activate-base: true
     - shell: pwsh
       run: |
@@ -40,7 +43,7 @@ jobs:
         conda list
     - name: Install dependencies
       run: |
-        pip install --no-cache-dir -r requirements_windows.txt --extra-index-url https://download.pytorch.org/whl/cpu
+        python -m pip install -r requirements.txt
         python ./survos2/improc/setup.py build_ext --inplace
         pip install -e .
     - name: Test
@@ -48,3 +51,4 @@ jobs:
       run: |
         conda install pytest
         pytest .
+        
