@@ -65,7 +65,7 @@ scikit-image==0.19.2
 scikit-learn
 scipy
 seaborn
-setuptools
+setuptools==65.6.3
 simpleitk
 snowballstemmer
 tensorly
