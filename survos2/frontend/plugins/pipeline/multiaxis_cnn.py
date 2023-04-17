@@ -278,12 +278,27 @@ class TrainMultiaxisCNN(PipelineCardBase):
         adv_train_layout.addWidget(self.bce_dice_beta_linedt, 4, 1)
         adv_train_layout.addWidget(QLabel("Encoder:"), 5, 0)
         adv_train_layout.addWidget(self.volseg_encoder_type, 5, 1)
-        self.adv_train_fields.setLayout(adv_train_layout)
         self.bce_dice_alpha_label.hide()
         self.bce_dice_alpha_linedt.hide()
         self.bce_dice_beta_label.hide()
         self.bce_dice_beta_linedt.hide()
-
+        self.train_axis_r_group = QtWidgets.QButtonGroup()
+        self.train_axis_r_group.setExclusive(True)
+        all_axes_rb = QRadioButton("All")
+        all_axes_rb.setChecked(True)
+        self.train_axis_r_group.addButton(all_axes_rb, 0)
+        z_axis_rb = QRadioButton("Z")
+        self.train_axis_r_group.addButton(z_axis_rb, 1)
+        y_axis_rb = QRadioButton("Y")
+        self.train_axis_r_group.addButton(y_axis_rb, 2)
+        x_axis_rb = QRadioButton("X")
+        self.train_axis_r_group.addButton(x_axis_rb, 3)
+        axes_rb_label = QLabel("Train Axis:")
+        adv_train_layout.addWidget(QLabel("Train Axis:"), 6, 0)
+        adv_train_layout.addWidget(HWidgets(all_axes_rb, z_axis_rb, y_axis_rb, x_axis_rb), 6, 1)
+        self.adv_train_fields.setLayout(adv_train_layout)
+        
+        
     def toggle_advanced_train(self):
         """Controls displaying/hiding the advanced train fields on radio button toggle."""
         rbutton = self.sender()
