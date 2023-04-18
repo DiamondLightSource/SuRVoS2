@@ -73,6 +73,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
             loss_criterion=self.loss_type_combo.key(),
             bce_dice_alpha=self.bce_dice_alpha_linedt.value(),
             bce_dice_beta=self.bce_dice_beta_linedt.value(),
+            training_axes=self.idx_to_axis[self.train_axis_r_group.checkedId()],
         )
         all_params["json_transport"] = True
         return all_params
@@ -293,7 +294,12 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.train_axis_r_group.addButton(y_axis_rb, 2)
         x_axis_rb = QRadioButton("X")
         self.train_axis_r_group.addButton(x_axis_rb, 3)
-        axes_rb_label = QLabel("Train Axis:")
+        self.idx_to_axis = {
+            0: "All",
+            1: "Z",
+            2: "Y",
+            3: "X",
+                            }
         adv_train_layout.addWidget(QLabel("Train Axis:"), 6, 0)
         adv_train_layout.addWidget(HWidgets(all_axes_rb, z_axis_rb, y_axis_rb, x_axis_rb), 6, 1)
         self.adv_train_fields.setLayout(adv_train_layout)

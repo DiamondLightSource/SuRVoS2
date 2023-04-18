@@ -409,8 +409,9 @@ def train_multi_axis_cnn(
     loss_criterion = multi_ax_train_params["loss_criterion"]
     bce_dice_alpha = float(multi_ax_train_params["bce_dice_alpha"])
     bce_dice_beta = float(multi_ax_train_params["bce_dice_beta"])
+    training_axes = multi_ax_train_params["training_axes"]
     logger.info(
-        f"Train {model_type} with {encoder_type} encoder using workspaces {workspace} annos {anno_id} and features {feature_id}"
+        f"Train {model_type} on {training_axes} axis with {encoder_type} encoder using workspaces {workspace} annos {anno_id} and features {feature_id}"
     )
     from volume_segmantics.data import TrainingDataSlicer, get_settings_data
     from volume_segmantics.model import (
@@ -431,6 +432,7 @@ def train_multi_axis_cnn(
     settings.loss_criterion = loss_criterion
     settings.alpha = bce_dice_alpha
     settings.beta = bce_dice_beta
+    settings.training_axes = training_axes
     current_ws = DataModel.g.current_workspace
     ws_object = ws.get(current_ws)
     data_out_path = Path(ws_object.path, "volseg")
