@@ -73,7 +73,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
             loss_criterion=self.loss_type_combo.key(),
             bce_dice_alpha=self.bce_dice_alpha_linedt.value(),
             bce_dice_beta=self.bce_dice_beta_linedt.value(),
-            training_axes=self.idx_to_axis[self.train_axis_r_group.checkedId()],
+            training_axes=self.train_idx_to_axis[self.train_axis_r_group.checkedId()],
         )
         all_params["json_transport"] = True
         return all_params
@@ -294,7 +294,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
         self.train_axis_r_group.addButton(y_axis_rb, 2)
         x_axis_rb = QRadioButton("X")
         self.train_axis_r_group.addButton(x_axis_rb, 3)
-        self.idx_to_axis = {
+        self.train_idx_to_axis = {
             0: "All",
             1: "Z",
             2: "Y",
@@ -344,6 +344,7 @@ class PredictMultiaxisCNN(PipelineCardBase):
             raise ValueError("No model filepath selected!")
         all_params["no_of_planes"] = self.radio_group.checkedId()
         all_params["cuda_device"] = int(self.pred_cuda_dev_linedt.value())
+        all_params["prediction_axis"] = self.pred_idx_to_axis[self.pred_axis_r_group.checkedId()]
         return all_params
 
     def _add_multi_ax_2d_prediction_params(self):
@@ -373,7 +374,7 @@ class PredictMultiaxisCNN(PipelineCardBase):
         self.add_row(HWidgets("Prediction Parameters:", stretch=1))
         self.add_row(HWidgets(single_pp_rb, triple_pp_rb, twelve_pp_rb))
         self.add_row(HWidgets(advanced_button, stretch=1))
-        self.add_row(HWidgets(self.adv_pred_fields))
+        self.add_row(HWidgets(self.adv_pred_fields), max_height=75)
         self.add_row(HWidgets(refresh_label, stretch=1))
         self.add_row(HWidgets(self.multi_ax_pred_refresh_btn, stretch=1))
         advanced_button.toggled.connect(self.toggle_advanced_pred)
@@ -389,6 +390,22 @@ class PredictMultiaxisCNN(PipelineCardBase):
         cuda_device = str(self.multi_ax_pred_settings["cuda_device"])
         self.pred_cuda_dev_linedt = LineEdit(cuda_device)
         adv_pred_layout.addWidget(self.pred_cuda_dev_linedt, 0, 1)
+        self.pred_axis_r_group = QtWidgets.QButtonGroup()
+        self.pred_axis_r_group.setExclusive(True)
+        z_axis_rb = QRadioButton("Z")
+        z_axis_rb.setChecked(True)
+        self.pred_axis_r_group.addButton(z_axis_rb, 0)
+        y_axis_rb = QRadioButton("Y")
+        self.pred_axis_r_group.addButton(y_axis_rb, 1)
+        x_axis_rb = QRadioButton("X")
+        self.pred_axis_r_group.addButton(x_axis_rb, 2)
+        self.pred_idx_to_axis = {
+            0: "Z",
+            1: "Y",
+            2: "X",
+                            }
+        adv_pred_layout.addWidget(QLabel("Single plane predict axis:"), 1, 0)
+        adv_pred_layout.addWidget(HWidgets(z_axis_rb, y_axis_rb, x_axis_rb), 1, 1)
         self.adv_pred_fields.setLayout(adv_pred_layout)
 
     def toggle_advanced_pred(self):

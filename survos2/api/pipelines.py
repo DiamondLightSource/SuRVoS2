@@ -531,6 +531,7 @@ def predict_multi_axis_cnn(
     model_path: str,
     no_of_planes: int,
     cuda_device: int,
+    prediction_axis: str,
 ) -> "CNN":
     model_pred_label = "Deep Learning Prediction"
     if feature_id:
@@ -568,6 +569,7 @@ def predict_multi_axis_cnn(
         predict_settings_dict = cfg["volume_segmantics"]["predict_settings"]
         predict_settings = get_settings_data(predict_settings_dict)
         predict_settings.cuda_device = cuda_device
+        predict_settings.prediction_axis = prediction_axis
         level_id = level_result["id"]
         logger.info(f"Using level with ID {level_id}, changing level name.")
         rename_level(workspace=workspace, level=level_id, name=model_pred_label)
