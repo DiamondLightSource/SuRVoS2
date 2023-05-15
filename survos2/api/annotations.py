@@ -8,9 +8,10 @@ from survos2.data_io import dataset_from_uri
 from survos2.utils import encode_numpy
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
-from survos2.api.annotate import annotate_regions as _annotate_regions
 from survos2.frontend.view_fn import get_level_from_server
 from survos2.api.annotate import annotate_voxels as _annotate_voxels
+from survos2.api.annotate import annotate_regions as _annotate_regions
+from survos2.api.annotate import annotate_from_slice as _annotate_from_slice
 
 import pickle
 from fastapi import APIRouter, Body, File, UploadFile, Query
@@ -34,7 +35,6 @@ def to_label(idx=0, name="Label", color="#000000", visible=True, **kwargs):
     return dict(idx=idx, name=name, color=color, visible=visible)
 
 
-# @hug.post()
 @annotations.post("/upload")
 def upload(file: UploadFile = File(...)):
     """Upload annotations layer as an array (via Launcher) to the current workspace.
@@ -144,7 +144,6 @@ def add_level(workspace: str):
     return dataset_repr(ds)
 
 
-# @hug.local()
 @annotations.get("/get_level")
 def get_level(workspace: str, level: str, full: bool = False):
     if full == False:
@@ -152,14 +151,12 @@ def get_level(workspace: str, level: str, full: bool = False):
     return ws.get_dataset(workspace, level, session="default")
 
 
-# @hug.local()
 @annotations.get("/get_single_level")
 def get_single_level(workspace: str, level: str):
     ds = ws.get_dataset(workspace, level, group=__group_pattern__, session="default")
     return dataset_repr(ds)
 
 
-# @hug.local()
 @annotations.get("/get_levels")
 def get_levels(workspace: str, full: bool = False):
     datasets = ws.existing_datasets(workspace, group=__group_pattern__)
@@ -310,6 +307,35 @@ def annotate_voxels(
     modified = [1]
     modified_ds.set_attr("modified", modified)
 
+@annotations.get("/annotate_from_slice")
+def annotate_from_slice(
+    workspace: str = Body(),
+    target_level: str = Body(),
+    source_level: str = Body(),
+    region: str = Body(),
+    slice_num : int = Body(),
+    viewer_order: tuple = Body(),
+):
+    DataModel.g.current_workspace = workspace
+    target_ds = get_level(workspace, target_level, False)
+    source_ds = get_level(workspace, source_level, False)
+
+    region_uri = DataModel.g.dataset_uri(region, group="superregions")
+    region_ds = dataset_from_uri(region_uri, mode="r")
+    source_std_label = source_ds[:] & 15
+    source_slice = source_std_label[slice_num,:]
+
+    anno = _annotate_from_slice(target_ds,
+                                region_ds, 
+                                source_slice,
+                                slice_num, 
+                                viewer_order)
+    
+    dst = DataModel.g.dataset_uri(target_level, group="annotations")
+    target_ds[:] = anno
+    modified_ds = dataset_from_uri(dst, mode="rw")
+    modified = [1]
+    modified_ds.set_attr("modified", modified)
 
 @annotations.get("/annotate_regions")
 def annotate_regions(
@@ -350,7 +376,6 @@ def annotate_regions(
 
     dst = DataModel.g.dataset_uri(level, group="annotations")
     ds[:] = anno
-    # map_blocks(pass_through, anno, out=dst, normalize=False)
     modified_ds = dataset_from_uri(dst, mode="rw")
     modified = [1]
     modified_ds.set_attr("modified", modified)

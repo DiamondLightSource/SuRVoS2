@@ -352,11 +352,11 @@ def _apply(
             else:
                 depth = trim = {i: d for i, d in enumerate(pad)}
 
-            g = da.overlap.overlap(datasets[0], depth=depth, boundary="reflect")
+            g = da.overlap.overlap(datasets[0], depth=depth, boundary="nearest")
             r = g.map_blocks(func, **kwargs)
             logger.debug(f"Result of applying map blocks before trim {r.shape}")
             logger.debug(f"Trimming with trim {trim}")
-            result = da.overlap.trim_internal(r, trim)
+            result = da.overlap.trim_internal(r, trim, boundary="nearest")
         else:
             raise ValueError("`pad` only works with single")
 

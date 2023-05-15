@@ -121,7 +121,7 @@ def view_regions(viewer, msg):
     logger.debug(f"view_feature {msg['region_id']}")
     region_name = msg["region_id"]
     existing_regions_layer = [v for v in viewer.layers if v.name == cfg.current_regions_name]
-    region_opacity = 0.3
+    region_opacity = 0.15
     if len(existing_regions_layer) > 0:
         region_opacity = existing_regions_layer[0].opacity
         remove_layer(viewer, cfg.current_regions_name)
@@ -156,7 +156,7 @@ def view_regions(viewer, msg):
         result = Launcher.g.run("superregions", "get_volume", **params)
         if result:
             src_arr = decode_numpy(result)
-            src_arr = find_boundaries(src_arr) * 1.0
+            #src_arr = find_boundaries(src_arr) * 1.0
             if len(existing_regions_layer) > 0:
                 existing_regions_layer[0].data = src_arr.copy()
                 existing_regions_layer[0].opacity = region_opacity
@@ -174,8 +174,15 @@ def view_regions(viewer, msg):
             if len(existing_layer) > 0:
                 existing_layer[0].data = src_arr
             else:
-                sv_image = find_boundaries(src_arr, mode="inner")
-                sv_layer = viewer.add_image(sv_image, name=region_name)
+                src_arr = src_arr.astype(np.float32)
+                #src_arr -= np.min(src_arr)
+                #src_arr /= np.max(src_arr)
+                #from scipy.ndimage import laplace
+                #src_arr = laplace(src_arr)
+                #src_arr = find_boundaries(src_arr, mode="inner") * 1.0
+                for l in range(len(src_arr)):
+                    src_arr[l,:] = find_boundaries(src_arr[l,:], mode="inner") * 1.
+                sv_layer = viewer.add_image(src_arr, name=region_name)
                 sv_layer.opacity = region_opacity
                 sv_layer.colormap = "bop orange"
 
@@ -282,10 +289,6 @@ def view_objects(viewer, msg):
     tabledata, entities_df = setup_entity_table(
         entities_fullname=None,
         entities_df=entities_df,
-        # scale=objects_scale,
-        # offset=objects_offset,
-        # crop_start=objects_crop_start,
-        # crop_end=objects_crop_end,
         flipxy=msg["flipxy"],
     )
     sel_start, sel_end = 0, len(entities_df)

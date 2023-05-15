@@ -13,29 +13,14 @@ from numpy import zeros
 from numpy.lib.stride_tricks import as_strided as ast
 from numpy.random import permutation
 
-import matplotlib
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.pyplot as pyplt
 import seaborn as sns
 
-from IPython.display import Image
-from PIL import Image
-from matplotlib import cm
 from matplotlib import pyplot as plt
-import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import axes3d, Axes3D
-
-
-from scipy import linalg
-from scipy import ndimage
-from scipy import ndimage
-from scipy.interpolate import interp2d
 from scipy.ndimage import grey_dilation
-from scipy.spatial import KDTree
 
-from skimage import exposure
-from skimage import filters as skfilt
 from skimage import img_as_float
 from skimage.color import rgb2gray
 from skimage.filters import threshold_isodata, threshold_li, threshold_otsu
@@ -52,12 +37,7 @@ from skimage.segmentation import felzenszwalb
 from skimage.segmentation import mark_boundaries
 from skimage.util import img_as_ubyte
 
-
-from sklearn import mixture
-import sklearn.cluster as clstr
-import scipy
 import scipy.cluster.vq as vq
-import scipy.misc
 import scipy.signal as signal
 
 
