@@ -469,7 +469,7 @@ def map_blocks(
         other keyword arguments for the specific function being mapped.
     """
     uses_gpu = uses_gpu or getattr(func, "__uses_gpu__", False)
-    out_dtype = out_dtype or getattr(func, "__out_dtype__", np.float64)
+    out_dtype = out_dtype or getattr(func, "__out_dtype__", np.float32)
     out_fillvalue = out_fillvalue or getattr(func, "__out_fillvalue__", 0) or 0
     relabel = relabel or getattr(func, "__requires_relabel__", False)
 
