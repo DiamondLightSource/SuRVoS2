@@ -43,9 +43,7 @@ def frontend(viewer):
     cfg.base_dataset_shape = (100, 100, 100)
     cfg.slice_max = 100
     cfg.current_mode = "paint"
-    cfg.label_ids = [
-        0,
-    ]
+    cfg.label_ids = [0,]
     cfg.retrieval_mode = Config["volume_mode"]  # "volume"  # volume_http | volume | slice
     cfg.current_slice = 0
     cfg.current_orientation = 0
@@ -63,6 +61,7 @@ def frontend(viewer):
     cfg.supervoxels_cached = False
     cfg.supervoxel_size = 10
     cfg.brush_size = 10
+    cfg.viewer_order=(0, 1, 2)
 
     # controls whether annotation updates the server with every stroke
     cfg.remote_annotation = True
@@ -225,7 +224,6 @@ def frontend(viewer):
         def undo():
             logger.info("Undoing annotation")
             if cfg.num_undo == 0:
-                # cfg.anno_data = cfg.anno_data >> _MaskSize
                 cfg.anno_data = cfg.prev_arr.copy()
                 cfg.num_undo += 1
                 existing_layer = [v for v in viewer.layers if v.name == cfg.current_annotation_name]
@@ -243,21 +241,21 @@ def frontend(viewer):
                     )
 
     def setup_painting_layer(label_layer, msg, parent_level, parent_label_idx):
-        # cfg.current_annotation_name = label_layer
         if "anno_data" in cfg:
-            print(f"Anno data is of shape {cfg.anno_data}")
+            logger.debug(f"Anno data is of shape {cfg.anno_data}")
         else:
             cfg.anno_data = label_layer.data
-            print(f"Anno data is initialized to shape {cfg.anno_data}")
+            logger.debug(f"Anno data is initialized to shape {cfg.anno_data}")
 
         if not hasattr(label_layer, "already_init"):
 
             @label_layer.mouse_drag_callbacks.append
             def painting_layer(layer, event):
-                print(cfg.current_annotation_name)
+                logger.debug(cfg.current_annotation_name)
                 cfg.prev_arr = label_layer.data.copy()
                 drag_pts = []
                 coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(np.int32)
+                cfg.current_slice = coords[0]
                 try:
                     drag_pt = [coords[0], coords[1], coords[2]]
                     drag_pts.append(drag_pt)
@@ -270,7 +268,6 @@ def frontend(viewer):
                             coords = np.round(layer.world_to_data(viewer.cursor.position)).astype(
                                 np.int32
                             )
-
                             drag_pt = [coords[0], coords[1], coords[2]]
                             drag_pts.append(drag_pt)
                             yield
@@ -289,13 +286,14 @@ def frontend(viewer):
                                         )
                                     else:
                                         src_arr = cfg.anno_data
-                                        print(
+                                        logger.debug(
                                             f"replaced src array with array of shape {src_arr.shape}"
                                         )
                                     update_annotation_layer_in_viewer(msg["level_id"], src_arr)
 
                                 update = partial(update_anno, msg=msg)
                                 viewer_order = viewer.window.qt_viewer.viewer.dims.order
+                                cfg.viewer_order = viewer_order
                                 paint_strokes_worker = paint_strokes(
                                     msg,
                                     drag_pts,
@@ -309,7 +307,6 @@ def frontend(viewer):
 
                                 cfg.num_undo = 0
                         else:
-
                             cfg.ppw.clientEvent.emit(
                                 {
                                     "source": "annotations",

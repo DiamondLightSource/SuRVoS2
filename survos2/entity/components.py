@@ -228,6 +228,54 @@ def filter_small_components(images, min_component_size=0):
     return filtered_images[0], tables, labeled_images
 
 
+def filter_components2(images, min_component_size=0, max_component_size=1e9):
+    """
+    Filter components smaller than min_component_size
+
+    Parameters
+    ----------
+    images : List[np.ndarray]
+
+    min_component_size : int
+
+
+    """
+    labeled_images = [measure.label(image) for image in images]
+    tables = measure_regions(labeled_images)
+
+    selected = [tables[i][np.logical_and(tables[i]["area"] > min_component_size, tables[i]["area"] < max_component_size) ] for i in range(len(tables))]
+
+    filtered_images = []
+
+    for img_idx in range(len(images)):
+        table_idx = list(selected[img_idx].index.values)
+        print(
+            f"For image {img_idx}, out of {len(tables[img_idx])}, keeping {len(table_idx)} components"
+        )
+
+        total_mask = np.zeros_like(images[img_idx])
+
+        for iloc in table_idx:
+            bb = [
+                tables[img_idx]["bb_s_z"][iloc],
+                tables[img_idx]["bb_s_x"][iloc],
+                tables[img_idx]["bb_s_y"][iloc],
+                tables[img_idx]["bb_f_z"][iloc],
+                tables[img_idx]["bb_f_x"][iloc],
+                tables[img_idx]["bb_f_y"][iloc],
+            ]
+
+            mask = (labeled_images[img_idx] == tables[img_idx]["class_code"][iloc]) * 1.0
+            total_mask[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] = (
+                total_mask[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]]
+                + mask[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]]
+            )
+
+        # filtered_images.append((total_mask * images[img_idx]) * 1.0)
+        filtered_images.append(total_mask)
+    return filtered_images[0], tables, labeled_images
+
+
 def measure_big_blobs(images: List[np.ndarray]):
     filtered_images = filter_small_components(images)
     labeled_images = [measure.label(image) for image in filtered_images]

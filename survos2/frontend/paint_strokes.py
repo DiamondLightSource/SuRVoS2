@@ -110,7 +110,6 @@ def annotate_regions(
         ]
     )
     bb = bb.tolist()
-    # logger.debug(f"BB: {bb}")
 
     if cfg.supervoxels_cached == False:
         regions_dataset = DataModel.g.dataset_uri(cfg.current_regions_name, group="superregions")
@@ -272,14 +271,10 @@ def _annotate_regions_local(
     if r is None or len(r) == 0:
         return
 
-    # mbit = 2 ** (np.dtype(level.dtype).itemsize * 8 // _MaskSize) - 1
-    # rmax = np.max(r)
-    # modified = dataset.get_attr("modified")
-
     cfg.modified = [0]
     ds = level[:]
     reg = region[:]
-    print(f"reg shape {reg.shape} ds shape {ds.shape}")
+    logger.debug(f"reg shape {reg.shape} ds shape {ds.shape}")
 
     viewer_order_str = "".join(map(str, viewer_order))
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
@@ -305,7 +300,7 @@ def _annotate_regions_local(
                 reg[bb[0] : bb[3], bb[1] : bb[4], bb[2] : bb[5]] == r_idx
             )
     except Exception as e:
-        print(f"__annotate_regions_local exception {e}")
+        logger.debug(f"__annotate_regions_local exception {e}")
 
     if parent_mask is not None:
         parent_mask_t = np.transpose(parent_mask, viewer_order)
@@ -319,7 +314,7 @@ def _annotate_regions_local(
 
     ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
     ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
-    print(f"Returning annotated region ds {ds.shape}")
+    logger.debug(f"Returning annotated region ds {ds.shape}")
 
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
         new_order = get_order(viewer_order)

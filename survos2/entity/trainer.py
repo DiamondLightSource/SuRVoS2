@@ -6,7 +6,7 @@ from typing import Callable
 from datetime import datetime
 import numpy as np
 from loguru import logger
-from tqdm.auto import tqdm, trange
+from tqdm import tqdm, trange
 
 from medicaltorch import losses as mt_losses
 from medicaltorch import metrics as mt_metrics
@@ -240,6 +240,7 @@ class Trainer:
         initial_lr: float,
         device: int,
         accumulate_iters: int = 8,
+        model_output_as_list = False
     ):
         self.model = model
         self.criterion = criterion
@@ -254,6 +255,7 @@ class Trainer:
         self.prepare_labels = prepare_labels
         self.num_out_channels = num_out_channels
         self.accumulate_iters = accumulate_iters
+        self.model_output_as_list = model_output_as_list
 
         self.training_loss = []
         self.validation_loss = []
@@ -315,7 +317,10 @@ class Trainer:
             label_batch = self.prepare_labels(label_batch, input_batch)
             # print(input_batch.shape, label_batch.shape)
             label_batch = label_batch.to(self.device)
-            preds = self.model(input_batch)  # [0]
+            if self.model_output_as_list:
+                preds = self.model(input_batch)[0]
+            else:                
+                preds = self.model(input_batch) 
             # print(preds[0].shape)
             preds_post = preds[:, 0 : self.num_out_channels, :, :, :]
             loss = self.criterion(preds_post, label_batch)
@@ -351,8 +356,15 @@ class Trainer:
                     input_batch.to(self.device),
                     label_batch.to(self.device),
                 )
-                preds = self.model(input_batch)[:, 0 : self.num_out_channels, :, :, :]
-                loss = self.criterion(preds, label_batch)
+            
+                if self.model_output_as_list:
+                    preds = self.model(input_batch)[0]
+                else:
+                    preds = self.model(input_batch)
+
+                preds_post = preds[:, 0 : self.num_out_channels, :, :, :]
+
+                loss = self.criterion(preds_post, label_batch)
                 loss_value = loss.item()
                 # print(loss_value)
                 ###

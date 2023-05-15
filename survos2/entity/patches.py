@@ -228,19 +228,49 @@ def make_patches(
     outdir,
     vol_num=0,
     proposal_vol=None,
-    use_proposal_file=False,
-    proposal_thresh=0.4,
     get_biggest_cc=False,
     padding=(64, 64, 64),
-    num_augs=2,
+    num_augs=1,
     max_vols=-1,
     plot_all=False,
     patch_size=(64, 64, 64),
 ):
-    # make bg mask
+    
+    img_vols, label_vols, mask_gt = sample_images_and_labels(wf,
+                                                             selected_locs,
+                                                            vol_num,
+                                                            proposal_vol,
+                                                            padding,
+                                                            num_augs,
+                                                            plot_all,
+                                                            patch_size)
 
+    img_vols_fullpath, label_vols_fullpath = augment_and_save_dataset(img_vols, 
+                             label_vols,
+                             wf, 
+                             outdir,  
+                             mask_gt,
+                             get_biggest_cc,
+                             padding,
+                             num_augs,
+                             plot_all, 
+                             max_vols)
+    
+    return img_vols_fullpath, label_vols_fullpath
+
+
+def sample_images_and_labels( wf,
+    selected_locs,
+    vol_num=0,
+    proposal_vol=None,
+    padding=(64, 64, 64),
+    num_augs=2,
+    plot_all=False,
+    patch_size=(64, 64, 64)):
+    
+    # make bg mask
     target_cents = np.array(selected_locs)[:, 0:4]
-    print(f"Making patches for {len(target_cents)} locations")
+    logger.info(f"Making patches for {len(target_cents)} locations")
     target_cents = target_cents[:, [0, 2, 1, 3]]
 
     # Prepare patch dataset
@@ -295,13 +325,26 @@ def make_patches(
     marked_patches = sample_marked_patches(padded_vol, some_pts, some_pts, patch_size=patch_size)
 
     img_vols = marked_patches.vols
-    bvols = marked_patches.vols_bbs
-    labels = marked_patches.vols_locs[:, 3]
     label_vols = marked_patches_anno.vols
-    label_bvols = marked_patches_anno.vols_bbs
-    label_labels = marked_patches_anno.vols_locs[:, 3]
-    marked_patches.vols_locs.shape
+    
+    #bvols = marked_patches.vols_bbs
+    #labels = marked_patches.vols_locs[:, 3]
+    #label_bvols = marked_patches_anno.vols_bbs
+    #label_labels = marked_patches_anno.vols_locs[:, 3]
+    #marked_patches.vols_locs.shape
 
+    return img_vols, label_vols, mask_gt
+
+
+def augment_and_save_dataset(img_vols, label_vols, 
+                             wf, 
+                             outdir,  
+                             mask_gt,
+                             padding, 
+                             num_augs,
+                             plot_all,
+                             max_vols,
+                             get_biggest_cc=False):
     print(
         f"Marked patches, unique label vols {np.unique(label_vols)}, img mean: {np.mean(img_vols[0])}"
     )

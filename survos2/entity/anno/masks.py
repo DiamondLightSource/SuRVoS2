@@ -60,6 +60,48 @@ from survos2.entity.pipeline import Patch
 from survos2.server.state import cfg
 
 
+def make_masks(patch: Patch, params: dict):
+    """
+    Rasterize point geometry to a mask (V->R)
+
+    ((Array of 3d points) -> Float layer)
+
+    """
+    padding = params["mask_params"]["padding"]
+    geom = patch.geometry_layers["Points"].copy()
+
+    mask_radius = params["mask_params"]["mask_radius"]
+
+    geom[:, 0] = geom[:, 0] + padding[0]
+    geom[:, 1] = geom[:, 1] + padding[1]
+    geom[:, 2] = geom[:, 2] + padding[2]
+
+    print("Make masks")
+    total_mask = generate_sphere_masks_fast(
+        patch.image_layers["Main"],
+        geom,
+        radius=mask_radius[0],
+    )
+
+    core_mask = generate_sphere_masks_fast(
+        patch.image_layers["Main"],
+        geom,
+        radius=params["mask_params"]["core_mask_radius"][0],
+    )
+
+    # show_images(
+    #     [
+    #         total_mask[total_mask.shape[0] // 2, :],
+    #         core_mask[core_mask.shape[0] // 2, :],
+    #     ],
+    #     figsize=(4, 4),
+    # )
+
+    patch.image_layers["total_mask"] = total_mask
+    patch.image_layers["core_mask"] = core_mask
+
+    return patch
+
 def generate_anno(
     precropped_wf2,
     classwise_entities,
@@ -98,7 +140,7 @@ def generate_anno(
         p = Patch({"Main": padded_vol}, {}, {"Points": classwise_entities[k]["entities"]}, {})
         cfg["pipeline"]["mask_params"]["mask_radius"] = v["size"]
         cfg["pipeline"]["mask_params"]["eccentricity"] = eccentricity
-        from survos2.entity.pipeline_ops import make_masks
+        #from survos2.entity.pipeline_ops import make_masks
 
         p = make_masks(p, cfg["pipeline"])
 
@@ -124,10 +166,11 @@ def generate_anno(
         classwise_entities[k]["core_mask"] = core_mask
         classwise_entities[k]["shell_mask"] = shell_mask
 
+
     return classwise_entities, padded_vol
 
 
-@lru_cache(maxsize=64)
+@lru_cache(maxsize=4)
 def ellipsoidal_mask(
     d: int,
     w: int,

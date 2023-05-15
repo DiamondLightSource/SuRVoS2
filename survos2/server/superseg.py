@@ -203,6 +203,25 @@ def train_and_classify_regions(
     return srprediction
 
 
+
+
+def prepare_rag_and_features(
+    supervoxel_image: np.ndarray,  # Supervoxel label image
+    feature_images: List[np.ndarray],  # List of feature volumes
+): 
+    feats = features_factory(feature_images)
+    logger.debug(f"Number of features calculated: {len(feats.features_stack)}")
+    sr = superregion_factory(supervoxel_image.astype(np.uint32), feats.features_stack)
+
+    from survos2.improc.regions.rag import create_rag
+    
+    supervoxel_vol = np.array(supervoxel_image).astype(np.uint32)
+    supervoxel_features = rmeans(feats.features_stack.astype(np.float32), supervoxel_vol)
+    supervoxel_rag = create_rag(np.array(supervoxel_image).astype(np.uint32), connectivity=26)
+
+    return supervoxel_vol, supervoxel_features, supervoxel_rag
+
+
 def sr_predict(
     supervoxel_image: np.ndarray,  # Supervoxel label image
     anno_image: np.ndarray,  # Annotation label image

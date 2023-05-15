@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import ntpath
 from loguru import logger
@@ -143,10 +144,12 @@ class AnnotationPlugin(Plugin):
         self.button_pause_save.clicked.connect(self.button_pause_save_clicked)
         self.button_save_anno = QPushButton("Save to Server", self)
         self.button_save_anno.clicked.connect(self.button_save_anno_clicked)
+        self.button_annotation_from_slice = QPushButton("Annotation from Slice", self)
+        self.button_annotation_from_slice.clicked.connect(self.annotation_from_slice_clicked)
         self.hbox2 = HBox(self, margin=1, spacing=10)
         self.hbox2.addWidget(self.button_pause_save)
         self.hbox2.addWidget(self.button_save_anno)
-        # self.vbox.addLayout(self.hbox2)
+        self.hbox2.addWidget(self.button_annotation_from_slice)
         self.adv_run_fields.setLayout(self.hbox2)
 
     def on_created(self):
@@ -191,15 +194,31 @@ class AnnotationPlugin(Plugin):
             }
         )
 
+    def annotation_from_slice_clicked(self):
+        slice_num = cfg.viewer.cursor.position[0]
+        params = dict(target_level=self.label.value()["level"],
+                      source_level=self.label.value()["level"],
+                      region=os.path.basename(cfg.current_supervoxels),
+                      slice_num=slice_num,
+                      modal=False,
+                      workspace=True,
+                      viewer_order=cfg.viewer_order,)
+        
+        result = Launcher.g.run("annotations", "annotate_from_slice", json_transport=True, **params)
+        cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "paint_annotations",
+                    "level_id": self.label.value()["level"],
+                }
+            )
+
     def button_pause_save_clicked(self):
         cfg.remote_annotation = not cfg.remote_annotation
         if cfg.remote_annotation:
             self.button_pause_save.setText("Local Annotation")
         else:
             self.button_pause_save.setText("Remote Annotation")
-
-        # if 'anno_data' in cfg:
-        #    cfg.anno_data = np.zeros_like(cfg.anno_data)
         if "prev_arr" in cfg:
             cfg.prev_arr = np.zeros_like(cfg.prev_arr)
 

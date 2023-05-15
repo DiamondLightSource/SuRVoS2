@@ -42,109 +42,7 @@ from survos2.config import Config
 class ButtonPanelWidget(QtWidgets.QWidget):
     clientEvent = Signal(object)
 
-    def toggle_advanced(self):
-        """Controls displaying/hiding the advanced run fields on radio button toggle."""
-        rbutton = self.sender()
-        if rbutton.isChecked():
-            self.adv_run_fields.show()
-        else:
-            self.adv_run_fields.hide()
-
-    def setup_adv_run_fields(self):
-        """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
-        self.adv_run_fields = QGroupBox()
-        adv_run_layout = QGridLayout()
-        adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
-        self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
-        adv_run_layout.addWidget(self.server_ip_linedt, 0, 1)
-        adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
-        self.server_port_linedt = QLineEdit(self.run_config["server_port"])
-        adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
-
-        self.existing_button = QPushButton("Use Existing Server")
-        adv_run_layout.addWidget(self.existing_button, 2, 1)
-
-        self.existing_button.clicked.connect(self.existing_clicked)
-        self.adv_run_fields.setLayout(adv_run_layout)
-
-    def stop_clicked(self):
-        logger.info("Stopping server")
-        if cfg["server_process"] is not None:
-            cfg["server_process"].kill()
-
-    def run_clicked(self):
-        """Starts SuRVoS2 server when 'Run' button pressed."""
-        command_dir = os.path.abspath(os.path.dirname(__file__))  # os.getcwd()
-
-        # Set current dir to survos root
-        from pathlib import Path
-
-        command_dir = Path(command_dir).absolute().parent.resolve()
-        os.chdir(command_dir)
-
-        self.run_config["server_port"] = self.server_port_linedt.text()
-        cfg.server_process = subprocess.Popen(
-            [
-                "python",
-                "-m",
-                "uvicorn",
-                "start_server:app",
-                "--port",
-                self.run_config["server_port"],
-            ]
-        )
-        try:
-            outs, errs = cfg.server_process.communicate(timeout=10)
-            print(f"OUTS: {outs, errs}")
-        except subprocess.TimeoutExpired:
-            pass
-
-        logger.info(f"Setting remote: {self.server_port_linedt.text()}")
-        remote_ip_port = "127.0.0.1:" + self.server_port_linedt.text()
-        logger.info(f"Setting remote: {remote_ip_port}")
-        resp = Launcher.g.set_remote(remote_ip_port)
-        logger.info(f"Response from server to setting remote: {resp}")
-        if hasattr(self, "selected_workspace"):
-            logger.info(f"Setting workspace to: {self.selected_workspace}")
-            resp = Launcher.g.run("workspace", "set_workspace", workspace=self.selected_workspace)
-            logger.info(f"Response from server to setting workspace: {resp}")
-
-            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
-
-    def existing_clicked(self):
-        ssh_ip = self.server_ip_linedt.text()
-        remote_ip_port = ssh_ip + ":" + self.server_port_linedt.text()
-        logger.info(f"setting remote: {remote_ip_port}")
-        resp = Launcher.g.set_remote(remote_ip_port)
-        logger.info(f"Response from server to setting remote: {resp}")
-
-        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
-
-    def get_run_layout(self):
-        """Gets the QGroupBox that contains the fields for starting SuRVoS.
-
-        Returns:
-            PyQt5.QWidgets.GroupBox: GroupBox with run fields.
-        """
-        self.run_button = QPushButton("Start Server")
-        self.stop_button = QPushButton("Stop Server")
-
-        advanced_button = QRadioButton("Advanced")
-        run_layout = QGridLayout()
-
-        run_layout.addWidget(advanced_button, 1, 0)
-        run_layout.addWidget(self.adv_run_fields, 2, 1)
-        run_layout.addWidget(self.run_button, 3, 1)
-        run_layout.addWidget(self.stop_button, 3, 0)
-
-        advanced_button.toggled.connect(self.toggle_advanced)
-        self.run_button.clicked.connect(self.run_clicked)
-        self.stop_button.clicked.connect(self.stop_clicked)
-
-        return run_layout
-
     def __init__(self, *args, **kwargs):
-
         run_config = {
             "server_ip": "127.0.0.1",
             "server_port": "8000",
@@ -166,6 +64,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         button_transfer.clicked.connect(self.button_transfer_clicked)
 
         workspaces = os.listdir(DataModel.g.CHROOT)
+        workspaces.sort()
         self.workspaces_list = ComboBox()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
@@ -210,11 +109,124 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         tabs[1][0].layout.addLayout(self.plotbox)
 
+        self.selected_workspace = self.workspaces_list.value()
+        self.workspaces_list.blockSignals(True)
+        self.workspaces_list.select(self.selected_workspace)
+        self.workspaces_list.blockSignals(False)
+        print(f"WORKSPACES LIST: {self.selected_workspace}")
+
+    def toggle_advanced(self):
+        """Controls displaying/hiding the advanced run fields on radio button toggle."""
+        rbutton = self.sender()
+        if rbutton.isChecked():
+            self.adv_run_fields.show()
+        else:
+            self.adv_run_fields.hide()
+
+    def setup_adv_run_fields(self):
+        """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
+        self.adv_run_fields = QGroupBox()
+        adv_run_layout = QGridLayout()
+        adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
+        self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
+        adv_run_layout.addWidget(self.server_ip_linedt, 0, 1)
+        adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
+        self.server_port_linedt = QLineEdit(self.run_config["server_port"])
+        adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
+
+        self.existing_button = QPushButton("Use Existing Server")
+        adv_run_layout.addWidget(self.existing_button, 2, 1)
+
+        self.existing_button.clicked.connect(self.existing_clicked)
+        self.adv_run_fields.setLayout(adv_run_layout)
+
+    def stop_clicked(self):
+        logger.info("Stopping server")
+        if cfg["server_process"] is not None:
+            cfg["server_process"].kill()
+
+    def run_clicked(self):
+        """Starts SuRVoS2 server"""
+        self.workspaces_selected()
+        command_dir = os.path.abspath(os.path.dirname(__file__))  # os.getcwd()
+
+        # Set current dir to survos root
+        from pathlib import Path
+
+        command_dir = Path(command_dir).absolute().parent.resolve()
+        os.chdir(command_dir)
+
+        self.run_config["server_port"] = self.server_port_linedt.text()
+        cfg.server_process = subprocess.Popen(
+            [
+                "python",
+                "-m",
+                "uvicorn",
+                "start_server:app",
+                "--port",
+                self.run_config["server_port"],
+            ]
+        )
+        try:
+            outs, errs = cfg.server_process.communicate(timeout=10)
+            print(f"OUTS: {outs, errs}")
+        except subprocess.TimeoutExpired:
+            pass
+
+        logger.info(f"Setting remote: {self.server_port_linedt.text()}")
+        remote_ip_port = "127.0.0.1:" + self.server_port_linedt.text()
+        logger.info(f"Setting remote: {remote_ip_port}")
+        resp = Launcher.g.set_remote(remote_ip_port)
+        logger.info(f"Response from server to setting remote: {resp}")
+
+
+        if hasattr(self, "selected_workspace"):
+            logger.info(f"Setting workspace to: {self.selected_workspace}")
+            resp = Launcher.g.run("workspace", "set_workspace", workspace=self.selected_workspace)
+            logger.info(f"Response from server to setting workspace: {resp}")
+
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+
+    def existing_clicked(self):
+        ssh_ip = self.server_ip_linedt.text()
+        remote_ip_port = ssh_ip + ":" + self.server_port_linedt.text()
+        logger.info(f"setting remote: {remote_ip_port}")
+        resp = Launcher.g.set_remote(remote_ip_port)
+        logger.info(f"Response from server to setting remote: {resp}")
+
+        cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+
+    def get_run_layout(self):
+        """Gets the QGroupBox that contains the fields for starting SuRVoS.
+
+        Returns:
+            PyQt5.QWidgets.GroupBox: GroupBox with run fields.
+        """
+        self.run_button = QPushButton("Start Server")
+        self.stop_button = QPushButton("Stop Server")
+
+        advanced_button = QRadioButton("Advanced")
+        run_layout = QGridLayout()
+
+        run_layout.addWidget(advanced_button, 1, 0)
+        run_layout.addWidget(self.adv_run_fields, 2, 1)
+        run_layout.addWidget(self.run_button, 3, 1)
+        run_layout.addWidget(self.stop_button, 3, 0)
+
+        advanced_button.toggled.connect(self.toggle_advanced)
+        self.run_button.clicked.connect(self.run_clicked)
+        self.stop_button.clicked.connect(self.stop_clicked)
+
+        return run_layout
+
+    
     def refresh_workspaces(self):
         workspaces = os.listdir(DataModel.g.CHROOT)
+        workspaces.sort()
         self.workspaces_list.clear()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
+        
         
     def workspaces_selected(self):
         self.selected_workspace = self.workspaces_list.value()
@@ -261,16 +273,22 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         remote_ip_port = "127.0.0.1:" + port
         logger.info(f"Setting remote: {remote_ip_port}")
         resp = Launcher.g.set_remote(remote_ip_port)
-        resp = Launcher.g.run("workspace", "set_workspace", self.selected_workspace)
-        logger.info(f"Response from server to setting workspace: {resp}")
+        
+        if self.selected_workspace != "":
+           workspace = self.selected_workspace
+           logger.info(f"Setting workspace to: {workspace}")
+           resp = Launcher.g.run("workspace", "set_workspace", workspace)
+           logger.info(f"Response from server to setting workspace: {resp}")
 
     def button_load_workspace_clicked(self):
+        self.workspaces_selected()
+
         with progress(total=2) as pbar:
             pbar.set_description("Refreshing viewer")
             pbar.update(1)
 
             if "server_process" not in cfg:
-                self.startup_server()
+                self.run_clicked()
 
             pbar.update(2)
 

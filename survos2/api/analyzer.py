@@ -685,7 +685,7 @@ def find_connected_components(
                 ]
             )
 
-    map_blocks(pass_through, single_label_level, out=dst, normalize=False)
+    #map_blocks(pass_through, single_label_level, out=dst, normalize=False)
 
     result_list = np.array(result_list)
     result_list = result_list.tolist()

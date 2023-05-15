@@ -62,7 +62,7 @@ class ObjectVsBgClassifier:
         self.bg_mask_all = np.zeros_like(self.wf.vols[0])
     def make_component_tables(self):
         print("\nmake_component_tables\n")
-        class1_component_table, class1_padded_proposal = make_component_table(self.wf,
+        class1_component_table, class1_padded_proposal = make_component_table(
                                                                               self.class1_proposal_thresh, 
                                                                               #self.class1_proposal_thresh * (1.0 - self.bg_mask_all),
                                                                               area_min=self.area_min, 
@@ -279,7 +279,7 @@ class InstanceClassifierThreeClass:
         self.bg_mask_all = np.zeros_like(self.wf.vols[0])
         
     def make_component_tables(self):
-        class1_component_table, class1_padded_proposal = make_component_table(self.wf, self.class1_proposal_thresh * (1.0 - self.bg_mask_all),
+        class1_component_table, class1_padded_proposal = make_component_table( self.class1_proposal_thresh * (1.0 - self.bg_mask_all),
                                                                              area_min=self.area_min, area_max=self.area_max)
         print(summary_stats(class1_component_table["area"]))
         print("\n")
@@ -296,7 +296,7 @@ class InstanceClassifierThreeClass:
                                            mask_bg=False, 
                                            plot_location=(50,100,200))
         
-        class2_component_table, class2_padded_proposal = make_component_table(self.wf, 
+        class2_component_table, class2_padded_proposal = make_component_table( 
                                                                           (self.class2_proposal_thresh * (1.0 - self.bg_mask_all)), 
                                                                           area_min=self.area_min, 
                                                                           area_max=self.area_max, 
@@ -673,7 +673,6 @@ def region_proposal(
 
 
 def make_component_table(
-    wf,
     proposal,
     padding=(32, 32, 32),
     area_min=50,

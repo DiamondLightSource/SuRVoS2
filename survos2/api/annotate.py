@@ -1,6 +1,7 @@
 from matplotlib.pyplot import box
 import numpy as np
 from loguru import logger
+from scipy.ndimage import binary_erosion
 
 _MaskSize = 4  # 4 bits per history label
 _MaskCopy = 15  # 0000 1111
@@ -90,6 +91,50 @@ def annotate_voxels(
         ds_o = ds_t
     dataset[:] = ds_o
 
+def annotate_from_slice(dataset, region, source_slice, slice_num, viewer_order=(0, 1, 2)):
+
+    reg = region[:]
+    ds = dataset[:]
+
+    viewer_order_str = "".join(map(str, viewer_order))
+    if viewer_order_str != "012" and len(viewer_order_str) == 3:
+        ds_t = np.transpose(ds, viewer_order)
+        reg_t = np.transpose(reg, viewer_order)
+    else:
+        ds_t = ds
+        reg_t = reg
+
+    label_idxs = np.unique(source_slice)
+    print(f"LABEL INDEXES: {label_idxs}")
+
+    for label_idx in label_idxs:        
+        mask = np.zeros_like(reg_t).astype(np.uint32)
+
+        slice_mask = ((source_slice == label_idx) * 1) 
+        slice_mask = binary_erosion(slice_mask, iterations=2)
+        masked_regions = slice_mask * reg[slice_num]
+        
+        
+        r = np.unique(masked_regions)
+        r = list(map(int, r))
+        for r_idx in r:
+            mask += reg_t == r_idx
+                
+        mask = (mask > 0) * 1
+        print(f"MASK SHAPE: {mask.shape}")
+        print(ds_t.shape)
+        
+        mask = mask > 0
+
+        ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
+        ds_t[mask] = (ds_t[mask] & _MaskPrev) | int(label_idx)
+
+    if viewer_order_str != "012" and len(viewer_order_str) == 3:
+        new_order = get_order(viewer_order)
+        ds_o = np.transpose(ds_t, new_order) 
+    else:
+        ds_o = ds_t
+    return ds_o
 
 def annotate_regions(
     dataset, region, r=None, label=0, parent_mask=None, bb=None, viewer_order=(0, 1, 2)
@@ -146,13 +191,12 @@ def annotate_regions(
         mask = mask * parent_mask_t
 
     mask = mask > 0
-
     ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
     ds_t[mask] = (ds_t[mask] & _MaskPrev) | label
 
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
         new_order = get_order(viewer_order)
-        ds_o = np.transpose(ds_t, new_order)  # .reshape(original_shape)
+        ds_o = np.transpose(ds_t, new_order) 
     else:
         ds_o = ds_t
     return ds_o

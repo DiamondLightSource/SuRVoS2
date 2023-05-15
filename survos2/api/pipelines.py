@@ -31,7 +31,7 @@ from survos2.api.annotations import (
 from survos2.api.objects import get_entities
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.api.workspace import auto_create_dataset
-from survos2.entity.patches import PatchWorkflow, make_patches, organize_entities
+from survos2.entity.patches import PatchWorkflow, make_patches, organize_entities, sample_images_and_labels, augment_and_save_dataset
 from survos2.entity.pipeline_ops import make_proposal
 from survos2.entity.sampler import generate_random_points_in_volume
 from survos2.entity.train import train_oneclass_detseg
@@ -623,20 +623,22 @@ def create_new_labels_for_level(workspace, level_id, label_codes):
 @pipelines.get("/train_3d_cnn")
 @save_metadata
 def train_3d_cnn(
-    src: str,
-    dst: str,
-    workspace: str,
-    anno_id: str,
-    feature_id: str,
-    objects_id: str,
-    num_samples: int,
-    num_epochs: int,
-    num_augs: int,
-    patch_size: List[int] = Query(),  # = 64,
-    patch_overlap: List[int] = Query(),  # 16
-    fcn_type: str = "unet3d",
-    bce_to_dice_weight: float = 0.7,
-    threshold: float = 0.5,
+    src: str = Body(),
+    dst: str = Body(),
+    workspace: list = Body(),
+    anno_id: list = Body(),
+    feature_id: list = Body(),
+    objects_id: list = Body(),
+    num_samples: int = Body(),#100,
+    num_epochs: int = Body(),#10,
+    num_augs: int = Body(), #0,
+    patch_size: List[int] = Body(),  # = 64,
+    patch_overlap: List[int] = Body(),  # 16
+    fcn_type: str = Body(),#"unet3d",
+    bce_to_dice_weight: float = Body(),#= 0.7,
+    threshold: float = Body(), #= 0.5,
+    overlap_mode: str = Body(),#"crop",
+    cuda_device: int = Body(), #0,
 ) -> "CNN":
     """3D CNN using eithe FPN or U-net architecture.
 
@@ -657,72 +659,121 @@ def train_3d_cnn(
         threshold (float, optional): Final segmentation threshold value. Defaults to 0.5.
 
     """
-    logger.debug(f"Train_3d fcn using anno {anno_id} and feature {feature_id}")
 
-    src = DataModel.g.dataset_uri(feature_id, group="features")
-    with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
-        src_array = DM.sources[0][:]
+    workspace = _unpack_lists(workspace)
+    anno_id = _unpack_lists(anno_id)
+    feature_id = _unpack_lists(feature_id)
+    objects_id = _unpack_lists(objects_id)
+    current_ws = DataModel.g.current_workspace
 
-    objects_scale = 1.0
-    entity_meta = {
-        "0": {
-            "name": "class1",
-            "size": np.array((15, 15, 15)) * objects_scale,
-            "core_radius": np.array((7, 7, 7)) * objects_scale,
-        },
-    }
+    list_image_vols = []
+    list_label_vols = []
 
-    # point sampling either by generating random points or loading in a list of points
-    padding = patch_size
-    padded_vol = pad_vol(src_array, padding)
+    # Get datsets from workspaces and sample patches
+    for count, (workspace_id, feat_id, label_id, obj_id) in enumerate(zip(workspace, feature_id, anno_id, objects_id)):
+        logger.info(f"Current workspace: {workspace_id}. Retrieving datasets.")
+        DataModel.g.current_workspace = workspace_id
+        logger.info(f"Train_3d fcn using anno {anno_id} and feature {feature_id}")
 
-    entity_arr = generate_random_points_in_volume(padded_vol, num_samples, padding)
+        src = DataModel.g.dataset_uri(feat_id, group="features")
+        with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
+            src_array = DM.sources[0][:]
 
-    if objects_id != "None":
-        objects_src = DataModel.g.dataset_uri(objects_id, group="objects")
-        result = get_entities(objects_src)
-        entity_arr = decode_numpy(result)
+        src = DataModel.g.dataset_uri(label_id, group="annotations")
+        with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
+            src_dataset = DM.sources[0]
+            anno_level = src_dataset[:] & 15
 
-    combined_clustered_pts, classwise_entities = organize_entities(
-        src_array, entity_arr, entity_meta, plot_all=False, flipxy=True
-    )
+        objects_scale = 1.0
+        entity_meta = {
+            "0": {
+                "name": "class1",
+                "size": np.array((15, 15, 15)) * objects_scale,
+                "core_radius": np.array((7, 7, 7)) * objects_scale,
+            },
+        }
 
-    wparams = {}
-    wparams["entities_offset"] = (0, 0, 0)
-    wparams["entity_meta"] = entity_meta
-    wparams["workflow_name"] = "Make_Patches"
-    wparams["proj"] = DataModel.g.current_workspace
-    wf = PatchWorkflow(
-        [src_array],
-        combined_clustered_pts,
-        classwise_entities,
-        src_array,
-        wparams,
-        combined_clustered_pts,
-    )
+        # point sampling either by generating random points or loading in a list of points
+        padding = np.array(patch_size) // 2
+        padded_vol = pad_vol(src_array, padding // 2)
+        entity_arr = generate_random_points_in_volume(padded_vol, num_samples, padding * 4)
+        
+        if obj_id != "None":
+            objects_src = DataModel.g.dataset_uri(obj_id, group="objects")
+            result = get_entities(objects_src)
+            entity_arr = decode_numpy(result)
+            entity_arr = entity_arr[0:num_samples]
 
-    src = DataModel.g.dataset_uri(anno_id, group="annotations")
-    with DatasetManager(src, out=None, dtype="uint16", fillvalue=0) as DM:
-        src_dataset = DM.sources[0]
-        anno_level = src_dataset[:] & 15
 
-    # generate patches
-    logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
-    logger.debug(f"Making patches in path {src_dataset._path}")
-    train_v_density = make_patches(
-        wf,
-        entity_arr,
-        src_dataset._path,
-        proposal_vol=(anno_level == 1) * 1.0,
-        padding=padding,
-        num_augs=num_augs,
-        max_vols=-1,
-        plot_all=True,
-        patch_size=patch_size,
-    )
+        combined_clustered_pts, classwise_entities = organize_entities(
+            src_array, entity_arr, entity_meta, plot_all=False, flipxy=True
+        )
+
+        wparams = {}
+        wparams["entities_offset"] = (0, 0, 0)
+        wparams["entity_meta"] = entity_meta
+        wparams["workflow_name"] = "Make_Patches"
+        wparams["proj"] = DataModel.g.current_workspace
+        wf = PatchWorkflow(
+            [src_array],
+            combined_clustered_pts,
+            classwise_entities,
+            src_array,
+            wparams,
+            combined_clustered_pts,
+        )
+
+        
+        # generate patches
+        logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
+        logger.debug(f"Making patches in path {src_dataset._path}")
+        vol_num = 0
+        outdir = src_dataset._path
+        # train_v_density = make_patches(
+        #     wf,
+        #     entity_arr,
+        #     
+        #     vol_num,
+        #     proposal_vol=(anno_level == 1) * 1.0,
+        #     padding=padding,
+        #     num_augs=num_augs,
+        #     max_vols=-1,
+        #     plot_all=True,
+        #     patch_size=patch_size,
+        # )
+
+        plot_all = True
+        max_vols = -1
+        img_vols, label_vols, mask_gt = sample_images_and_labels(wf,
+                                    entity_arr,
+                                vol_num,
+                                (anno_level == 1) * 1.0,
+                                padding,
+                                num_augs,
+                                plot_all,
+                                patch_size)
+        
+        list_image_vols.append(img_vols)
+        list_label_vols.append(label_vols)
+
+    img_vols = np.concatenate(list_image_vols)
+    label_vols = np.concatenate(list_label_vols)
+
+    train_v_density = augment_and_save_dataset(img_vols, 
+                             label_vols,
+                             wf, 
+                             outdir,  
+                             mask_gt,
+                             padding,
+                             num_augs,
+                             plot_all, 
+                             max_vols)
+
+    # Load in data volume from current workspace
+    DataModel.g.current_workspace = current_ws
 
     # setup model filename
-    ws_object = ws.get(workspace)
+    ws_object = ws.get(current_ws)
     data_out_path = Path(ws_object.path, "fcn")
     now = datetime.now()
     dt_string = now.strftime("%d%m%Y_%H_%M_%S")
@@ -733,7 +784,7 @@ def train_3d_cnn(
     wf_params["torch_models_fullpath"] = model_out
     logger.info(f"Saving fcn model to: {model_out}")
 
-    overlap_mode = "crop"
+    
     model_type = fcn_type
 
     model_file = train_oneclass_detseg(
@@ -743,6 +794,7 @@ def train_3d_cnn(
         num_epochs=num_epochs,
         model_type=model_type,
         bce_weight=bce_to_dice_weight,
+        gpu_id=cuda_device,
     )
 
     src = DataModel.g.dataset_uri(feature_id, group="features")
@@ -757,6 +809,7 @@ def train_3d_cnn(
         patch_size=patch_size,
         patch_overlap=patch_overlap,
         overlap_mode=overlap_mode,
+        gpu_id=cuda_device,
     )
 
     proposal = proposal.numpy()
@@ -796,6 +849,7 @@ def predict_3d_cnn(
     threshold: float = 0.5,
     model_type: str = "unet3d",
     overlap_mode: str = "crop",
+    cuda_device: int = 0,
 ) -> "CNN":
     """Predict a 3D CNN (U-net or FPN) using a previously trained model.
 
@@ -830,6 +884,7 @@ def predict_3d_cnn(
         patch_size=patch_size,
         patch_overlap=patch_overlap,
         overlap_mode=overlap_mode,
+        gpu_id=cuda_device,
     )
 
     proposal = proposal.numpy()
@@ -938,6 +993,7 @@ def label_postprocess(
 @pipelines.get("/per_object_cleaning")
 @save_metadata
 def per_object_cleaning(
+    src: str,
     dst: str,
     feature_id: str,
     object_id: str,
@@ -955,7 +1011,12 @@ def per_object_cleaning(
     logger.debug(f"Getting objects {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
-    entities_fullname = ds_objects.get_metadata("fullname")
+
+    objects_name = ds_objects.get_metadata("fullname")
+    fname = os.path.basename(objects_name)
+    objects_dataset_fullpath = ds_objects._path
+    entities_fullname = os.path.join(objects_dataset_fullpath, fname)
+    
     tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
     entities_arr = np.array(entities_df)
     entities_arr[:, 3] = np.array([[1] * len(entities_arr)])
@@ -1004,11 +1065,8 @@ def _per_object_cleaning(
             plt.imshow(mask[c[0], :])
 
         z_st, y_st, x_st, z_end, y_end, x_end = bvol_seg.bvols[i]
-        target[
-            z_st:z_end,
-            x_st:x_end,
-            y_st:y_end,
-        ] = mask
+        target[z_st:z_end,x_st:x_end,y_st:y_end,
+            ] = ((mask + target[z_st:z_end,x_st:x_end,y_st:y_end,]) > 0) * 1
 
     target = target[
         patch_size[0] : target.shape[0] - patch_size[0],

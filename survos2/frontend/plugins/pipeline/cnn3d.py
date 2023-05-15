@@ -13,6 +13,8 @@ class Train3DCNN(PipelineCardBase):
         self._add_feature_source()
         self._add_objects_source()
         self._add_fcn_choice()
+        self._add_overlap_choice()
+        self._add_param("cuda_device", type="Int", default=0)
 
     def compute_pipeline(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
@@ -36,6 +38,7 @@ class Train3DCNN(PipelineCardBase):
         all_params["threshold"] = 0.5
         all_params["patch_overlap"] = (16,16,16)
         all_params["patch_size"] = (64,64,64)
+        all_params["overlap_mode"] = self.overlap_type.value()
 
         return all_params
 
@@ -50,7 +53,10 @@ class Predict3DCNN(PipelineCardBase):
         self._add_model_file()
         self._add_fcn_choice()
         self._add_overlap_choice()
-
+        self._add_param("patch_overlap", type="IntOrVector", default=(32,32,32))
+        self._add_param("patch_size", type="IntOrVector", default=(64,64,64))
+        self._add_param("threshold", type="Float", default=0.5)
+        self._add_param("cuda_device", type="Int", default=0)
     def compute_pipeline(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")
         all_params = dict(src=src, dst=self.dst, modal=True)
@@ -60,9 +66,9 @@ class Predict3DCNN(PipelineCardBase):
         all_params["model_fullname"] = self.model_fullname
         all_params["model_type"] = self.fcn_type.value()
         all_params["overlap_mode"] = self.overlap_type.value()
-        all_params["threshold"] = 0.5
-        all_params["patch_overlap"] = [16,16,16]
-        all_params["patch_size"] = [64,64,64]
+        #all_params["threshold"] = 0.5
+        #all_params["patch_overlap"] = [16,16,16]
+        #all_params["patch_size"] = [64,64,64]
 
 
         return all_params
