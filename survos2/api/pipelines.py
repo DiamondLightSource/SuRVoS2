@@ -632,13 +632,14 @@ def train_3d_cnn(
     num_samples: int = Body(),#100,
     num_epochs: int = Body(),#10,
     num_augs: int = Body(), #0,
-    patch_size: List[int] = Body(),  # = 64,
-    patch_overlap: List[int] = Body(),  # 16
+    patch_size: list = Body(),  # = 64,
+    patch_overlap: list = Body(),  # 16
     fcn_type: str = Body(),#"unet3d",
     bce_to_dice_weight: float = Body(),#= 0.7,
     threshold: float = Body(), #= 0.5,
     overlap_mode: str = Body(),#"crop",
     cuda_device: int = Body(), #0,
+    plot_figures: bool = Body()
 ) -> "CNN":
     """3D CNN using eithe FPN or U-net architecture.
 
@@ -706,7 +707,7 @@ def train_3d_cnn(
 
 
         combined_clustered_pts, classwise_entities = organize_entities(
-            src_array, entity_arr, entity_meta, plot_all=False, flipxy=True
+            src_array, entity_arr, entity_meta, plot_all=plot_figures, flipxy=True
         )
 
         wparams = {}
@@ -742,7 +743,7 @@ def train_3d_cnn(
         #     patch_size=patch_size,
         # )
 
-        plot_all = True
+        
         max_vols = -1
         img_vols, label_vols, mask_gt = sample_images_and_labels(wf,
                                     entity_arr,
@@ -750,7 +751,7 @@ def train_3d_cnn(
                                 (anno_level == 1) * 1.0,
                                 padding,
                                 num_augs,
-                                plot_all,
+                                plot_figures,
                                 patch_size)
         
         list_image_vols.append(img_vols)
@@ -766,7 +767,7 @@ def train_3d_cnn(
                              mask_gt,
                              padding,
                              num_augs,
-                             plot_all, 
+                             plot_figures, 
                              max_vols)
 
     # Load in data volume from current workspace
@@ -797,7 +798,7 @@ def train_3d_cnn(
         gpu_id=cuda_device,
     )
 
-    src = DataModel.g.dataset_uri(feature_id, group="features")
+    src = DataModel.g.dataset_uri(feature_id[0], group="features")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_array = DM.sources[0][:]
 

@@ -285,10 +285,9 @@ def extract_classical_features(fvd, bvol_dim, plot_all=False, resnet=False, hog_
         fv = np.nan_to_num(fv)
         features.append(fv)
 
-    print(fv.shape[0])
     features = np.array(features).reshape((len(fvd), fv.shape[0]))
 
-    print(features)
+
     return features
 
 

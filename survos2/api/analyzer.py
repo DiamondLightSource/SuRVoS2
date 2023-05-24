@@ -777,7 +777,7 @@ def segmentation_stats(
     from torchmetrics import Dice, JaccardIndex
 
     dice = Dice(average="micro")
-    jaccard = JaccardIndex(num_classes=2)
+    jaccard = JaccardIndex(task='binary', num_classes=2)
 
     A_t = torch.IntTensor(single_label_level_A)
     B_t = torch.IntTensor(single_label_level_B)
