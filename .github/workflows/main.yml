@@ -1,0 +1,54 @@
+name: Github CI/CD
+on: [push, pull_request]
+env:
+      LINUX_CONDA_PATH: /test_env
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+      # You can test your matrix by printing the current Python version
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+    - name: Install dependencies
+      run: |
+        pip install --no-cache-dir -r requirements.txt
+        python ./survos2/improc/setup.py build_ext --inplace --force
+        pip install -e .
+    - name: Test
+      shell: bash
+      run: |
+        pip install pytest
+        pytest .
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+          python-version: 3.9
+          auto-activate-base: true
+    - shell: pwsh
+      run: |
+        conda info
+        conda list
+    - name: Install dependencies
+      run: |
+        python -m pip install -r requirements.txt
+        python ./survos2/improc/setup.py build_ext --inplace --force
+        pip install -e .
+    - name: Test
+      shell: pwsh
+      run: |
+        conda install pytest
+        pytest .
+        
