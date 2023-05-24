@@ -15,13 +15,18 @@ base_path = os.path.abspath(os.path.dirname(__file__))
 # Add your dependencies in requirements.txt
 # Note: you can add test-specific requirements in tox.ini
 requirements = []
-#root = Path(__file__).parent
-# filename = str(root / "requirements.txt")
-# with open(filename) as f:
-#     for line in f:
-#         stripped = line.split("#")[0].strip()
-#         if len(stripped) > 0:
-#             requirements.append(stripped)
+root = Path(__file__).parent
+if platform.system() == "Windows":
+    filename = str(root / "requirements_windows.txt")
+elif platform.system() == "Linux":
+    filename = str(root / "requirements.txt")
+
+
+with open(filename) as f:
+    for line in f:
+        stripped = line.split("#")[0].strip()
+        if len(stripped) > 0:
+            requirements.append(stripped)
 
 
 if __name__ == "__main__":
