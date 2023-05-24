@@ -19,7 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --no-cache-dir -r requirements.txt
-        python ./survos2/improc/setup.py build_ext --inplace
+        python ./survos2/improc/setup.py build_ext --inplace --force
         pip install -e .
     - name: Test
       shell: bash
@@ -44,7 +44,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install -r requirements.txt
-        python ./survos2/improc/setup.py build_ext --inplace
+        python ./survos2/improc/setup.py build_ext --inplace --force
         pip install -e .
     - name: Test
       shell: pwsh
