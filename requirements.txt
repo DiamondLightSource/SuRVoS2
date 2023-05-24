@@ -25,7 +25,7 @@ jupyterlab
 kornia
 loguru
 mako
-matplotlib
+matplotlib==3.3.1
 medicaltorch
 monai
 morphsnakes
@@ -35,11 +35,12 @@ networkx
 nibabel
 nose
 numba
-numpy==1.23.5
+numpy==1.21.2
 numpydoc
-pandas
+pandas==1.5.3
 parse
 pillow
+pip
 pluggy
 ptyprocess
 pydantic
@@ -54,7 +55,7 @@ pytz
 pywavelets
 pyyaml
 pyzmq
-PyQt5
+PyQt5==5.14.2
 qtawesome
 qtconsole
 qtpy
