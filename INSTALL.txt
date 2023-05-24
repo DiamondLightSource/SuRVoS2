@@ -148,7 +148,7 @@ does the same in windows
     $ (get-content requirements_windows.txt) | %{$_ -replace "placeholder3","medicaltorch"} | set-content requirements_windows.txt
     $ python3 -m pip install -r requirements_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
   (CUDA 11.7)
-    $ python3 -m pip install -r requirements_windows.txt
+    $ python3 -m pip install -r requirements_windows.txt --index-url https://download.pytorch.org/whl/cu117
   (CUDA 11.8)
     $ python3 -m pip install -r requirements_windows.txt --index-url https://download.pytorch.org/whl/cu118
 
