@@ -327,12 +327,6 @@ def sample_images_and_labels( wf,
     img_vols = marked_patches.vols
     label_vols = marked_patches_anno.vols
     
-    #bvols = marked_patches.vols_bbs
-    #labels = marked_patches.vols_locs[:, 3]
-    #label_bvols = marked_patches_anno.vols_bbs
-    #label_labels = marked_patches_anno.vols_locs[:, 3]
-    #marked_patches.vols_locs.shape
-
     return img_vols, label_vols, mask_gt
 
 
