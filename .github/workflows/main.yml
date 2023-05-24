@@ -43,7 +43,7 @@ jobs:
         conda list
     - name: Install dependencies
       run: |
-        python -m pip install -r requirements.txt
+        python -m pip install -r requirements_windows.txt
         python ./survos2/improc/setup.py build_ext --inplace --force
         pip install -e .
     - name: Test
