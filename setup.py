@@ -5,6 +5,7 @@ import os
 from numpy.distutils.core import setup
 from numpy.distutils.misc_util import Configuration, get_numpy_include_dirs
 from pathlib import Path
+import platform
 
 # https://github.com/pypa/setuptools_scm
 use_scm = {"write_to": "survos2/_version.py"}
