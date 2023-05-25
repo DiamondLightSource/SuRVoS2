@@ -5,6 +5,7 @@ import os
 from numpy.distutils.core import setup
 from numpy.distutils.misc_util import Configuration, get_numpy_include_dirs
 from pathlib import Path
+import platform
 
 # https://github.com/pypa/setuptools_scm
 use_scm = {"write_to": "survos2/_version.py"}
@@ -16,7 +17,12 @@ base_path = os.path.abspath(os.path.dirname(__file__))
 # Note: you can add test-specific requirements in tox.ini
 requirements = []
 root = Path(__file__).parent
-filename = str(root / "requirements.txt")
+if platform.system() == "Windows":
+    filename = str(root / "requirements_windows.txt")
+elif platform.system() == "Linux":
+    filename = str(root / "requirements.txt")
+
+
 with open(filename) as f:
     for line in f:
         stripped = line.split("#")[0].strip()

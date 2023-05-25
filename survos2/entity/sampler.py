@@ -476,7 +476,7 @@ def sample_marked_patches(img_volume, locs, pts, patch_size=(32, 32, 32), debug_
         vols_locs.append(locs[j])
 
     vols = np.array(vols)
-    vols_pts = np.array(vols_pts)
+    vols_pts = np.array(vols_pts, dtype=object)
     vols_bbs = np.array(vols_bbs)
     vols_locs = np.array(vols_locs)
 

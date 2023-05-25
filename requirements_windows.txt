@@ -12,6 +12,7 @@ cycler
 cython
 dask
 decorator
+einops
 falcon
 fastapi[all]==0.85.2
 h5py
@@ -24,8 +25,9 @@ jupyterlab
 kornia
 loguru
 mako
-matplotlib
+matplotlib==3.3.1
 medicaltorch
+monai
 morphsnakes
 mrcfile
 napari[all]
@@ -33,12 +35,12 @@ networkx
 nibabel
 nose
 numba
-numpy==1.21.6
+numpy
 numpydoc
-pandas
+pandas==1.5.3
 parse
 pillow
-pip==22.3.1
+pip
 pluggy
 ptyprocess
 pydantic
@@ -63,7 +65,7 @@ scikit-image==0.19.2
 scikit-learn
 scipy
 seaborn
-setuptools
+setuptools==65.6.3
 simpleitk
 snowballstemmer
 tensorly

@@ -56,7 +56,6 @@ def test_sample_marked_patches():
     img_vol = np.ones((64, 64, 64))
     pts = grid_of_points(img_vol, (4, 4, 4), (32, 32, 32))
     img_volume = np.random.random((64, 64, 64))
-    # padded_anno = (np.random((32,32,32)) > 0.5) * 1.0
     locs = np.array(
         [[10, 10, 10, 0], [10, 20, 20, 0], [10, 30, 30, 0], [10, 40, 40, 0], [10, 50, 50, 0]]
     )
