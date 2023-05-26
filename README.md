@@ -2,7 +2,7 @@
 
 SuRVoS2 is a software workbench for volumetric image segmentation. It provides a GUI interface for annotation-intensive segmentation projects, enabling a fast iterative process of annotation, model training, and segmentation evalutation. SuRVoS2 is part of the Napari ecosystem of image analysis tools and has an interface that tries to leverage the power of Napari for simplifying complex workflows.
 
-![Screenshot](.docs/screenshot.png)
+![Screenshot](docs/screenshot.png)
 
 
 ## Installation
