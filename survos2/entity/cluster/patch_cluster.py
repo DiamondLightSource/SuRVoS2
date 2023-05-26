@@ -111,7 +111,6 @@ def extract_hog_features(selected_images, gpu_id=0):
 
 
 def extract_cnn_features2(patch_dict, gpu_id=0):
-
     cnnfeat = CNNFeatures(cuda=True, model="resnet-50", gpu_id=gpu_id)
     num_fv = len(patch_dict.keys())
     vec_mat = np.zeros((num_fv, 2048))
@@ -237,7 +236,6 @@ def roi_pool_vol2(cropped_vol, filtered_tables):
     cropped_t = torch.FloatTensor(cropped_t)
 
     for jj, z_l in enumerate(range(4, cropped_vol.shape[1], 32)):
-
         z_u = z_l + 10
         print(z_l, z_u)
         good_bb = []

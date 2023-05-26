@@ -13,7 +13,6 @@ from survos2.entity.utils import load_model
 
 
 def prepare_unet3d(existing_model_fname=None, num_epochs=2, initial_lr=0.001, device=0):
-
     device = torch.device(device)
     model3d = UNet3D(
         normalization="batch",

@@ -15,7 +15,6 @@ __available_plugins__ = OrderedDict()
 
 
 class Plugin(QCSWidget):
-
     change_view = QtCore.Signal(str, dict)
 
     __icon__ = "square"

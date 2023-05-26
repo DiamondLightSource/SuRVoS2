@@ -40,7 +40,6 @@ def load_model(detmod, file_path):
 
 
 def save_model(filename, model, optimizer, torch_models_fullpath):
-
     if not os.path.exists(torch_models_fullpath):
         os.makedirs(torch_models_fullpath)
 
@@ -194,7 +193,6 @@ def predict_agg_3d(
         from tqdm import tqdm
 
     with torch.no_grad():
-
         for patches_batch in tqdm(patch_loader):
             input_tensor = patches_batch["img"]["data"]
             locations = patches_batch[LOCATION]
@@ -302,9 +300,17 @@ def make_proposal(
     gpu_id=0,
 ):
     from survos2.entity.models.vnet import prepare_vnet
-    from survos2.entity.models.monai_nets import (prepare_attention_unet, 
-            prepare_swin_unetr, prepare_unetplusplus, prepare_unet, prepare_vnet_monai,
-            prepare_SegResNet, prepare_SegResNetVAE, prepare_dynunet)
+    from survos2.entity.models.monai_nets import (
+        prepare_attention_unet,
+        prepare_swin_unetr,
+        prepare_unetplusplus,
+        prepare_unet,
+        prepare_vnet_monai,
+        prepare_SegResNet,
+        prepare_SegResNetVAE,
+        prepare_dynunet,
+    )
+
     if model_type == "unet3d":
         print("Using unet3d")
         model3d, _, _ = prepare_unet3d(device=gpu_id)
@@ -334,7 +340,6 @@ def make_proposal(
 
     print(f"Predicting segmentation on volume of shape {vol.shape}")
 
-
     if model_type == "unet3d":
         model3d = load_model(model3d, model_fullname)
         aggregator = predict_agg_3d(
@@ -392,7 +397,13 @@ def make_proposal(
         output_tensor1 = aggregator.get_output_tensor()
         print(f"Aggregated volume of {output_tensor1.shape}")
         seg_out = np.nan_to_num(output_tensor1.squeeze(0).numpy())
-    elif model_type == "attention_unet" or model_type == 'unet' or model_type == 'vnet_monai' or model_type =='dynunet' or model_type == 'segresnet':
+    elif (
+        model_type == "attention_unet"
+        or model_type == "unet"
+        or model_type == "vnet_monai"
+        or model_type == "dynunet"
+        or model_type == "segresnet"
+    ):
         model3d = load_model(model3d, model_fullname)
         aggregator = predict_agg_3d(
             vol,

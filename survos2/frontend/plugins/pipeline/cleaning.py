@@ -30,7 +30,7 @@ class PerObjectCleaning(PipelineCardBase):
         self._add_feature_source()
         self._add_objects_source()
         self._add_annotations_source(label="Level for View")
-        self._add_param("patch_size", type="IntOrVector", default=(48,48,48))
+        self._add_param("patch_size", type="IntOrVector", default=(48, 48, 48))
 
     def compute_pipeline(self):
         src = DataModel.g.dataset_uri(self.feature_source.value(), group="features")

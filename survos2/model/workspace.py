@@ -41,7 +41,6 @@ class Workspace(object):
 
     @staticmethod
     def _validate_path(path):
-
         if DataModel.g.CHROOT in ["tmp", "temp"]:
             tmp = tempfile.gettempdir()
             DataModel.g.CHROOT = os.path.join(tmp, "tmp_survos_chroot")
@@ -64,7 +63,6 @@ class Workspace(object):
     # Creation + deletion
     @staticmethod
     def create(path):
-
         path = Workspace._validate_path(path)
         if os.path.isdir(path) and os.listdir(path):
             raise WorkspaceException("Directory '%s' is not empty." % path)
@@ -92,7 +90,6 @@ class Workspace(object):
     # Auxiliary
     def genpath(self, *args):
         if len(args) > 0:
-
             for i in range(len(args) - 1):
                 check_relpath(args[i], args[i + 1])
 

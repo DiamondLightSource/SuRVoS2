@@ -92,14 +92,13 @@ def supervoxels(
     map_blocks(pass_through, supervoxel_image, out=dst, normalize=False)
 
 
-
 # taken from napari-sam
 def download_with_progress(url, output_file):
     req = urllib.request.urlopen(url)
-    content_length = int(req.headers.get('Content-Length'))
-    progress_bar = tqdm(total=content_length, unit='B', unit_scale=True)
+    content_length = int(req.headers.get("Content-Length"))
+    progress_bar = tqdm(total=content_length, unit="B", unit_scale=True)
 
-    with open(output_file, 'wb') as f:
+    with open(output_file, "wb") as f:
         downloaded_bytes = 0
         while True:
             buffer = req.read(8192)
@@ -110,6 +109,7 @@ def download_with_progress(url, output_file):
             progress_bar.update(len(buffer))
     progress_bar.close()
     req.close()
+
 
 @superregions.get("/sam")
 @save_metadata
@@ -128,21 +128,18 @@ def sam(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         feature_array = DM.sources[0][:]
 
+    # modified sam downloading code from napari-segment-anything
     weights_url = "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth"
-    
+
     cache_dir = Path.home() / ".cache/survos"
     cache_dir.mkdir(parents=True, exist_ok=True)
-    
-    #cache_dir = str(Path.home() / ".cache/napari-segment-anything")
     sam_checkpoint = cache_dir / weights_url.split("/")[-1]
 
     if not sam_checkpoint.exists():
         print("Downloading {} to {} ...".format(weights_url, sam_checkpoint))
         download_with_progress(weights_url, sam_checkpoint)
 
-    print(f"SAM CHECKPOINT: {sam_checkpoint}")
     model_type = "vit_h"
-    #sam_checkpoint = "/ceph/users/fot15858/libs/sam_vit_h_4b8939.pth"
     device = "cuda"
 
     from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
@@ -161,34 +158,33 @@ def sam(
         stability_score_thresh=stability_score_thresh,
         crop_n_layers=crop_n_layers,
         crop_n_points_downscale_factor=crop_n_points_downscale_factor,
-        min_mask_region_area=min_mask_region_area,  # Requires open-cv to run post-processing
+        min_mask_region_area=min_mask_region_area,  
     )
-    
+
     MAX_Z = feature_array.shape[0]
     total_vol = np.ones((MAX_Z, feature_array.shape[1], feature_array.shape[2])) * -1
-    for slice_num in range(0,MAX_Z, skip):
+    for slice_num in range(0, MAX_Z, skip):
         print(f"Slice num: {slice_num}")
-        img = feature_array[slice_num:slice_num+1,:].T
+        img = feature_array[slice_num : slice_num + 1, :].T
         img = img_as_ubyte(img)
         image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         masks = mask_generator.generate(image)
-        total = np.zeros_like(masks[0]['segmentation'] * 1)
-        base_slice_num= (slice_num * MAX_NUM_LABELS_PER_SLICE)
-        for i,m in enumerate(masks):
-            _slice = np.zeros_like(masks[0]['segmentation'] * 1)
-            _slice += ((m['segmentation'] * 1) * (i*10))
+        total = np.zeros_like(masks[0]["segmentation"] * 1)
+        base_slice_num = slice_num * MAX_NUM_LABELS_PER_SLICE
+        for i, m in enumerate(masks):
+            _slice = np.zeros_like(masks[0]["segmentation"] * 1)
+            _slice += (m["segmentation"] * 1) * (i * 10)
             total += _slice + base_slice_num
         total_lab = label(total)
-        total_vol[slice_num,:] = total_lab + (MAX_NUM_LABELS_PER_SLICE * slice_num)
+        total_vol[slice_num, :] = total_lab + (MAX_NUM_LABELS_PER_SLICE * slice_num)
 
     total_vol = total_vol.astype(np.uint32)
-    total_vol = np.transpose(total_vol.T, [2,0,1])
+    total_vol = np.transpose(total_vol.T, [2, 0, 1])
 
     def pass_through(x):
         return x
 
     map_blocks(pass_through, total_vol, out=dst, normalize=False)
-
 
 
 @superregions.get("/supervoxels_chunked")
@@ -203,7 +199,6 @@ def supervoxels_chunked(
     enforce_connectivity: bool = False,
     out_dtype="int",
 ):
-
     map_blocks(
         slic,
         *src,
@@ -280,7 +275,7 @@ def rename(workspace: str, region_id: str, new_name: str):
 
 @superregions.get("/available")
 def available():
-    h = superregions  
+    h = superregions
     all_features = []
     for r in h.routes:
         name = r.name
@@ -294,7 +289,7 @@ def available():
             "supervoxels_chunked",
             "get_volume",
             "get_slice",
-            "get_crop"
+            "get_crop",
         ]:
             continue
         func = r.endpoint

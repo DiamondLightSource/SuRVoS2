@@ -51,7 +51,6 @@ Response = namedtuple("Response", ("data", "status_code", "headers"))
 
 def _parse_uri(uri):
     if type(uri) == str:
-
         pattern = r"@?(?P<host>\w+):(?P<port>[0-9]+)"
         result = re.search(pattern, uri)
 

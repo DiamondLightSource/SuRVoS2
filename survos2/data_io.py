@@ -38,7 +38,7 @@ def dtype2size(dtype):
 def is_dataset_uri(uri):
     if not isinstance(uri, str):
         return False
-    for (regexp, _) in __dataset_loaders__.values():
+    for regexp, _ in __dataset_loaders__.values():
         if re.match(regexp, uri) is not None:
             return True
     return False
@@ -49,7 +49,7 @@ def supports_metadata(uri):
 
 
 def dataset_loader(uri):
-    for (regexp, loader) in __dataset_loaders__.values():
+    for regexp, loader in __dataset_loaders__.values():
         if re.match(regexp, uri) is not None:
             return loader
     return None

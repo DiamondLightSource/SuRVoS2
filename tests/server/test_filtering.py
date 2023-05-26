@@ -20,7 +20,6 @@ from survos2.server.features import generate_features
 
 
 def test_feature_generation():
-
     img_vol = np.random.random((5, 5, 5))
     img_vol[2, 2, 2] = 1.0
 

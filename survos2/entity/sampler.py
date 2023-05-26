@@ -214,7 +214,6 @@ def offset_points(pts, offset, scale=32, random_offset=False):
     trans_pts[:, 2] = pts[:, 2] + offset[2]
 
     if random_offset:
-
         offset_rand = np.random.random(trans_pts.shape) * scale
         offset_rand[:, 3] = np.zeros((len(trans_pts)))
 
@@ -420,7 +419,6 @@ def sample_marked_patches(img_volume, locs, pts, patch_size=(32, 32, 32), debug_
     print(f"Generating {len(locs)} patch volumes from image of shape {img_volume.shape}")
 
     for j in range(len(locs)):
-
         if locs[j].shape[0] == 4:
             sliceno, x, y, c = locs[j]
         else:
@@ -543,7 +541,6 @@ def crop_vol_and_pts(
 
 
 def crop_pts_bb2(pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offset=False):
-
     z_st, x_st, y_st, z_end, x_end, y_end = bounding_box
     print(z_st, x_st, y_st, z_end, x_end, y_end)
 
@@ -574,7 +571,6 @@ def crop_pts_bb2(pts, bounding_box, location=(0, 0, 0), debug_verbose=False, off
 
 
 def crop_pts_bb(pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offset=False):
-
     z_st, z_end, x_st, x_end, y_st, y_end = bounding_box
     print(z_st, z_end, x_st, x_end, y_st, y_end)
 
@@ -605,7 +601,6 @@ def crop_pts_bb(pts, bounding_box, location=(0, 0, 0), debug_verbose=False, offs
 
 
 def crop_vol_and_pts_bb(img_volume, pts, bounding_box, debug_verbose=False, offset=False):
-
     # TODO: clip bbox to img_volume
     z_st, z_end, y_st, y_end, x_st, x_end = bounding_box
 
@@ -662,7 +657,6 @@ def crop_vol_and_pts_centered(
     cropped_pts = np.array(np.delete(pts, out_of_bounds_w, axis=0))
 
     if offset:
-
         cropped_pts[:, 0] = cropped_pts[:, 0] - location[0]
         cropped_pts[:, 1] = cropped_pts[:, 1] - location[1]
         cropped_pts[:, 2] = cropped_pts[:, 2] - location[2]

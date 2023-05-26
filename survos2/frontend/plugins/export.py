@@ -44,7 +44,6 @@ class SuperRegionSegmentComboBox(LazyComboBox):
 
 @register_plugin
 class ExportPlugin(Plugin):
-
     __icon__ = "fa.qrcode"
     __pname__ = "export"
     __views__ = ["slice_viewer"]

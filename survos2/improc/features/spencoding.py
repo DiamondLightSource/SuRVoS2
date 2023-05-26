@@ -29,7 +29,6 @@ def spmeans(data, splabels, norm=None):
 
 
 def spstats(data, splabels, mode="append", sigmaset=False, covmode="full", norm=None):
-
     if mode not in ["append", "add", None]:
         raise Exception("Only `append` or `add` methods are accepted")
 

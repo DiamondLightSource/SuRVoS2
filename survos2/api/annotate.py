@@ -91,8 +91,8 @@ def annotate_voxels(
         ds_o = ds_t
     dataset[:] = ds_o
 
-def annotate_from_slice(dataset, region, source_slice, slice_num, viewer_order=(0, 1, 2)):
 
+def annotate_from_slice(dataset, region, source_slice, slice_num, viewer_order=(0, 1, 2)):
     reg = region[:]
     ds = dataset[:]
 
@@ -107,23 +107,22 @@ def annotate_from_slice(dataset, region, source_slice, slice_num, viewer_order=(
     label_idxs = np.unique(source_slice)
     print(f"LABEL INDEXES: {label_idxs}")
 
-    for label_idx in label_idxs:        
+    for label_idx in label_idxs:
         mask = np.zeros_like(reg_t).astype(np.uint32)
 
-        slice_mask = ((source_slice == label_idx) * 1) 
+        slice_mask = (source_slice == label_idx) * 1
         slice_mask = binary_erosion(slice_mask, iterations=2)
         masked_regions = slice_mask * reg[slice_num]
-        
-        
+
         r = np.unique(masked_regions)
         r = list(map(int, r))
         for r_idx in r:
             mask += reg_t == r_idx
-                
+
         mask = (mask > 0) * 1
         print(f"MASK SHAPE: {mask.shape}")
         print(ds_t.shape)
-        
+
         mask = mask > 0
 
         ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)
@@ -131,10 +130,11 @@ def annotate_from_slice(dataset, region, source_slice, slice_num, viewer_order=(
 
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
         new_order = get_order(viewer_order)
-        ds_o = np.transpose(ds_t, new_order) 
+        ds_o = np.transpose(ds_t, new_order)
     else:
         ds_o = ds_t
     return ds_o
+
 
 def annotate_regions(
     dataset, region, r=None, label=0, parent_mask=None, bb=None, viewer_order=(0, 1, 2)
@@ -196,7 +196,7 @@ def annotate_regions(
 
     if viewer_order_str != "012" and len(viewer_order_str) == 3:
         new_order = get_order(viewer_order)
-        ds_o = np.transpose(ds_t, new_order) 
+        ds_o = np.transpose(ds_t, new_order)
     else:
         ds_o = ds_t
     return ds_o

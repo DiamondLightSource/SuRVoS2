@@ -179,7 +179,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         resp = Launcher.g.set_remote(remote_ip_port)
         logger.info(f"Response from server to setting remote: {resp}")
 
-
         if hasattr(self, "selected_workspace"):
             logger.info(f"Setting workspace to: {self.selected_workspace}")
             resp = Launcher.g.run("workspace", "set_workspace", workspace=self.selected_workspace)
@@ -219,15 +218,13 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         return run_layout
 
-    
     def refresh_workspaces(self):
         workspaces = os.listdir(DataModel.g.CHROOT)
         workspaces.sort()
         self.workspaces_list.clear()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
-        
-        
+
     def workspaces_selected(self):
         self.selected_workspace = self.workspaces_list.value()
         self.workspaces_list.blockSignals(True)
@@ -267,18 +264,19 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
     def startup_server(self):
         from survos2.frontend.nb_utils import start_server
+
         port = str(Config["api"]["port"])
         server_process = start_server(port)
         cfg["server_process"] = server_process
         remote_ip_port = "127.0.0.1:" + port
         logger.info(f"Setting remote: {remote_ip_port}")
         resp = Launcher.g.set_remote(remote_ip_port)
-        
+
         if self.selected_workspace != "":
-           workspace = self.selected_workspace
-           logger.info(f"Setting workspace to: {workspace}")
-           resp = Launcher.g.run("workspace", "set_workspace", workspace)
-           logger.info(f"Response from server to setting workspace: {resp}")
+            workspace = self.selected_workspace
+            logger.info(f"Setting workspace to: {workspace}")
+            resp = Launcher.g.run("workspace", "set_workspace", workspace)
+            logger.info(f"Response from server to setting workspace: {resp}")
 
     def button_load_workspace_clicked(self):
         self.workspaces_selected()

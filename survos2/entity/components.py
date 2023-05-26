@@ -126,7 +126,6 @@ import numba
 
 @numba.jit(nopython=True)
 def copy_and_composite_components(images, labeled_images, tables_arr, selected_idxs):
-
     for img_idx in range(len(images)):
         table_idx = selected_idxs[img_idx]
         total_mask = np.zeros_like(images[img_idx])
@@ -243,7 +242,14 @@ def filter_components2(images, min_component_size=0, max_component_size=1e9):
     labeled_images = [measure.label(image) for image in images]
     tables = measure_regions(labeled_images)
 
-    selected = [tables[i][np.logical_and(tables[i]["area"] > min_component_size, tables[i]["area"] < max_component_size) ] for i in range(len(tables))]
+    selected = [
+        tables[i][
+            np.logical_and(
+                tables[i]["area"] > min_component_size, tables[i]["area"] < max_component_size
+            )
+        ]
+        for i in range(len(tables))
+    ]
 
     filtered_images = []
 

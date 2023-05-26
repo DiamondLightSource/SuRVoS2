@@ -5,13 +5,13 @@ from numba import jit
 
 # original rlabels always was hanging, replaced with quick numba fix
 
+
 # y: labels (annotation vol)
 # R: superregions
 # nr: number of superregions
 # ny: number of labels
 @jit
 def simple_rlabels(y, R, ny, nr, min_ratio):
-
     N = R.shape[0]
 
     sizes = np.zeros(nr, dtype=np.uint32)
@@ -48,7 +48,6 @@ def rlabels(
     norm: bool = None,
     min_ratio: int = 0,
 ):
-
     # WARNING: silently fails if types are not exactly correct
     y = np.array(y)
     R = np.array(R)

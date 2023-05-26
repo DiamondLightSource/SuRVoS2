@@ -286,7 +286,6 @@ class LoadDataDialog(QDialog):
             self.reset_roi_fields()
             self.update_image(load=True)
 
-
     def reset_roi_fields(self):
         """Resets all the ROI dimension parameters to equal the data shape."""
         if len(self.data_shape) > 2:
@@ -855,8 +854,10 @@ class WorkspacesPlugin(Plugin):
             except WorkspaceException as e:
                 logger.exception(e)
                 self.button_feedback_response(str(e), self.create_workspace_button, "maroon")
-            #self.refresh_chroot()
-            cfg.ppw.clientEvent.emit({"source": "workspaces_plugin", "data": "refresh_chroot", "value": None})
+            # self.refresh_chroot()
+            cfg.ppw.clientEvent.emit(
+                {"source": "workspaces_plugin", "data": "refresh_chroot", "value": None}
+            )
 
     def button_feedback_response(self, message, button, colour_str, timeout=2):
         """Changes button colour and displays feedback message for a limited time period.

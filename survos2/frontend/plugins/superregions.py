@@ -47,9 +47,9 @@ class RegionComboBox(LazyComboBox):
                 if result[fid]["kind"] == "sam":
                     self.addItem(fid, result[fid]["name"])
 
+
 @register_plugin
 class RegionsPlugin(Plugin):
-
     __icon__ = "fa.qrcode"
     __pname__ = "superregions"
     __views__ = ["slice_viewer"]
@@ -110,6 +110,7 @@ class RegionsPlugin(Plugin):
         self.regions_combo.setCurrentIndex(0)
 
         from survos2.api.superregions import __region_names__
+
         order = __region_names__.index(regions_type)
 
         params = dict(order=order, workspace=True)
@@ -120,7 +121,6 @@ class RegionsPlugin(Plugin):
             svtype = result["kind"]
             svname = result["name"]
             self._add_supervoxel_widget(svid, svtype, svname, True)
-
 
     def _add_supervoxel_widget(self, svid, svtype, svname, expand=False):
         widget = SupervoxelCard(svid, svtype, svname)
@@ -174,9 +174,9 @@ class SupervoxelCard(Card):
         self.svsource = FeatureComboBox()
         self.svsource.setMaximumWidth(250)
 
-        print(f"SVTYPE: {self.svtype}")        
-        
-        if self.svtype == 'supervoxels':
+        print(f"SVTYPE: {self.svtype}")
+
+        if self.svtype == "supervoxels":
             self.svshape = LineEdit(parse=int, default=10)
             self.svshape.setMaximumWidth(250)
             self.svspacing = LineEdit3D(parse=float, default=1)
@@ -186,7 +186,7 @@ class SupervoxelCard(Card):
             self.int64_checkbox = CheckBox(checked=False)
             self.max_num_iter = LineEdit(parse=int, default=10)
             self.zero_parameter_checkbox = CheckBox(checked=False)
-            
+
             self.add_row(HWidgets("Source:", self.svsource, stretch=1))
             self._add_mask_feature_source()
             self.add_row(HWidgets("Shape:", self.svshape, "Spacing:", self.svspacing))
@@ -201,7 +201,7 @@ class SupervoxelCard(Card):
                     self.max_num_iter,
                 )
             )
-        elif self.svtype == 'sam':
+        elif self.svtype == "sam":
             self.points_per_side = LineEdit(parse=int, default=32)
             self.pred_iou_thresh = LineEdit(parse=float, default=0.86)
             self.stability_score_thresh = LineEdit(parse=float, default=0.5)
@@ -214,11 +214,24 @@ class SupervoxelCard(Card):
             self.add_row(HWidgets("Source:", self.svsource, stretch=1))
             self.add_row(HWidgets("Slice skip:", self.skip))
             self.add_row(HWidgets("points_per_side:", self.points_per_side))
-            self.add_row(HWidgets("pred_iou_thresh", self.pred_iou_thresh, "stability_score_thresh:", self.stability_score_thresh))
-            self.add_row(HWidgets("crop_n_layers:", self.crop_n_layers, "crop_n_points_downscale_factor", self.crop_n_points_downscale_factor))
+            self.add_row(
+                HWidgets(
+                    "pred_iou_thresh",
+                    self.pred_iou_thresh,
+                    "stability_score_thresh:",
+                    self.stability_score_thresh,
+                )
+            )
+            self.add_row(
+                HWidgets(
+                    "crop_n_layers:",
+                    self.crop_n_layers,
+                    "crop_n_points_downscale_factor",
+                    self.crop_n_points_downscale_factor,
+                )
+            )
             self.add_row(HWidgets("min_mask_region_area:", self.min_mask_region_area))
             self.add_row(HWidgets("MAX_NUM_LABELS_PER_SLICE:", self.MAX_NUM_LABELS_PER_SLICE))
-                                  
 
         self.compute_btn = PushButton("Compute")
         self.view_btn = PushButton("View", accent=True)
@@ -266,7 +279,7 @@ class SupervoxelCard(Card):
             pbar.update(1)
 
     def compute_supervoxels(self):
-        if self.svtype=="supervoxels":
+        if self.svtype == "supervoxels":
             with progress(total=4) as pbar:
                 pbar.set_description("Super-region computation:")
                 pbar.update(1)
@@ -311,7 +324,7 @@ class SupervoxelCard(Card):
                 result = Launcher.g.run("superregions", "supervoxels", **params)
                 if result is not None:
                     pbar.update(1)
-        elif self.svtype=="sam":
+        elif self.svtype == "sam":
             with progress(total=4) as pbar:
                 pbar.set_description("Super-region computation:")
                 pbar.update(1)
@@ -320,26 +333,25 @@ class SupervoxelCard(Card):
                 dst = DataModel.g.dataset_uri(self.svid, group="superregions")
                 logger.debug(f"Compute sv: Src {src} Dst {dst}")
                 params = dict(
-                        src=src,
-                        dst=dst,
-                        modal=False,
-                        points_per_side=self.points_per_side.value(),
-                        pred_iou_thresh=self.pred_iou_thresh.value(),
-                        stability_score_thresh=self.stability_score_thresh.value(),
-                        crop_n_layers=self.crop_n_layers.value(),
-                        crop_n_points_downscale_factor=self.crop_n_points_downscale_factor.value(),
-                        min_mask_region_area = self.min_mask_region_area.value(),
-                        MAX_NUM_LABELS_PER_SLICE=self.MAX_NUM_LABELS_PER_SLICE.value(),
-                        skip=self.skip.value(),
+                    src=src,
+                    dst=dst,
+                    modal=False,
+                    points_per_side=self.points_per_side.value(),
+                    pred_iou_thresh=self.pred_iou_thresh.value(),
+                    stability_score_thresh=self.stability_score_thresh.value(),
+                    crop_n_layers=self.crop_n_layers.value(),
+                    crop_n_points_downscale_factor=self.crop_n_points_downscale_factor.value(),
+                    min_mask_region_area=self.min_mask_region_area.value(),
+                    MAX_NUM_LABELS_PER_SLICE=self.MAX_NUM_LABELS_PER_SLICE.value(),
+                    skip=self.skip.value(),
                 )
                 logger.info(f"Computing segment-anything (sam) with params {params}")
                 pbar.update(1)
 
                 result = Launcher.g.run("superregions", "sam", **params)
-                
+
                 if result is not None:
                     pbar.update(1)
-                
 
     def update_params(self, params):
         if "shape" in params:
@@ -351,4 +363,3 @@ class SupervoxelCard(Card):
         if "src" in params:
             for source in params["source"]:
                 self.svsource.select(source)
-        

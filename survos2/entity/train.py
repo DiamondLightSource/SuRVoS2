@@ -19,10 +19,9 @@ def train_oneclass_detseg(
     gpu_id=0,
     model=None,
     num_epochs=1,
-    bce_weight=0.3,  #0.7
+    bce_weight=0.3,  # 0.7
     initial_lr=0.01,
 ):
-
     train_params = {
         "train_vols": (train_v_class1[0], train_v_class1[1]),
         "model_type": model_type,
@@ -33,7 +32,7 @@ def train_oneclass_detseg(
         "test_on_volume": True,
         "project_file": project_file,
         "display_plots": True,
-        "torch_models_fullpath": wf_params["torch_models_fullpath"],        
+        "torch_models_fullpath": wf_params["torch_models_fullpath"],
     }
 
     return train_all(train_params, model, bce_weight=bce_weight, initial_lr=initial_lr)
@@ -46,10 +45,9 @@ def train_twoclass_detseg(
     model_type="fpn3d",
     gpu_id=0,
     num_epochs=1,
-    bce_weight=0.3,  #0.7
+    bce_weight=0.3,  # 0.7
     initial_lr=0.01,
 ):
-
     train_v_class1, train_v_class2 = training_vols
     print(f"Using training volumes: {training_vols}")
 
@@ -64,14 +62,14 @@ def train_twoclass_detseg(
         "project_file": project_file,
         "display_plots": False,
         "torch_models_fullpath": wf.params["torch_models_fullpath"],
-        "bce_weight" : bce_weight, 
-        "initial_lr" :initial_lr
+        "bce_weight": bce_weight,
+        "initial_lr": initial_lr,
     }
 
     class1_model_file = train_all(train_params, bce_weight=bce_weight, initial_lr=initial_lr)
 
     print(f"Using training volumes: {train_v_class2[0]}")
-    
+
     gpu_id = 0
 
     train_params = {
@@ -148,55 +146,55 @@ def train_all(
 
         model3d, optimizer, scheduler = prepare_xunet(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
-    )
+        )
     elif model_type == "unet":
         from survos2.entity.models.monai_nets import prepare_unet
 
         model3d, optimizer, scheduler = prepare_unet(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
-    )
+        )
     elif model_type == "vnet_monai":
         from survos2.entity.models.monai_nets import prepare_vnet_monai
 
         model3d, optimizer, scheduler = prepare_vnet_monai(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
-    )
+        )
     elif model_type == "dynunet":
         from survos2.entity.models.monai_nets import prepare_dynunet
 
         model3d, optimizer, scheduler = prepare_dynunet(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
-    )
+        )
     elif model_type == "attention_unet":
         from survos2.entity.models.monai_nets import prepare_attention_unet
 
         model3d, optimizer, scheduler = prepare_attention_unet(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
-    )
+        )
     elif model_type == "swin_unetr":
         from survos2.entity.models.monai_nets import prepare_swin_unetr
 
         model3d, optimizer, scheduler = prepare_swin_unetr(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
-    )
+        )
     elif model_type == "unetplusplus":
         from survos2.entity.models.monai_nets import prepare_unetplusplus
 
         model3d, optimizer, scheduler = prepare_unetplusplus(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
-    )
+        )
     elif model_type == "segresnet":
         from survos2.entity.models.monai_nets import prepare_SegResNet
 
         model3d, optimizer, scheduler = prepare_SegResNet(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
-    )
+        )
     elif model_type == "segresnetvae":
         from survos2.entity.models.monai_nets import prepare_SegResNetVAE
 
         model3d, optimizer, scheduler = prepare_SegResNetVAE(
             existing_model_fname=None, device=gpu_id, initial_lr=initial_lr
-    )
+        )
 
     if model is not None:
         model3d = model
@@ -336,7 +334,7 @@ def train_all(
             initial_lr=0.001,
             num_out_channels=2,
             device=gpu_id,
-            model_output_as_list = True
+            model_output_as_list=True,
         )
 
         training_loss, validation_loss, learning_rate = trainer.run()
@@ -493,7 +491,7 @@ def train_all(
             initial_lr=0.01,
             num_out_channels=2,
             device=gpu_id,
-            model_output_as_list = True
+            model_output_as_list=True,
         )
 
         training_loss, validation_loss, learning_rate = trainer.run()
@@ -572,7 +570,7 @@ def train_all(
             initial_lr=0.01,
             num_out_channels=2,
             device=gpu_id,
-            model_output_as_list = False
+            model_output_as_list=False,
         )
 
         training_loss, validation_loss, learning_rate = trainer.run()
@@ -649,7 +647,6 @@ def train_all2(
     initial_lr=0.01,
     display_plots=False,
 ):
-
     model_type = train_params["model_type"]
     gpu_id = train_params["gpu_id"]
     save_current_model = train_params["save_current_model"]

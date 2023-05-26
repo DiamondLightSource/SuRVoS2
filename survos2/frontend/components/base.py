@@ -58,7 +58,6 @@ class SWidget(QtWidgets.QWidget):
 
 
 class QCSWidget(SWidget):
-
     resized = Signal()  # Signal
 
     def __init__(self, parent=None):
@@ -314,7 +313,6 @@ class LineEdit(QtWidgets.QLineEdit):
 
 
 class TabBar(QCSWidget):
-
     tabSelected = Signal(str)
 
     def __init__(self, spacing=10, parent=None):
@@ -369,7 +367,6 @@ class ScrollPane(QtWidgets.QScrollArea):
 
 
 class ColorButton(QtWidgets.QPushButton):
-
     colorChanged = Signal(str)
 
     def __init__(self, color="#000000", clickable=True, **kwargs):
@@ -379,7 +376,6 @@ class ColorButton(QtWidgets.QPushButton):
             self.clicked.connect(self.on_click)
 
     def setColor(self, color):
-
         if color is None:
             self.setStyleSheet(
                 """
@@ -952,7 +948,6 @@ class LazyComboBox(ComboBox):
 
 
 class MultiComboBox(QtWidgets.QPushButton, AbstractLazyWrapper):
-
     valueChanged = Signal()
 
     def __init__(
@@ -1122,7 +1117,6 @@ class LazyMultiComboBox(MultiComboBox):
 
 
 class Slider(QCSWidget):
-
     valueChanged = Signal(int)
 
     def __init__(

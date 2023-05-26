@@ -102,6 +102,7 @@ def make_masks(patch: Patch, params: dict):
 
     return patch
 
+
 def generate_anno(
     precropped_wf2,
     classwise_entities,
@@ -140,7 +141,7 @@ def generate_anno(
         p = Patch({"Main": padded_vol}, {}, {"Points": classwise_entities[k]["entities"]}, {})
         cfg["pipeline"]["mask_params"]["mask_radius"] = v["size"]
         cfg["pipeline"]["mask_params"]["eccentricity"] = eccentricity
-        #from survos2.entity.pipeline_ops import make_masks
+        # from survos2.entity.pipeline_ops import make_masks
 
         p = make_masks(p, cfg["pipeline"])
 
@@ -165,7 +166,6 @@ def generate_anno(
         classwise_entities[k]["mask"] = mask
         classwise_entities[k]["core_mask"] = core_mask
         classwise_entities[k]["shell_mask"] = shell_mask
-
 
     return classwise_entities, padded_vol
 
@@ -295,7 +295,6 @@ def calc_sphere(
     center: Tuple[int, int, int] = (40, 40, 40),
     radius: int = 30,
 ):
-
     grid = np.mgrid[[slice(i) for i in image_shape]]
 
     grid = (grid.T - center).T
@@ -344,7 +343,6 @@ def generate_sphere_masks_fast(
     )
 
     for pt in classwise_pts:
-
         st = np.array((pt[0] - radius, pt[2] - radius, pt[1] - radius))
         st = st.astype(np.uint32)
 
@@ -362,7 +360,6 @@ def generate_sphere_masks_fast(
 
 
 def generate_sphere_masks(I_out, classwise_pts, radius=10):
-
     total_mask = np.zeros_like(I_out)
 
     count = 0

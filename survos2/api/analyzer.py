@@ -550,7 +550,6 @@ def component_bounding_boxes(images):
 
 
 def window_to_bb(w):
-
     return (
         0,
         0,
@@ -685,7 +684,7 @@ def find_connected_components(
                 ]
             )
 
-    #map_blocks(pass_through, single_label_level, out=dst, normalize=False)
+    # map_blocks(pass_through, single_label_level, out=dst, normalize=False)
 
     result_list = np.array(result_list)
     result_list = result_list.tolist()
@@ -777,7 +776,7 @@ def segmentation_stats(
     from torchmetrics import Dice, JaccardIndex
 
     dice = Dice(average="micro")
-    jaccard = JaccardIndex(task='binary', num_classes=2)
+    jaccard = JaccardIndex(task="binary", num_classes=2)
 
     A_t = torch.IntTensor(single_label_level_A)
     B_t = torch.IntTensor(single_label_level_B)
@@ -800,7 +799,6 @@ def binary_image_stats(
     area_min: int = 0,
     area_max: int = 1e12,
 ) -> "IMAGE":
-
     DataModel.g.current_workspace = workspace
 
     logger.debug(f"Calculating stats on feature: {feature_id}")
@@ -1097,7 +1095,6 @@ def plot_clustered_img(
     cmap="gray",
     title="Clustered Images",
 ):
-
     num_classes = len(np.unique(colors))
     palette = np.array(sns.color_palette("hls", num_classes))
     # ax = ax or plt.gca()
@@ -1218,7 +1215,7 @@ def object_analyzer(
             perplexity=embedding_params["perplexity"], n_iter=embedding_params["n_iter"]
         )
     else:
-        #embedding_params.pop("context")
+        # embedding_params.pop("context")
         patch_clusterer.embed_UMAP(params=embedding_params)
 
     patch_clusterer.density_cluster(min_cluster_size=min_cluster_size)
@@ -1495,6 +1492,7 @@ def create(workspace: str, order: int = 0):
 
 
 # @lru_cache(maxsize=2)
+
 
 # @hug.local()
 @analyzer.get("/existing")

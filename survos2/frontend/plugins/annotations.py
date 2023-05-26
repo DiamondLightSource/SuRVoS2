@@ -87,7 +87,6 @@ def dilate_annotations(yy, xx, img_shape, line_width):
 
 @register_plugin
 class AnnotationPlugin(Plugin):
-
     __icon__ = "fa.pencil"
     __pname__ = "annotations"
     __views__ = ["slice_viewer"]
@@ -196,22 +195,24 @@ class AnnotationPlugin(Plugin):
 
     def annotation_from_slice_clicked(self):
         slice_num = cfg.viewer.cursor.position[0]
-        params = dict(target_level=self.label.value()["level"],
-                      source_level=self.label.value()["level"],
-                      region=os.path.basename(cfg.current_supervoxels),
-                      slice_num=slice_num,
-                      modal=False,
-                      workspace=True,
-                      viewer_order=cfg.viewer_order,)
-        
+        params = dict(
+            target_level=self.label.value()["level"],
+            source_level=self.label.value()["level"],
+            region=os.path.basename(cfg.current_supervoxels),
+            slice_num=slice_num,
+            modal=False,
+            workspace=True,
+            viewer_order=cfg.viewer_order,
+        )
+
         result = Launcher.g.run("annotations", "annotate_from_slice", json_transport=True, **params)
         cfg.ppw.clientEvent.emit(
-                {
-                    "source": "annotations",
-                    "data": "paint_annotations",
-                    "level_id": self.label.value()["level"],
-                }
-            )
+            {
+                "source": "annotations",
+                "data": "paint_annotations",
+                "level_id": self.label.value()["level"],
+            }
+        )
 
     def button_pause_save_clicked(self):
         cfg.remote_annotation = not cfg.remote_annotation
@@ -287,7 +288,6 @@ class AnnotationPlugin(Plugin):
 
 
 class AnnotationLevel(CardWithId):
-
     removed = QtCore.Signal(str)
 
     def __init__(self, level, parent=None, brush_slider=None):
@@ -377,7 +377,6 @@ class AnnotationLevel(CardWithId):
 
 
 class AnnotationLabel(QCSWidget):
-
     __height__ = 30
     removed = QtCore.Signal(int)
 

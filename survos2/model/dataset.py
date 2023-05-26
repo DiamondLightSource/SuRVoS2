@@ -90,7 +90,6 @@ class DatasetWrapper(BaseDataset):
 
 
 class Dataset(BaseDataset):
-
     __dbname__ = "dataset"
     __dsname__ = "__data__"
 
@@ -238,7 +237,9 @@ class Dataset(BaseDataset):
 
     @staticmethod
     def create(path, shape=None, dtype=None, data=None, fillvalue=0, chunks=CHUNKS, **kwargs):
-        logger.info(f"Creating dataset on {path} of shape {shape} of dtype {dtype} with data {data} in chunks {chunks}")
+        logger.info(
+            f"Creating dataset on {path} of shape {shape} of dtype {dtype} with data {data} in chunks {chunks}"
+        )
 
         database = kwargs.pop("database", "yaml")
         readonly = kwargs.pop("readonly", False)
@@ -323,16 +324,16 @@ class Dataset(BaseDataset):
             raise DatasetException("DataChunk {} already exists".format(idx))
         path = self._idx2name(idx)
 
-        #subchunk_size = optimal_chunksize(self.chunk_size, 8)
+        # subchunk_size = optimal_chunksize(self.chunk_size, 8)
 
         with h5.File(path, "w") as f:
-            #chunks = optimal_chunksize(self.chunk_size, 1)
+            # chunks = optimal_chunksize(self.chunk_size, 1)
             f.create_dataset(
                 "data",
                 shape=self.chunk_size,
                 dtype=self.dtype,
                 fillvalue=self.fillvalue,
-                #chunks=chunks,
+                # chunks=chunks,
             )
             if data is not None:
                 slices = cslices or slice(None)

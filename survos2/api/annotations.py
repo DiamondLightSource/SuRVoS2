@@ -272,7 +272,6 @@ def annotate_voxels(
     parent_label_idx: int = Body(),
     viewer_order: tuple = Body(),
 ):
-
     ds = get_level(workspace, level, full)
 
     from survos2.frontend.frontend import get_level_from_server
@@ -307,13 +306,14 @@ def annotate_voxels(
     modified = [1]
     modified_ds.set_attr("modified", modified)
 
+
 @annotations.get("/annotate_from_slice")
 def annotate_from_slice(
     workspace: str = Body(),
     target_level: str = Body(),
     source_level: str = Body(),
     region: str = Body(),
-    slice_num : int = Body(),
+    slice_num: int = Body(),
     viewer_order: tuple = Body(),
 ):
     DataModel.g.current_workspace = workspace
@@ -323,19 +323,16 @@ def annotate_from_slice(
     region_uri = DataModel.g.dataset_uri(region, group="superregions")
     region_ds = dataset_from_uri(region_uri, mode="r")
     source_std_label = source_ds[:] & 15
-    source_slice = source_std_label[slice_num,:]
+    source_slice = source_std_label[slice_num, :]
 
-    anno = _annotate_from_slice(target_ds,
-                                region_ds, 
-                                source_slice,
-                                slice_num, 
-                                viewer_order)
-    
+    anno = _annotate_from_slice(target_ds, region_ds, source_slice, slice_num, viewer_order)
+
     dst = DataModel.g.dataset_uri(target_level, group="annotations")
     target_ds[:] = anno
     modified_ds = dataset_from_uri(dst, mode="rw")
     modified = [1]
     modified_ds.set_attr("modified", modified)
+
 
 @annotations.get("/annotate_regions")
 def annotate_regions(

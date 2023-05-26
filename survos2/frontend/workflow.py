@@ -23,7 +23,6 @@ def run_workflow(msg):
     num_workflow_steps = len(workflows.keys())
     minVal, maxVal = 0, num_workflow_steps
     with progress(total=num_workflow_steps) as pbar:
-
         for step_idx, k in enumerate(workflows):
             workflow = workflows[k]
             action = workflow.pop("action")

@@ -135,7 +135,6 @@ def quick_norm(imgvol1):
 
 
 def prepare_point_data(pts, patch_pos):
-
     offset_z = patch_pos[0]
     offset_x = patch_pos[1]
     offset_y = patch_pos[2]
@@ -194,7 +193,6 @@ class ComboDialog(QDialog):
 
 
 class MplCanvas(QWidget):
-
     roi_updated = pyqtSignal(tuple)
 
     def __init__(self, orient=0, axisoff=True, autoscale=False, **kwargs):
@@ -250,7 +248,6 @@ class MplCanvas(QWidget):
 
 
 class FileWidget(QWidget):
-
     path_updated = pyqtSignal(str)
 
     def __init__(self, extensions="*.h5", home=None, folder=False, save=True, parent=None):
