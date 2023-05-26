@@ -100,9 +100,19 @@ does the same in windows
     $ sed -i 's|placeholder3|medicaltorch|g' requirements.txt
     $ python3 -m pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
+    $ sed -i 's|torchvision|torchvision==0.14.1+cu116|g' requirements.txt
+    $ sed -i 's|torchio|placeholder1|g' requirements.txt
+    $ sed -i 's|torchmetrics|placeholder2|g' requirements.txt
+    $ sed -i 's|medicaltorch|placeholder3|g' requirements.txt
+    $ sed -i 's|torch|torch==1.13.1+cu116|g' requirements.txt
+    $ sed -i 's|placeholder1|torchio|g' requirements.txt
+    $ sed -i 's|placeholder2|torchmetrics|g' requirements.txt
+    $ sed -i 's|placeholder3|medicaltorch|g' requirements.txt
     $ python3 -m pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu116
   (CUDA 11.7)
     $ python3 -m pip install -r requirements.txt
+  (CUDA 11.8)
+    $ python3 -m pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cu118
 
 (WINDOWS) (use Powershell for the get-content, set-content commands)
   (No GPU support)
@@ -128,9 +138,19 @@ does the same in windows
     $ (get-content requirements_windows.txt) | %{$_ -replace "placeholder3","medicaltorch"} | set-content requirements_windows.txt
     $ python3 -m pip install -r requirements_windows.txt --extra-index-url https://download.pytorch.org/whl/cu113
   (CUDA 11.6)
+    $ (get-content requirements_windows.txt) | %{$_ -replace "torchvision","torchvision==0.14.1+cu116"} | set-content requirements_windows.txt
+    $ (get-content requirements_windows.txt) | %{$_ -replace "torchio","placeholder1"} | set-content requirements_windows.txt
+    $ (get-content requirements_windows.txt) | %{$_ -replace "torchmetrics","placeholder2"} | set-content requirements_windows.txt
+    $ (get-content requirements_windows.txt) | %{$_ -replace "medicaltorch","placeholder3"} | set-content requirements_windows.txt
+    $ (get-content requirements_windows.txt) | %{$_ -replace "torch","torch==1.13.1+cu116"} | set-content requirements_windows.txt
+    $ (get-content requirements_windows.txt) | %{$_ -replace "placeholder1","torchio"} | set-content requirements_windows.txt
+    $ (get-content requirements_windows.txt) | %{$_ -replace "placeholder2","torchmetrics"} | set-content requirements_windows.txt
+    $ (get-content requirements_windows.txt) | %{$_ -replace "placeholder3","medicaltorch"} | set-content requirements_windows.txt
     $ python3 -m pip install -r requirements_windows.txt --extra-index-url https://download.pytorch.org/whl/cu116
   (CUDA 11.7)
-    $ python3 -m pip install -r requirements_windows.txt
+    $ python3 -m pip install -r requirements_windows.txt --index-url https://download.pytorch.org/whl/cu117
+  (CUDA 11.8)
+    $ python3 -m pip install -r requirements_windows.txt --index-url https://download.pytorch.org/whl/cu118
 
 
 6. Build survos2 cython + cuda stuff:
@@ -168,6 +188,7 @@ following CUDA versions is installed:
  * CUDA 11.3 (you can install it by following this link https://developer.nvidia.com/cuda-11-3-1-download-archive)
  * CUDA 11.6 (you can install it by following this https://developer.nvidia.com/cuda-11-6-2-download-archive)
  * CUDA 11.7 (you can install it by following this https://developer.nvidia.com/cuda-11-7-1-download-archive)
+ * CUDA 11.8 (you can install it by following this https://developer.nvidia.com/cuda-11-8-0-download-archive)
 
 To verify that one of the CUDA versions above is installed and available for use run the following command:
 
