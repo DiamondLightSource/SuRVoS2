@@ -85,11 +85,11 @@ class PluginContainer(QCSWidget):
         self.tabwidget.setStyleSheet("""
             QTabBar::tab { 
                 padding: 10px; color: 	#111111; 
-                background-color: #AAAABB;
+                background-color: #AAAAB0;
             }
             QTabBar::tab:selected { 
                 color: 	#000000;
-                background-color: #888899;
+                background-color: #888890;
             }
         """)
         
