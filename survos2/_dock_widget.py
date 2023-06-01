@@ -29,8 +29,9 @@ class Workspace(QWidget):
         from survos2.frontend.frontend import frontend
 
         self.dw = frontend(napari_viewer)
-        self.layout().addWidget(self.dw.ppw)
         self.layout().addWidget(self.dw.bpw)
+        self.layout().addWidget(self.dw.ppw)
+
 
 
 @napari_hook_implementation
