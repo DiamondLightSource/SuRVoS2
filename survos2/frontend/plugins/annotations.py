@@ -112,6 +112,7 @@ class AnnotationPlugin(Plugin):
 
         hbox = HBox(self, margin=1, spacing=3)
         self.label = AnnotationComboBox()
+        cfg.selected_label = self.label 
         self.region = RegionComboBox(header=(None, "Voxels"), full=True)
         self.label.currentIndexChanged.connect(self.set_sv)
         self.region.currentIndexChanged.connect(self.set_sv)
@@ -478,7 +479,18 @@ class AnnotationLabel(QCSWidget):
                 },
             }
         )
-        cfg.brush_size = self.brush_slider.value()
+        # set label dropdown to label just selected
+        cfg.brush_size = self.brush_slider.value() 
+        params = dict(workspace=True, full=True)
+        levels = Launcher.g.run("annotations", "get_levels", **params)
+        for i,level in enumerate(levels):
+            if os.path.basename(level['id']) == self.level_dataset:
+                level_idx = i
+        count = 0
+        for i in range(0, level_idx):
+            count += len(levels[i]['labels'])
+            count += 1
+        cfg.selected_label.setCurrentIndex(count + self.label_idx)
 
     def set_parent(self):
         try:
