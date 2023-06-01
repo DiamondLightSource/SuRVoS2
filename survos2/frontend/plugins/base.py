@@ -82,8 +82,18 @@ class PluginContainer(QCSWidget):
         self.tabwidget = QTabWidget()
         vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
         vbox.addWidget(self.tabwidget, 1)
-        self.tabwidget.setStyleSheet("QTabBar::tab { padding: 10px; color: 	#AAFFFF}")
+        self.tabwidget.setStyleSheet("""
+            QTabBar::tab { 
+                padding: 10px; color: 	#111111; 
+                background-color: #AAAABB;
+            }
+            QTabBar::tab:selected { 
+                color: 	#000000;
+                background-color: #888899;
+            }
+        """)
         
+
 
         self.tabs = [
             (QWidget(), t)
