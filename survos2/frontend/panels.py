@@ -70,7 +70,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             self.workspaces_list.addItem(key=s)
         workspaces_widget = HWidgets("Workspace:", self.workspaces_list)
         self.workspaces_list.setEditable(True)
-        self.workspaces_list.activated[str].connect(self.workspaces_selected)
 
         hbox_layout_ws = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
@@ -113,8 +112,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.workspaces_list.blockSignals(True)
         self.workspaces_list.select(self.selected_workspace)
         self.workspaces_list.blockSignals(False)
-        print(f"WORKSPACES LIST: {self.selected_workspace}")
-
+        
     def toggle_advanced(self):
         """Controls displaying/hiding the advanced run fields on radio button toggle."""
         rbutton = self.sender()
