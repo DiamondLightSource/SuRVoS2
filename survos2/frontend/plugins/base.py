@@ -84,12 +84,12 @@ class PluginContainer(QCSWidget):
         vbox.addWidget(self.tabwidget, 1)
         self.tabwidget.setStyleSheet("""
             QTabBar::tab { 
-                padding: 10px; color: 	#111111; 
-                background-color: #AAAAB0;
+                padding: 7px; color: 	#111111; 
+                background-color: #9999A0;
             }
             QTabBar::tab:selected { 
                 color: 	#000000;
-                background-color: #888890;
+                background-color: #777780;
             }
         """)
         
