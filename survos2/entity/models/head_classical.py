@@ -287,7 +287,6 @@ def extract_classical_features(fvd, bvol_dim, plot_all=False, resnet=False, hog_
 
     features = np.array(features).reshape((len(fvd), fv.shape[0]))
 
-
     return features
 
 
@@ -429,7 +428,6 @@ def classical_detector_predict(
     bvol_dim=(32, 32, 32),
     n_components=6,
 ):
-
     detected, preds = classical_prediction(
         wf,
         fvol,
@@ -465,7 +463,6 @@ def _prepare_feature_vols(
     padding,
     additional_feature_vols=None,
 ):
-
     padding = np.array(padding)
     print(f"Padding in prepare feature vols{padding}")
     proposal_filt = proposal
@@ -501,7 +498,11 @@ def prepare_trainvalidate_entities(
 ):
     print(f"prepare_trainvalidate_entities with number of gt_entities {gt_entities.shape}")
     padding = np.array(padding)
-    (dataloaders, gt_train_entities, gt_val_entities,) = prepare_patch_dataloaders_and_entities(
+    (
+        dataloaders,
+        gt_train_entities,
+        gt_val_entities,
+    ) = prepare_patch_dataloaders_and_entities(
         main_vol, gt_entities, padding=padding, flip_xy=flip_xy
     )
 
@@ -518,7 +519,6 @@ def prepare_classical_detector_data(
     area_max=1e14,
     flip_xy=False,
 ):
-
     # component_table, padded_proposal = prepare_component_table(
     #    wf, proposal_fullpath, area_min=area_min, area_max=area_max, padding=padding
     # )
@@ -542,7 +542,11 @@ def prepare_classical_detector_data(
         additional_feature=padded_additional_feature,
     )
 
-    (dataloaders, gt_train_entities, gt_val_entities,) = prepare_patch_dataloaders_and_entities(
+    (
+        dataloaders,
+        gt_train_entities,
+        gt_val_entities,
+    ) = prepare_patch_dataloaders_and_entities(
         wf, gt_entities, proposal_fullpath, padding=padding, flip_xy=flip_xy
     )
 
@@ -578,7 +582,6 @@ def classical_prediction(
     standardize=False,
     offset=False,
 ):
-
     if offset:
         prepared_entities = offset_points(entities, -2 * np.array(bvol_dim))
         print("Offset points for prediction.")

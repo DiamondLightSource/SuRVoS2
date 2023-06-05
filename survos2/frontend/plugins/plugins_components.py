@@ -65,7 +65,6 @@ class MultiSourceComboBox(LazyMultiComboBox):
 
 
 class Slider(QCSWidget):
-
     valueChanged = QtCore.Signal(int)
 
     def __init__(

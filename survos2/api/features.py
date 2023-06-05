@@ -227,7 +227,6 @@ def threshold(src: str, dst: str, threshold: float = 0.5) -> "BASE":
 @features.get("/rescale")
 @save_metadata
 def rescale(src: str, dst: str) -> "BASE":
-
     logger.debug(f"Rescaling src {src}")
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         src_dataset = DM.sources[0][:]
@@ -459,7 +458,6 @@ def gaussian_norm(src: str, dst: str, sigma: List[int] = Query()) -> "NEIGHBORHO
 @features.get("/gaussian_center")
 @save_metadata
 def gaussian_center(src: str, dst: str, sigma: List[int] = Query()) -> "NEIGHBORHOOD":
-
     from ..server.filtering.blur import gaussian_center
 
     map_blocks(

@@ -43,7 +43,9 @@ def frontend(viewer):
     cfg.base_dataset_shape = (100, 100, 100)
     cfg.slice_max = 100
     cfg.current_mode = "paint"
-    cfg.label_ids = [0,]
+    cfg.label_ids = [
+        0,
+    ]
     cfg.retrieval_mode = Config["volume_mode"]  # "volume"  # volume_http | volume | slice
     cfg.current_slice = 0
     cfg.current_orientation = 0
@@ -61,7 +63,7 @@ def frontend(viewer):
     cfg.supervoxels_cached = False
     cfg.supervoxel_size = 10
     cfg.brush_size = 10
-    cfg.viewer_order=(0, 1, 2)
+    cfg.viewer_order = (0, 1, 2)
 
     # controls whether annotation updates the server with every stroke
     cfg.remote_annotation = True

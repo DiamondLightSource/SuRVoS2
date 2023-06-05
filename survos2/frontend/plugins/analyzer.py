@@ -80,7 +80,6 @@ __analyzer_names__ = [
 
 @register_plugin
 class AnalyzerPlugin(Plugin):
-
     __icon__ = "fa.picture-o"
     __pname__ = "analyzer"
     __views__ = ["slice_viewer"]
@@ -108,7 +107,6 @@ class AnalyzerPlugin(Plugin):
         if not result:
             logger.debug("No analyzers.")
         else:
-
             all_categories = sorted(set(p["category"] for p in result))
 
             logger.debug(f"Analyzer {result}")
@@ -124,7 +122,6 @@ class AnalyzerPlugin(Plugin):
 
     def add_analyzer(self, idx):
         if idx != 0:
-
             analyzer_type = self.analyzers_combo.itemText(idx)
             if analyzer_type == "":
                 return
@@ -143,7 +140,6 @@ class AnalyzerPlugin(Plugin):
                 self._add_analyzer_widget(analyzer_id, analyzer_name, analyzer_type, True)
 
     def _add_analyzer_widget(self, analyzer_id, analyzer_name, analyzer_type, expand=False):
-
         if analyzer_type == "label_splitter":
             widget = LabelSplitter(analyzer_id, analyzer_name, analyzer_type)
         elif analyzer_type == "label_analyzer":

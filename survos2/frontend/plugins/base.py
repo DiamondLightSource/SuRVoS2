@@ -15,7 +15,6 @@ __available_plugins__ = OrderedDict()
 
 
 class Plugin(QCSWidget):
-
     change_view = QtCore.Signal(str, dict)
 
     __icon__ = "square"
@@ -80,11 +79,21 @@ class PluginContainer(QCSWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        # self.setMinimumWidth(self.__sidebar_width__)
-        # self.setMinimumHeight(450)
         self.tabwidget = QTabWidget()
         vbox = VBox(self, margin=(1, 1, 2, 0), spacing=2)
         vbox.addWidget(self.tabwidget, 1)
+        self.tabwidget.setStyleSheet("""
+            QTabBar::tab { 
+                padding: 7px; color: 	#111111; 
+                background-color: #9999A0;
+            }
+            QTabBar::tab:selected { 
+                color: 	#000000;
+                background-color: #777780;
+            }
+        """)
+        
+
 
         self.tabs = [
             (QWidget(), t)

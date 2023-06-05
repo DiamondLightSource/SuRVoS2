@@ -5,7 +5,6 @@ from skimage.morphology import skeletonize as skeletonize_skimage
 
 
 def erode(I, num_iter, thresh=0.5):
-
     I -= np.min(I)
     I = I / np.max(I)
     I = (I >= thresh) * 1.0
@@ -22,7 +21,6 @@ def erode(I, num_iter, thresh=0.5):
 
 
 def dilate(I, num_iter, thresh=0.5):
-
     I -= np.min(I)
     I = I / np.max(I)
     I = (I >= thresh) * 1.0
@@ -36,7 +34,6 @@ def dilate(I, num_iter, thresh=0.5):
 
 
 def opening(I, num_iter, thresh=0.5):
-
     I -= np.min(I)
     I = I / np.max(I)
     I = (I >= thresh) * 1.0
@@ -50,7 +47,6 @@ def opening(I, num_iter, thresh=0.5):
 
 
 def closing(I, num_iter, thresh=0.5):
-
     I -= np.min(I)
     I = I / np.max(I)
     I = (I >= thresh) * 1.0
@@ -64,7 +60,6 @@ def closing(I, num_iter, thresh=0.5):
 
 
 def distance_transform_edt(I, thresh=0.5):
-
     I -= np.min(I)
     I = I / np.max(I)
     I = (I >= thresh) * 1.0
@@ -99,7 +94,6 @@ def median(I, median_size, num_iter, thresh=0.5):
 
 
 def skeletonize(I, thresh=0.5):
-
     I -= np.min(I)
     I = I / np.max(I)
     I = (I >= thresh) * 1.0
@@ -110,7 +104,6 @@ def skeletonize(I, thresh=0.5):
 
 
 def watershed(I, markers, thresh=0.5):
-
     I -= np.min(I)
     I = I / np.max(I)
     from skimage import img_as_ubyte

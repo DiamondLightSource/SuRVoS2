@@ -58,7 +58,6 @@ def prepare_features(features, roi_crop, resample_amt):
     filtered_layers = []
 
     for i, feature in enumerate(features):
-
         logger.info(f"Loading feature number {i}: {os.path.basename(feature)}")
 
         data = dataset_from_uri(feature, mode="r")

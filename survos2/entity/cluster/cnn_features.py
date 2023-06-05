@@ -133,7 +133,6 @@ def calc_patch_stats(selected_images):
 
 
 def stdize(image):
-
     mean, std = np.mean(image), np.std(image)
     image = image - mean
     image = image / std

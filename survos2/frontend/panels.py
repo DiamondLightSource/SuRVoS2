@@ -70,13 +70,22 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             self.workspaces_list.addItem(key=s)
         workspaces_widget = HWidgets("Workspace:", self.workspaces_list)
         self.workspaces_list.setEditable(True)
-        self.workspaces_list.activated[str].connect(self.workspaces_selected)
 
         hbox_layout_ws = QtWidgets.QHBoxLayout()
+        #hbox_layout_port = QtWidgets.QHBoxLayout()
+        hbox_layout_startstop = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
 
         hbox_layout_ws.addWidget(workspaces_widget)
         hbox_layout_ws.addWidget(button_load_workspace)
+
+        self.run_button = QPushButton("Start Server")
+        self.stop_button = QPushButton("Stop Server")
+        hbox_layout_startstop.addWidget(self.run_button)
+        hbox_layout_startstop.addWidget(self.stop_button)
+        self.run_button.clicked.connect(self.run_clicked)
+        self.stop_button.clicked.connect(self.stop_clicked)
+
 
         hbox_layout1.addWidget(button_transfer)
         hbox_layout1.addWidget(button_refresh)
@@ -102,6 +111,8 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         # add tabs to button/info panel
         tabs[0][0].layout.addLayout(hbox_layout_ws)
+
+        tabs[0][0].layout.addLayout(hbox_layout_startstop)
         tabs[0][0].layout.addLayout(hbox_layout1)
         self.setup_adv_run_fields()
         self.adv_run_fields.hide()
@@ -113,8 +124,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.workspaces_list.blockSignals(True)
         self.workspaces_list.select(self.selected_workspace)
         self.workspaces_list.blockSignals(False)
-        print(f"WORKSPACES LIST: {self.selected_workspace}")
-
+        
     def toggle_advanced(self):
         """Controls displaying/hiding the advanced run fields on radio button toggle."""
         rbutton = self.sender()
@@ -126,6 +136,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
     def setup_adv_run_fields(self):
         """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
         self.adv_run_fields = QGroupBox()
+                
         adv_run_layout = QGridLayout()
         adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
         self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
@@ -179,7 +190,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         resp = Launcher.g.set_remote(remote_ip_port)
         logger.info(f"Response from server to setting remote: {resp}")
 
-
         if hasattr(self, "selected_workspace"):
             logger.info(f"Setting workspace to: {self.selected_workspace}")
             resp = Launcher.g.run("workspace", "set_workspace", workspace=self.selected_workspace)
@@ -202,32 +212,24 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         Returns:
             PyQt5.QWidgets.GroupBox: GroupBox with run fields.
         """
-        self.run_button = QPushButton("Start Server")
-        self.stop_button = QPushButton("Stop Server")
-
+        
+        self.stop_button.setStyleSheet("background-color: #c24c18; ")
         advanced_button = QRadioButton("Advanced")
         run_layout = QGridLayout()
 
-        run_layout.addWidget(advanced_button, 1, 0)
-        run_layout.addWidget(self.adv_run_fields, 2, 1)
-        run_layout.addWidget(self.run_button, 3, 1)
-        run_layout.addWidget(self.stop_button, 3, 0)
-
+        run_layout.addWidget(advanced_button, 2, 0)
+        run_layout.addWidget(self.adv_run_fields, 3, 0)
         advanced_button.toggled.connect(self.toggle_advanced)
-        self.run_button.clicked.connect(self.run_clicked)
-        self.stop_button.clicked.connect(self.stop_clicked)
 
         return run_layout
 
-    
     def refresh_workspaces(self):
         workspaces = os.listdir(DataModel.g.CHROOT)
         workspaces.sort()
         self.workspaces_list.clear()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
-        
-        
+
     def workspaces_selected(self):
         self.selected_workspace = self.workspaces_list.value()
         self.workspaces_list.blockSignals(True)
@@ -267,18 +269,19 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
     def startup_server(self):
         from survos2.frontend.nb_utils import start_server
+
         port = str(Config["api"]["port"])
         server_process = start_server(port)
         cfg["server_process"] = server_process
         remote_ip_port = "127.0.0.1:" + port
         logger.info(f"Setting remote: {remote_ip_port}")
         resp = Launcher.g.set_remote(remote_ip_port)
-        
+
         if self.selected_workspace != "":
-           workspace = self.selected_workspace
-           logger.info(f"Setting workspace to: {workspace}")
-           resp = Launcher.g.run("workspace", "set_workspace", workspace)
-           logger.info(f"Response from server to setting workspace: {resp}")
+            workspace = self.selected_workspace
+            logger.info(f"Setting workspace to: {workspace}")
+            resp = Launcher.g.run("workspace", "set_workspace", workspace)
+            logger.info(f"Response from server to setting workspace: {resp}")
 
     def button_load_workspace_clicked(self):
         self.workspaces_selected()

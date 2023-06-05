@@ -31,7 +31,13 @@ from survos2.api.annotations import (
 from survos2.api.objects import get_entities
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata
 from survos2.api.workspace import auto_create_dataset
-from survos2.entity.patches import PatchWorkflow, make_patches, organize_entities, sample_images_and_labels, augment_and_save_dataset
+from survos2.entity.patches import (
+    PatchWorkflow,
+    make_patches,
+    organize_entities,
+    sample_images_and_labels,
+    augment_and_save_dataset,
+)
 from survos2.entity.pipeline_ops import make_proposal
 from survos2.entity.sampler import generate_random_points_in_volume
 from survos2.entity.train import train_oneclass_detseg
@@ -109,7 +115,6 @@ def rasterize_points(
     selected_class: int,
     size: List[float] = Query(),
 ) -> "SYNTHESIS":
-
     from survos2.entity.anno.pseudo import organize_entities
 
     src = DataModel.g.dataset_uri(feature_id, group="features")
@@ -629,17 +634,17 @@ def train_3d_cnn(
     anno_id: list = Body(),
     feature_id: list = Body(),
     objects_id: list = Body(),
-    num_samples: int = Body(),#100,
-    num_epochs: int = Body(),#10,
-    num_augs: int = Body(), #0,
+    num_samples: int = Body(),  # 100,
+    num_epochs: int = Body(),  # 10,
+    num_augs: int = Body(),  # 0,
     patch_size: list = Body(),  # = 64,
     patch_overlap: list = Body(),  # 16
-    fcn_type: str = Body(),#"unet3d",
-    bce_to_dice_weight: float = Body(),#= 0.7,
-    threshold: float = Body(), #= 0.5,
-    overlap_mode: str = Body(),#"crop",
-    cuda_device: int = Body(), #0,
-    plot_figures: bool = Body()
+    fcn_type: str = Body(),  # "unet3d",
+    bce_to_dice_weight: float = Body(),  # = 0.7,
+    threshold: float = Body(),  # = 0.5,
+    overlap_mode: str = Body(),  # "crop",
+    cuda_device: int = Body(),  # 0,
+    plot_figures: bool = Body(),
 ) -> "CNN":
     """3D CNN using eithe FPN or U-net architecture.
 
@@ -671,7 +676,9 @@ def train_3d_cnn(
     list_label_vols = []
 
     # Get datsets from workspaces and sample patches
-    for count, (workspace_id, feat_id, label_id, obj_id) in enumerate(zip(workspace, feature_id, anno_id, objects_id)):
+    for count, (workspace_id, feat_id, label_id, obj_id) in enumerate(
+        zip(workspace, feature_id, anno_id, objects_id)
+    ):
         logger.info(f"Current workspace: {workspace_id}. Retrieving datasets.")
         DataModel.g.current_workspace = workspace_id
         logger.info(f"Train_3d fcn using anno {anno_id} and feature {feature_id}")
@@ -698,13 +705,12 @@ def train_3d_cnn(
         padding = np.array(patch_size) // 2
         padded_vol = pad_vol(src_array, padding // 2)
         entity_arr = generate_random_points_in_volume(padded_vol, num_samples, padding * 4)
-        
+
         if obj_id != "None":
             objects_src = DataModel.g.dataset_uri(obj_id, group="objects")
             result = get_entities(objects_src)
             entity_arr = decode_numpy(result)
             entity_arr = entity_arr[0:num_samples]
-
 
         combined_clustered_pts, classwise_entities = organize_entities(
             src_array, entity_arr, entity_meta, plot_all=plot_figures, flipxy=True
@@ -724,7 +730,6 @@ def train_3d_cnn(
             combined_clustered_pts,
         )
 
-        
         # generate patches
         logger.debug(f"Obtained annotation level with labels {np.unique(anno_level)}")
         logger.debug(f"Making patches in path {src_dataset._path}")
@@ -733,7 +738,7 @@ def train_3d_cnn(
         # train_v_density = make_patches(
         #     wf,
         #     entity_arr,
-        #     
+        #
         #     vol_num,
         #     proposal_vol=(anno_level == 1) * 1.0,
         #     padding=padding,
@@ -743,32 +748,27 @@ def train_3d_cnn(
         #     patch_size=patch_size,
         # )
 
-        
         max_vols = -1
-        img_vols, label_vols, mask_gt = sample_images_and_labels(wf,
-                                    entity_arr,
-                                vol_num,
-                                (anno_level == 1) * 1.0,
-                                padding,
-                                num_augs,
-                                plot_figures,
-                                patch_size)
-        
+        img_vols, label_vols, mask_gt = sample_images_and_labels(
+            wf,
+            entity_arr,
+            vol_num,
+            (anno_level == 1) * 1.0,
+            padding,
+            num_augs,
+            plot_figures,
+            patch_size,
+        )
+
         list_image_vols.append(img_vols)
         list_label_vols.append(label_vols)
 
     img_vols = np.concatenate(list_image_vols)
     label_vols = np.concatenate(list_label_vols)
 
-    train_v_density = augment_and_save_dataset(img_vols, 
-                             label_vols,
-                             wf, 
-                             outdir,  
-                             mask_gt,
-                             padding,
-                             num_augs,
-                             plot_figures, 
-                             max_vols)
+    train_v_density = augment_and_save_dataset(
+        img_vols, label_vols, wf, outdir, mask_gt, padding, num_augs, plot_figures, max_vols
+    )
 
     # Load in data volume from current workspace
     DataModel.g.current_workspace = current_ws
@@ -785,7 +785,6 @@ def train_3d_cnn(
     wf_params["torch_models_fullpath"] = model_out
     logger.info(f"Saving fcn model to: {model_out}")
 
-    
     model_type = fcn_type
 
     model_file = train_oneclass_detseg(
@@ -817,8 +816,8 @@ def train_3d_cnn(
 
     print(f"Made proposal {proposal.shape}")
 
-    if len(proposal.shape)==4:
-        proposal = proposal[0,:]
+    if len(proposal.shape) == 4:
+        proposal = proposal[0, :]
     # normalize volume and threshold
     proposal -= np.min(proposal)
     proposal = proposal / np.max(proposal)
@@ -877,7 +876,6 @@ def predict_3d_cnn(
         src_dataset = DM.sources[0]
         logger.debug(f"Adding feature of shape {src_dataset.shape}")
 
-
     proposal = make_proposal(
         src_dataset,
         model_fullname,
@@ -890,8 +888,8 @@ def predict_3d_cnn(
 
     proposal = proposal.numpy()
 
-    if len(proposal.shape)==4:
-        proposal = proposal[0,:]
+    if len(proposal.shape) == 4:
+        proposal = proposal[0, :]
 
     proposal -= np.min(proposal)
     proposal = proposal / np.max(proposal)
@@ -1017,7 +1015,7 @@ def per_object_cleaning(
     fname = os.path.basename(objects_name)
     objects_dataset_fullpath = ds_objects._path
     entities_fullname = os.path.join(objects_dataset_fullpath, fname)
-    
+
     tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=False)
     entities_arr = np.array(entities_df)
     entities_arr[:, 3] = np.array([[1] * len(entities_arr)])
@@ -1052,7 +1050,6 @@ def _per_object_cleaning(
     c = bvol_dim[0], bvol_dim[1], bvol_dim[2]
 
     for i, p in enumerate(bvol_seg):
-
         seg, _ = bvol_seg[i]
         cleaned_patch = (get_largest_cc(seg) > 0) * 1.0
         # try:
@@ -1066,8 +1063,21 @@ def _per_object_cleaning(
             plt.imshow(mask[c[0], :])
 
         z_st, y_st, x_st, z_end, y_end, x_end = bvol_seg.bvols[i]
-        target[z_st:z_end,x_st:x_end,y_st:y_end,
-            ] = ((mask + target[z_st:z_end,x_st:x_end,y_st:y_end,]) > 0) * 1
+        target[
+            z_st:z_end,
+            x_st:x_end,
+            y_st:y_end,
+        ] = (
+            (
+                mask
+                + target[
+                    z_st:z_end,
+                    x_st:x_end,
+                    y_st:y_end,
+                ]
+            )
+            > 0
+        ) * 1
 
     target = target[
         patch_size[0] : target.shape[0] - patch_size[0],

@@ -47,7 +47,6 @@ def plot_clustered_img(
     cmap="gray",
     title="Clustered Images",
 ):
-
     num_classes = len(np.unique(colors))
     print(f"Plotting {num_classes} clusters.")
     palette = np.array(sns.color_palette("hls", num_classes))

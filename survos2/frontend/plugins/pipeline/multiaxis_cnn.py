@@ -299,12 +299,11 @@ class TrainMultiaxisCNN(PipelineCardBase):
             1: "Z",
             2: "Y",
             3: "X",
-                            }
+        }
         adv_train_layout.addWidget(QLabel("Train Axis:"), 6, 0)
         adv_train_layout.addWidget(HWidgets(all_axes_rb, z_axis_rb, y_axis_rb, x_axis_rb), 6, 1)
         self.adv_train_fields.setLayout(adv_train_layout)
-        
-        
+
     def toggle_advanced_train(self):
         """Controls displaying/hiding the advanced train fields on radio button toggle."""
         rbutton = self.sender()
@@ -403,7 +402,7 @@ class PredictMultiaxisCNN(PipelineCardBase):
             0: "Z",
             1: "Y",
             2: "X",
-                            }
+        }
         adv_pred_layout.addWidget(QLabel("Single plane predict axis:"), 1, 0)
         adv_pred_layout.addWidget(HWidgets(z_axis_rb, y_axis_rb, x_axis_rb), 1, 1)
         self.adv_pred_fields.setLayout(adv_pred_layout)

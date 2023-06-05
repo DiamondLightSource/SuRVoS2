@@ -32,7 +32,6 @@ def show_images_and_points(
     if class_names is None:
         class_names = [str(i) for i in cluster_classes]
     for image, title in zip(images, titles):
-
         a = fig.add_subplot(1, n_ims, n)
         plt.imshow(image, cmap="gray")
         scat = a.scatter(
@@ -90,7 +89,6 @@ def aggregation(
     print(f"Clustering pts {orig_pts.shape}")
 
     if plot_all:
-
         plt.figure(figsize=(14, 14))
         plt.gca().invert_yaxis()
         plt.scatter(
@@ -114,7 +112,6 @@ def aggregation(
     scale_minmax = False
 
     if scale_minmax:
-
         scale_x = 1.0 / np.max(X[:, 0])
         scale_y = 1.0 / np.max(X[:, 1])
         scale_z = 1.0 / np.max(X[:, 2])
@@ -178,7 +175,6 @@ def aggregation(
             print("Proportion removed: {}".format(num_outliers_removed / X_rescaled.shape[0]))
 
     elif method == "dbscan":
-
         clusterer = DBSCAN(eps=eps, min_samples=min_samples).fit(X_rescaled)
         label_code_cl = clusterer.labels_
         X_rescaled_cl = X_rescaled[label_code_cl != -1]
@@ -233,7 +229,6 @@ def aggregation(
     clustered[:, 3] = cc
 
     if plot_all:
-
         plt.figure(figsize=(14, 14))
         plt.gca().invert_yaxis()
         plt.scatter(

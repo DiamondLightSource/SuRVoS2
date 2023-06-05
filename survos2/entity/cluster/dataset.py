@@ -28,7 +28,6 @@ def sample_bounding_volume(img_volume, bvol, patch_size):
         and y_st > 0
         and y_end < img_volume.shape[2]
     ):
-
         img = img_volume[z_st:z_end, y_st:y_end, x_st:x_end]
     else:
         img = np.zeros(patch_size)
@@ -116,7 +115,6 @@ class BoundingVolumeDataset(Dataset):
 
 class LabeledVolDataset(Dataset):
     def __init__(self, image, labels, transform=None, threechan=True):
-
         self.image, self.labels = image, labels
         self.transform = transform
         self.threechan = threechan
@@ -125,7 +123,6 @@ class LabeledVolDataset(Dataset):
         return self.image.shape[0]
 
     def __getitem__(self, idx):
-
         image = self.image[idx, :]
         label = self.labels[idx, :]
         # label = np.stack((self.labels[0][idx,:],self.labels[1][idx,:],self.labels[2][idx,:])).T
@@ -164,7 +161,6 @@ class SimpleVolumeDataset(Dataset):
 
 class MaskedDataset(Dataset):
     def __init__(self, images, masks, transform=None):
-
         self.input_images, self.target_masks = images, masks
         self.transform = transform
 
@@ -172,7 +168,6 @@ class MaskedDataset(Dataset):
         return len(self.input_images)
 
     def __getitem__(self, idx):
-
         image = self.input_images[idx]
         mask = self.target_masks[idx]
 
@@ -238,7 +233,6 @@ def prepare_bb(
 
     print(summary_stats(mask_orig))
     if plot_verbose:
-
         blobs_log = blob_log(mask_orig, max_sigma=30, num_sigma=10, threshold=0.1)
 
         fig, axes = plt.subplots(1, 2, figsize=(9, 3), sharex=True, sharey=True)
@@ -272,7 +266,6 @@ def prepare_bb(
     # print(f"BBox Area Min {props[0].bbox_area}, thresh {bbox_area_min}")
 
     if plot_verbose:
-
         image_label_overlay = label2rgb(label_img)  # , image=bin_mask)
         fig, ax = plt.subplots(figsize=(10, 6))
         # ax.imshow(image_label_overlay)
@@ -345,17 +338,14 @@ class BBDataset(Dataset):
     """
 
     def __init__(self, images, masks, transform=None, plot_verbose=False):
-
         self.input_images, self.target_masks = images, masks
         self.transform = transform
         self.plot_verbose = plot_verbose
 
     def __len__(self):
-
         return len(self.input_images)
 
     def __getitem__(self, idx):
-
         image = self.input_images[idx]
 
         composite_mask = self.target_masks[idx]
@@ -384,7 +374,6 @@ class BBDataset(Dataset):
         mask_orig = erosion(mask_orig, disk(morph_amt))
 
         if self.plot_verbose:
-
             blobs_log = blob_log(mask_orig, max_sigma=30, num_sigma=10, threshold=0.1)
             fig, axes = plt.subplots(1, 3, figsize=(9, 3), sharex=True, sharey=True)
             ax = axes.ravel()
@@ -469,7 +458,6 @@ class BBDataset(Dataset):
 # LabeledDataset
 class SmallVolDataset(Dataset):
     def __init__(self, images, labels, class_names=None, slice_num=None, dim=3, transform=None):
-
         self.input_images, self.target_labels = images, labels
         self.transform = transform
         self.class_names = class_names
@@ -480,7 +468,6 @@ class SmallVolDataset(Dataset):
         return len(self.input_images)
 
     def __getitem__(self, idx):
-
         image = self.input_images[idx]
         label = self.target_labels[idx]
 
@@ -500,7 +487,6 @@ class SmallVolDataset(Dataset):
 
 
 def setup_dataloaders_smallvol():
-
     smallvol_image_trans = transforms.Compose(
         [
             transforms.ToTensor(),
@@ -542,7 +528,6 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
         onechan_to_3chan=True,
         threechan=False,
     ):
-
         self.X, self.X_test, self.y, self.y_test = train_test_split(patch_data, labels)
 
         self.fold = fold
@@ -635,9 +620,7 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
             return len(self.test_idx)
 
     def __getitem__(self, idx):
-
         if self.mode == "train":
-
             label_tensor = torch.tensor(self.y[self.train_idx[idx]], dtype=torch.long)
 
             if self.onechan_to_3chan:
@@ -657,14 +640,12 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
                     label_tensor,
                 )
             else:
-
                 if self.threechan:
                     main_img = (
                         self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1], 3) * 255
                     )
 
                 else:
-
                     main_img = (
                         self.X[self.train_idx[idx]].reshape(self.im_dim[0], self.im_dim[1]) * 255
                     )
@@ -675,11 +656,9 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
                 )
 
         elif self.mode == "test":
-
             label_tensor = torch.tensor(self.y[self.test_idx[idx]], dtype=torch.long)
 
             if self.onechan_to_3chan:
-
                 main_img = self.X[self.test_idx[idx]].reshape(self.im_dim[0], self.im_dim[1])
                 img_out = np.zeros((self.im_dim[0], self.im_dim[1], 3))
 
@@ -708,7 +687,6 @@ class SmallThreeChanDataset(torch.utils.data.Dataset):
         return return_tuple
 
     def preprocess_img(self, img):
-
         if self.augment_data == False:
             preprocessing = self.transforms
         else:

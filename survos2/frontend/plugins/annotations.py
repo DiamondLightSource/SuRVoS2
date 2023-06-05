@@ -87,7 +87,6 @@ def dilate_annotations(yy, xx, img_shape, line_width):
 
 @register_plugin
 class AnnotationPlugin(Plugin):
-
     __icon__ = "fa.pencil"
     __pname__ = "annotations"
     __views__ = ["slice_viewer"]
@@ -113,6 +112,7 @@ class AnnotationPlugin(Plugin):
 
         hbox = HBox(self, margin=1, spacing=3)
         self.label = AnnotationComboBox()
+        cfg.selected_label = self.label 
         self.region = RegionComboBox(header=(None, "Voxels"), full=True)
         self.label.currentIndexChanged.connect(self.set_sv)
         self.region.currentIndexChanged.connect(self.set_sv)
@@ -196,22 +196,24 @@ class AnnotationPlugin(Plugin):
 
     def annotation_from_slice_clicked(self):
         slice_num = cfg.viewer.cursor.position[0]
-        params = dict(target_level=self.label.value()["level"],
-                      source_level=self.label.value()["level"],
-                      region=os.path.basename(cfg.current_supervoxels),
-                      slice_num=slice_num,
-                      modal=False,
-                      workspace=True,
-                      viewer_order=cfg.viewer_order,)
-        
+        params = dict(
+            target_level=self.label.value()["level"],
+            source_level=self.label.value()["level"],
+            region=os.path.basename(cfg.current_supervoxels),
+            slice_num=slice_num,
+            modal=False,
+            workspace=True,
+            viewer_order=cfg.viewer_order,
+        )
+
         result = Launcher.g.run("annotations", "annotate_from_slice", json_transport=True, **params)
         cfg.ppw.clientEvent.emit(
-                {
-                    "source": "annotations",
-                    "data": "paint_annotations",
-                    "level_id": self.label.value()["level"],
-                }
-            )
+            {
+                "source": "annotations",
+                "data": "paint_annotations",
+                "level_id": self.label.value()["level"],
+            }
+        )
 
     def button_pause_save_clicked(self):
         cfg.remote_annotation = not cfg.remote_annotation
@@ -287,7 +289,6 @@ class AnnotationPlugin(Plugin):
 
 
 class AnnotationLevel(CardWithId):
-
     removed = QtCore.Signal(str)
 
     def __init__(self, level, parent=None, brush_slider=None):
@@ -377,7 +378,6 @@ class AnnotationLevel(CardWithId):
 
 
 class AnnotationLabel(QCSWidget):
-
     __height__ = 30
     removed = QtCore.Signal(int)
 
@@ -479,7 +479,18 @@ class AnnotationLabel(QCSWidget):
                 },
             }
         )
-        cfg.brush_size = self.brush_slider.value()
+        # set label dropdown to label just selected
+        cfg.brush_size = self.brush_slider.value() 
+        params = dict(workspace=True, full=True)
+        levels = Launcher.g.run("annotations", "get_levels", **params)
+        for i,level in enumerate(levels):
+            if os.path.basename(level['id']) == self.level_dataset:
+                level_idx = i
+        count = 0
+        for i in range(0, level_idx):
+            count += len(levels[i]['labels'])
+            count += 1
+        cfg.selected_label.setCurrentIndex(count + self.label_idx)
 
     def set_parent(self):
         try:

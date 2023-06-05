@@ -277,7 +277,6 @@ def make_anno(wf, entities, entity_meta, gt_proportion, padding, acwe=False, plo
         core_mask_radius=(12, 12, 12),
     )
 
-    
     return anno_masks, anno_all, entities
 
 
@@ -338,7 +337,6 @@ def make_pseudomasks(
     anno_gen = np.sum([anno_masks[i]["mask"] for i in anno_masks.keys()], axis=0)
     anno_shell_gen = np.sum([anno_masks[i]["shell_mask"] for i in anno_masks.keys()], axis=0)
 
-    
     anno_all = [anno_masks[i]["mask"] for i in classwise_entities.keys()]
     anno_all.extend(anno_shell_gen)
 
@@ -366,6 +364,5 @@ def make_pseudomasks(
             anno_acwe[i] = p.image_layers["acwe"]
 
             anno_all = anno_acwe
-
 
     return anno_masks, anno_all

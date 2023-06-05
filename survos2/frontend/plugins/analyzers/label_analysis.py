@@ -258,7 +258,7 @@ class FindConnectedComponents(AnalyzerCardBase):
         self.load_as_objects_btn = PushButton("Load as Objects")
         self.additional_buttons.append(self.load_as_objects_btn)
         self.load_as_objects_btn.clicked.connect(self.load_as_objects)
-        #self._add_view_btn()
+        # self._add_view_btn()
 
     def calculate(self):
         dst = DataModel.g.dataset_uri(self.analyzer_id, group="analyzer")

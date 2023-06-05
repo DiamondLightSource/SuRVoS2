@@ -112,7 +112,6 @@ class SmallVolDataset(Dataset):
         return len(self.input_images)
 
     def __getitem__(self, idx):
-
         image = self.input_images[idx]
         label = self.target_labels[idx]
 
@@ -235,39 +234,36 @@ def make_patches(
     plot_all=False,
     patch_size=(64, 64, 64),
 ):
-    
-    img_vols, label_vols, mask_gt = sample_images_and_labels(wf,
-                                                             selected_locs,
-                                                            vol_num,
-                                                            proposal_vol,
-                                                            padding,
-                                                            num_augs,
-                                                            plot_all,
-                                                            patch_size)
+    img_vols, label_vols, mask_gt = sample_images_and_labels(
+        wf, selected_locs, vol_num, proposal_vol, padding, num_augs, plot_all, patch_size
+    )
 
-    img_vols_fullpath, label_vols_fullpath = augment_and_save_dataset(img_vols, 
-                             label_vols,
-                             wf, 
-                             outdir,  
-                             mask_gt,
-                             get_biggest_cc,
-                             padding,
-                             num_augs,
-                             plot_all, 
-                             max_vols)
-    
+    img_vols_fullpath, label_vols_fullpath = augment_and_save_dataset(
+        img_vols,
+        label_vols,
+        wf,
+        outdir,
+        mask_gt,
+        get_biggest_cc,
+        padding,
+        num_augs,
+        plot_all,
+        max_vols,
+    )
+
     return img_vols_fullpath, label_vols_fullpath
 
 
-def sample_images_and_labels( wf,
+def sample_images_and_labels(
+    wf,
     selected_locs,
     vol_num=0,
     proposal_vol=None,
     padding=(64, 64, 64),
     num_augs=2,
     plot_all=False,
-    patch_size=(64, 64, 64)):
-    
+    patch_size=(64, 64, 64),
+):
     # make bg mask
     target_cents = np.array(selected_locs)[:, 0:4]
     logger.info(f"Making patches for {len(target_cents)} locations")
@@ -326,25 +322,27 @@ def sample_images_and_labels( wf,
 
     img_vols = marked_patches.vols
     label_vols = marked_patches_anno.vols
-    
+
     return img_vols, label_vols, mask_gt
 
 
-def augment_and_save_dataset(img_vols, label_vols, 
-                             wf, 
-                             outdir,  
-                             mask_gt,
-                             padding, 
-                             num_augs,
-                             plot_all,
-                             max_vols,
-                             get_biggest_cc=False):
+def augment_and_save_dataset(
+    img_vols,
+    label_vols,
+    wf,
+    outdir,
+    mask_gt,
+    padding,
+    num_augs,
+    plot_all,
+    max_vols,
+    get_biggest_cc=False,
+):
     print(
         f"Marked patches, unique label vols {np.unique(label_vols)}, img mean: {np.mean(img_vols[0])}"
     )
 
     if num_augs > 0:
-
         img_vols_flipped = []
         label_vols_flipped = []
 
@@ -398,7 +396,7 @@ def augment_and_save_dataset(img_vols, label_vols,
     test_loader3d = torch.utils.data.DataLoader(
         test_dataset3d, batch_size=1, shuffle=False, num_workers=0, drop_last=False
     )
-    
+
     # wf.params["selected_locs"] = selected_locs
     wf.params["outdir"] = outdir
 
@@ -410,18 +408,17 @@ def augment_and_save_dataset(img_vols, label_vols,
 
             from survos2.frontend.nb_utils import show_images
 
-            show_images([img[padding[0] // 2, :], 
-                lbl[padding[0] // 2, :]], 
-                figsize=(4, 4), 
+            show_images(
+                [img[padding[0] // 2, :], lbl[padding[0] // 2, :]],
+                figsize=(4, 4),
                 outdir=wf.params["outdir"],
-                suptitle=str(i)
+                suptitle=str(i),
             )
 
             print(f"Unique mask values: {np.unique(lbl)}")
 
     print(f"Augmented image vols shape {img_vols.shape}, label vols shape {label_vols.shape}")
-    
-    
+
     # save vols
     now = datetime.now()
     dt_string = now.strftime("%d%m_%H%M")
@@ -537,7 +534,6 @@ def make_patches2(
     )
 
     if num_augs > 0:
-
         img_vols_flipped = []
         label_vols_flipped = []
 

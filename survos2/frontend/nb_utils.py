@@ -20,6 +20,7 @@ from survos2.model import DataModel
 from survos2 import survos
 from datetime import datetime
 
+
 def start_server(server_port, short_form_subprocess_command=False):
     command_dir = os.path.abspath(os.path.dirname(__file__))
     command_dir = Path(command_dir).absolute().parent.resolve()
@@ -156,9 +157,7 @@ def slice_plot(
             plt.imshow(img_volume[z, :] + bg_vol[z, :], cmap="gray")
         plt.title(f"XY, Z: {z}")
         if pts is not None:
-
             if unique_color_plot:
-
                 unique = np.unique(pts[:, 3])
                 for i, u in enumerate(unique):
                     xs = pts[:, 1][pts[:, 3] == u]
@@ -249,7 +248,6 @@ def view_volumes(imgvols, name=""):
 
 def view_label(label_vol, name="Label"):
     with napari.gui_qt():
-
         viewer = napari.Viewer()
         viewer.add_labels(label_vol, name=name)
 
@@ -258,7 +256,6 @@ def view_label(label_vol, name="Label"):
 
 def view_labels(img_vols, label_vol, name=""):
     with napari.gui_qt():
-
         viewer = napari.Viewer()
         label_layer = viewer.add_labels(
             label_vol,
@@ -270,7 +267,6 @@ def view_labels(img_vols, label_vol, name=""):
 
 def view_vols_labels(img_vols, label_vol, name=""):
     with napari.gui_qt():
-
         viewer = napari.Viewer()
         names = [str(i) for i in range(len(img_vols))]
 
@@ -396,7 +392,7 @@ def show_images(images, titles=None, figsize=(12, 12), suptitle="", outdir=None)
     if outdir:
         now = datetime.now()
         dt_string = now.strftime("%d%m_%H%M")
-        plt.savefig(os.path.join(outdir, "patches_" + dt_string + "_" + suptitle + '.png'))
+        plt.savefig(os.path.join(outdir, "patches_" + dt_string + "_" + suptitle + ".png"))
     plt.show()
 
 
@@ -428,7 +424,6 @@ def grid_of_images_and_clicks(
     f, axarr = plt.subplots(n_rows, n_cols, figsize=figsize)
     for i in range(n_rows):
         for j in range(n_cols):
-
             axarr[i, j].imshow(images[i * n_cols + j], cmap="gray", origin="lower")
             axarr[i, j].set_title(img_titles[i * n_cols + j])
             axarr[i, j].scatter([point[0]], [point[1]], c="red")
@@ -500,7 +495,6 @@ def show_images_and_points(
     if class_names is None:
         class_names = [str(i) for i in cluster_classes]
     for image, title in zip(images, titles):
-
         a = fig.add_subplot(1, n_ims, n)
         plt.imshow(image, cmap="gray")
 

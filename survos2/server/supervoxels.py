@@ -87,7 +87,6 @@ def superregion_factory(
     features_stack: np.ndarray,
     desc_type="Mean",
 ) -> SRData:
-
     supervoxel_vol = np.array(supervoxel_vol).astype(np.uint32, copy=True)
 
     if desc_type == "Mean":

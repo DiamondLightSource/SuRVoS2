@@ -170,7 +170,7 @@ def points(
     scale: float,
 ) -> "GEOMETRY":
     with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        #DM.out[:] = np.zeros_like(img_volume)
+        # DM.out[:] = np.zeros_like(img_volume)
         dst_dataset = DM.sources[0]
         dst_dataset.set_attr("scale", scale)
 

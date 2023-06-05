@@ -118,7 +118,6 @@ def normalized_coords2(entities_df, img_shape, scale_minmax=False):
     scale_z = (1.0 / np.max(X[:, 0])) * 0.02
 
     if scale_minmax:
-
         xlim = (
             np.min(X_rescaled[:, 1]).astype(np.uint16) - 0.1,
             np.max(X_rescaled[:, 1]).astype(np.uint16) + 0.1,
@@ -159,7 +158,6 @@ def normalized_coords(entities_df, img_volume, scale_minmax=False):
     scale_z = (1.0 / np.max(X[:, 0])) * 0.02
 
     if scale_minmax:
-
         xlim = (
             np.min(X_rescaled[:, 1]).astype(np.uint16) - 0.1,
             np.max(X_rescaled[:, 1]).astype(np.uint16) + 0.1,
@@ -399,7 +397,6 @@ def extract_session_roi2(
     plot_slices=False,
     debug_verbose=False,
 ):
-
     click_data = []  # list of per-session data
     global_idx = 0
 
@@ -432,7 +429,6 @@ def extract_session_roi2(
         click_data.extend(session)
 
         if plot_slices:
-
             droi = imstack[sliceno, :, :].copy()
             droi = np.fliplr(droi)
 
@@ -555,7 +551,6 @@ def generate_click_plot_data1(img_data, click_coords):
     img_titles = []
 
     for j in range(len(click_coords)):
-
         if j % 5000 == 0:
             print("Generating click plot data: {}".format(j))
 
@@ -600,7 +595,6 @@ def generate_click_plot_data_cropped(img_data, click_coords, bv, patch_size=(40,
         w, h = patch_size
 
         if sliceno < bv[1] and sliceno > bv[0]:
-
             sel_cropped_clicks.append((sliceno, x, y, w, h))
             img = get_img_in_bbox(img_data, sliceno, int(np.ceil(x)), int(np.ceil(y)), w, h)
 

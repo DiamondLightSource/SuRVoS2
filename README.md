@@ -1,8 +1,10 @@
 # SuRVoS2
 
-Volumetric Image Segmentation
+SuRVoS2 is a workbench for volumetric image segmentation. It provides a GUI interface for annotation-intensive segmentation projects, enabling a fast iterative process of annotation, model training, and segmentation evaluation. SuRVoS2 is part of the Napari ecosystem of image analysis tools and has an interface that tries to leverage the power of Napari for simplifying complex workflows.
 
-----------------------------------
+SuRVoS2 supports fast supervoxel-based classical ML segmentation prediction, multi-axis 2d U-net (and related) architectures and has initial suppport for 3D CNN architectures.  SuRVoS2 also supports connected component analysis of segmentations with interactive inspection of individual components. 
+
+![Screenshot](docs/screenshot.png)
 
 
 ## Installation
@@ -17,7 +19,7 @@ The [SuRVoS2 Tutorial] .
 
 ## Contributing
 
-Contributions are very welcome. Tests can be run with [tox], please ensure
+Contributions are very welcome. Tests can be run with pytest, please ensure
 the coverage at least stays the same before you submit a pull request.
 
 ## License

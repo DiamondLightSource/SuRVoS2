@@ -240,7 +240,7 @@ class Trainer:
         initial_lr: float,
         device: int,
         accumulate_iters: int = 8,
-        model_output_as_list = False
+        model_output_as_list=False,
     ):
         self.model = model
         self.criterion = criterion
@@ -319,8 +319,8 @@ class Trainer:
             label_batch = label_batch.to(self.device)
             if self.model_output_as_list:
                 preds = self.model(input_batch)[0]
-            else:                
-                preds = self.model(input_batch) 
+            else:
+                preds = self.model(input_batch)
             # print(preds[0].shape)
             preds_post = preds[:, 0 : self.num_out_channels, :, :, :]
             loss = self.criterion(preds_post, label_batch)
@@ -356,7 +356,7 @@ class Trainer:
                     input_batch.to(self.device),
                     label_batch.to(self.device),
                 )
-            
+
                 if self.model_output_as_list:
                     preds = self.model(input_batch)[0]
                 else:
@@ -478,7 +478,6 @@ def train_detector_head(
     defrost_after=None,
     num_samples_per_log_entry=200,
 ):
-
     from survos2.entity.models.head_cnn import make_classifications
 
     epochs, losses = [], []

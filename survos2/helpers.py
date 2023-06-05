@@ -77,7 +77,6 @@ def view_volume2(imgvol, name=""):
 
 
 def view_volume(imgvol, points=[], name=""):
-
     translate_limits = (28, 100)
     size = np.array([2] * len(points))
 
@@ -93,7 +92,6 @@ def view_volume(imgvol, points=[], name=""):
 
 
 def stdize(image):
-
     mean, std = np.mean(image), np.std(image)
     image = image - mean
     image = image / std
@@ -101,7 +99,6 @@ def stdize(image):
 
 
 def simple_norm(arr, minim=0.0, maxim=1.0):
-
     normed_arr = arr.copy()
     normed_arr -= np.min(arr)
 
@@ -151,7 +148,6 @@ def docstring_parameter(*sub):
 
 
 def plot_2d_data(data, labels, titles=["x", "y"], suptitle="2d data"):
-
     fig = plt.figure(figsize=(8, 6))
     t = fig.suptitle(suptitle, fontsize=14)
     ax = fig.add_subplot(111)
@@ -299,31 +295,26 @@ def plot_4d_data(data, labels, titles=["P", "Q", "R", "S"], suptitle="4d data"):
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
-
         super(AttrDict, self).__init__(*args, **kwargs)
 
         self.__dict__ = self
 
 
 def make_dirs(dirs):
-
     for directory in dirs:
         if not os.path.exists(directory):
             os.makedirs(directory)
 
 
 def randrange(n, vmin, vmax):
-
     return (vmax - vmin) * np.random.rand(n) + vmin
 
 
 def get_window(image_volume, sliceno, xstart, ystart, xend, yend):
-
     return image_volume[sliceno, xstart:xend, ystart:yend]
 
 
 def parse_tuple(string):
-
     try:
         s = ast.literal_eval(str(string))
         if type(s) == tuple:
