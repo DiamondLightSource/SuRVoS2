@@ -65,6 +65,7 @@ scikit-image==0.19.2
 scikit-learn
 scipy
 seaborn
+segment-anything @ git+https://github.com/facebookresearch/segment-anything.git
 setuptools==65.6.3
 simpleitk
 snowballstemmer

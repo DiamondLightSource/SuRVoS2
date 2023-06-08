@@ -511,16 +511,10 @@ class PipelineCardBase(Card):
                 level=str(self.annotations_source.value().rsplit("/", 1)[-1]),
                 workspace=True,
             )
-            print(self.annotations_source.value().rsplit("/", 1))
-            print(params)
             anno_result = Launcher.g.run("annotations", "get_single_level", **params)
 
-            print(anno_result)
             params = dict(level=str(level_id), workspace=True)
             level_result = Launcher.g.run("annotations", "get_single_level", **params)
-            print(level_result)
-            print(level_id)
-            print(params)
             try:
                 # set the new level color mapping to the mapping from the pipeline
                 for v in level_result["labels"].keys():
