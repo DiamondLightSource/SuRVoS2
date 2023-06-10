@@ -59,7 +59,24 @@ from survos2.frontend.nb_utils import (
     view_volume,
     view_volumes,
 )
-from survos2.entity.cluster.dataset import sample_bounding_volume
+
+
+def sample_bounding_volume(img_volume, bvol, patch_size):
+    z_st, x_st, y_st, z_end, x_end, y_end = bvol
+    # print(img_volume.shape, z_st, z_end, x_st, x_end, y_st, y_end)
+    if (
+        z_st > 0
+        and z_end < img_volume.shape[0]
+        and x_st > 0
+        and x_end < img_volume.shape[1]
+        and y_st > 0
+        and y_end < img_volume.shape[2]
+    ):
+        img = img_volume[z_st:z_end, y_st:y_end, x_st:x_end]
+    else:
+        img = np.zeros(patch_size)
+
+    return img
 
 
 class BoundingVolumeDataset(Dataset):

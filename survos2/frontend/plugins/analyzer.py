@@ -34,9 +34,6 @@ from survos2.frontend.plugins.analyzers.label_analysis import (
     FindConnectedComponents,
 )
 
-# from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
-# from survos2.entity.cluster.clusterer import select_clusters
-
 from survos2.frontend.plugins.analyzers.spatial_clustering import SpatialClustering
 from survos2.frontend.plugins.annotations import LevelComboBox
 

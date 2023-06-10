@@ -101,35 +101,6 @@ def grab_features(img_3channel, num_fv=None):
 # This is just to explore the distribution of the pixel data and check the normalization is working
 
 
-def calc_patch_stats(selected_images):
-    im_w, im_h = (
-        selected_images[0].shape[0],
-        selected_images[0].shape[1],
-    )  # this is width and height of each patch 64,64
-    print(im_w, im_h)
-    selected_images[0].shape  # 64 , 64
-    img_data = selected_images[0].copy()
-    mean = img_data.mean()
-
-    print(img_data.shape)
-    print("Min: %.3f, Max: %.3f" % (img_data.min(), img_data.max()))
-    print("Mean: %.3f" % mean)
-    img_data = img_data - mean
-
-    print(img_data)
-
-    img_data = img_data - img_data.min()
-
-    print("Min: %.3f, Max: %.3f" % (img_data.min(), img_data.max()))
-
-    print(img_data)
-    img_data /= np.max(img_data)
-
-    print("Min: %.3f, Max: %.3f" % (img_data.min(), img_data.max()))
-
-
-# The pre-trained ResNet is trained on 3 channel RGB.
-# Duplicating grayscale channels seems to work ok
 
 
 def stdize(image):
@@ -142,7 +113,6 @@ def stdize(image):
 def simple_norm(img_data):
     img_data = img_data - img_data.mean()
     img_data = img_data - img_data.min()
-    # image = image / std
     img_data /= np.max(img_data)
 
     return img_data

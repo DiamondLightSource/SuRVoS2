@@ -150,14 +150,6 @@ def patch_2d_features2(img_volume, bvol_table, gpu_id=0, padvol=10):
     return vec_mat, selected_images, patch_dict, bvol_info
 
 
-# def sample_patch_roi(img_volume, bvol_table, padvol=14):
-#     raligned, raligned_labels, bvol_info = roi_pool_vol(
-#         img_volume, [bvol_table], padvol=padvol
-#     )
-#     patch_dict, bvol_info = prepare_patch_dict(raligned, raligned_labels, bvol_info)
-#     print(f"Number of roi extracted {len(patch_dict.keys())}")
-#     return patch_dict, bvol_info
-
 
 def prepare_patch_dict(raligned, raligned_labels, bvol_info):
     patch_dict = OrderedDict()

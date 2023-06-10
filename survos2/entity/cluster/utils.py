@@ -118,21 +118,9 @@ def remove_padding(vol, padding):
 
 
 def get3dcc(pred_vol):
-    # pred_t= torch.FloatTensor(pred_vol)
-    # pred_t = torch.abs(pred_t.unsqueeze(0))
-    # input_tens = input_tens / torch.max(input_tens)
-    # pred_ssm_t = kornia.dsnt.spatial_softmax_2d(pred_t, temperature=0.1)
-
-    # print(f"SSM stats: {summary_stats(pred_ssm_t.numpy())}")
-    # pred_ssm = pred_ssm_t.squeeze(0).detach().numpy()
-
     pred_vol_mask = (((pred_vol > 0.45)) * 1.0).astype(np.uint16)
-    # pred_vol_mask = pred_ssm.astype(np.uint16)
-    # print(pred_vol_mask.shape)
-
     connectivity = 6
     labels_out = cc3d.connected_components(pred_vol_mask, connectivity=connectivity)  # 26-connected
-
     return labels_out
 
 
