@@ -1,6 +1,10 @@
 SURVOS INSTALLATION
 
-1. Check to see if CUDA is installed, currently 11.3 and 11.6 are recommended. To
+SuRVoS2 requires GPU acceleration both for the 3d rendering in the interactive frontend GUI (via Napari) and for the Pytorch backend for deep learning segmentation.
+A recent (e.g. A100) is recommended for deep learning segmentation on larger (> 1000x1000x1000) volumes, but smaller volumes can be segmented on P100s or T4s or equivalent laptop hardware.
+
+
+1. Check to see if CUDA is installed, currently 11.3 and 11.6 are recommended (see below). To
 check your CUDA installation see the CUDA instructions at the bottom of this document.
 
 2. Create a folder (on the Desktop for example) to download the survos2 installer.
