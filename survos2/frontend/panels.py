@@ -212,7 +212,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             PyQt5.QWidgets.GroupBox: GroupBox with run fields.
         """
 
-        self.stop_button.setStyleSheet("background-color: #c24c18; ")
         advanced_button = QRadioButton("Advanced")
         run_layout = QGridLayout()
 
