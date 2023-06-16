@@ -150,7 +150,6 @@ def patch_2d_features2(img_volume, bvol_table, gpu_id=0, padvol=10):
     return vec_mat, selected_images, patch_dict, bvol_info
 
 
-
 def prepare_patch_dict(raligned, raligned_labels, bvol_info):
     patch_dict = OrderedDict()
     for r, rlabel, bv_info in zip(raligned, raligned_labels, bvol_info):

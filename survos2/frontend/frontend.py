@@ -224,7 +224,6 @@ def frontend(viewer):
     def setup_paint_undo(label_layer):
         @label_layer.bind_key("Control-Z", overwrite=True)
         def undo(input_event):
-            
             logger.info("Undoing annotation")
             print(input_event)
             if cfg.num_undo == 0:

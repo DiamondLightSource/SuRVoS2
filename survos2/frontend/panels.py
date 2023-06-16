@@ -72,7 +72,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.workspaces_list.setEditable(True)
 
         hbox_layout_ws = QtWidgets.QHBoxLayout()
-        #hbox_layout_port = QtWidgets.QHBoxLayout()
+        # hbox_layout_port = QtWidgets.QHBoxLayout()
         hbox_layout_startstop = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
 
@@ -85,7 +85,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         hbox_layout_startstop.addWidget(self.stop_button)
         self.run_button.clicked.connect(self.run_clicked)
         self.stop_button.clicked.connect(self.stop_clicked)
-
 
         hbox_layout1.addWidget(button_transfer)
         hbox_layout1.addWidget(button_refresh)
@@ -124,7 +123,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.workspaces_list.blockSignals(True)
         self.workspaces_list.select(self.selected_workspace)
         self.workspaces_list.blockSignals(False)
-        
+
     def toggle_advanced(self):
         """Controls displaying/hiding the advanced run fields on radio button toggle."""
         rbutton = self.sender()
@@ -136,7 +135,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
     def setup_adv_run_fields(self):
         """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
         self.adv_run_fields = QGroupBox()
-                
+
         adv_run_layout = QGridLayout()
         adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
         self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
@@ -212,7 +211,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         Returns:
             PyQt5.QWidgets.GroupBox: GroupBox with run fields.
         """
-        
+
         self.stop_button.setStyleSheet("background-color: #c24c18; ")
         advanced_button = QRadioButton("Advanced")
         run_layout = QGridLayout()

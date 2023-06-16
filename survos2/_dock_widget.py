@@ -33,7 +33,6 @@ class Workspace(QWidget):
         self.layout().addWidget(self.dw.ppw)
 
 
-
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
     return [Workspace]

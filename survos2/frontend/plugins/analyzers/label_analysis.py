@@ -174,9 +174,7 @@ class LabelAnalyzer(AnalyzerCardBase):
         all_params["json_transport"] = True  # needed as api call uses a dict
 
         logger.debug(f"Running analyzer with params {all_params}")
-        result_features, features_array = Launcher.g.run(
-            "analyzer", "label_analyzer", **all_params
-        )
+        result_features, features_array = Launcher.g.run("analyzer", "label_analyzer", **all_params)
         features_ndarray = np.array(features_array)
 
         if features_array:

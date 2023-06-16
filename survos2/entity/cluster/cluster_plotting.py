@@ -118,8 +118,6 @@ def plot_clustered_img(
 #     return f, axarr
 
 
-
-
 def image_grid(
     image_list,
     n_cols,

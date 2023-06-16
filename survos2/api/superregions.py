@@ -158,7 +158,7 @@ def sam(
         stability_score_thresh=stability_score_thresh,
         crop_n_layers=crop_n_layers,
         crop_n_points_downscale_factor=crop_n_points_downscale_factor,
-        min_mask_region_area=min_mask_region_area,  
+        min_mask_region_area=min_mask_region_area,
     )
 
     MAX_Z = feature_array.shape[0]

@@ -1183,7 +1183,9 @@ def object_analyzer(
         ds_objects = DM.sources[0]
     entities_fullname = ds_objects.get_metadata("fullname")
     objects_path = ds_objects._path
-    tabledata, entities_df = setup_entity_table(os.path.join(objects_path, entities_fullname), flipxy=flipxy)
+    tabledata, entities_df = setup_entity_table(
+        os.path.join(objects_path, entities_fullname), flipxy=flipxy
+    )
 
     entities = np.array(make_entity_df(np.array(entities_df), flipxy=False))
 

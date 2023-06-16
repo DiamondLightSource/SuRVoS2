@@ -101,8 +101,6 @@ def grab_features(img_3channel, num_fv=None):
 # This is just to explore the distribution of the pixel data and check the normalization is working
 
 
-
-
 def stdize(image):
     mean, std = np.mean(image), np.std(image)
     image = image - mean
