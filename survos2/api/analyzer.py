@@ -450,6 +450,7 @@ def label_splitter(
             for i in range(sel_start, sel_end)
         ]
     )
+    result_features = features_array
 
     rules = []
     calculate = False
@@ -522,7 +523,7 @@ def label_splitter(
 
 def apply_rules(features: np.ndarray, label: int, rules: tuple, out: np.ndarray, num_objects: int):
     logger.debug("Applying rules")
-    mask = np.ones(num_objects, dtype=np.bool)
+    mask = np.ones(num_objects, dtype=bool)
 
     for f, s, t in rules:
         if s == 0:
