@@ -1,5 +1,5 @@
 from napari_plugin_engine import napari_hook_implementation
-from qtpy.QtWidgets import QWidget, QVBoxLayout, QPushButton
+from qtpy.QtWidgets import QWidget, QVBoxLayout, QApplication
 from magicgui import magic_factory
 from survos2.model import DataModel
 from survos2.config import Config
@@ -31,6 +31,14 @@ class Workspace(QWidget):
         self.dw = frontend(napari_viewer)
         self.layout().addWidget(self.dw.bpw)
         self.layout().addWidget(self.dw.ppw)
+        self.appInstance = QApplication.instance()
+        self.appInstance.lastWindowClosed.connect(self.on_close_callback) 
+
+    def on_close_callback(self) -> None:
+        if "server_process" in cfg:
+            if cfg["server_process"] is not None:
+                logger.info('Stopping server.')
+                cfg["server_process"].kill()
 
 
 @napari_hook_implementation
