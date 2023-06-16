@@ -5,7 +5,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from qtpy import QtWidgets
 
-from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
+from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid, plot_clustered_img
 from survos2.frontend.components.base import (
     VBox,
     SimpleComboBox,
@@ -312,7 +312,7 @@ class ObjectAnalyzer(AnalyzerCardBase):
                     sc2 = MplGridCanvas(
                         self, width=8, height=8, num_rows=n_rows, num_cols=n_cols, dpi=100
                     )
-                    image_grid2(selected_images, n_cols, sc2.fig, sc2.axesarr, bigtitle=str(l))
+                    image_grid(selected_images, n_cols, sc2.fig, sc2.axesarr, bigtitle=str(l))
                     self.object_analyzer_plots.append(sc2)
 
             for k in self.object_analyzer_plots:

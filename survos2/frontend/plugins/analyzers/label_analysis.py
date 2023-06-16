@@ -4,7 +4,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from napari.qt.progress import progress
-from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
+from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid, plot_clustered_img
 
 from survos2.frontend.control import Launcher
 from survos2.frontend.components.base import (
@@ -174,9 +174,7 @@ class LabelAnalyzer(AnalyzerCardBase):
         all_params["json_transport"] = True  # needed as api call uses a dict
 
         logger.debug(f"Running analyzer with params {all_params}")
-        result_features, features_array, bvols = Launcher.g.run(
-            "analyzer", "label_analyzer", **all_params
-        )
+        result_features, features_array = Launcher.g.run("analyzer", "label_analyzer", **all_params)
         features_ndarray = np.array(features_array)
 
         if features_array:

@@ -1,6 +1,12 @@
 SURVOS INSTALLATION
 
-1. Check to see if CUDA is installed, currently 11.3 and 11.6 are recommended. To
+SuRVoS2 requires GPU acceleration both for the 3d rendering in the interactive frontend GUI (via Napari) and for the Pytorch backend for deep learning segmentation.
+A recent (e.g. A100) is recommended for deep learning segmentation on larger (e.g. > 800x800x800) volumes, but smaller volumes can be segmented on P100s or T4s or equivalent laptop hardware.
+
+Note, for Windows, MSVC Build Tools is required: https://visualstudio.microsoft.com/downloads/?q=build+tools.
+
+
+1. Check to see if CUDA is installed, currently 11.3 and 11.6 are recommended (see below). To
 check your CUDA installation see the CUDA instructions at the bottom of this document.
 
 2. Create a folder (on the Desktop for example) to download the survos2 installer.
@@ -14,7 +20,7 @@ Navigate to the folder created
 
 Download Survos2 using git clone
 
-	$ git clone https://github.com/DiamondLightSource/SuRVoS2.git
+	$ git clone https://github.com/rosalindfranklininstitute/SuRVoS2.git
 
 Navigate into the Survos2 folder
 

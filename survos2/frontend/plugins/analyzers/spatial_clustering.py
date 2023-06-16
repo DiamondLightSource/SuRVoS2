@@ -6,7 +6,7 @@ from matplotlib.figure import Figure
 from napari.qt.progress import progress
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QPushButton, QRadioButton
-from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid2, plot_clustered_img
+from survos2.entity.cluster.cluster_plotting import cluster_scatter, image_grid, plot_clustered_img
 from survos2.entity.cluster.clusterer import select_clusters
 from survos2.frontend.components.base import VBox, SimpleComboBox, HWidgets, PushButton, LineEdit
 from survos2.frontend.control import Launcher

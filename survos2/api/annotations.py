@@ -26,8 +26,6 @@ def pass_through(x):
 
 
 annotations = APIRouter()
-
-
 CHUNK_SIZE = Config["computing.chunk_size_sparse"]
 
 

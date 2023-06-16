@@ -1,6 +1,6 @@
 import ntpath
 from typing import List
-
+import os
 import matplotlib.patheffects as PathEffects
 import numpy as np
 import pandas as pd
@@ -450,6 +450,7 @@ def label_splitter(
             for i in range(sel_start, sel_end)
         ]
     )
+    result_features = features_array
 
     rules = []
     calculate = False
@@ -522,7 +523,7 @@ def label_splitter(
 
 def apply_rules(features: np.ndarray, label: int, rules: tuple, out: np.ndarray, num_objects: int):
     logger.debug("Applying rules")
-    mask = np.ones(num_objects, dtype=np.bool)
+    mask = np.ones(num_objects, dtype=bool)
 
     for f, s, t in rules:
         if s == 0:
@@ -1181,7 +1182,10 @@ def object_analyzer(
     with DatasetManager(src, out=None, dtype="float32", fillvalue=0) as DM:
         ds_objects = DM.sources[0]
     entities_fullname = ds_objects.get_metadata("fullname")
-    tabledata, entities_df = setup_entity_table(entities_fullname, flipxy=flipxy)
+    objects_path = ds_objects._path
+    tabledata, entities_df = setup_entity_table(
+        os.path.join(objects_path, entities_fullname), flipxy=flipxy
+    )
 
     entities = np.array(make_entity_df(np.array(entities_df), flipxy=False))
 

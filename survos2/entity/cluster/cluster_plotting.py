@@ -3,7 +3,7 @@ import numpy as np
 import seaborn as sns
 from matplotlib import offsetbox
 from matplotlib import pyplot as plt
-from survos2.frontend.nb_utils import show_images
+from survos2.frontend.nb_utils import grid_of_images2, show_images, show_image_grid
 
 sns.set_style("darkgrid")
 sns.set_palette("muted")
@@ -16,16 +16,13 @@ def cluster_scatter(x, colors, text_labels=False):
 
     f = plt.figure(figsize=(8, 8))
     ax = plt.subplot(aspect="equal")
-    sc = ax.scatter(x[:, 0], x[:, 1], lw=0, s=40, c=palette[colors.astype(np.int)])
+    sc = ax.scatter(x[:, 0], x[:, 1], lw=0, s=40, c=palette[colors.astype(np.int32)])
 
     plt.xlim(-25, 25)
     plt.ylim(-25, 25)
 
     ax.axis("off")
     ax.axis("tight")
-    # ax.set_title(
-    #    "Plot of k-means clustering of small click windows using ResNet-18 Features"
-    # )
 
     if text_labels:
         txts = []
@@ -69,7 +66,7 @@ def plot_clustered_img(
             imagebox.set_zorder(-1)
             ax.add_artist(imagebox)
 
-    ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=40, c=palette[colors.astype(np.int)], zorder=1)
+    ax.scatter(proj[:, 0], proj[:, 1], lw=0, s=40, c=palette[colors.astype(np.int32)], zorder=1)
     txts = []
 
     for i in range(num_classes):
@@ -84,47 +81,44 @@ def plot_clustered_img(
     print(txts)
 
 
+# def image_grid(
+#     image_list,
+#     n_cols,
+#     image_titles="",
+#     bigtitle="",
+#     figsize=(20, 20),
+#     color="black",
+# ):
+#     print(f"List of length {len(image_list)}")
+#     if len(image_list) < n_cols:
+#         show_images(image_list)
+#     else:
+#         n_rows = (len(image_list) // n_cols) + 1
+#         print(f"Number of rows: {n_rows}, Number of columns {n_cols}")
+#         images = [image_list[i] for i in range(len(image_list))]
+
+#         if image_titles == "":
+#             image_titles = [str(t) for t in list(range(len(images)))]
+
+#         f, axarr = plt.subplots(n_rows, n_cols, figsize=figsize)
+
+#         for i in range(n_rows):
+#             for j in range(n_cols):
+#                 index = i * n_cols + j
+#                 print(index)
+#                 if index < len(images):
+#                     axarr[i, j].imshow(images[index], cmap="gray")
+
+#                 axarr[i, j].grid(False)
+#                 # axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10, color=color)
+#                 axarr[i, j].tick_params(
+#                     labeltop=False, labelleft=False, labelbottom=False, labelright=False
+#                 )
+#         f.suptitle(bigtitle, color=color)
+#     return f, axarr
+
+
 def image_grid(
-    image_list,
-    n_cols,
-    image_titles="",
-    bigtitle="",
-    figsize=(20, 20),
-    color="black",
-):
-    print(f"List of length {len(image_list)}")
-    if len(image_list) < n_cols:
-        show_images(image_list)
-    else:
-        n_rows = (len(image_list) // n_cols) + 1
-        print(f"Number of rows: {n_rows}, Number of columns {n_cols}")
-        images = [image_list[i] for i in range(len(image_list))]
-
-        if image_titles == "":
-            image_titles = [str(t) for t in list(range(len(images)))]
-
-        f, axarr = plt.subplots(n_rows, n_cols, figsize=figsize)
-
-        for i in range(n_rows):
-            for j in range(n_cols):
-                index = i * n_cols + j
-                print(index)
-                if index < len(images):
-                    axarr[i, j].imshow(images[index], cmap="gray")
-
-                axarr[i, j].grid(False)
-                # axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10, color=color)
-                axarr[i, j].tick_params(
-                    labeltop=False, labelleft=False, labelbottom=False, labelright=False
-                )
-        f.suptitle(bigtitle, color=color)
-    return f, axarr
-
-
-from survos2.frontend.nb_utils import grid_of_images2, show_images, show_image_grid
-
-
-def image_grid2(
     image_list,
     n_cols,
     fig,
@@ -164,10 +158,10 @@ def image_grid2(
     return fig, axarr
 
 
-def image_grids(images, labels):
-    figs = []
-    for i in np.unique(labels):
-        print(i)
-        fig, _ = image_grid(images[labels == i], 3, figsize=(8, 8))
-        figs.append(fig)
-    return figs
+# def image_grids(images, labels):
+#     figs = []
+#     for i in np.unique(labels):
+#         print(i)
+#         fig, _ = image_grid(images[labels == i], 3, figsize=(8, 8))
+#         figs.append(fig)
+#     return figs
