@@ -17,7 +17,6 @@ def test_datamodel():
         data -= da.min(data)
         data /= da.max(data)
         ds = ws.add_data(data)
-        # ds.set_attr("chunk_size", chunk_size)
 
     ws.add_dataset("testds", "float32")
     assert ws.exists(workspace_fpath)
