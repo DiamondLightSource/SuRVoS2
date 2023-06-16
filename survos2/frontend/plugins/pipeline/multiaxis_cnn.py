@@ -135,6 +135,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
         data_label = QtWidgets.QLabel("Select training data:")
         self.add_row(data_label)
         self.workspaces_list = self._get_workspaces_list()
+        self.workspaces_list
         self.workspaces_list.currentTextChanged.connect(self.on_ws_combobox_changed)
         ws_widget = HWidgets("Workspace:", self.workspaces_list, stretch=1)
         self.add_row(ws_widget)
@@ -173,6 +174,7 @@ class TrainMultiaxisCNN(PipelineCardBase):
 
     def _get_workspaces_list(self):
         workspaces = [d for d in next(os.walk(DataModel.g.CHROOT))[1]]
+        workspaces.sort()
         workspaces_list = ComboBox()
         workspaces_list.setMaximumWidth(250)
         for s in workspaces:
