@@ -45,7 +45,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         run_config = {
             "server_ip": "127.0.0.1",
-            "server_port": "8000",
+            "server_port": "8034",
             "workspace_name": "blank",
         }
         self.run_config = run_config
@@ -73,18 +73,10 @@ class ButtonPanelWidget(QtWidgets.QWidget):
 
         hbox_layout_ws = QtWidgets.QHBoxLayout()
         # hbox_layout_port = QtWidgets.QHBoxLayout()
-        hbox_layout_startstop = QtWidgets.QHBoxLayout()
         hbox_layout1 = QtWidgets.QHBoxLayout()
 
         hbox_layout_ws.addWidget(workspaces_widget)
         hbox_layout_ws.addWidget(button_load_workspace)
-
-        self.run_button = QPushButton("Start Server")
-        self.stop_button = QPushButton("Stop Server")
-        hbox_layout_startstop.addWidget(self.run_button)
-        hbox_layout_startstop.addWidget(self.stop_button)
-        self.run_button.clicked.connect(self.run_clicked)
-        self.stop_button.clicked.connect(self.stop_clicked)
 
         hbox_layout1.addWidget(button_transfer)
         hbox_layout1.addWidget(button_refresh)
@@ -111,7 +103,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         # add tabs to button/info panel
         tabs[0][0].layout.addLayout(hbox_layout_ws)
 
-        tabs[0][0].layout.addLayout(hbox_layout_startstop)
         tabs[0][0].layout.addLayout(hbox_layout1)
         self.setup_adv_run_fields()
         self.adv_run_fields.hide()
@@ -136,16 +127,26 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
         self.adv_run_fields = QGroupBox()
 
+
+        #hbox_layout_startstop = QtWidgets.QHBoxLayout()
+
         adv_run_layout = QGridLayout()
-        adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
+        self.run_button = QPushButton("Start Server")
+        self.stop_button = QPushButton("Stop Server")
+        adv_run_layout.addWidget(self.run_button, 0, 0, 1, 2)
+        adv_run_layout.addWidget(self.stop_button, 0, 2, 1, 2)
+        self.run_button.clicked.connect(self.run_clicked)
+        self.stop_button.clicked.connect(self.stop_clicked)
+
+        adv_run_layout.addWidget(QLabel("Server IP Address:"), 1, 0, 1, 2)
         self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
-        adv_run_layout.addWidget(self.server_ip_linedt, 0, 1)
-        adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
+        adv_run_layout.addWidget(self.server_ip_linedt, 1, 2, 1, 2)
+        adv_run_layout.addWidget(QLabel("Server Port:"), 2, 0, 1, 2)
         self.server_port_linedt = QLineEdit(self.run_config["server_port"])
-        adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
+        adv_run_layout.addWidget(self.server_port_linedt, 2, 2, 1, 2)
 
         self.existing_button = QPushButton("Use Existing Server")
-        adv_run_layout.addWidget(self.existing_button, 2, 1)
+        adv_run_layout.addWidget(self.existing_button, 3, 2, 1, 2)
 
         self.existing_button.clicked.connect(self.existing_clicked)
         self.adv_run_fields.setLayout(adv_run_layout)

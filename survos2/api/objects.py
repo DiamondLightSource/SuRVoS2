@@ -15,7 +15,7 @@ from survos2.model import DataModel
 from survos2.utils import encode_numpy
 from survos2.frontend.components.entity import setup_entity_table
 from survos2.entity.entities import load_entities_via_file, make_entity_df, make_entity_bvol
-
+from survos2.api._objects.points import objects as points
 
 __objects_fill__ = 0
 __objects_dtype__ = "uint32"
@@ -24,7 +24,7 @@ __objects_names__ = ["points", "boxes", "patches"]
 
 
 objects = APIRouter()
-
+objects.include_router(points)
 
 def load_bvols(bvols_arr, flipxy=True):
     entities_df = make_entity_bvol(bvols_arr, flipxy=flipxy)
@@ -163,35 +163,9 @@ def get_entities_metadata(src: str):
     return entities_metadata
 
 
-@objects.get("/points")
-def points(
-    dst: str,
-    fullname: str,
-    scale: float,
-) -> "GEOMETRY":
-    with DatasetManager(dst, out=dst, dtype="float32", fillvalue=0) as DM:
-        # DM.out[:] = np.zeros_like(img_volume)
-        dst_dataset = DM.sources[0]
-        dst_dataset.set_attr("scale", scale)
-
-        offset = [0, 0, 0]
-        crop_start = [0, 0, 0]
-        crop_end = [1e9, 1e9, 1e9]
-
-        dst_dataset.set_attr("offset", offset)
-        dst_dataset.set_attr("crop_start", crop_start)
-        dst_dataset.set_attr("crop_end", crop_end)
-
-        basename = os.path.basename(fullname)
-        # csv_saved_fullname = dst_dataset.save_file(fullname)
-        csv_saved_fullname = dst_dataset.save_file(fullname)
-        logger.debug(f"Saving {fullname} to {csv_saved_fullname}")
-        dst_dataset.set_attr("fullname", csv_saved_fullname)
-
-        return dataset_repr(dst_dataset)
 
 
-@objects.get("/boxes")
+@objects.get("/boxes", response_model=None)
 def boxes(
     dst: str,
     fullname: str,
@@ -212,7 +186,7 @@ def boxes(
         dst_dataset.set_attr("fullname", csv_saved_fullname)
 
 
-@objects.get("/patches")
+@objects.get("/patches", response_model=None)
 def patches(
     dst: str,
     fullname: str,

@@ -30,9 +30,10 @@ from survos2.frontend.plugins.analyzers.geometry import PointGenerator
 from survos2.frontend.plugins.analyzers.label_analysis import (
     LabelAnalyzer,
     LabelSplitter,
-    RemoveMaskedObjects,
     FindConnectedComponents,
 )
+from survos2.frontend.plugins.analyzers.remove_masked_objects import RemoveMaskedObjects
+
 
 from survos2.frontend.plugins.analyzers.spatial_clustering import SpatialClustering
 from survos2.frontend.plugins.annotations import LevelComboBox

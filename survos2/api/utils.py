@@ -1,18 +1,58 @@
 import hug
 import inspect
 import logging as log
+import numpy as np
+from loguru import logger
 import os.path as op
 from functools import wraps
 from survos2.data_io import dataset_from_uri
 from survos2.config import Config
-
+from survos2.improc.utils import DatasetManager
 from loguru import logger
+from survos2.improc import map_blocks
 
 CHUNK = Config["computing.chunks"]
 CHUNK_SIZE = Config["computing.chunk_size"]
 CHUNK_PAD = Config["computing.chunk_padding"]
 SCALE = Config["computing.scale"]
 STRETCH = Config["computing.stretch"]
+
+
+
+
+def _unpack_lists(input_list):
+    """Unpacks a list of strings containing sublists of strings
+    such as provided by the data table in the 2d U-net training pipeline card
+
+    Args:
+        input_list (list): list of strings which contain sublists
+
+    Returns:
+        list: list of hidden items from the table (first member in sublist)
+    """
+    return [item[0] for item in input_list]
+    # return [ast.literal_eval(item)[0] for item in input_list]
+
+
+
+def rescale_denan(img):
+    img = img - np.min(img)
+    img = img / np.max(img)
+    img = np.nan_to_num(img)
+    return img
+
+def simple_norm(dst):
+    with DatasetManager(dst, out=None, dtype="float32", fillvalue=0) as DM:
+        arr = DM.sources[0][:]
+        arr -= np.min(arr)
+        arr /= np.max(arr)
+    map_blocks(pass_through, arr, out=dst, normalize=False)
+
+
+
+
+def pass_through(x):
+    return x
 
 
 def dataset_repr(ds):
