@@ -9,10 +9,12 @@ from survos2.improc import map_blocks
 from survos2.improc.utils import DatasetManager
 from survos2.model import DataModel
 from survos2.utils import encode_numpy
+from survos2.config import Config
 from fastapi import APIRouter
 from pathlib import Path
 from tqdm import tqdm
 import urllib.request
+
 
 __region_fill__ = 0
 __region_dtype__ = "uint32"
@@ -21,6 +23,8 @@ __region_names__ = [None, "supervoxels", "sam"]
 
 superregions = APIRouter()
 
+
+CHUNK_SIZE = Config["computing.chunk_size_sparse"]
 
 @superregions.get("/get_volume")
 def get_volume(src: str):
@@ -237,6 +241,7 @@ def create(workspace: str, order: int = 1, big: bool = False):
             __region_dtype__,
             dtype=np.uint64,
             fill=__region_fill__,
+            
         )
     else:
         logger.debug("Creating int32 regions")
@@ -247,6 +252,7 @@ def create(workspace: str, order: int = 1, big: bool = False):
             __region_dtype__,
             # dtype=np.uint32,
             fill=__region_fill__,
+            chunks=CHUNK_SIZE
         )
 
     ds.set_attr("kind", region_type)

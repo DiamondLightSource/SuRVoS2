@@ -16,7 +16,7 @@ from loguru import logger
 from survos2.api import workspace as ws
 from survos2.api.utils import dataset_repr, get_function_api, save_metadata, pass_through, _unpack_lists
 
-
+from survos2.config import Config
 from survos2.api._pipelines.rasterize_points import pipelines as rasterize_points
 from survos2.api._pipelines.superregion_segment import pipelines as superregion_segment
 from survos2.api._pipelines.multiaxis_cnn import pipelines as multiaxis_cnn
@@ -39,6 +39,9 @@ pipelines.include_router(cnn3d)
 pipelines.include_router(postprocess)
 pipelines.include_router(watershed)
 pipelines.include_router(cleaning)
+
+
+CHUNK_SIZE = Config["computing.chunk_size"]
 
 
 class InterceptHandler(logging.Handler):
@@ -72,6 +75,7 @@ def create(workspace: str, pipeline_type: str):
         __pipeline_group__,
         __pipeline_dtype__,
         fill=__pipeline_fill__,
+        chunks=CHUNK_SIZE,
     )
     ds.set_attr("kind", pipeline_type)
 

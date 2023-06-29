@@ -8,6 +8,7 @@ from survos2.api.utils import save_metadata, dataset_repr, pass_through
 from survos2.improc import map_blocks
 from survos2.data_io import dataset_from_uri
 from survos2.utils import encode_numpy, encode_numpy_slice
+from survos2.config import Config
 from survos2.model import DataModel
 from survos2.improc.utils import DatasetManager
 from survos2.api._features.wavelet import features as wavelet
@@ -37,7 +38,7 @@ __feature_group__ = "features"
 __feature_dtype__ = "float32"
 __feature_fill__ = 0
 
-
+CHUNK_SIZE =  Config["computing.chunk_size_sparse"]
 
 
 @features.post("/upload")
@@ -98,6 +99,7 @@ def create(workspace: str, feature_type: str):
         __feature_group__,
         __feature_dtype__,
         fill=__feature_fill__,
+        chunks=CHUNK_SIZE
     )
     ds.set_attr("kind", feature_type)
     logger.debug(f"Created (empty) feature of kind {feature_type}")

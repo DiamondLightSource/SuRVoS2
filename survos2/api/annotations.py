@@ -26,7 +26,7 @@ def pass_through(x):
 
 
 annotations = APIRouter()
-CHUNK_SIZE = Config["computing.chunk_size_sparse"]
+CHUNK_SIZE = Config["computing.chunk_size"]
 
 
 def to_label(idx=0, name="Label", color="#000000", visible=True, **kwargs):
