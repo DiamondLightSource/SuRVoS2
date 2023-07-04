@@ -150,6 +150,8 @@ class AnnotationPlugin(Plugin):
         self.hbox2.addWidget(self.button_pause_save)
         self.hbox2.addWidget(self.button_save_anno)
         self.hbox2.addWidget(self.button_annotation_from_slice)
+        self.from_slice_region = RegionComboBox(header=(None, "Select"), full=True)
+        self.hbox2.addWidget(self.from_slice_region)
         self.adv_run_fields.setLayout(self.hbox2)
 
     def on_created(self):
@@ -195,25 +197,30 @@ class AnnotationPlugin(Plugin):
         )
 
     def annotation_from_slice_clicked(self):
-        slice_num = cfg.viewer.cursor.position[0]
-        params = dict(
-            target_level=self.label.value()["level"],
-            source_level=self.label.value()["level"],
-            region=os.path.basename(cfg.current_supervoxels),
-            slice_num=slice_num,
-            modal=False,
-            workspace=True,
-            viewer_order=cfg.viewer_order,
-        )
+        with progress(total=3) as pbar:
+            pbar.set_description("Viewing feature")
+            pbar.update(1)
+            slice_num = cfg.viewer.cursor.position[0]
+            params = dict(
+                target_level=self.label.value()["level"],
+                source_level=self.label.value()["level"],
+                region=os.path.basename(self.from_slice_region.value()),
+                slice_num=slice_num,
+                modal=False,
+                workspace=True,
+                viewer_order=cfg.viewer_order,
+            )
 
-        result = Launcher.g.run("annotations", "annotate_from_slice", json_transport=True, **params)
-        cfg.ppw.clientEvent.emit(
-            {
-                "source": "annotations",
-                "data": "paint_annotations",
-                "level_id": self.label.value()["level"],
-            }
-        )
+            result = Launcher.g.run("annotations", "annotate_from_slice", json_transport=True, **params)
+            pbar.update(1)
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "paint_annotations",
+                    "level_id": self.label.value()["level"],
+                }
+            )
+            pbar.update(1)
 
     def button_pause_save_clicked(self):
         cfg.remote_annotation = not cfg.remote_annotation
