@@ -609,7 +609,7 @@ class ROIPlugin(Plugin):
         params = dict(workspace=DataModel.g.current_workspace)
         result = Launcher.g.run("workspace", "set_workspace", **params)
         result = Launcher.g.run("roi", "existing")
-        print(f"Result of roi existing: {result}")
+  
         if result:
             from survos2.api.workspace import add_dataset, add_data, delete, get
 

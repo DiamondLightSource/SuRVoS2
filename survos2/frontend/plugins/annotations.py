@@ -119,8 +119,6 @@ class AnnotationPlugin(Plugin):
         self.btn_set = IconButton("fa.pencil", accent=True)
         self.btn_set.clicked.connect(self.set_sv)
 
-        cfg.three_dim_checkbox = CheckBox(checked=False)
-
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
         self.width = Slider(value=10, vmin=2, vmax=100, step=2, auto_accept=True)
@@ -174,6 +172,11 @@ class AnnotationPlugin(Plugin):
         for button in self.btn_group.buttons():
             selected = self.btn_group.checkedButton()
             button.setChecked(button is selected)
+
+    def remove_all_levels(self):
+        for level in self.levels:
+            self.levels.pop(level).setParent(None)
+        _AnnotationNotifier.notify()
 
     def remove_level(self, level):
         if level in self.levels:
@@ -232,16 +235,20 @@ class AnnotationPlugin(Plugin):
             cfg.prev_arr = np.zeros_like(cfg.prev_arr)
 
     def setup(self):
+        print("ANNO SETUP")
         params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("annotations", "get_levels", **params)
         if not result:
             return
-
-        # Remove levels that no longer exist in the server
+        
+        #Remove levels that no longer exist in the server
         rlevels = [r["id"] for r in result]
-        for level in list(self.levels.keys()):
+        print(rlevels)
+        print(list(self.levels))
+        for level in list(self.levels):
             if level not in rlevels:
                 self.remove_level(level)
+        #self.remove_all_levels()
 
         # Populate with new levels if any
         for level in result:
@@ -258,8 +265,7 @@ class AnnotationPlugin(Plugin):
         cfg.label_value = self.label.value()
         cfg.brush_size = self.width.value()
         logger.debug(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
-        # cfg.three_dim = cfg.three_dim_checkbox.value()
-
+        
         if cfg.label_value is not None:
             # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
             cfg.ppw.clientEvent.emit(

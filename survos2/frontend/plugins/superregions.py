@@ -80,7 +80,6 @@ class RegionsPlugin(Plugin):
         params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("superregions", "available", **params)
 
-        print(f"REGIONS AVAILABLE: {result}")
         if result:
             all_categories = sorted(set(p["category"] for p in result))
             for i, category in enumerate(all_categories):
@@ -141,7 +140,7 @@ class RegionsPlugin(Plugin):
         )
 
         result = Launcher.g.run("superregions", "existing", **params)
-        logger.info(f"Region result {result}")
+        logger.debug(f"Region result {result}")
         if result:
             for region in list(self.existing_supervoxels.keys()):
                 if region not in result:
@@ -174,7 +173,6 @@ class SupervoxelCard(Card):
         self.svsource = FeatureComboBox()
         self.svsource.setMaximumWidth(250)
 
-        print(f"SVTYPE: {self.svtype}")
 
         if self.svtype == "supervoxels":
             self.svshape = LineEdit(parse=int, default=10)
