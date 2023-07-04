@@ -17,7 +17,7 @@ from survos2.api._features.base import features as base
 from survos2.api._features.morph import features as morph
 from survos2.api._features.composite import features as composite
 from survos2.api._features.blob import features as blob
-
+from survos2.api._features.edge import features as edge
 
 
 from typing import List
@@ -32,7 +32,7 @@ features.include_router(base)
 features.include_router(morph)
 features.include_router(composite)
 features.include_router(blob)
-
+features.include_router(edge)
 
 __feature_group__ = "features"
 __feature_dtype__ = "float32"
@@ -49,9 +49,7 @@ def upload(file: UploadFile = File(...)):
     """
     encoded_buffer = file.file.read()
     d = pickle.loads(encoded_buffer)
-
     feature = np.array(d["data"])
-
     params = dict(feature_type="raw", workspace=DataModel.g.current_workspace)
     result = create(**params)
     fid = result["id"]
