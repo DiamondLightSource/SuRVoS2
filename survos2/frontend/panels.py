@@ -347,6 +347,9 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         with progress(total=2) as pbar:
             pbar.set_description("Refreshing viewer")
             pbar.update(1)
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+
 
             if "server_process" not in cfg:
                 self.run_clicked()
@@ -354,9 +357,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             pbar.update(2)
 
             self.refresh_workspaces()
-            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
-            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
-
+            
     def button_refresh_clicked(self):
         self.refresh_workspaces()
         cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
