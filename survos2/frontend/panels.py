@@ -145,7 +145,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         Config.update({"model": {"chroot": CHROOT}})
         logger.debug(f"Setting CHROOT to {CHROOT}")
         DataModel.g.CHROOT = CHROOT
-        self.refresh_chroot()
+        self.refresh_workspaces()
 
     def select_chroot_path(self):
         full_path = QtWidgets.QFileDialog.getExistingDirectory(
@@ -170,14 +170,16 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             yaml = ruamel.yaml.YAML()
             yaml.preserve_quotes = True
 
-            with open(str(current_path) + "/../../../settings.yaml") as f:
+            settings_path = os.path.abspath(os.path.join(current_path, '..', '..', 'settings.yaml'))
+
+            with open(settings_path) as f:
                 settings = yaml.load(f)
 
             for entry in settings:
                 if entry == "model":
                     settings["model"]["chroot"] = full_path
 
-            with open(str(current_path) + "/../../../settings.yaml", "w") as f:
+            with open(settings_path,"w") as f:
                 yaml.dump(settings, f)
 
     def toggle_advanced(self):
