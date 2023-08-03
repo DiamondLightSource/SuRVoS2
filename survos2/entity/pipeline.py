@@ -35,7 +35,7 @@ class Patch:
 
 
 def run_workflow(workflow_file):
-    print(workflow_file)
+    """Run a workflow from a YAML file"""
     fullpath = os.path.join(os.path.abspath(os.getcwd()), os.path.abspath(workflow_file))
     if not os.path.isabs(workflow_file):
         workflow_file = fullpath
@@ -73,6 +73,6 @@ def run_workflow(workflow_file):
             survos.run_command(plugin, command, uri=None, src=src, dst=dst)
 
     else:
-        print("Need input workflow YAML file")
+        print("Need input workflow YAML file.")
 
     return all_params, params

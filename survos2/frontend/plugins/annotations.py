@@ -174,7 +174,7 @@ class AnnotationPlugin(Plugin):
             button.setChecked(button is selected)
 
     def remove_all_levels(self):
-        for level in self.levels:
+        for level in self.levels.copy():
             self.levels.pop(level).setParent(None)
         _AnnotationNotifier.notify()
 
@@ -238,22 +238,21 @@ class AnnotationPlugin(Plugin):
         print("ANNO SETUP")
         params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("annotations", "get_levels", **params)
+        self.remove_all_levels()
+
         if not result:
             return
         
         #Remove levels that no longer exist in the server
-        rlevels = [r["id"] for r in result]
-        print(rlevels)
-        print(list(self.levels))
-        for level in list(self.levels):
-            if level not in rlevels:
-                self.remove_level(level)
-        #self.remove_all_levels()
-
+        # rlevels = [r["id"] for r in result]
+        # for level in list(self.levels):
+        #     if level not in rlevels:
+        #         self.remove_level(level)
+        
         # Populate with new levels if any
         for level in result:
-            if level["id"] not in self.levels:
-                self._add_level_widget(level)
+            #if level["id"] not in self.levels:
+            self._add_level_widget(level)
 
     def timerEvent(self, event):
         self.killTimer(self.timer_id)

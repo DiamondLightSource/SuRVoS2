@@ -93,7 +93,6 @@ def remove_masked_objects(
             ]
         )
     logger.debug(f"Total number of entities after masking {len(refined_entity_df)}")
-    print(result_list)
 
     result_list = np.array(result_list)
     result_list = result_list.tolist()
