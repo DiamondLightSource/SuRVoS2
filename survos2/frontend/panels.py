@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from loguru import logger
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import QSize, Signal
 import subprocess
 from survos2.frontend.control import Launcher
@@ -357,7 +357,13 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             pbar.update(2)
 
             self.refresh_workspaces()
-            
+
+            search_str = self.selected_workspace
+            index = self.workspaces_list.findText(search_str, QtCore.Qt.MatchFixedString)
+            if index >= 0:
+                self.workspaces_list.setCurrentText(search_str)
+                logger.debug(f"Setting index of current workspaces to {index}")
+                
     def button_refresh_clicked(self):
         self.refresh_workspaces()
         cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
