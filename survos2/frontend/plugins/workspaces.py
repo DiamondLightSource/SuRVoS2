@@ -710,44 +710,48 @@ class WorkspacesPlugin(Plugin):
     def create_workspace_clicked(self):
         """Performs checks and coordinates workspace creation on button press."""
         logger.debug("Creating workspace: ")
-        # Set the path to the data file
-        vol_path = Path(self.data_filepth_linedt.text())
-        if not vol_path.is_file():
-            err_str = f"No data file exists at {vol_path}!"
-            logger.error(err_str)
-            self.button_feedback_response(err_str, self.create_workspace_button, "maroon")
-        else:
-            self.workspace_config["datasets_dir"] = str(vol_path.parent)
-            self.workspace_config["vol_fname"] = str(vol_path.name)
-            dataset_name = self.h5_intpth_linedt.text()
-            self.workspace_config["dataset_name"] = str(dataset_name).strip("/")
-            # Set the workspace name
-            ws_name = self.ws_name_linedt_1.text()
-            self.workspace_config["workspace_name"] = ws_name
-            # Set the downsample factor
-            ds_factor = self.downsample_spinner.value()
-            self.workspace_config["downsample_by"] = ds_factor
-            # Set the ROI limits if they exist
-            if self.roi_limits:
-                self.workspace_config["roi_limits"] = self.roi_limits
-            try:
-                response = init_ws(self.workspace_config)
-                _, error = response
-                if not error:
-                    self.button_feedback_response(
-                        "Workspace created sucessfully",
-                        self.create_workspace_button,
-                        "green",
-                    )
-                    # Update the workspace name in the 'Run' section
-                    self.ws_name_linedt_2.setText(self.ws_name_linedt_1.text())
-            except WorkspaceException as e:
-                logger.exception(e)
-                self.button_feedback_response(str(e), self.create_workspace_button, "maroon")
-            # self.refresh_chroot()
-            cfg.ppw.clientEvent.emit(
-                {"source": "workspaces_plugin", "data": "refresh_chroot", "value": None}
-            )
+        with progress(total=3) as pbar:
+            # Set the path to the data file
+            vol_path = Path(self.data_filepth_linedt.text())
+            if not vol_path.is_file():
+                err_str = f"No data file exists at {vol_path}!"
+                logger.error(err_str)
+                self.button_feedback_response(err_str, self.create_workspace_button, "maroon")
+            else:
+                self.workspace_config["datasets_dir"] = str(vol_path.parent)
+                self.workspace_config["vol_fname"] = str(vol_path.name)
+                dataset_name = self.h5_intpth_linedt.text()
+                self.workspace_config["dataset_name"] = str(dataset_name).strip("/")
+                # Set the workspace name
+                ws_name = self.ws_name_linedt_1.text()
+                self.workspace_config["workspace_name"] = ws_name
+                # Set the downsample factor
+                ds_factor = self.downsample_spinner.value()
+                self.workspace_config["downsample_by"] = ds_factor
+                # Set the ROI limits if they exist
+                if self.roi_limits:
+                    self.workspace_config["roi_limits"] = self.roi_limits
+                pbar.update(1)
+                try:
+                    response = init_ws(self.workspace_config)
+                    _, error = response
+                    if not error:
+                        self.button_feedback_response(
+                            "Workspace created sucessfully",
+                            self.create_workspace_button,
+                            "green",
+                        )
+                        # Update the workspace name in the 'Run' section
+                        self.ws_name_linedt_2.setText(self.ws_name_linedt_1.text())
+                except WorkspaceException as e:
+                    logger.exception(e)
+                    self.button_feedback_response(str(e), self.create_workspace_button, "maroon")
+                # self.refresh_chroot()
+                pbar.update(1)
+                cfg.ppw.clientEvent.emit(
+                    {"source": "workspaces_plugin", "data": "refresh_chroot", "value": None}
+                )
+                pbar.update(1)
 
     def button_feedback_response(self, message, button, colour_str, timeout=2):
         """Changes button colour and displays feedback message for a limited time period.
