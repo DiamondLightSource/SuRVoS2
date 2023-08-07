@@ -463,26 +463,33 @@ class ROIPlugin(Plugin):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.vbox = VBox(self, spacing=10)
-        hbox_layout3 = QtWidgets.QHBoxLayout()
         self.roi_layout = QtWidgets.QVBoxLayout()
+
+        main_group_box = QGroupBox("Crop regions of interest:")
+        self.main_box_layout = QGridLayout()
 
         self._add_feature_source()
         self.annotations_source = LevelComboBox(full=True)
         self.annotations_source.fill()
         self.annotations_source.setMaximumWidth(250)
         widget = HWidgets("Annotation to copy:", self.annotations_source, stretch=1)
-        self.vbox.addWidget(widget)
+        self.main_box_layout.addWidget(widget)
         button_selectroi = QPushButton("Select ROI", self)
-        self.vbox.addWidget(button_selectroi)
+        self.main_box_layout.addWidget(button_selectroi)
         button_selectroi.clicked.connect(self._launch_data_loader)
-        self._add_boxes_source()
+        
+        boxes_widgets = self._add_boxes_source()
+        multiple_roi_group_box = QGroupBox("Multiple ROIs:")
+        multiple_roi_layout = QGridLayout()
+        multiple_roi_layout.addWidget(boxes_widgets)
 
-        # self.vbox.addLayout(self.roi_layout)
-        self.vbox.addLayout(hbox_layout3)
         self.existing_roi = {}
-        # self.roi_layout = VBox(margin=0, spacing=5)
         self.vbox.addLayout(self.roi_layout)
-
+        self.vbox.addWidget(main_group_box)
+        main_group_box.setLayout(self.main_box_layout)
+        self.vbox.addWidget(multiple_roi_group_box)
+        multiple_roi_group_box.setLayout(multiple_roi_layout)
+        
     def _add_boxes_source(self):
         self.boxes_source = ObjectComboBox(full=True, filter=["boxes"])
         self.boxes_source.fill()
@@ -490,14 +497,14 @@ class ROIPlugin(Plugin):
         button_add_boxes_as_roi = QPushButton("Add Boxes as ROI", self)
         button_add_boxes_as_roi.clicked.connect(self.add_rois)
         widget = HWidgets("Select Boxes:", self.boxes_source, button_add_boxes_as_roi, stretch=1)
-        self.vbox.addWidget(widget)
+        return widget
 
     def _add_feature_source(self, label="Feature:"):
         self.feature_source = FeatureComboBox()
         self.feature_source.fill()
         self.feature_source.setMaximumWidth(250)
         widget = HWidgets(label, self.feature_source, stretch=1)
-        self.vbox.addWidget(widget)
+        self.main_box_layout.addWidget(widget)
 
     def _select_feature(self, feature_id):
         features_src = DataModel.g.dataset_uri(feature_id, group="features")
