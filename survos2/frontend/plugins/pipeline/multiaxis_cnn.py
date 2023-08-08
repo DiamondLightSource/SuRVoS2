@@ -327,8 +327,6 @@ class PredictMultiaxisCNN(PipelineCardBase):
         super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams, pipeline_notifier=pipeline_notifier)
 
     def setup(self):
-        # self.annotations_source = LevelComboBox()
-        # self.annotations_source.hide()
         self._add_feature_source()
         self._add_multi_ax_2d_prediction_params()
         self._add_annotations_source()
