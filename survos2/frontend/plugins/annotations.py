@@ -323,7 +323,12 @@ class AnnotationLevel(CardWithId):
 
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
-        return Launcher.g.run("annotations", "rename_level", **params)
+        result =  Launcher.g.run("annotations", "rename_level", **params)
+        
+        if result["done"]:
+            _AnnotationNotifier.notify()
+
+        return result["done"]
 
     def card_add_item(self):
         params = dict(level=self.level_id, workspace=True)

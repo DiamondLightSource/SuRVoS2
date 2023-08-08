@@ -5,8 +5,8 @@ from survos2.frontend.utils import FileWidget
 
 
 class Train3DCNN(PipelineCardBase):
-    def __init__(self, fid, ftype, fname, fparams, parent=None):
-        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+    def __init__(self, fid, ftype, fname, fparams, parent=None, pipeline_notifier=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams, pipeline_notifier=pipeline_notifier)
 
     def setup(self):
         self._add_annotations_source()
@@ -58,8 +58,8 @@ class Train3DCNN(PipelineCardBase):
 
 
 class Predict3DCNN(PipelineCardBase):
-    def __init__(self, fid, ftype, fname, fparams, parent=None):
-        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+    def __init__(self, fid, ftype, fname, fparams, parent=None, pipeline_notifier=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams, pipeline_notifier=pipeline_notifier)
 
     def setup(self):
         self._add_annotations_source()

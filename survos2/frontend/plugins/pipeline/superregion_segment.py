@@ -160,8 +160,8 @@ class EnsembleWidget(QtWidgets.QWidget):
 
 
 class SuperregionSegment(PipelineCardBase):
-    def __init__(self, fid, ftype, fname, fparams, parent=None):
-        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+    def __init__(self, fid, ftype, fname, fparams, parent=None, pipeline_notifier=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams, pipeline_notifier=pipeline_notifier)
 
     def setup(self):
         logger.debug("Adding a superregion_segment pipeline")

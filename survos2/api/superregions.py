@@ -277,6 +277,7 @@ def remove(workspace: str, region_id: str):
 @superregions.get("/rename")
 def rename(workspace: str, region_id: str, new_name: str):
     ws.rename_dataset(workspace, region_id, __region_group__, new_name)
+    return {"done": "ok"}
 
 
 @superregions.get("/available")

@@ -363,6 +363,8 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             if index >= 0:
                 self.workspaces_list.setCurrentText(search_str)
                 logger.debug(f"Setting index of current workspaces to {index}")
+
+            #cfg.ppw.switch_tab_index(1)
                 
     def button_refresh_clicked(self):
         self.refresh_workspaces()
@@ -501,6 +503,8 @@ class PluginPanelWidget(QtWidgets.QWidget):
         tab = plugin["tab"]
         self.pluginContainer.show_plugin_fast(name, tab)
 
+    def switch_tab_index(self, index):
+        self.pluginContainer.tabwidget.setCurrentIndex(index)
 
 class QtPlotWidget(QtWidgets.QWidget):
     def __init__(self):

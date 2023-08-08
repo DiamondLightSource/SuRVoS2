@@ -171,6 +171,7 @@ def get_levels(workspace: str, full: bool = False):
 def rename_level(workspace: str, level: str, name: str, full: bool = False):
     ds = get_level(workspace, level, full)
     ds.set_metadata("name", name)
+    return {"done": "ok"}
 
 
 @annotations.get("/delete_level")
