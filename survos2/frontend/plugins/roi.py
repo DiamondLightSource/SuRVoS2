@@ -88,7 +88,7 @@ class LoadDataDialog(QDialog):
         container.setLayout(hbox)
         container.setObjectName("loaderContainer")
         container.setStyleSheet(
-            "QWidget#loaderContainer {" "  background-color: #4e4e4e; " "  border-radius: 10px;" "}"
+            "QWidget#loaderContainer {" "  background-color: #9e9e9e; " "  border-radius: 10px;" "}"
         )
         lvbox = QVBoxLayout()
         rvbox = QVBoxLayout()
@@ -206,6 +206,7 @@ class LoadDataDialog(QDialog):
         idx = self.sender().value()
         self.slider_z_label.setNum(idx)
         self.canvas.redraw()
+        self.canvas.redraw()
 
     @pyqtSlot()
     def on_roi_reset_clicked(self):
@@ -311,7 +312,7 @@ class LoadDataDialog(QDialog):
         self.yend_linedt.setText(str(y_end))
         self.zstart_linedt.setText(str(z_start))
         self.zend_linedt.setText(str(z_end))
-        self.canvas.redraw()
+        #self.canvas.redraw()
 
     def clip_roi_box_vals(self, vals):
         """Clip ROI values to ensure that they lie within the data shape.
@@ -437,7 +438,7 @@ class LoadDataDialog(QDialog):
         self.canvas.ax.set_facecolor((1, 1, 1))
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], "gray")
         self.canvas.ax.grid(False)
-        # self.canvas.redraw()
+        self.canvas.redraw()
 
     def update_est_data_size(self, z_size, y_size, x_size):
         """Updates the estimated datasize label according to the dimensions and the downsampling factor.
@@ -484,11 +485,12 @@ class ROIPlugin(Plugin):
         multiple_roi_layout.addWidget(boxes_widgets)
 
         self.existing_roi = {}
-        self.vbox.addLayout(self.roi_layout)
+        
         self.vbox.addWidget(main_group_box)
         main_group_box.setLayout(self.main_box_layout)
         self.vbox.addWidget(multiple_roi_group_box)
         multiple_roi_group_box.setLayout(multiple_roi_layout)
+        self.vbox.addLayout(self.roi_layout)
         
     def _add_boxes_source(self):
         self.boxes_source = ObjectComboBox(full=True, filter=["boxes"])

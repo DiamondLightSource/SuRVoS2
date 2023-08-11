@@ -207,6 +207,7 @@ class LoadDataDialog(QDialog):
         self.slider_z_label.setNum(idx)
         self.canvas.redraw()
 
+
     @pyqtSlot()
     def on_roi_reset_clicked(self):
         """Resets data preview and ROI fields when reset button clicked."""
@@ -230,6 +231,7 @@ class LoadDataDialog(QDialog):
         y_size = y_end - y_start
         z_size = z_end - z_start
         self.update_est_data_size(z_size, y_size, x_size)
+
 
     def get_roi_limits(self):
         """Reads the values of the ROI parameter fields.
@@ -336,7 +338,7 @@ class LoadDataDialog(QDialog):
         self.yend_linedt.setText(str(y_end))
         self.zstart_linedt.setText(str(z_start))
         self.zend_linedt.setText(str(z_end))
-        self.canvas.redraw()
+        #self.canvas.redraw()
 
     def clip_roi_box_vals(self, vals):
         """Clip ROI values to ensure that they lie within the data shape.
@@ -478,7 +480,7 @@ class LoadDataDialog(QDialog):
         self.canvas.ax.set_facecolor((1, 1, 1))
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], "gray")
         self.canvas.ax.grid(False)
-        # self.canvas.redraw()
+        self.canvas.redraw()
 
     def update_est_data_size(self, z_size, y_size, x_size):
         """Updates the estimated datasize label according to the dimensions and the downsampling factor.
