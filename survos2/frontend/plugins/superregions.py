@@ -9,12 +9,10 @@ from survos2.frontend.components.base import (
     Label,
     HWidgets,
     PushButton,
-    SWidget,
+    PluginNotifier,
     clear_layout,
-    QCSWidget,
     CheckBox,
     ComboBox,
-    CardWithId,
     LineEdit,
     Card,
 )
@@ -27,6 +25,8 @@ from survos2.model import DataModel
 from survos2.server.state import cfg
 from survos2.improc.utils import DatasetManager
 from napari.qt.progress import progress
+
+_SuperregionsNotifier = PluginNotifier()
 
 
 class RegionComboBox(LazyComboBox):
@@ -59,11 +59,6 @@ class RegionsPlugin(Plugin):
         super().__init__(parent=parent)
         self.vbox = VBox(self, spacing=10)
 
-        # self(
-        #     IconButton("fa.plus", "Add SuperRegions", accent=True),
-        #     connect=("clicked", self.add_supervoxel),
-        # )
-
         self.regions_combo = ComboBox()
         self.vbox.addWidget(self.regions_combo)
         self.existing_supervoxels = {}
@@ -80,7 +75,6 @@ class RegionsPlugin(Plugin):
         params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("superregions", "available", **params)
 
-        print(f"REGIONS AVAILABLE: {result}")
         if result:
             all_categories = sorted(set(p["category"] for p in result))
             for i, category in enumerate(all_categories):
@@ -141,7 +135,7 @@ class RegionsPlugin(Plugin):
         )
 
         result = Launcher.g.run("superregions", "existing", **params)
-        logger.info(f"Region result {result}")
+        logger.debug(f"Region result {result}")
         if result:
             for region in list(self.existing_supervoxels.keys()):
                 if region not in result:
@@ -174,7 +168,6 @@ class SupervoxelCard(Card):
         self.svsource = FeatureComboBox()
         self.svsource.setMaximumWidth(250)
 
-        print(f"SVTYPE: {self.svtype}")
 
         if self.svtype == "supervoxels":
             self.svshape = LineEdit(parse=int, default=10)
@@ -265,6 +258,9 @@ class SupervoxelCard(Card):
         logger.debug(f"Edited region title {newtitle}")
         params = dict(region_id=self.svid, new_name=newtitle, workspace=True)
         result = Launcher.g.run("superregions", "rename", **params)
+        if result["done"]:
+            _SuperregionsNotifier.notify()
+
         return result["done"]
 
     def view_regions(self):

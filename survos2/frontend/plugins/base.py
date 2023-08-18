@@ -139,9 +139,15 @@ class PluginContainer(QCSWidget):
                 if tab == t[1]:
                     self.containers[t[1]].addWidget(self.selected["widget"], 1)
 
-            if hasattr(self.selected["widget"], "setup"):
-                self.selected["widget"].clear()
-                self.selected["widget"].setup()
+            if name != "annotations":
+                if hasattr(self.selected["widget"], "setup"):
+                    self.selected["widget"].clear()
+                    self.selected["widget"].setup()
+
+            else:
+                if hasattr(self.selected["widget"], "setup"):
+                    self.selected["widget"].setup()
+
 
     def show_plugin_fast(self, name, tab):
         if name in self.plugins:

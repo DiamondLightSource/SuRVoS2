@@ -16,8 +16,8 @@ from survos2.server.state import cfg
 # fmt = "{time} - {name} - {level} - {message}"
 fmt = "<level>{level} - {message} </level><green> - {name}</green>:<cyan>{function}</cyan>:<cyan>{line}</cyan>"
 logger.remove()  # remove default logger
-# logger.add(sys.stderr, level="DEBUG", format=fmt, colorize=True)
-logger.add(sys.stderr, level=Config["logging.overall_level"], format=fmt, colorize=True)
+logger.add(sys.stderr, level="DEBUG", format=fmt, colorize=True)
+#logger.add(sys.stderr, level=Config["logging.overall_level"], format=fmt, colorize=True)
 
 
 class Workspace(QWidget):

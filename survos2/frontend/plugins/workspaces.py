@@ -207,6 +207,7 @@ class LoadDataDialog(QDialog):
         self.slider_z_label.setNum(idx)
         self.canvas.redraw()
 
+
     @pyqtSlot()
     def on_roi_reset_clicked(self):
         """Resets data preview and ROI fields when reset button clicked."""
@@ -230,6 +231,7 @@ class LoadDataDialog(QDialog):
         y_size = y_end - y_start
         z_size = z_end - z_start
         self.update_est_data_size(z_size, y_size, x_size)
+
 
     def get_roi_limits(self):
         """Reads the values of the ROI parameter fields.
@@ -336,7 +338,7 @@ class LoadDataDialog(QDialog):
         self.yend_linedt.setText(str(y_end))
         self.zstart_linedt.setText(str(z_start))
         self.zend_linedt.setText(str(z_end))
-        self.canvas.redraw()
+        #self.canvas.redraw()
 
     def clip_roi_box_vals(self, vals):
         """Clip ROI values to ensure that they lie within the data shape.
@@ -478,7 +480,7 @@ class LoadDataDialog(QDialog):
         self.canvas.ax.set_facecolor((1, 1, 1))
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], "gray")
         self.canvas.ax.grid(False)
-        # self.canvas.redraw()
+        self.canvas.redraw()
 
     def update_est_data_size(self, z_size, y_size, x_size):
         """Updates the estimated datasize label according to the dimensions and the downsampling factor.
@@ -546,8 +548,7 @@ class WorkspacesPlugin(Plugin):
 
         tab1.layout = QVBoxLayout()
         tab1.setLayout(tab1.layout)
-        chroot_fields = self.get_chroot_fields()
-        tab1.layout.addWidget(chroot_fields)
+        
         workspace_fields = self.get_workspace_fields()
         tab1.layout.addWidget(workspace_fields)
 
@@ -568,54 +569,9 @@ class WorkspacesPlugin(Plugin):
     def clear(self):
         pass
 
-    def select_chroot_path(self):
-        print("select_chroot_path")
-        full_path = QtWidgets.QFileDialog.getExistingDirectory(
-            self,
-            "Select project path",
-            ".",
-            options=QFileDialog.DontUseNativeDialog | QtWidgets.QFileDialog.ShowDirsOnly,
-        )
-        if isinstance(full_path, tuple):
-            full_path = full_path[0]
-        if full_path != "":
-            self.given_chroot_linedt.setText(full_path)
-            self.set_chroot()
-            cfg.bpw.refresh_workspaces()
+    
 
-            # edit the settings file to store the chosen chroot path
-            import pathlib
 
-            import ruamel.yaml
-
-            current_path = pathlib.Path(__file__).parent.resolve()
-            yaml = ruamel.yaml.YAML()
-            yaml.preserve_quotes = True
-
-            with open(str(current_path) + "/../../../settings.yaml") as f:
-                settings = yaml.load(f)
-
-            for entry in settings:
-                if entry == "model":
-                    settings["model"]["chroot"] = full_path
-
-            with open(str(current_path) + "/../../../settings.yaml", "w") as f:
-                yaml.dump(settings, f)
-
-    def get_chroot_fields(self):
-        chroot_fields = QGroupBox("Set Main Directory for Storing Workspaces:")
-        chroot_fields.setMaximumHeight(60)
-        chroot_layout = QGridLayout()
-        self.given_chroot_linedt = QLineEdit(CHROOT)
-        select_chroot_path_btn = PushButton("Select Path")
-        select_chroot_path_btn.clicked.connect(self.select_chroot_path)
-
-        chroot_layout.addWidget(self.given_chroot_linedt, 1, 0, 1, 2)
-        set_chroot_button = QPushButton("Set Workspaces Root")
-        chroot_layout.addWidget(select_chroot_path_btn, 1, 2)
-        chroot_fields.setLayout(chroot_layout)
-        set_chroot_button.clicked.connect(self.set_chroot)
-        return chroot_fields
 
     def get_workspace_fields(self):
         """Gets the QGroupBox that contains all the fields for setting up the workspace.
@@ -688,61 +644,7 @@ class WorkspacesPlugin(Plugin):
 
         self.roi_fields.setLayout(roi_fields_layout)
 
-    # def setup_adv_run_fields(self):
-    #     """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
-    #     self.adv_run_fields = QGroupBox("Advanced Run Settings:")
-    #     adv_run_layout = QGridLayout()
-    #     adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
-    #     self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
-    #     adv_run_layout.addWidget(self.server_ip_linedt, 0, 1)
-    #     adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
-    #     self.server_port_linedt = QLineEdit(self.run_config["server_port"])
-    #     adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
 
-    #     self.existing_button = QPushButton("Use Existing Server")
-    #     adv_run_layout.addWidget(self.existing_button, 2, 1)
-
-    #     self.existing_button.clicked.connect(self.existing_clicked)
-
-    #     self.adv_run_fields.setLayout(adv_run_layout)
-
-    # def get_run_fields(self):
-    #     """Gets the QGroupBox that contains the fields for starting SuRVoS.
-
-    #     Returns:
-    #         PyQt5.QWidgets.GroupBox: GroupBox with run fields.
-    #     """
-    #     self.run_button = QPushButton("Start Server")
-    #     self.stop_button = QPushButton("Stop Server")
-
-    #     advanced_button = QRadioButton("Advanced")
-    #     run_fields = QGroupBox("Run SuRVoS:")
-    #     run_layout = QGridLayout()
-
-    #     workspaces = os.listdir(CHROOT)
-    #     self.workspaces_list = ComboBox()
-    #     for s in workspaces:
-    #         self.workspaces_list.addItem(key=s)
-
-    #     run_layout.addWidget(QLabel("Workspace Name:"), 0, 0)
-    #     self.ws_name_linedt_2 = QLineEdit(self.workspace_config["workspace_name"])
-    #     self.ws_name_linedt_2.setAlignment(Qt.AlignLeft)
-    #     self.workspaces_list.setLineEdit(self.ws_name_linedt_2)
-
-    #     # run_layout.addWidget(self.ws_name_linedt_2, 0, 1)
-
-    #     run_layout.addWidget(self.workspaces_list, 0, 1)
-    #     run_layout.addWidget(advanced_button, 1, 0)
-    #     run_layout.addWidget(self.adv_run_fields, 2, 1)
-    #     run_layout.addWidget(self.run_button, 3, 1)
-    #     run_layout.addWidget(self.stop_button, 3, 0)
-    #     run_fields.setLayout(run_layout)
-
-    #     advanced_button.toggled.connect(self.toggle_advanced)
-    #     self.run_button.clicked.connect(self.run_clicked)
-    #     self.stop_button.clicked.connect(self.stop_clicked)
-
-    #     return run_fields
 
     def get_login_username(self):
         try:
@@ -753,18 +655,8 @@ class WorkspacesPlugin(Plugin):
 
     def refresh_chroot(self):
         pass
-        # workspaces = os.listdir(DataModel.g.CHROOT)
-        # self.workspaces_list.clear()
-        # for s in workspaces:
-        #     self.workspaces_list.addItem(key=s)
+        
 
-    @pyqtSlot()
-    def set_chroot(self):
-        CHROOT = self.given_chroot_linedt.text()
-        Config.update({"model": {"chroot": CHROOT}})
-        logger.debug(f"Setting CHROOT to {CHROOT}")
-        DataModel.g.CHROOT = CHROOT
-        self.refresh_chroot()
 
     @pyqtSlot()
     def launch_data_loader(self):
@@ -820,44 +712,48 @@ class WorkspacesPlugin(Plugin):
     def create_workspace_clicked(self):
         """Performs checks and coordinates workspace creation on button press."""
         logger.debug("Creating workspace: ")
-        # Set the path to the data file
-        vol_path = Path(self.data_filepth_linedt.text())
-        if not vol_path.is_file():
-            err_str = f"No data file exists at {vol_path}!"
-            logger.error(err_str)
-            self.button_feedback_response(err_str, self.create_workspace_button, "maroon")
-        else:
-            self.workspace_config["datasets_dir"] = str(vol_path.parent)
-            self.workspace_config["vol_fname"] = str(vol_path.name)
-            dataset_name = self.h5_intpth_linedt.text()
-            self.workspace_config["dataset_name"] = str(dataset_name).strip("/")
-            # Set the workspace name
-            ws_name = self.ws_name_linedt_1.text()
-            self.workspace_config["workspace_name"] = ws_name
-            # Set the downsample factor
-            ds_factor = self.downsample_spinner.value()
-            self.workspace_config["downsample_by"] = ds_factor
-            # Set the ROI limits if they exist
-            if self.roi_limits:
-                self.workspace_config["roi_limits"] = self.roi_limits
-            try:
-                response = init_ws(self.workspace_config)
-                _, error = response
-                if not error:
-                    self.button_feedback_response(
-                        "Workspace created sucessfully",
-                        self.create_workspace_button,
-                        "green",
-                    )
-                    # Update the workspace name in the 'Run' section
-                    self.ws_name_linedt_2.setText(self.ws_name_linedt_1.text())
-            except WorkspaceException as e:
-                logger.exception(e)
-                self.button_feedback_response(str(e), self.create_workspace_button, "maroon")
-            # self.refresh_chroot()
-            cfg.ppw.clientEvent.emit(
-                {"source": "workspaces_plugin", "data": "refresh_chroot", "value": None}
-            )
+        with progress(total=3) as pbar:
+            # Set the path to the data file
+            vol_path = Path(self.data_filepth_linedt.text())
+            if not vol_path.is_file():
+                err_str = f"No data file exists at {vol_path}!"
+                logger.error(err_str)
+                self.button_feedback_response(err_str, self.create_workspace_button, "maroon")
+            else:
+                self.workspace_config["datasets_dir"] = str(vol_path.parent)
+                self.workspace_config["vol_fname"] = str(vol_path.name)
+                dataset_name = self.h5_intpth_linedt.text()
+                self.workspace_config["dataset_name"] = str(dataset_name).strip("/")
+                # Set the workspace name
+                ws_name = self.ws_name_linedt_1.text()
+                self.workspace_config["workspace_name"] = ws_name
+                # Set the downsample factor
+                ds_factor = self.downsample_spinner.value()
+                self.workspace_config["downsample_by"] = ds_factor
+                # Set the ROI limits if they exist
+                if self.roi_limits:
+                    self.workspace_config["roi_limits"] = self.roi_limits
+                pbar.update(1)
+                try:
+                    response = init_ws(self.workspace_config)
+                    _, error = response
+                    if not error:
+                        self.button_feedback_response(
+                            "Workspace created sucessfully",
+                            self.create_workspace_button,
+                            "green",
+                        )
+                        # Update the workspace name in the 'Run' section
+                        self.ws_name_linedt_2.setText(self.ws_name_linedt_1.text())
+                except WorkspaceException as e:
+                    logger.exception(e)
+                    self.button_feedback_response(str(e), self.create_workspace_button, "maroon")
+                # self.refresh_chroot()
+                pbar.update(1)
+                cfg.ppw.clientEvent.emit(
+                    {"source": "workspaces_plugin", "data": "refresh_chroot", "value": None}
+                )
+                pbar.update(1)
 
     def button_feedback_response(self, message, button, colour_str, timeout=2):
         """Changes button colour and displays feedback message for a limited time period.
@@ -1025,16 +921,3 @@ class WorkspacesPlugin(Plugin):
         )
         cfg.ppw.clientEvent.emit({"source": "workspaces_plugin", "data": "refresh", "value": None})
 
-    # def start_client(self):
-    #     if not self.ssh_error:
-    #         self.button_feedback_response("Starting Client.", self.run_button, "green", 7)
-    #         self.run_config["server_ip"] = self.server_ip_linedt.text()
-    #         self.client_process = subprocess.Popen(
-    #             [
-    #                 "python",
-    #                 self.script_fullname,
-    #                 "nu_gui",
-    #                 self.run_config["workspace_name"],
-    #                 str(self.run_config["server_ip"]) + ":" + str(self.run_config["server_port"]),
-    #             ]
-    #         )

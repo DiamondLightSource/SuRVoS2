@@ -425,7 +425,7 @@ def grid_of_images_and_clicks(
     for i in range(n_rows):
         for j in range(n_cols):
             axarr[i, j].imshow(images[i * n_cols + j], cmap="gray", origin="lower")
-            axarr[i, j].set_title(img_titles[i * n_cols + j])
+            axarr[i, j].set_title(image_titles[i * n_cols + j])
             axarr[i, j].scatter([point[0]], [point[1]], c="red")
 
     plt.rcParams["axes.grid"] = False

@@ -245,10 +245,10 @@ def frontend(viewer):
 
     def setup_painting_layer(label_layer, msg, parent_level, parent_label_idx):
         if "anno_data" in cfg:
-            logger.debug(f"Anno data is of shape {cfg.anno_data}")
+            pass
         else:
             cfg.anno_data = label_layer.data
-            logger.debug(f"Anno data is initialized to shape {cfg.anno_data}")
+            
 
         if not hasattr(label_layer, "already_init"):
 

@@ -554,7 +554,7 @@ class AnalyzerCardBase(Card):
         self.entities_arr = np.array(entities)
 
     def display_component_results3(self, result):
-        print(f"display_component_results3: {result}")
+
         entities = []
         tabledata = []
 

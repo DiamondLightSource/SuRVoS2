@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from loguru import logger
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import QSize, Signal
 import subprocess
 from survos2.frontend.control import Launcher
@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
+from qtpy.QtWidgets import QFileDialog, QGridLayout, QGroupBox, QLabel
 from vispy import scene
 from survos2.frontend.components.base import HWidgets, Slider
 from survos2.frontend.plugins.base import list_plugins, get_plugin, PluginContainer, register_plugin
@@ -38,6 +38,8 @@ from survos2.model.model import DataModel
 from napari.qt.progress import progress
 from survos2.config import Config
 
+CHROOT = Config["model.chroot"]
+
 
 class ButtonPanelWidget(QtWidgets.QWidget):
     clientEvent = Signal(object)
@@ -45,7 +47,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         run_config = {
             "server_ip": "127.0.0.1",
-            "server_port": "8000",
+            "server_port": "8034",
             "workspace_name": "blank",
         }
         self.run_config = run_config
@@ -63,29 +65,29 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         button_transfer = QPushButton("Transfer Layer to Workspace")
         button_transfer.clicked.connect(self.button_transfer_clicked)
 
+        hbox_layout_chroot = QtWidgets.QHBoxLayout()
+        chroot_fields = self.get_chroot_fields()
+        hbox_layout_chroot.addWidget(chroot_fields)
+
+
+        hbox_layout_workspace = QtWidgets.QHBoxLayout()        
         workspaces = os.listdir(DataModel.g.CHROOT)
         workspaces.sort()
         self.workspaces_list = ComboBox()
         for s in workspaces:
             self.workspaces_list.addItem(key=s)
-        workspaces_widget = HWidgets("Workspace:", self.workspaces_list)
+        workspaces_widget = HWidgets(self.workspaces_list)
         self.workspaces_list.setEditable(True)
 
+        workspace_group = QGroupBox("Workspace:")
         hbox_layout_ws = QtWidgets.QHBoxLayout()
-        # hbox_layout_port = QtWidgets.QHBoxLayout()
-        hbox_layout_startstop = QtWidgets.QHBoxLayout()
-        hbox_layout1 = QtWidgets.QHBoxLayout()
-
         hbox_layout_ws.addWidget(workspaces_widget)
         hbox_layout_ws.addWidget(button_load_workspace)
+        workspace_group.setLayout(hbox_layout_ws)
+        hbox_layout_workspace.addWidget(workspace_group)
 
-        self.run_button = QPushButton("Start Server")
-        self.stop_button = QPushButton("Stop Server")
-        hbox_layout_startstop.addWidget(self.run_button)
-        hbox_layout_startstop.addWidget(self.stop_button)
-        self.run_button.clicked.connect(self.run_clicked)
-        self.stop_button.clicked.connect(self.stop_clicked)
 
+        hbox_layout1 = QtWidgets.QHBoxLayout()
         hbox_layout1.addWidget(button_transfer)
         hbox_layout1.addWidget(button_refresh)
         hbox_layout1.addWidget(button_clear_client)
@@ -95,7 +97,7 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.tabwidget = QTabWidget()
         vbox.addWidget(self.tabwidget)
 
-        self.tabs = [(QWidget(), t) for t in ["Main", "Histogram"]]
+        self.tabs = [(QWidget(), t) for t in ["Main", "Server", "Histogram"]]
 
         # create tabs for button/info panel
         tabs = []
@@ -106,23 +108,79 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             tabs.append(t)
 
         self.plotbox = VBox(self, spacing=1)
+        self.serverbox = VBox(self, spacing=1)
         self.display_histogram_plot(np.array([0, 1]))
 
-        # add tabs to button/info panel
-        tabs[0][0].layout.addLayout(hbox_layout_ws)
-
-        tabs[0][0].layout.addLayout(hbox_layout_startstop)
-        tabs[0][0].layout.addLayout(hbox_layout1)
         self.setup_adv_run_fields()
-        self.adv_run_fields.hide()
-        tabs[0][0].layout.addLayout(self.get_run_layout())
-
-        tabs[1][0].layout.addLayout(self.plotbox)
-
+        
+        # add tabs to button/info panel
+        tabs[0][0].layout.addLayout(hbox_layout_chroot)
+        tabs[0][0].layout.addLayout(hbox_layout_workspace)
+        tabs[0][0].layout.addLayout(hbox_layout1)
+        tabs[1][0].layout.addLayout(self.get_run_layout())
+        tabs[2][0].layout.addLayout(self.plotbox)
+        
         self.selected_workspace = self.workspaces_list.value()
         self.workspaces_list.blockSignals(True)
         self.workspaces_list.select(self.selected_workspace)
         self.workspaces_list.blockSignals(False)
+    
+    def get_chroot_fields(self):
+        chroot_fields = QGroupBox("Project Directory:")
+        chroot_fields.setMaximumHeight(60)
+        chroot_layout = QGridLayout()
+        self.given_chroot_linedt = QLineEdit(CHROOT)
+        select_chroot_path_btn = PushButton("Select Path")
+        select_chroot_path_btn.clicked.connect(self.select_chroot_path)
+
+        chroot_layout.addWidget(self.given_chroot_linedt, 1, 0, 1, 2)
+        set_chroot_button = QPushButton("Set Workspaces Root")
+        chroot_layout.addWidget(select_chroot_path_btn, 1, 2)
+        chroot_fields.setLayout(chroot_layout)
+        set_chroot_button.clicked.connect(self.set_chroot)
+        return chroot_fields
+    
+    def set_chroot(self):
+        CHROOT = self.given_chroot_linedt.text()
+        Config.update({"model": {"chroot": CHROOT}})
+        logger.debug(f"Setting CHROOT to {CHROOT}")
+        DataModel.g.CHROOT = CHROOT
+        self.refresh_workspaces()
+
+    def select_chroot_path(self):
+        full_path = QtWidgets.QFileDialog.getExistingDirectory(
+            self,
+            "Select project path",
+            ".",
+            options=QFileDialog.DontUseNativeDialog | QtWidgets.QFileDialog.ShowDirsOnly,
+        )
+        if isinstance(full_path, tuple):
+            full_path = full_path[0]
+        if full_path != "":
+            self.given_chroot_linedt.setText(full_path)
+            self.set_chroot()
+            cfg.bpw.refresh_workspaces()
+
+            # edit the settings file to store the chosen chroot path
+            import pathlib
+
+            import ruamel.yaml
+
+            current_path = pathlib.Path(__file__).parent.resolve()
+            yaml = ruamel.yaml.YAML()
+            yaml.preserve_quotes = True
+
+            settings_path = os.path.abspath(os.path.join(current_path, '..', '..', 'settings.yaml'))
+
+            with open(settings_path) as f:
+                settings = yaml.load(f)
+
+            for entry in settings:
+                if entry == "model":
+                    settings["model"]["chroot"] = full_path
+
+            with open(settings_path,"w") as f:
+                yaml.dump(settings, f)
 
     def toggle_advanced(self):
         """Controls displaying/hiding the advanced run fields on radio button toggle."""
@@ -135,17 +193,23 @@ class ButtonPanelWidget(QtWidgets.QWidget):
     def setup_adv_run_fields(self):
         """Sets up the QGroupBox that displays the advanced optiona for starting SuRVoS2."""
         self.adv_run_fields = QGroupBox()
-
         adv_run_layout = QGridLayout()
-        adv_run_layout.addWidget(QLabel("Server IP Address:"), 0, 0)
+        self.run_button = QPushButton("Start Server")
+        self.stop_button = QPushButton("Stop Server")
+        adv_run_layout.addWidget(self.run_button, 0, 0, 1, 2)
+        adv_run_layout.addWidget(self.stop_button, 0, 2, 1, 2)
+        self.run_button.clicked.connect(self.run_clicked)
+        self.stop_button.clicked.connect(self.stop_clicked)
+
+        adv_run_layout.addWidget(QLabel("Server IP Address:"), 1, 0, 1, 2)
         self.server_ip_linedt = QLineEdit(self.run_config["server_ip"])
-        adv_run_layout.addWidget(self.server_ip_linedt, 0, 1)
-        adv_run_layout.addWidget(QLabel("Server Port:"), 1, 0)
+        adv_run_layout.addWidget(self.server_ip_linedt, 1, 2, 1, 2)
+        adv_run_layout.addWidget(QLabel("Server Port:"), 2, 0, 1, 2)
         self.server_port_linedt = QLineEdit(self.run_config["server_port"])
-        adv_run_layout.addWidget(self.server_port_linedt, 1, 1)
+        adv_run_layout.addWidget(self.server_port_linedt, 2, 2, 1, 2)
 
         self.existing_button = QPushButton("Use Existing Server")
-        adv_run_layout.addWidget(self.existing_button, 2, 1)
+        adv_run_layout.addWidget(self.existing_button, 3, 2, 1, 2)
 
         self.existing_button.clicked.connect(self.existing_clicked)
         self.adv_run_fields.setLayout(adv_run_layout)
@@ -212,13 +276,9 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             PyQt5.QWidgets.GroupBox: GroupBox with run fields.
         """
 
-        advanced_button = QRadioButton("Advanced")
         run_layout = QGridLayout()
-
-        run_layout.addWidget(advanced_button, 2, 0)
         run_layout.addWidget(self.adv_run_fields, 3, 0)
-        advanced_button.toggled.connect(self.toggle_advanced)
-
+        
         return run_layout
 
     def refresh_workspaces(self):
@@ -287,6 +347,9 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         with progress(total=2) as pbar:
             pbar.set_description("Refreshing viewer")
             pbar.update(1)
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
+            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
+
 
             if "server_process" not in cfg:
                 self.run_clicked()
@@ -294,9 +357,15 @@ class ButtonPanelWidget(QtWidgets.QWidget):
             pbar.update(2)
 
             self.refresh_workspaces()
-            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
-            cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "refresh", "value": None})
 
+            search_str = self.selected_workspace
+            index = self.workspaces_list.findText(search_str, QtCore.Qt.MatchFixedString)
+            if index >= 0:
+                self.workspaces_list.setCurrentText(search_str)
+                logger.debug(f"Setting index of current workspaces to {index}")
+
+            #cfg.ppw.switch_tab_index(1)
+                
     def button_refresh_clicked(self):
         self.refresh_workspaces()
         cfg.ppw.clientEvent.emit({"source": "panel_gui", "data": "empty_viewer", "value": None})
@@ -356,8 +425,6 @@ class ButtonPanelWidget(QtWidgets.QWidget):
         self.setMinimumHeight(max_height)
         y, x, _ = self.plot.axes.hist(array, bins=256, color="gray", lw=0, ec="skyblue")
         self.plot.fig.set_facecolor((0.15, 0.15, 0.18))
-        # self.plot.fig.set_alpha(0.5)
-        # self.plot.axes.set_title(title)
         self.plot.axes.vlines(x=np.min(x), ymin=0, ymax=np.max(y), colors="w")
         self.plot.axes.vlines(x=np.max(x), ymin=0, ymax=np.max(y), colors="w")
 
@@ -404,8 +471,6 @@ class PluginPanelWidget(QtWidgets.QWidget):
                 pbar.update(1)
                 plugin = get_plugin(plugin_name)
                 name = plugin["name"]
-                title = plugin["title"]
-                plugin_cls = plugin["cls"]  # full classname
                 tab = plugin["tab"]
                 self.pluginContainer.show_plugin(name, tab)
 
@@ -438,6 +503,8 @@ class PluginPanelWidget(QtWidgets.QWidget):
         tab = plugin["tab"]
         self.pluginContainer.show_plugin_fast(name, tab)
 
+    def switch_tab_index(self, index):
+        self.pluginContainer.tabwidget.setCurrentIndex(index)
 
 class QtPlotWidget(QtWidgets.QWidget):
     def __init__(self):

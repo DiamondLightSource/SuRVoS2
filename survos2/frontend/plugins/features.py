@@ -273,15 +273,17 @@ class FeatureCard(CardWithId):
             self.add_row(widget)
 
             self.wavelet_threshold = RealSlider(value=0.0, vmax=128, vmin=0, n=2000)
-            widget = HWidgets(
+            
+            widget2 = HWidgets(
                 "Threshold:",
                 self.wavelet_threshold,
                 stretch=0,
             )
-            self.add_row(widget)
-            # self._add_params(fparams)
+            self.add_row(widget2)
+            self._add_param("level", "Int", default=1)
+
             self._add_btns()
-            self._add_param("level", "Int")
+
 
         elif self.feature_type == "feature_composite":
             self._add_feature_source()
@@ -431,9 +433,11 @@ class FeatureCard(CardWithId):
         for k, v in params.items():
             if k in self.widgets:
                 self.widgets[k].setValue(v)
+
         if self.feature_type == "wavelet":
-            if params["threshold"] is not None:
-                self.wavelet_threshold.setValue(float(params["threshold"]))
+            if "threshold" in params:
+                if params["threshold"] is not None:
+                    self.wavelet_threshold.setValue(float(params["threshold"]))
 
     def card_deleted(self):
         params = dict(feature_id=self.feature_id, workspace=True)

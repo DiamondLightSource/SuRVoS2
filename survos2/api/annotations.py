@@ -26,7 +26,7 @@ def pass_through(x):
 
 
 annotations = APIRouter()
-CHUNK_SIZE = Config["computing.chunk_size_sparse"]
+CHUNK_SIZE = Config["computing.chunk_size"]
 
 
 def to_label(idx=0, name="Label", color="#000000", visible=True, **kwargs):
@@ -171,6 +171,7 @@ def get_levels(workspace: str, full: bool = False):
 def rename_level(workspace: str, level: str, name: str, full: bool = False):
     ds = get_level(workspace, level, full)
     ds.set_metadata("name", name)
+    return {"done": "ok"}
 
 
 @annotations.get("/delete_level")

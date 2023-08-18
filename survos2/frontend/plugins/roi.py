@@ -88,7 +88,7 @@ class LoadDataDialog(QDialog):
         container.setLayout(hbox)
         container.setObjectName("loaderContainer")
         container.setStyleSheet(
-            "QWidget#loaderContainer {" "  background-color: #4e4e4e; " "  border-radius: 10px;" "}"
+            "QWidget#loaderContainer {" "  background-color: #9e9e9e; " "  border-radius: 10px;" "}"
         )
         lvbox = QVBoxLayout()
         rvbox = QVBoxLayout()
@@ -206,6 +206,7 @@ class LoadDataDialog(QDialog):
         idx = self.sender().value()
         self.slider_z_label.setNum(idx)
         self.canvas.redraw()
+        self.canvas.redraw()
 
     @pyqtSlot()
     def on_roi_reset_clicked(self):
@@ -311,7 +312,7 @@ class LoadDataDialog(QDialog):
         self.yend_linedt.setText(str(y_end))
         self.zstart_linedt.setText(str(z_start))
         self.zend_linedt.setText(str(z_end))
-        self.canvas.redraw()
+        #self.canvas.redraw()
 
     def clip_roi_box_vals(self, vals):
         """Clip ROI values to ensure that they lie within the data shape.
@@ -437,7 +438,7 @@ class LoadDataDialog(QDialog):
         self.canvas.ax.set_facecolor((1, 1, 1))
         self.canvas.ax.imshow(img[y_start:y_end, x_start:x_end], "gray")
         self.canvas.ax.grid(False)
-        # self.canvas.redraw()
+        self.canvas.redraw()
 
     def update_est_data_size(self, z_size, y_size, x_size):
         """Updates the estimated datasize label according to the dimensions and the downsampling factor.
@@ -463,26 +464,34 @@ class ROIPlugin(Plugin):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.vbox = VBox(self, spacing=10)
-        hbox_layout3 = QtWidgets.QHBoxLayout()
         self.roi_layout = QtWidgets.QVBoxLayout()
+
+        main_group_box = QGroupBox("Crop regions of interest:")
+        self.main_box_layout = QGridLayout()
 
         self._add_feature_source()
         self.annotations_source = LevelComboBox(full=True)
         self.annotations_source.fill()
         self.annotations_source.setMaximumWidth(250)
         widget = HWidgets("Annotation to copy:", self.annotations_source, stretch=1)
-        self.vbox.addWidget(widget)
+        self.main_box_layout.addWidget(widget)
         button_selectroi = QPushButton("Select ROI", self)
-        self.vbox.addWidget(button_selectroi)
+        self.main_box_layout.addWidget(button_selectroi)
         button_selectroi.clicked.connect(self._launch_data_loader)
-        self._add_boxes_source()
+        
+        boxes_widgets = self._add_boxes_source()
+        multiple_roi_group_box = QGroupBox("Multiple ROIs:")
+        multiple_roi_layout = QGridLayout()
+        multiple_roi_layout.addWidget(boxes_widgets)
 
-        # self.vbox.addLayout(self.roi_layout)
-        self.vbox.addLayout(hbox_layout3)
         self.existing_roi = {}
-        # self.roi_layout = VBox(margin=0, spacing=5)
+        
+        self.vbox.addWidget(main_group_box)
+        main_group_box.setLayout(self.main_box_layout)
+        self.vbox.addWidget(multiple_roi_group_box)
+        multiple_roi_group_box.setLayout(multiple_roi_layout)
         self.vbox.addLayout(self.roi_layout)
-
+        
     def _add_boxes_source(self):
         self.boxes_source = ObjectComboBox(full=True, filter=["boxes"])
         self.boxes_source.fill()
@@ -490,14 +499,14 @@ class ROIPlugin(Plugin):
         button_add_boxes_as_roi = QPushButton("Add Boxes as ROI", self)
         button_add_boxes_as_roi.clicked.connect(self.add_rois)
         widget = HWidgets("Select Boxes:", self.boxes_source, button_add_boxes_as_roi, stretch=1)
-        self.vbox.addWidget(widget)
+        return widget
 
     def _add_feature_source(self, label="Feature:"):
         self.feature_source = FeatureComboBox()
         self.feature_source.fill()
         self.feature_source.setMaximumWidth(250)
         widget = HWidgets(label, self.feature_source, stretch=1)
-        self.vbox.addWidget(widget)
+        self.main_box_layout.addWidget(widget)
 
     def _select_feature(self, feature_id):
         features_src = DataModel.g.dataset_uri(feature_id, group="features")
@@ -609,7 +618,7 @@ class ROIPlugin(Plugin):
         params = dict(workspace=DataModel.g.current_workspace)
         result = Launcher.g.run("workspace", "set_workspace", **params)
         result = Launcher.g.run("roi", "existing")
-        print(f"Result of roi existing: {result}")
+  
         if result:
             from survos2.api.workspace import add_dataset, add_data, delete, get
 

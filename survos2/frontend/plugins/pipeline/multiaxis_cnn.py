@@ -27,8 +27,8 @@ from survos2.frontend.plugins.pipeline.base import PipelineCardBase
 
 
 class TrainMultiaxisCNN(PipelineCardBase):
-    def __init__(self, fid, ftype, fname, fparams, parent=None):
-        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+    def __init__(self, fid, ftype, fname, fparams, parent=None, pipeline_notifier=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams, pipeline_notifier=pipeline_notifier)
 
     def setup(self):
         self._add_multi_ax_cnn_training_ws_widget()
@@ -323,12 +323,10 @@ class TrainMultiaxisCNN(PipelineCardBase):
 
 
 class PredictMultiaxisCNN(PipelineCardBase):
-    def __init__(self, fid, ftype, fname, fparams, parent=None):
-        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams)
+    def __init__(self, fid, ftype, fname, fparams, parent=None, pipeline_notifier=None):
+        super().__init__(fid=fid, ftype=ftype, fname=fname, fparams=fparams, pipeline_notifier=pipeline_notifier)
 
     def setup(self):
-        # self.annotations_source = LevelComboBox()
-        # self.annotations_source.hide()
         self._add_feature_source()
         self._add_multi_ax_2d_prediction_params()
         self._add_annotations_source()

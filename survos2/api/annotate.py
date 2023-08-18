@@ -105,24 +105,23 @@ def annotate_from_slice(dataset, region, source_slice, slice_num, viewer_order=(
         reg_t = reg
 
     label_idxs = np.unique(source_slice)
-    print(f"LABEL INDEXES: {label_idxs}")
-
+    
     for label_idx in label_idxs:
-        mask = np.zeros_like(reg_t).astype(np.uint32)
+        mask = np.zeros_like(reg_t).astype(np.uint8)
 
         slice_mask = (source_slice == label_idx) * 1
-        slice_mask = binary_erosion(slice_mask, iterations=2)
+        slice_mask = binary_erosion(slice_mask, iterations=3)
         masked_regions = slice_mask * reg[slice_num]
 
-        r = np.unique(masked_regions)
-        r = list(map(int, r))
+        r = list(np.unique(masked_regions).astype(np.uint32))
+        mask_slab = mask[slice_num-10:slice_num+10]
+        reg_t_slab = reg_t[slice_num-10:slice_num+10]
         for r_idx in r:
-            mask += reg_t == r_idx
+            mask_slab += reg_t_slab == r_idx
+
+        mask[slice_num-10:slice_num+10] = mask_slab
 
         mask = (mask > 0) * 1
-        print(f"MASK SHAPE: {mask.shape}")
-        print(ds_t.shape)
-
         mask = mask > 0
 
         ds_t = (ds_t & _MaskCopy) | (ds_t << _MaskSize)

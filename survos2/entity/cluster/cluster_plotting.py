@@ -81,42 +81,6 @@ def plot_clustered_img(
     print(txts)
 
 
-# def image_grid(
-#     image_list,
-#     n_cols,
-#     image_titles="",
-#     bigtitle="",
-#     figsize=(20, 20),
-#     color="black",
-# ):
-#     print(f"List of length {len(image_list)}")
-#     if len(image_list) < n_cols:
-#         show_images(image_list)
-#     else:
-#         n_rows = (len(image_list) // n_cols) + 1
-#         print(f"Number of rows: {n_rows}, Number of columns {n_cols}")
-#         images = [image_list[i] for i in range(len(image_list))]
-
-#         if image_titles == "":
-#             image_titles = [str(t) for t in list(range(len(images)))]
-
-#         f, axarr = plt.subplots(n_rows, n_cols, figsize=figsize)
-
-#         for i in range(n_rows):
-#             for j in range(n_cols):
-#                 index = i * n_cols + j
-#                 print(index)
-#                 if index < len(images):
-#                     axarr[i, j].imshow(images[index], cmap="gray")
-
-#                 axarr[i, j].grid(False)
-#                 # axarr[i, j].set_title(image_titles[i * n_cols + j], fontsize=10, color=color)
-#                 axarr[i, j].tick_params(
-#                     labeltop=False, labelleft=False, labelbottom=False, labelright=False
-#                 )
-#         f.suptitle(bigtitle, color=color)
-#     return f, axarr
-
 
 def image_grid(
     image_list,

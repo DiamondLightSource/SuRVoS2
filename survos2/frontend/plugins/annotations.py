@@ -119,8 +119,6 @@ class AnnotationPlugin(Plugin):
         self.btn_set = IconButton("fa.pencil", accent=True)
         self.btn_set.clicked.connect(self.set_sv)
 
-        cfg.three_dim_checkbox = CheckBox(checked=False)
-
         hbox.addWidget(self.label)
         hbox.addWidget(self.region)
         self.width = Slider(value=10, vmin=2, vmax=100, step=2, auto_accept=True)
@@ -150,6 +148,8 @@ class AnnotationPlugin(Plugin):
         self.hbox2.addWidget(self.button_pause_save)
         self.hbox2.addWidget(self.button_save_anno)
         self.hbox2.addWidget(self.button_annotation_from_slice)
+        self.from_slice_region = RegionComboBox(header=(None, "Select"), full=True)
+        self.hbox2.addWidget(self.from_slice_region)
         self.adv_run_fields.setLayout(self.hbox2)
 
     def on_created(self):
@@ -173,6 +173,11 @@ class AnnotationPlugin(Plugin):
             selected = self.btn_group.checkedButton()
             button.setChecked(button is selected)
 
+    def remove_all_levels(self):
+        for level in self.levels.copy():
+            self.levels.pop(level).setParent(None)
+        _AnnotationNotifier.notify()
+
     def remove_level(self, level):
         if level in self.levels:
             self.levels.pop(level).setParent(None)
@@ -195,25 +200,30 @@ class AnnotationPlugin(Plugin):
         )
 
     def annotation_from_slice_clicked(self):
-        slice_num = cfg.viewer.cursor.position[0]
-        params = dict(
-            target_level=self.label.value()["level"],
-            source_level=self.label.value()["level"],
-            region=os.path.basename(cfg.current_supervoxels),
-            slice_num=slice_num,
-            modal=False,
-            workspace=True,
-            viewer_order=cfg.viewer_order,
-        )
+        with progress(total=3) as pbar:
+            pbar.set_description("Viewing feature")
+            pbar.update(1)
+            slice_num = cfg.viewer.cursor.position[0]
+            params = dict(
+                target_level=self.label.value()["level"],
+                source_level=self.label.value()["level"],
+                region=os.path.basename(self.from_slice_region.value()),
+                slice_num=slice_num,
+                modal=False,
+                workspace=True,
+                viewer_order=cfg.viewer_order,
+            )
 
-        result = Launcher.g.run("annotations", "annotate_from_slice", json_transport=True, **params)
-        cfg.ppw.clientEvent.emit(
-            {
-                "source": "annotations",
-                "data": "paint_annotations",
-                "level_id": self.label.value()["level"],
-            }
-        )
+            result = Launcher.g.run("annotations", "annotate_from_slice", json_transport=True, **params)
+            pbar.update(1)
+            cfg.ppw.clientEvent.emit(
+                {
+                    "source": "annotations",
+                    "data": "paint_annotations",
+                    "level_id": self.label.value()["level"],
+                }
+            )
+            pbar.update(1)
 
     def button_pause_save_clicked(self):
         cfg.remote_annotation = not cfg.remote_annotation
@@ -225,21 +235,24 @@ class AnnotationPlugin(Plugin):
             cfg.prev_arr = np.zeros_like(cfg.prev_arr)
 
     def setup(self):
+        print("ANNO SETUP")
         params = dict(workspace=DataModel.g.current_session + "@" + DataModel.g.current_workspace)
         result = Launcher.g.run("annotations", "get_levels", **params)
+        self.remove_all_levels()
+
         if not result:
             return
-
-        # Remove levels that no longer exist in the server
-        rlevels = [r["id"] for r in result]
-        for level in list(self.levels.keys()):
-            if level not in rlevels:
-                self.remove_level(level)
-
+        
+        #Remove levels that no longer exist in the server
+        # rlevels = [r["id"] for r in result]
+        # for level in list(self.levels):
+        #     if level not in rlevels:
+        #         self.remove_level(level)
+        
         # Populate with new levels if any
         for level in result:
-            if level["id"] not in self.levels:
-                self._add_level_widget(level)
+            #if level["id"] not in self.levels:
+            self._add_level_widget(level)
 
     def timerEvent(self, event):
         self.killTimer(self.timer_id)
@@ -251,8 +264,7 @@ class AnnotationPlugin(Plugin):
         cfg.label_value = self.label.value()
         cfg.brush_size = self.width.value()
         logger.debug(f"set_sv {cfg.current_supervoxels}, {cfg.label_value}")
-        # cfg.three_dim = cfg.three_dim_checkbox.value()
-
+        
         if cfg.label_value is not None:
             # example 'label_value': {'level': '001_level', 'idx': 2, 'color': '#ff007f'}
             cfg.ppw.clientEvent.emit(
@@ -311,7 +323,12 @@ class AnnotationLevel(CardWithId):
 
     def card_title_edited(self, title):
         params = dict(level=self.level_id, name=title, workspace=True)
-        return Launcher.g.run("annotations", "rename_level", **params)
+        result =  Launcher.g.run("annotations", "rename_level", **params)
+        
+        if result["done"]:
+            _AnnotationNotifier.notify()
+
+        return result["done"]
 
     def card_add_item(self):
         params = dict(level=self.level_id, workspace=True)

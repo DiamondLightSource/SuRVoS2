@@ -18,8 +18,8 @@ api:
   renderer: mpl
 computing:
   chunk_padding: 8
-  chunk_size: 10
-  chunk_size_sparse: 10
+  chunk_size: 8192
+  chunk_size_sparse: 64
   chunks: true
   scale: false
   stretch: false

@@ -242,6 +242,7 @@ class MplCanvas(QWidget):
             self.rs.set_active(True)
         else:
             self.rs.set_active(False)
+        self.redraw()
 
     def line_select_callback(self, eclick, erelease):
         self.roi_updated.emit(self.rs.extents)

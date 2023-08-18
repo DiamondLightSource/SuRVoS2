@@ -356,6 +356,8 @@ class PipelineCardBase(Card):
                     params["multi_ax_train_params"]["cyc_frozen"],
                     params["multi_ax_train_params"]["cyc_unfrozen"],
                 )
+        if "model_path" in params:
+            self.model_file_line_edit.setValue(params["model_path"])
 
     def card_deleted(self):
         params = dict(pipeline_id=self.pipeline_id, workspace=True)
