@@ -76,6 +76,7 @@ torchio
 torchmetrics
 tqdm
 traitlets
+transformers
 trio
 typing_extensions
 umap-learn
