@@ -5,9 +5,8 @@ A recent (e.g. A100) is recommended for deep learning segmentation on larger (e.
 
 Note, for Windows, MSVC Build Tools is required: https://visualstudio.microsoft.com/downloads/?q=build+tools.
 
-
-1. Check to see if CUDA is installed, currently 11.3 and 11.6 are recommended (see below). To
-check your CUDA installation see the CUDA instructions at the bottom of this document.
+1. Check to see if CUDA is installed, currently Pytorch for CUDA 11.7 is recommended (see below). However, this can be used on CUDA versions that differ
+by a few point releases (e.g. 11.4 works). To check your CUDA installation see the CUDA instructions at the bottom of this document.
 
 2. Create a folder (on the Desktop for example) to download the survos2 installer.
 The actual survos2 application will be installed in the miniconda environment later.
@@ -70,6 +69,70 @@ and activate it:
 
 
 5. Perform the survos2 pip installs using:
+        $ pip install -r requirements.txt
+
+5b. Check to see if the Pytorch version installed uses CUDA
+
+	% python
+	>>> import torch
+	>>> torch.__version__
+	e.g. '2.0.0+cu117' implies that Pytorch for CUDA 11.7 is used.
+
+If not go to https://pytorch.org/get-started/locally/  to get the command
+required to install the appropriate version of Pytorch for your CUDA.
+
+6. Build survos2 cython + cuda stuff:
+
+	$ python3 ./survos2/improc/setup.py build_ext --inplace
+
+7. Create a folder for the <survos2 workspace>
+(For a central installation remember to make this somewhere that is readable to everyone)]
+	
+8. Edit settings.yaml file. Change the CHROOT to <survos2 workspace>.
+	
+
+9. Install SuRVoS plugin for Napari
+
+	$ pip install -e .
+	
+	Installation should be completed.
+	The '-e' will install in development mode.
+	
+
+10. Run SuRVoS by starting Napari
+
+	$ napari
+
+	Then select the Workspace (SuRVoS2) plugin from the Plugins menu.
+
+----------------------------------------------------------------------------------------------------------
+
+CUDA INSTALLATION
+
+Before the installation of SuRVoS, if GPU support is desired please check that either one of the
+following CUDA versions is installed:
+
+ * CUDA 10.2 (you can install it by following this link https://developer.nvidia.com/cuda-10.2-download-archive)
+ * CUDA 11.3 (you can install it by following this link https://developer.nvidia.com/cuda-11-3-1-download-archive)
+ * CUDA 11.6 (you can install it by following this https://developer.nvidia.com/cuda-11-6-2-download-archive)
+ * CUDA 11.7 (you can install it by following this https://developer.nvidia.com/cuda-11-7-1-download-archive)
+ * CUDA 11.8 (you can install it by following this https://developer.nvidia.com/cuda-11-8-0-download-archive)
+
+To verify that one of the CUDA versions above is installed and available for use run the following command:
+
+	$ nvcc --version
+
+Additionally, you may also include the cuDNN library in your CUDA installation for improved performance
+during the training and inference of neural networks.
+
+You can download cuDNN from here https://developer.nvidia.com/rdp/cudnn-download
+An installation guide on how to include it in your CUDA install can be found here
+https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html
+
+If once of the above CUDA versions is installed or if GPU support is not needed, please continue
+with the SuRVoS 2 installation guide above.
+
+EXAMPLE EDITING REQURIEMENTS TO USE A DIFFERENT VERSION OF PYTORCH
 
 Below depending on the CUDA version / No GPU support, some 'sed' commands have to be executed in Linux or
 some get-content set-content commands in Windows
@@ -159,53 +222,3 @@ does the same in windows
     $ python3 -m pip install -r requirements_windows.txt --index-url https://download.pytorch.org/whl/cu118
 
 
-6. Build survos2 cython + cuda stuff:
-
-	$ python3 ./survos2/improc/setup.py build_ext --inplace
-
-7. Create a folder for the <survos2 workspace>
-(For a central installation remember to make this somewhere that is readable to everyone)]
-	
-8. Edit settings.yaml file. Change the CHROOT to <survos2 workspace>.
-	
-
-9. Install SuRVoS plugin for Napari
-
-	$ pip install -e .
-	
-	Installation should be completed.
-	The '-e' will install in development mode.
-	
-
-10. Run SuRVoS by starting Napari
-
-	$ napari
-
-	Then select the Workspace (SuRVoS2) plugin from the Plugins menu.
-
---------------------------------------------------------------------------------------
-
-CUDA INSTALLATION
-
-Before the installation of SuRVoS, if GPU support is desired please check that either one of the
-following CUDA versions is installed:
-
- * CUDA 10.2 (you can install it by following this link https://developer.nvidia.com/cuda-10.2-download-archive)
- * CUDA 11.3 (you can install it by following this link https://developer.nvidia.com/cuda-11-3-1-download-archive)
- * CUDA 11.6 (you can install it by following this https://developer.nvidia.com/cuda-11-6-2-download-archive)
- * CUDA 11.7 (you can install it by following this https://developer.nvidia.com/cuda-11-7-1-download-archive)
- * CUDA 11.8 (you can install it by following this https://developer.nvidia.com/cuda-11-8-0-download-archive)
-
-To verify that one of the CUDA versions above is installed and available for use run the following command:
-
-	$ nvcc --version
-
-Additionally, you may also include the cuDNN library in your CUDA installation for improved performance
-during the training and inference of neural networks.
-
-You can download cuDNN from here https://developer.nvidia.com/rdp/cudnn-download
-An installation guide on how to include it in your CUDA install can be found here
-https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html
-
-If once of the above CUDA versions is installed or if GPU support is not needed, please continue
-with the SuRVoS 2 installation guide above.
